@@ -1,28 +1,43 @@
-export default function ScoreRing({ score, max = 100, label, color = 'var(--accent)', size = 72 }) {
-  const clamped = Math.min(Math.max(score, 0), max)
-  const radius = (size - 10) / 2
-  const circ = 2 * Math.PI * radius
-  const pct = clamped / max
-  const dash = pct * circ
+const steps = ['Locating address...', 'Fetching climate data...', 'Pulling market context...', 'Running AI analysis...', 'Building your report...']
 
+export default function LoadingState({ step = 0 }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-      <div style={{ position: 'relative', width: size, height: size }}>
-        <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-          <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth={5} />
-          <circle
-            cx={size/2} cy={size/2} r={radius}
-            fill="none" stroke={color} strokeWidth={5}
-            strokeDasharray={`${dash} ${circ - dash}`}
-            strokeLinecap="round"
-            style={{ transition: 'stroke-dasharray 1.2s cubic-bezier(0.16, 1, 0.3, 1)', filter: `drop-shadow(0 0 5px ${color})` }}
-          />
-        </svg>
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <span style={{ fontSize: size * 0.24, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.03em', fontFamily: 'Syne, sans-serif' }}>{Math.round(clamped)}</span>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 20px', gap: 28 }}>
+      <div style={{ position: 'relative', width: 52, height: 52 }}>
+        <div style={{
+          position: 'absolute', inset: 0,
+          border: '1.5px solid rgba(124,92,252,0.15)',
+          borderTopColor: 'var(--accent)',
+          borderRadius: '50%',
+          animation: 'spin 0.8s linear infinite',
+          boxShadow: '0 0 16px rgba(124,92,252,0.4)',
+        }} />
+        <div style={{
+          position: 'absolute', inset: 9,
+          border: '1.5px solid rgba(185,138,255,0.1)',
+          borderBottomColor: 'var(--accent-2)',
+          borderRadius: '50%',
+          animation: 'spin 1.3s linear infinite reverse',
+        }} />
+      </div>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, letterSpacing: '-0.03em', fontFamily: 'Syne, sans-serif' }}>
+          Analyzing property
+        </div>
+        <div style={{ fontSize: 13, color: 'var(--text-2)', animation: 'pulse 1.5s ease infinite' }}>
+          {steps[Math.min(step, steps.length - 1)]}
         </div>
       </div>
-      <div style={{ fontSize: 10, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'DM Sans, sans-serif' }}>{label}</div>
+      <div style={{ display: 'flex', gap: 5 }}>
+        {steps.map((_, i) => (
+          <div key={i} style={{
+            width: i === step ? 22 : 5, height: 3, borderRadius: 2,
+            background: i <= step ? 'var(--accent)' : 'rgba(255,255,255,0.08)',
+            transition: 'all 0.3s ease',
+            boxShadow: i === step ? '0 0 8px var(--accent-glow)' : 'none',
+          }} />
+        ))}
+      </div>
     </div>
   )
 }
