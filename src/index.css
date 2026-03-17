@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Cal+Sans&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap');
 
 *, *::before, *::after {
   box-sizing: border-box;
@@ -7,63 +7,65 @@
 }
 
 :root {
-  --bg: #080c14;
-  --bg-2: #0d1220;
-  --bg-3: #111827;
-  --glass: rgba(255, 255, 255, 0.04);
-  --glass-hover: rgba(255, 255, 255, 0.07);
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --glass-border-hover: rgba(255, 255, 255, 0.15);
-  --text: #f1f5f9;
-  --text-2: #94a3b8;
-  --text-3: #475569;
-  --accent: #3b82f6;
-  --accent-dim: rgba(59, 130, 246, 0.12);
-  --accent-glow: rgba(59, 130, 246, 0.25);
-  --cyan: #06b6d4;
-  --cyan-dim: rgba(6, 182, 212, 0.1);
-  --green: #10b981;
-  --green-dim: rgba(16, 185, 129, 0.1);
-  --red: #ef4444;
-  --red-dim: rgba(239, 68, 68, 0.1);
-  --amber: #f59e0b;
-  --radius: 14px;
-  --radius-sm: 10px;
-  --radius-lg: 20px;
+  --bg: #0a0812;
+  --bg-2: #100d1f;
+  --bg-3: #16122a;
+  --glass: rgba(255,255,255,0.03);
+  --glass-hover: rgba(255,255,255,0.06);
+  --glass-border: rgba(255,255,255,0.07);
+  --glass-border-hover: rgba(255,255,255,0.14);
+  --text: #f0eeff;
+  --text-2: #9b93c4;
+  --text-3: #4a4570;
+  --accent: #7c5cfc;
+  --accent-2: #b98aff;
+  --accent-dim: rgba(124,92,252,0.12);
+  --accent-glow: rgba(124,92,252,0.3);
+  --lime: #c8f03a;
+  --cyan: #40e0d0;
+  --green: #34d399;
+  --green-dim: rgba(52,211,153,0.1);
+  --red: #f87171;
+  --red-dim: rgba(248,113,113,0.1);
+  --amber: #fbbf24;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-lg: 18px;
 }
 
 html { scroll-behavior: smooth; }
 
 body {
-  font-family: 'Inter', -apple-system, sans-serif;
+  font-family: 'DM Sans', -apple-system, sans-serif;
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   background-image:
-    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(59,130,246,0.12) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 40% at 80% 80%, rgba(6,182,212,0.06) 0%, transparent 50%);
+    radial-gradient(ellipse 100% 60% at 70% -10%, rgba(124,92,252,0.18) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 10% 90%, rgba(64,224,208,0.06) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 50% at 90% 60%, rgba(185,138,255,0.08) 0%, transparent 50%);
   background-attachment: fixed;
 }
 
 h1, h2, h3 {
-  font-family: 'Inter', sans-serif;
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.03em;
 }
 
 input, button, select, textarea {
-  font-family: inherit;
+  font-family: 'DM Sans', sans-serif;
 }
 
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+::-webkit-scrollbar-thumb { background: rgba(124,92,252,0.3); border-radius: 2px; }
 
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(20px); }
+  from { opacity: 0; transform: translateY(24px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
@@ -74,7 +76,7 @@ input, button, select, textarea {
 
 @keyframes pulse {
   0%, 100% { opacity: 1; }
-  50%       { opacity: 0.4; }
+  50%       { opacity: 0.35; }
 }
 
 @keyframes spin {
@@ -82,13 +84,13 @@ input, button, select, textarea {
   to   { transform: rotate(360deg); }
 }
 
-@keyframes gradientShift {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
 }
 
 .fade-up {
-  animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .skeleton {
@@ -96,12 +98,4 @@ input, button, select, textarea {
   background-size: 600px 100%;
   animation: shimmer 1.6s infinite;
   border-radius: var(--radius-sm);
-}
-
-/* Glass card base */
-.glass {
-  background: var(--glass);
-  border: 1px solid var(--glass-border);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
 }
