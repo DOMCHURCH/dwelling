@@ -130,6 +130,9 @@ CRITICAL INSTRUCTIONS FOR ACCURACY:
 - For bedroom count: affluent suburban homes in the US typically have 4-6 bedrooms
 - Base your estimate on actual comparable sales in THAT specific zip code and neighborhood
 - If the address is in a known high-value area (e.g. Parker CO, Highlands Ranch CO, Scottsdale AZ, Newport Beach CA), reflect that in ALL estimates
+- ALL scores (walkScore, transitScore, safetyRating, schoolRating) must be 0-100, never exceed 100
+- investmentScore must be a realistic number 0-100, most properties score between 40-80
+- Do not return safetyRating or schoolRating as decimals like 8.5 — return them as integers 0-100 (e.g. 85)
 
 Respond ONLY with a valid JSON object with this exact structure:
 {
