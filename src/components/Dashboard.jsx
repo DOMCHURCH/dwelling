@@ -29,10 +29,10 @@ function BarMeter({ label, value, max, color = 'var(--accent)' }) {
   return (
     <div style={{ marginBottom: 12 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 5 }}>
-        <span style={{ color: 'var(--muted)' }}>{label}</span>
+        <span style={{ color: 'var(--text-2)' }}>{label}</span>
         <span style={{ color: 'var(--text)', fontWeight: 500 }}>{value}</span>
       </div>
-      <div style={{ height: 4, background: 'var(--border)', borderRadius: 2, overflow: 'hidden' }}>
+      <div style={{ height: 4, background: 'var(--glass-border)', borderRadius: 2, overflow: 'hidden' }}>
         <div style={{ width: `${p}%`, height: '100%', background: color, borderRadius: 2, transition: 'width 1s ease' }} />
       </div>
     </div>
@@ -50,7 +50,7 @@ function LinkButton({ href, label, icon }) {
         alignItems: 'center',
         gap: 7,
         padding: '9px 16px',
-        background: 'var(--bg-input)',
+        background: 'rgba(255,255,255,0.04)',
         border: '1px solid var(--border-active)',
         borderRadius: 'var(--radius-sm)',
         color: 'var(--accent)',
@@ -60,11 +60,11 @@ function LinkButton({ href, label, icon }) {
         transition: 'background 0.15s',
       }}
       onMouseEnter={e => e.currentTarget.style.background = 'var(--accent-dim)'}
-      onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-input)'}
+      onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
     >
       <span style={{ fontSize: 15 }}>{icon}</span>
       {label}
-      <span style={{ fontSize: 11, color: 'var(--muted)' }}>↗</span>
+      <span style={{ fontSize: 11, color: 'var(--text-2)' }}>↗</span>
     </a>
   )
 }
@@ -103,7 +103,7 @@ function IncomeSlider({ costOfLiving }) {
             style={{
               padding: '7px 18px',
               background: mode === m ? 'var(--accent)' : 'transparent',
-              color: mode === m ? '#0a0a08' : 'var(--muted)',
+              color: mode === m ? 'var(--bg)' : 'var(--text-2)',
               border: 'none',
               cursor: 'pointer',
               fontSize: 13,
@@ -120,7 +120,7 @@ function IncomeSlider({ costOfLiving }) {
       {/* Slider */}
       <div style={{ marginBottom: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 8 }}>
-          <span style={{ color: 'var(--muted)' }}>Your {mode} income</span>
+          <span style={{ color: 'var(--text-2)' }}>Your {mode} income</span>
           <span style={{ color: 'var(--accent)', fontWeight: 500, fontFamily: "'Playfair Display', serif", fontSize: 18 }}>
             {fmtUSD(income)}
           </span>
@@ -134,7 +134,7 @@ function IncomeSlider({ costOfLiving }) {
           onChange={e => setIncome(Number(e.target.value))}
           style={{ width: '100%', accentColor: 'var(--accent)' }}
         />
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--hint)', marginTop: 4 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-3)', marginTop: 4 }}>
           <span>{fmtUSD(mode === 'monthly' ? 1000 : 12000)}</span>
           <span>{fmtUSD(mode === 'monthly' ? 30000 : 360000)}</span>
         </div>
@@ -142,11 +142,11 @@ function IncomeSlider({ costOfLiving }) {
 
       {/* Income breakdown bar */}
       <div style={{ marginBottom: 20 }}>
-        <div style={{ height: 10, borderRadius: 5, overflow: 'hidden', background: 'var(--border)', display: 'flex' }}>
+        <div style={{ height: 10, borderRadius: 5, overflow: 'hidden', background: 'var(--glass-border)', display: 'flex' }}>
           <div style={{ width: `${Math.min(totalPct, 100)}%`, background: totalPct > 80 ? 'var(--red)' : totalPct > 50 ? 'var(--accent)' : 'var(--green)', transition: 'width 0.4s ease' }} />
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginTop: 6 }}>
-          <span style={{ color: 'var(--muted)' }}>
+          <span style={{ color: 'var(--text-2)' }}>
             Cost of living: <span style={{ color: totalPct > 80 ? 'var(--red)' : 'var(--text)', fontWeight: 500 }}>{totalPct}% of income</span>
           </span>
           <span style={{ color: remaining >= 0 ? 'var(--green)' : 'var(--red)', fontWeight: 500 }}>
@@ -162,10 +162,10 @@ function IncomeSlider({ costOfLiving }) {
           return (
             <div key={label} style={{ padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, marginBottom: 3 }}>
-                <span style={{ color: 'var(--muted)' }}>{label}</span>
+                <span style={{ color: 'var(--text-2)' }}>{label}</span>
                 <span style={{ fontWeight: 500 }}>{fmtUSD(value)}</span>
               </div>
-              <div style={{ fontSize: 11, color: 'var(--hint)' }}>{catPct}% of {mode} income</div>
+              <div style={{ fontSize: 11, color: 'var(--text-3)' }}>{catPct}% of {mode} income</div>
             </div>
           )
         })}
@@ -177,7 +177,7 @@ function IncomeSlider({ costOfLiving }) {
           accent={costOfLiving.indexVsUSAverage > 15 ? 'var(--red)' : costOfLiving.indexVsUSAverage < -15 ? 'var(--green)' : 'var(--text)'} />
       </div>
 
-      <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 14 }}>{costOfLiving.summary}</p>
+      <p style={{ fontSize: 13, color: 'var(--text-2)', marginTop: 14 }}>{costOfLiving.summary}</p>
     </div>
   )
 }
@@ -203,14 +203,14 @@ function CorrectionsPanel({ ai, knownFacts = {}, onRecalculate }) {
 
   const iStyle = {
     width: "100%", padding: "9px 12px",
-    background: "var(--bg-input)", border: "1px solid var(--border)",
+    background: "rgba(255,255,255,0.04)", border: "1px solid var(--border)",
     borderRadius: "var(--radius-sm)", color: "var(--text)",
     fontSize: 13, outline: "none",
   }
 
   return (
     <div style={{
-      background: "var(--bg-card)", border: "1px solid var(--border)",
+      background: "var(--glass)", border: "1px solid var(--border)",
       borderRadius: "var(--radius-lg)", padding: "16px 20px", marginBottom: 16,
     }}>
       <button onClick={() => setOpen(!open)} style={{
@@ -222,7 +222,7 @@ function CorrectionsPanel({ ai, knownFacts = {}, onRecalculate }) {
       </button>
       {open && (
         <div style={{ marginTop: 14 }}>
-          <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 12 }}>
+          <p style={{ fontSize: 12, color: "var(--text-2)", marginBottom: 12 }}>
             Enter the actual values you know. These override AI guesses and trigger a recalculation.
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10, marginBottom: 14 }}>
@@ -234,10 +234,10 @@ function CorrectionsPanel({ ai, knownFacts = {}, onRecalculate }) {
               { label: "Purchase price ($)", value: purchasePrice, set: setPurchasePrice },
             ].map(({ label, value, set }) => (
               <div key={label}>
-                <div style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 5 }}>{label}</div>
+                <div style={{ fontSize: 11, color: "var(--text-2)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 5 }}>{label}</div>
                 <input value={value} onChange={e => set(e.target.value)} style={iStyle}
-                  onFocus={e => e.target.style.borderColor = "var(--border-active)"}
-                  onBlur={e => e.target.style.borderColor = "var(--border)"} />
+                  onFocus={e => e.target.style.borderColor = "rgba(59,130,246,0.4)"}
+                  onBlur={e => e.target.style.borderColor = "var(--glass-border)"} />
               </div>
             ))}
           </div>
@@ -268,7 +268,7 @@ export default function Dashboard({ data, onRecalculate }) {
 
       {/* Address Banner */}
       <div className="fade-up" style={{
-        background: 'var(--bg-card)',
+        background: 'var(--glass)',
         border: '1px solid var(--border)',
         borderRadius: 'var(--radius-lg)',
         padding: '20px 24px',
@@ -285,7 +285,7 @@ export default function Dashboard({ data, onRecalculate }) {
           <div style={{ fontWeight: 500, fontSize: 15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {geo.displayName.split(',')[0]}
           </div>
-          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {geo.displayName}
           </div>
         </div>
@@ -293,16 +293,16 @@ export default function Dashboard({ data, onRecalculate }) {
           <div style={{ textAlign: 'right', flexShrink: 0 }}>
             <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20 }}>
               {tempC}°C
-              <span style={{ fontSize: 13, color: 'var(--hint)', marginLeft: 6 }}>/ {tempF}°F</span>
+              <span style={{ fontSize: 13, color: 'var(--text-3)', marginLeft: 6 }}>/ {tempF}°F</span>
             </div>
-            <div style={{ fontSize: 12, color: 'var(--muted)' }}>{weatherDesc}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-2)' }}>{weatherDesc}</div>
           </div>
         )}
       </div>
 
       {/* Google Maps Embed */}
       <div className="fade-up" style={{
-        background: 'var(--bg-card)',
+        background: 'var(--glass)',
         border: '1px solid var(--border)',
         borderRadius: 'var(--radius-lg)',
         overflow: 'hidden',
@@ -330,7 +330,7 @@ export default function Dashboard({ data, onRecalculate }) {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <Tag>Confidence: {propertyEstimate.confidenceLevel}</Tag>
-          <p style={{ fontSize: 13, color: 'var(--muted)', flex: 1, minWidth: 200 }}>{propertyEstimate.priceContext}</p>
+          <p style={{ fontSize: 13, color: 'var(--text-2)', flex: 1, minWidth: 200 }}>{propertyEstimate.priceContext}</p>
         </div>
       </SectionCard>
 
@@ -345,17 +345,17 @@ export default function Dashboard({ data, onRecalculate }) {
         <SectionCard title="Neighborhood" icon="🏘" delay={150}>
           <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: 20 }}>
             <ScoreRing score={neighborhood.walkScore} label="Walk" color="var(--accent)" />
-            <ScoreRing score={neighborhood.transitScore} label="Transit" color="var(--blue)" />
+            <ScoreRing score={neighborhood.transitScore} label="Transit" color="var(--cyan)" />
             <ScoreRing score={neighborhood.safetyRating} label="Safety" color="var(--green)" />
             <ScoreRing score={neighborhood.schoolRating} label="Schools" color="#c07ada" />
           </div>
-          <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 14 }}>{neighborhood.character}</p>
+          <p style={{ fontSize: 13, color: 'var(--text-2)', marginBottom: 14 }}>{neighborhood.character}</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
             {neighborhood.pros.map((p, i) => <Tag key={i} color="green">+ {p}</Tag>)}
             {neighborhood.cons.map((c, i) => <Tag key={i} color="red">− {c}</Tag>)}
           </div>
           <div style={{ fontSize: 13 }}>
-            <span style={{ color: 'var(--muted)' }}>Best for: </span>
+            <span style={{ color: 'var(--text-2)' }}>Best for: </span>
             <span style={{ color: 'var(--text)', fontWeight: 500 }}>{neighborhood.bestFor}</span>
           </div>
         </SectionCard>
@@ -364,13 +364,13 @@ export default function Dashboard({ data, onRecalculate }) {
           {climate && (
             <>
               <BarMeter label="Avg High" value={`${climate.avgHighC}°C`} max={50} color="var(--accent)" />
-              <BarMeter label="Avg Low" value={`${climate.avgLowC}°C`} max={50} color="var(--blue)" />
+              <BarMeter label="Avg Low" value={`${climate.avgLowC}°C`} max={50} color="var(--cyan)" />
               <BarMeter label="Avg Daily Precip" value={`${climate.avgPrecipMm}mm`} max={20} color="var(--green)" />
             </>
           )}
           {weather?.daily && (
             <div style={{ marginTop: 16 }}>
-              <div style={{ fontSize: 11, color: 'var(--hint)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>7-day forecast</div>
+              <div style={{ fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>7-day forecast</div>
               <div style={{ display: 'flex', gap: 6, overflowX: 'auto' }}>
                 {weather.daily.time.slice(0, 7).map((day, i) => {
                   const date = new Date(day)
@@ -380,13 +380,13 @@ export default function Dashboard({ data, onRecalculate }) {
                       flex: '0 0 auto',
                       textAlign: 'center',
                       padding: '8px 10px',
-                      background: i === 0 ? 'var(--accent-dim)' : 'var(--bg-input)',
+                      background: i === 0 ? 'var(--accent-dim)' : 'rgba(255,255,255,0.04)',
                       borderRadius: 'var(--radius-sm)',
                       minWidth: 50,
                     }}>
-                      <div style={{ fontSize: 11, color: i === 0 ? 'var(--accent)' : 'var(--muted)', marginBottom: 4 }}>{label}</div>
+                      <div style={{ fontSize: 11, color: i === 0 ? 'var(--accent)' : 'var(--text-2)', marginBottom: 4 }}>{label}</div>
                       <div style={{ fontSize: 13, fontWeight: 500 }}>{Math.round(weather.daily.temperature_2m_max[i])}°</div>
-                      <div style={{ fontSize: 11, color: 'var(--hint)' }}>{Math.round(weather.daily.temperature_2m_min[i])}°</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-3)' }}>{Math.round(weather.daily.temperature_2m_min[i])}°</div>
                     </div>
                   )
                 })}
@@ -405,19 +405,19 @@ export default function Dashboard({ data, onRecalculate }) {
           <StatCard label="Built Era" value={floorPlan.builtEra} />
         </div>
         <div style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>Architectural style</div>
+          <div style={{ fontSize: 12, color: 'var(--text-2)', marginBottom: 6 }}>Architectural style</div>
           <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontStyle: 'italic', color: 'var(--accent)' }}>{floorPlan.architecturalStyle}</div>
         </div>
-        <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>{floorPlan.typicalLayout}</p>
+        <p style={{ fontSize: 13, color: 'var(--text-2)', marginBottom: 16 }}>{floorPlan.typicalLayout}</p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 20 }}>
           {floorPlan.commonFeatures.map((f, i) => (
             <span key={i} style={{
               padding: '4px 12px',
-              background: 'var(--bg-input)',
+              background: 'rgba(255,255,255,0.04)',
               border: '1px solid var(--border)',
               borderRadius: 20,
               fontSize: 12,
-              color: 'var(--muted)',
+              color: 'var(--text-2)',
             }}>{f}</span>
           ))}
         </div>
@@ -430,15 +430,15 @@ export default function Dashboard({ data, onRecalculate }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 16 }}>
           <StatCard label="Rent Yield" value={`${investment.rentYieldPercent}%`} sub="annual gross" accent="var(--green)" />
           <StatCard label="Investment Score" value={`${investment.investmentScore}/100`} />
-          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '16px 18px' }}>
-            <div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Outlook</div>
+          <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '16px 18px' }}>
+            <div style={{ fontSize: 11, color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Outlook</div>
             <Tag color={investment.appreciationOutlook === 'bullish' ? 'green' : investment.appreciationOutlook === 'bearish' ? 'red' : 'var(--accent)'}>
               {investment.appreciationOutlook.toUpperCase()}
             </Tag>
           </div>
         </div>
-        <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 8 }}>{investment.appreciationOutlookText}</p>
-        <p style={{ fontSize: 13, color: 'var(--muted)' }}>{investment.investmentSummary}</p>
+        <p style={{ fontSize: 13, color: 'var(--text-2)', marginBottom: 8 }}>{investment.appreciationOutlookText}</p>
+        <p style={{ fontSize: 13, color: 'var(--text-2)' }}>{investment.investmentSummary}</p>
       </SectionCard>
 
       {/* Local Insights */}
@@ -448,7 +448,7 @@ export default function Dashboard({ data, onRecalculate }) {
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
           <div>
-            <div style={{ fontSize: 11, color: 'var(--hint)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Top Attractions</div>
+            <div style={{ fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Top Attractions</div>
             {localInsights.topAttractions.map((a, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: '1px solid var(--border)', fontSize: 13 }}>
                 <span style={{ color: 'var(--accent)', fontSize: 11, fontWeight: 500 }}>{String(i + 1).padStart(2, '0')}</span>
@@ -462,8 +462,8 @@ export default function Dashboard({ data, onRecalculate }) {
               <p style={{ fontSize: 13, color: 'var(--text)' }}>{localInsights.localTip}</p>
             </div>
             {localInsights.languageNote && (
-              <div style={{ padding: '14px 16px', background: 'var(--blue-dim)', borderRadius: 'var(--radius)', borderLeft: '3px solid var(--blue)' }}>
-                <div style={{ fontSize: 11, color: 'var(--blue)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Language</div>
+              <div style={{ padding: '14px 16px', background: 'var(--cyan-dim)', borderRadius: 'var(--radius)', borderLeft: '3px solid var(--blue)' }}>
+                <div style={{ fontSize: 11, color: 'var(--cyan)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Language</div>
                 <p style={{ fontSize: 13, color: 'var(--text)' }}>{localInsights.languageNote}</p>
               </div>
             )}
@@ -471,7 +471,7 @@ export default function Dashboard({ data, onRecalculate }) {
         </div>
       </SectionCard>
 
-      <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--hint)', padding: '8px 0' }}>
+      <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-3)', padding: '8px 0' }}>
         All property estimates and scores are AI-generated approximations for informational purposes only. Not financial or legal advice.
       </p>
     </div>
