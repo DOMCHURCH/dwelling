@@ -1,4 +1,4 @@
-const GROQ_BASE = 'https://api.groq.com/openai/v1/chat/completions'
+const GROQ_BASE = '/api/groq'
 const MODEL = 'llama-3.3-70b-versatile'
 
 async function groqChat(messages, json = false) {
