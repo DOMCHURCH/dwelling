@@ -1,8 +1,12 @@
 const BASE = 'https://nominatim.openstreetmap.org'
 
-export async function geocodeAddress(address) {
+// Structured geocode — uses separate fields so Nominatim finds the exact location
+export async function geocodeStructured({ street, city, state, country }) {
   const params = new URLSearchParams({
-    q: address,
+    street,
+    city,
+    state,
+    country,
     format: 'json',
     addressdetails: 1,
     limit: 1,
@@ -11,28 +15,16 @@ export async function geocodeAddress(address) {
     headers: { 'Accept-Language': 'en', 'User-Agent': 'DwellingApp/1.0' },
   })
   const data = await res.json()
-  if (!data.length) throw new Error('Address not found')
+  if (!data.length) throw new Error('Address not found — double-check the street, city, and country.')
   const r = data[0]
   return {
     lat: parseFloat(r.lat),
     lon: parseFloat(r.lon),
     displayName: r.display_name,
     address: r.address,
-    type: r.type,
-    importance: r.importance,
+    userStreet: street,
+    userCity: city,
+    userState: state,
+    userCountry: country,
   }
-}
-
-export async function autocompleteAddress(query) {
-  if (query.length < 3) return []
-  const params = new URLSearchParams({
-    q: query,
-    format: 'json',
-    addressdetails: 1,
-    limit: 5,
-  })
-  const res = await fetch(`${BASE}/search?${params}`, {
-    headers: { 'Accept-Language': 'en', 'User-Agent': 'DwellingApp/1.0' },
-  })
-  return res.json()
 }
