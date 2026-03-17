@@ -3,7 +3,6 @@ import SectionCard from './SectionCard'
 import StatCard from './StatCard'
 import ScoreRing from './ScoreRing'
 import { weatherCodeToDescription } from '../lib/weather'
-import { getAssessorLink, getZillowLink, getFloorPlanSearchLink } from '../lib/groq'
 
 const fmt = (n) => n?.toLocaleString('en-US', { maximumFractionDigits: 0 }) ?? '—'
 const fmtUSD = (n) => n != null ? `$${fmt(n)}` : '—'
@@ -264,10 +263,6 @@ export default function Dashboard({ data, onRecalculate }) {
   const tempF = tempC != null ? Math.round(tempC * 9 / 5 + 32) : null
   const weatherDesc = currentWeather ? weatherCodeToDescription(currentWeather.weather_code) : null
 
-  const assessorUrl = getAssessorLink(geo)
-  const zillowUrl = getZillowLink(geo)
-  const floorPlanSearchUrl = getFloorPlanSearchLink(geo)
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
@@ -303,6 +298,25 @@ export default function Dashboard({ data, onRecalculate }) {
             <div style={{ fontSize: 12, color: 'var(--muted)' }}>{weatherDesc}</div>
           </div>
         )}
+      </div>
+
+      {/* Google Maps Embed */}
+      <div className="fade-up" style={{
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-lg)',
+        overflow: 'hidden',
+        height: 280,
+      }}>
+        <iframe
+          title="Property Location"
+          width="100%"
+          height="100%"
+          style={{ border: 0, display: 'block' }}
+          loading="lazy"
+          allowFullScreen
+          src={`https://maps.google.com/maps?q=${encodeURIComponent([geo.userStreet, geo.userCity, geo.userState, geo.userCountry].filter(Boolean).join(', '))}&output=embed&z=16`}
+        />
       </div>
 
       <CorrectionsPanel ai={ai} knownFacts={knownFacts} onRecalculate={onRecalculate} />
@@ -408,18 +422,7 @@ export default function Dashboard({ data, onRecalculate }) {
           ))}
         </div>
 
-        {/* Public records + floor plan links */}
-        <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
-          <div style={{ fontSize: 11, color: 'var(--hint)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>View public records & floor plans</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-            <LinkButton href={assessorUrl} label="County Assessor" icon="🏛" />
-            <LinkButton href={zillowUrl} label="Zillow Listing" icon="🏡" />
-            <LinkButton href={floorPlanSearchUrl} label="Floor Plan Images" icon="📐" />
-          </div>
-          <p style={{ fontSize: 12, color: 'var(--hint)', marginTop: 10 }}>
-            County assessor records are public and available regardless of whether the property is listed for sale.
-          </p>
-        </div>
+
       </SectionCard>
 
       {/* Investment */}
