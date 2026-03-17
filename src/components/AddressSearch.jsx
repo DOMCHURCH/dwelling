@@ -10,7 +10,7 @@ const inputStyle = {
   fontSize: 14,
   outline: 'none',
   transition: 'border-color 0.2s, background 0.2s',
-  backdropFilter: 'blur(8px)',
+  fontFamily: 'DM Sans, sans-serif',
 }
 
 const labelStyle = {
@@ -21,6 +21,7 @@ const labelStyle = {
   letterSpacing: '0.12em',
   marginBottom: 6,
   fontWeight: 500,
+  fontFamily: 'DM Sans, sans-serif',
 }
 
 export default function AddressSearch({ onSearch, loading, compact }) {
@@ -52,19 +53,59 @@ export default function AddressSearch({ onSearch, loading, compact }) {
   }
 
   const isValid = street.trim() && city.trim() && country.trim()
-  const focus = e => { e.target.style.borderColor = 'rgba(59,130,246,0.4)'; e.target.style.background = 'rgba(255,255,255,0.06)' }
+  const focus = e => { e.target.style.borderColor = 'rgba(124,92,252,0.5)'; e.target.style.background = 'rgba(124,92,252,0.06)' }
   const blur = e => { e.target.style.borderColor = 'var(--glass-border)'; e.target.style.background = 'rgba(255,255,255,0.04)' }
 
+  if (compact) {
+    return (
+      <form onSubmit={handleSubmit}>
+        <div style={{
+          display: 'flex', gap: 10, flexWrap: 'wrap',
+          background: 'var(--glass)',
+          border: '1px solid var(--glass-border)',
+          borderRadius: 'var(--radius-lg)',
+          padding: '14px 16px',
+        }}>
+          {[
+            { val: street, set: setStreet, ph: 'Street address', flex: 2 },
+            { val: city, set: setCity, ph: 'City', flex: 1 },
+            { val: state, set: setState, ph: 'State/Province', flex: 1 },
+            { val: country, set: setCountry, ph: 'Country', flex: 1 },
+          ].map(({ val, set, ph, flex }) => (
+            <input key={ph} value={val} onChange={e => set(e.target.value)}
+              placeholder={ph} disabled={loading}
+              style={{ ...inputStyle, flex, minWidth: 100 }}
+              onFocus={focus} onBlur={blur} />
+          ))}
+          <button type="submit" disabled={loading || !isValid} style={{
+            padding: '11px 22px',
+            background: isValid && !loading ? 'var(--accent)' : 'rgba(255,255,255,0.05)',
+            border: 'none', borderRadius: 'var(--radius-sm)',
+            color: isValid && !loading ? '#fff' : 'var(--text-3)',
+            fontWeight: 500, fontSize: 13,
+            cursor: loading || !isValid ? 'not-allowed' : 'pointer',
+            whiteSpace: 'nowrap',
+            boxShadow: isValid && !loading ? '0 0 20px var(--accent-glow)' : 'none',
+            transition: 'all 0.2s',
+            fontFamily: 'DM Sans, sans-serif',
+          }}>
+            {loading ? 'Analyzing...' : 'Search →'}
+          </button>
+        </div>
+      </form>
+    )
+  }
+
   return (
-    <form onSubmit={handleSubmit} style={{ width: '100%', maxWidth: compact ? '100%' : 560, margin: '0 auto' }}>
+    <form onSubmit={handleSubmit}>
       <div style={{
-        background: 'var(--glass)',
+        background: 'rgba(255,255,255,0.03)',
         border: '1px solid var(--glass-border)',
         borderRadius: 'var(--radius-lg)',
-        padding: '20px',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)',
+        padding: '24px',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)',
       }}>
         <div style={{ marginBottom: 12 }}>
           <label style={labelStyle}>Street address</label>
@@ -81,14 +122,14 @@ export default function AddressSearch({ onSearch, loading, compact }) {
               style={inputStyle} onFocus={focus} onBlur={blur} />
           </div>
           <div>
-            <label style={labelStyle}>State / Province <span style={{ opacity: 0.5 }}>(optional)</span></label>
+            <label style={labelStyle}>State / Province <span style={{ opacity: 0.4 }}>(optional)</span></label>
             <input value={state} onChange={e => setState(e.target.value)}
               placeholder="e.g. Texas" disabled={loading}
               style={inputStyle} onFocus={focus} onBlur={blur} />
           </div>
         </div>
 
-        <div style={{ marginBottom: 14 }}>
+        <div style={{ marginBottom: 16 }}>
           <label style={labelStyle}>Country</label>
           <input value={country} onChange={e => setCountry(e.target.value)}
             placeholder="e.g. United States" disabled={loading}
@@ -96,33 +137,32 @@ export default function AddressSearch({ onSearch, loading, compact }) {
         </div>
 
         <button type="button" onClick={() => setShowDetails(!showDetails)} style={{
-          background: 'none', border: 'none', color: 'var(--accent)',
-          fontSize: 12, cursor: 'pointer', padding: '0 0 14px',
-          display: 'flex', alignItems: 'center', gap: 6, opacity: 0.8,
-          transition: 'opacity 0.2s',
+          background: 'none', border: 'none', color: 'var(--accent-2)',
+          fontSize: 12, cursor: 'pointer', padding: '0 0 16px',
+          display: 'flex', alignItems: 'center', gap: 7,
+          fontFamily: 'DM Sans, sans-serif',
+          opacity: 0.75, transition: 'opacity 0.2s',
         }}
           onMouseEnter={e => e.currentTarget.style.opacity = '1'}
-          onMouseLeave={e => e.currentTarget.style.opacity = '0.8'}
+          onMouseLeave={e => e.currentTarget.style.opacity = '0.75'}
         >
           <span style={{
-            width: 16, height: 16, borderRadius: '50%',
-            border: '1px solid rgba(59,130,246,0.4)',
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 11,
+            width: 18, height: 18, borderRadius: '50%',
+            border: '1px solid rgba(185,138,255,0.4)',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 12,
           }}>{showDetails ? '−' : '+'}</span>
-          {showDetails ? 'Hide known details' : 'Add known property details'} — improves accuracy
+          {showDetails ? 'Hide details' : 'Add known property details'} — improves accuracy
         </button>
 
         {showDetails && (
           <div style={{
-            background: 'rgba(59,130,246,0.04)',
-            border: '1px solid rgba(59,130,246,0.12)',
+            background: 'rgba(124,92,252,0.05)',
+            border: '1px solid rgba(124,92,252,0.15)',
             borderRadius: 'var(--radius)',
-            padding: '14px',
-            marginBottom: 14,
+            padding: '14px', marginBottom: 16,
           }}>
             <p style={{ fontSize: 11, color: 'var(--text-2)', marginBottom: 12, lineHeight: 1.6 }}>
-              Known facts override AI estimates. Purchase price is the strongest anchor for valuation accuracy.
+              Known facts override AI estimates. Purchase price is the strongest anchor for valuation.
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 10 }}>
               {[
@@ -145,23 +185,22 @@ export default function AddressSearch({ onSearch, loading, compact }) {
         )}
 
         <button type="submit" disabled={loading || !isValid} style={{
-          width: '100%', padding: '12px',
+          width: '100%', padding: '13px',
           background: isValid && !loading
-            ? 'linear-gradient(135deg, var(--accent) 0%, #2563eb 100%)'
-            : 'rgba(255,255,255,0.05)',
+            ? 'linear-gradient(135deg, var(--accent) 0%, #5b3de8 100%)'
+            : 'rgba(255,255,255,0.04)',
           border: isValid && !loading ? 'none' : '1px solid var(--glass-border)',
           borderRadius: 'var(--radius-sm)',
           color: isValid && !loading ? '#fff' : 'var(--text-3)',
-          fontWeight: 500, fontSize: 14,
+          fontWeight: 600, fontSize: 14,
           cursor: loading || !isValid ? 'not-allowed' : 'pointer',
           transition: 'all 0.2s',
           letterSpacing: '0.01em',
-          boxShadow: isValid && !loading ? '0 4px 16px rgba(59,130,246,0.3)' : 'none',
+          fontFamily: 'DM Sans, sans-serif',
+          boxShadow: isValid && !loading ? '0 8px 24px rgba(124,92,252,0.4)' : 'none',
         }}
           onMouseEnter={e => { if (isValid && !loading) e.currentTarget.style.transform = 'translateY(-1px)' }}
           onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)' }}
-          onMouseDown={e => { e.currentTarget.style.transform = 'translateY(0) scale(0.99)' }}
-          onMouseUp={e => { e.currentTarget.style.transform = 'translateY(-1px)' }}
         >
           {loading ? 'Analyzing...' : 'Analyze property →'}
         </button>
