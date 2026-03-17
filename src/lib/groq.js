@@ -30,162 +30,179 @@ async function groqChat(messages, json = false) {
 }
 
 const ASSESSOR_LINKS = {
-  'united states': (address) => {
-    const state = address?.state ?? ''
-    const county = address?.county ?? ''
+  'united states': (geo) => {
+    const state = (geo.userState ?? '').trim()
+    const city = (geo.userCity ?? '').trim()
+    const street = geo.userStreet ?? ''
     const stateMap = {
-      'Colorado': `https://www.assessor.${county.toLowerCase().replace(/ /g,'')}co.us`,
-      'California': `https://assessor.lacounty.gov`,
-      'Texas': `https://www.hcad.org`,
-      'Florida': `https://www.bcpa.net`,
-      'New York': `https://www.nyc.gov/site/finance/property/property-search.page`,
-      'Illinois': `https://www.cookcountyassessor.com`,
+      'Colorado': `https://www.google.com/search?q=${encodeURIComponent(street + ' ' + city + ' CO county assessor property record')}`,
+      'California': `https://www.google.com/search?q=${encodeURIComponent(street + ' ' + city + ' CA county assessor property record')}`,
+      'Texas': `https://www.google.com/search?q=${encodeURIComponent(street + ' ' + city + ' TX county appraisal district property record')}`,
+      'Florida': `https://www.google.com/search?q=${encodeURIComponent(street + ' ' + city + ' FL county property appraiser record')}`,
+      'New York': `https://www.google.com/search?q=${encodeURIComponent(street + ' ' + city + ' NY property assessment record')}`,
+      'Illinois': `https://www.cookcountyassessor.com/address-search`,
       'Washington': `https://blue.kingcounty.com/Assessor/eRealProperty/default.aspx`,
       'Arizona': `https://mcassessor.maricopa.gov`,
-      'Georgia': `https://qpublic.schneidercorp.com`,
+      'Georgia': `https://www.google.com/search?q=${encodeURIComponent(street + ' ' + city + ' GA county tax assessor property record')}`,
       'Nevada': `https://assessor.clarkcountynv.gov`,
     }
-    return stateMap[state] ?? `https://www.google.com/search?q=${encodeURIComponent(county + ' ' + state + ' county assessor property search')}`
+    return stateMap[state] ?? `https://www.google.com/search?q=${encodeURIComponent(street + ' ' + city + ' ' + state + ' county assessor property record')}`
   },
   'united kingdom': () => 'https://www.gov.uk/search-property-information-land-registry',
-  'canada': (address) => {
-    const province = address?.state ?? ''
+  'canada': (geo) => {
+    const province = (geo.userState ?? '').trim()
     const map = {
-      'Ontario': 'https://www.mpac.ca/en/UnderstandingYourAssessment/HowToReadYourPropertyAssessmentNotice',
-      'British Columbia': 'https://www.bcassessment.ca',
+      'Ontario': 'https://www.mpac.ca/en/CheckYourAssessment/AboutMyProperty',
+      'British Columbia': 'https://www.bcassessment.ca/Property/Search',
       'Alberta': 'https://www.alberta.ca/assessment-services.aspx',
       'Quebec': 'https://www.roles.montreal.qc.ca',
+      'Nova Scotia': 'https://www.pvsc.ca/en/home/propertysearch/default.aspx',
+      'Manitoba': 'https://www.gov.mb.ca/finance/propertytax/pubs/prop_ass_searching.pdf',
     }
-    return map[province] ?? 'https://www.google.com/search?q=property+assessment+' + encodeURIComponent(province)
+    return map[province] ?? `https://www.google.com/search?q=${encodeURIComponent((geo.userStreet ?? '') + ' ' + (geo.userCity ?? '') + ' ' + province + ' property assessment record')}`
   },
-  'australia': (address) => {
-    const state = address?.state ?? ''
+  'australia': (geo) => {
+    const state = (geo.userState ?? '').trim()
     const map = {
-      'New South Wales': 'https://www.valuergeneral.nsw.gov.au',
-      'Victoria': 'https://www.land.vic.gov.au',
+      'New South Wales': 'https://www.valuergeneral.nsw.gov.au/land_values/search_for_land_value',
+      'Victoria': 'https://www.land.vic.gov.au/valuations/find-a-valuation',
       'Queensland': 'https://www.qld.gov.au/environment/land/title/valuation',
-      'Western Australia': 'https://www.landgate.wa.gov.au',
+      'Western Australia': 'https://www.landgate.wa.gov.au/property-and-location/property-valuation',
+      'South Australia': 'https://www.sa.gov.au/topics/planning-and-property/land-and-property-information/land-valuation',
     }
-    return map[state] ?? 'https://www.google.com/search?q=property+records+' + encodeURIComponent(state + ' australia')
+    return map[state] ?? `https://www.google.com/search?q=${encodeURIComponent((geo.userStreet ?? '') + ' ' + (geo.userCity ?? '') + ' ' + state + ' property valuation')}`
   },
   'germany': () => 'https://www.grundbuch.de',
-  'france': () => 'https://www.cadastre.gouv.fr',
+  'france': () => 'https://www.cadastre.gouv.fr/scpc/rechercherPlan.do',
   'united arab emirates': () => 'https://dubailand.gov.ae/en/eServices/real-estate-services/',
   'japan': () => 'https://www.moj.go.jp/MINJI/minji05_00076.html',
-  'spain': () => 'https://www.registradores.org/actualidad/portal-estadistico-registral',
+  'spain': () => 'https://www.catastro.minhap.es/esp/busqueda_por_localidad.asp',
   'mexico': () => 'https://www.rppc.cdmx.gob.mx',
 }
 
-export function getAssessorLink(address) {
-  const country = (address?.country ?? '').toLowerCase()
+export function getAssessorLink(geo) {
+  const country = (geo.userCountry ?? geo.address?.country ?? '').toLowerCase().trim()
   const handler = ASSESSOR_LINKS[country]
   if (!handler) {
-    return `https://www.google.com/search?q=${encodeURIComponent((address?.country ?? '') + ' property public records ' + (address?.city ?? ''))}`
+    return `https://www.google.com/search?q=${encodeURIComponent((geo.userStreet ?? '') + ' ' + (geo.userCity ?? '') + ' ' + (geo.userCountry ?? '') + ' property public records assessor')}`
   }
-  return handler(address)
+  return handler(geo)
 }
 
-export function getZillowLink(displayName) {
-  const query = displayName.split(',').slice(0, 3).join(',')
-  return `https://www.zillow.com/homes/${encodeURIComponent(query)}_rb/`
+export function getZillowLink(geo) {
+  const parts = [geo.userStreet, geo.userCity, geo.userState].filter(Boolean).join(' ')
+  return `https://www.zillow.com/homes/${encodeURIComponent(parts)}_rb/`
 }
 
-export async function analyzeProperty(addressData, weatherData, climateData) {
-  const { displayName, address, lat, lon } = addressData
-  const country = address?.country ?? ''
-  const city = address?.city ?? address?.town ?? address?.village ?? ''
-  const state = address?.state ?? ''
-  const county = address?.county ?? ''
-  const road = address?.road ?? ''
-  const postcode = address?.postcode ?? ''
+export function getFloorPlanSearchLink(geo) {
+  const parts = [geo.userStreet, geo.userCity, geo.userState, geo.userCountry].filter(Boolean).join(' ')
+  return `https://www.google.com/search?q=${encodeURIComponent(parts + ' floor plan')}&tbm=isch`
+}
+
+export async function analyzeProperty(geoData, weatherData, climateData) {
+  const { address, lat, lon, userStreet, userCity, userState, userCountry } = geoData
+
+  const street = userStreet || address?.road || ''
+  const city = userCity || address?.city || address?.town || address?.village || ''
+  const state = userState || address?.state || ''
+  const country = userCountry || address?.country || ''
+  const postcode = address?.postcode || ''
+  const county = address?.county || ''
 
   const weatherSummary = weatherData?.current
-    ? `Current: ${weatherData.current.temperature_2m}°C, ${weatherData.current.relative_humidity_2m}% humidity`
+    ? `Current: ${weatherData.current.temperature_2m}C, feels like ${weatherData.current.apparent_temperature}C, ${weatherData.current.relative_humidity_2m}% humidity`
     : 'unavailable'
 
   const climateSummary = climateData
-    ? `5yr avg high: ${climateData.avgHighC}°C, avg low: ${climateData.avgLowC}°C, avg precip: ${climateData.avgPrecipMm}mm/day`
+    ? `5yr avg high: ${climateData.avgHighC}C, avg low: ${climateData.avgLowC}C, avg precip: ${climateData.avgPrecipMm}mm/day`
     : 'unavailable'
 
-  const prompt = `You are a senior real estate appraiser and market analyst with 20 years of experience. You have deep knowledge of property values, neighborhood characteristics, and real estate markets worldwide.
+  const prompt = `You are a senior real estate appraiser with 20 years of experience. Analyze this property and return a JSON report.
 
-PROPERTY LOCATION:
-Full address: ${displayName}
-Street: ${road}
+PROPERTY:
+Street: ${street}
 City: ${city}
-County: ${county}
 State/Province: ${state}
 Country: ${country}
 Postcode: ${postcode}
-Coordinates: ${lat}, ${lon}
+County: ${county}
+GPS: ${lat}, ${lon}
 Weather: ${weatherSummary}
-Climate (5yr normals): ${climateSummary}
+Climate: ${climateSummary}
 
-CRITICAL INSTRUCTIONS FOR ACCURACY:
-- Use your knowledge of THIS SPECIFIC neighborhood and street, not just the city average
-- For US properties, consider the specific suburb, school district, and ZIP code when estimating value
-- Luxury suburbs and gated communities command 2-5x the city average — account for this
-- Square footage for single family homes in affluent US suburbs typically ranges 2,500-6,000 sqft
-- Do NOT use city-wide averages for specific upscale neighborhoods — this causes severe underestimation
-- For bedroom count: affluent suburban homes in the US typically have 4-6 bedrooms
-- Base your estimate on actual comparable sales in THAT specific zip code and neighborhood
-- If the address is in a known high-value area (e.g. Parker CO, Highlands Ranch CO, Scottsdale AZ, Newport Beach CA), reflect that in ALL estimates
-- ALL scores (walkScore, transitScore, safetyRating, schoolRating) must be 0-100, never exceed 100
-- investmentScore must be a realistic number 0-100, most properties score between 40-80
-- Do not return safetyRating or schoolRating as decimals like 8.5 — return them as integers 0-100 (e.g. 85)
+RULES:
+- Use ONLY the exact city and state above for pricing. Do not substitute a nearby city.
+- For affluent US/Canada/Australia suburbs, homes are typically $600k-$2M+. Do not use city-wide averages.
+- Single family homes in affluent suburbs: 2500-5000 sqft, 4-6 bedrooms, 3-4 bathrooms.
+- All scores (walkScore, transitScore, safetyRating, schoolRating, investmentScore) must be integers from 0 to 100.
+- investmentScore for typical residential: 40-80 range.
+- appreciationOutlook must be exactly one of: bearish, neutral, bullish
+- confidenceLevel must be exactly one of: low, medium, high
 
-Respond ONLY with a valid JSON object with this exact structure:
+Return ONLY a JSON object with NO extra text, NO markdown, NO backticks. Just the raw JSON object starting with { and ending with }:
+
 {
   "propertyEstimate": {
-    "estimatedValueUSD": number,
-    "pricePerSqftUSD": number,
-    "rentEstimateMonthlyUSD": number,
-    "confidenceLevel": "low" | "medium" | "high",
-    "priceContext": "string (2-3 sentences explaining the estimate, referencing the specific neighborhood and comparable sales)"
+    "estimatedValueUSD": 950000,
+    "pricePerSqftUSD": 290,
+    "rentEstimateMonthlyUSD": 3800,
+    "confidenceLevel": "medium",
+    "priceContext": "Replace this with 2-3 sentences about comparable sales in the specific neighborhood."
   },
   "costOfLiving": {
-    "monthlyBudgetUSD": number,
-    "groceriesMonthlyUSD": number,
-    "transportMonthlyUSD": number,
-    "utilitiesMonthlyUSD": number,
-    "diningOutMonthlyUSD": number,
-    "indexVsUSAverage": number,
-    "summary": "string"
+    "monthlyBudgetUSD": 4200,
+    "groceriesMonthlyUSD": 700,
+    "transportMonthlyUSD": 300,
+    "utilitiesMonthlyUSD": 220,
+    "diningOutMonthlyUSD": 500,
+    "indexVsUSAverage": 18,
+    "summary": "Replace with a summary sentence."
   },
   "neighborhood": {
-    "character": "string (2-3 sentences describing the specific neighborhood vibe, not just the city)",
-    "walkScore": number,
-    "transitScore": number,
-    "safetyRating": number,
-    "schoolRating": number,
-    "pros": ["string", "string", "string"],
-    "cons": ["string", "string"],
-    "bestFor": "string"
+    "character": "Replace with 2-3 sentences about the neighborhood character.",
+    "walkScore": 45,
+    "transitScore": 30,
+    "safetyRating": 82,
+    "schoolRating": 88,
+    "pros": ["Good schools", "Safe streets", "Green spaces"],
+    "cons": ["Car dependent", "Limited nightlife"],
+    "bestFor": "Families and professionals"
   },
   "investment": {
-    "rentYieldPercent": number,
-    "appreciationOutlook": "bearish" | "neutral" | "bullish",
-    "appreciationOutlookText": "string",
-    "investmentScore": number,
-    "investmentSummary": "string"
+    "rentYieldPercent": 4.2,
+    "appreciationOutlook": "bullish",
+    "appreciationOutlookText": "Replace with outlook explanation.",
+    "investmentScore": 68,
+    "investmentSummary": "Replace with investment summary."
   },
   "floorPlan": {
-    "typicalSqft": number,
-    "typicalBedrooms": number,
-    "typicalBathrooms": number,
-    "architecturalStyle": "string",
-    "builtEra": "string",
-    "typicalLayout": "string (describe the typical floor plan layout for homes in this specific neighborhood — room flow, garage, basement, open plan etc)",
-    "commonFeatures": ["string", "string", "string", "string", "string"]
+    "typicalSqft": 3200,
+    "typicalBedrooms": 5,
+    "typicalBathrooms": 3,
+    "architecturalStyle": "Replace with style.",
+    "builtEra": "2000s",
+    "typicalLayout": "Replace with layout description.",
+    "commonFeatures": ["Hardwood floors", "Double garage", "Finished basement", "Open kitchen", "Main floor office"]
   },
   "localInsights": {
-    "topAttractions": ["string", "string", "string"],
-    "knownFor": "string",
-    "localTip": "string",
-    "languageNote": "string or null"
+    "topAttractions": ["Attraction 1", "Attraction 2", "Attraction 3"],
+    "knownFor": "Replace with what the area is known for.",
+    "localTip": "Replace with a local insider tip.",
+    "languageNote": null
   }
-}`
+}
+
+Fill in all placeholder values with accurate data for ${street}, ${city}, ${state}, ${country}.`
 
   const raw = await groqChat([{ role: 'user', content: prompt }], true)
-  return JSON.parse(raw)
+
+  let parsed
+  try {
+    parsed = JSON.parse(raw)
+  } catch (e) {
+    // Strip any accidental markdown fences and retry
+    const cleaned = raw.replace(/```json|```/g, '').trim()
+    parsed = JSON.parse(cleaned)
+  }
+  return parsed
 }
