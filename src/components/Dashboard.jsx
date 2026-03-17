@@ -2,6 +2,7 @@ import { useState } from 'react'
 import SectionCard from './SectionCard'
 import StatCard from './StatCard'
 import ScoreRing from './ScoreRing'
+import PriceHistoryChart from './PriceHistoryChart'
 import { weatherCodeToDescription } from '../lib/weather'
 
 const fmt = (n) => n?.toLocaleString('en-US', { maximumFractionDigits: 0 }) ?? '—'
