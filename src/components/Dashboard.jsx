@@ -319,14 +319,46 @@ export default function Dashboard({ data, onRecalculate }) {
         />
       </div>
 
+      {/* Share button */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: -8 }}>
+        <button
+          onClick={() => {
+            const addr = [geo.userStreet, geo.userCity, geo.userState, geo.userCountry].filter(Boolean).join(', ')
+            const subject = encodeURIComponent(`Property analysis: ${addr}`)
+            const body = encodeURIComponent(`Check out this property analysis I found on Dwelling:\n\nhttps://dwelling-homes.netlify.app\n\nAddress: ${addr}\n\nEstimated value: ${fmtUSD(ai.propertyEstimate.estimatedValueUSD)}\nRent estimate: ${fmtUSD(ai.propertyEstimate.rentEstimateMonthlyUSD)}/mo\nInvestment score: ${ai.investment.investmentScore}/100\n\nPowered by Dwelling — Property Intelligence`)
+            window.open(`mailto:?subject=${subject}&body=${body}`)
+          }}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 7,
+            padding: '8px 16px',
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid var(--glass-border)',
+            borderRadius: 100,
+            color: 'var(--text-2)',
+            fontSize: 12,
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            fontFamily: 'DM Sans, sans-serif',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(124,92,252,0.4)'; e.currentTarget.style.color = 'var(--accent-2)' }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.color = 'var(--text-2)' }}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+            <polyline points="22,6 12,13 2,6"/>
+          </svg>
+          Share via email
+        </button>
+      </div>
+
       <CorrectionsPanel ai={ai} knownFacts={knownFacts} onRecalculate={onRecalculate} />
 
       {/* Property Estimate */}
       <SectionCard title="Property Estimate" icon="🏠" delay={50}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 16 }}>
-          <StatCard label="Est. Value" value={fmtUSD(propertyEstimate.estimatedValueUSD)} sub="market estimate" accent="var(--accent)" />
+          <StatCard label="Est. Value" value={fmtUSD(propertyEstimate.estimatedValueUSD)} sub="market estimate" accent="var(--accent)" animate />
           <StatCard label="Price / sqft" value={fmtUSD(propertyEstimate.pricePerSqftUSD)} sub="avg for area" />
-          <StatCard label="Rent / month" value={fmtUSD(propertyEstimate.rentEstimateMonthlyUSD)} sub="typical rental" accent="var(--green)" />
+          <StatCard label="Rent / month" value={fmtUSD(propertyEstimate.rentEstimateMonthlyUSD)} sub="typical rental" accent="var(--green)" animate />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <Tag>Confidence: {propertyEstimate.confidenceLevel}</Tag>
@@ -340,7 +372,7 @@ export default function Dashboard({ data, onRecalculate }) {
       </SectionCard>
 
       {/* Neighborhood + Climate */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: 16 }}>
 
         <SectionCard title="Neighborhood" icon="🏘" delay={150}>
           <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: 20 }}>
@@ -424,6 +456,13 @@ export default function Dashboard({ data, onRecalculate }) {
 
 
       </SectionCard>
+
+      {/* Price History */}
+      {ai.priceHistory && (
+        <SectionCard title="Price History & Projection" icon="📊" delay={275}>
+          <PriceHistoryChart priceHistory={ai.priceHistory} />
+        </SectionCard>
+      )}
 
       {/* Investment */}
       <SectionCard title="Investment Analysis" icon="📈" delay={300}>
