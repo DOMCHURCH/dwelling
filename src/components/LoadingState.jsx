@@ -1,8 +1,8 @@
 const steps = [
-  'Geocoding address...',
+  'Locating address...',
   'Fetching climate data...',
-  'Pulling cost of living info...',
-  'Running AI property analysis...',
+  'Pulling market context...',
+  'Running AI analysis...',
   'Building your report...',
 ]
 
@@ -14,42 +14,47 @@ export default function LoadingState({ step = 0 }) {
       alignItems: 'center',
       justifyContent: 'center',
       padding: '80px 20px',
-      gap: 32,
+      gap: 28,
     }}>
-      <div style={{ position: 'relative', width: 60, height: 60 }}>
+      <div style={{ position: 'relative', width: 52, height: 52 }}>
         <div style={{
           position: 'absolute', inset: 0,
-          border: '2px solid var(--border)',
+          border: '1.5px solid rgba(59,130,246,0.15)',
           borderTopColor: 'var(--accent)',
           borderRadius: '50%',
-          animation: 'spin 0.9s linear infinite',
+          animation: 'spin 0.8s linear infinite',
+          boxShadow: '0 0 12px rgba(59,130,246,0.3)',
         }} />
         <div style={{
           position: 'absolute', inset: 8,
-          border: '2px solid var(--border)',
-          borderBottomColor: 'var(--accent)',
+          border: '1.5px solid rgba(6,182,212,0.15)',
+          borderBottomColor: 'var(--cyan)',
           borderRadius: '50%',
-          animation: 'spin 1.4s linear infinite reverse',
+          animation: 'spin 1.2s linear infinite reverse',
         }} />
       </div>
 
       <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: 20, fontFamily: "'Playfair Display', serif", marginBottom: 8 }}>
+        <div style={{
+          fontSize: 18, fontWeight: 600, marginBottom: 8,
+          letterSpacing: '-0.02em', color: 'var(--text)',
+        }}>
           Analyzing property
         </div>
-        <div style={{ fontSize: 14, color: 'var(--muted)', animation: 'pulse 1.5s ease infinite' }}>
+        <div style={{ fontSize: 13, color: 'var(--text-2)', animation: 'pulse 1.5s ease infinite' }}>
           {steps[Math.min(step, steps.length - 1)]}
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 6 }}>
+      <div style={{ display: 'flex', gap: 5 }}>
         {steps.map((_, i) => (
           <div key={i} style={{
-            width: i === step ? 20 : 6,
-            height: 4,
+            width: i === step ? 20 : 5,
+            height: 3,
             borderRadius: 2,
-            background: i <= step ? 'var(--accent)' : 'var(--border-active)',
+            background: i <= step ? 'var(--accent)' : 'rgba(255,255,255,0.1)',
             transition: 'all 0.3s ease',
+            boxShadow: i === step ? '0 0 6px var(--accent)' : 'none',
           }} />
         ))}
       </div>
