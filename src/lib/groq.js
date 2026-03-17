@@ -9,7 +9,7 @@ async function groqChat(messages, json = false) {
       model: MODEL,
       messages,
       temperature: 0.7,
-      max_tokens: 2400,
+      max_tokens: 8000,
       ...(json && { response_format: { type: 'json_object' } }),
     }),
   })
