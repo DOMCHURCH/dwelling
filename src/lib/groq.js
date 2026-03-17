@@ -133,6 +133,7 @@ async function selfConsistency(prompt) {
       commonFeatures: parsed[0].floorPlan.commonFeatures,
     },
     localInsights: parsed[0].localInsights,
+    priceHistory: parsed[0].priceHistory,
   }
 }
 
@@ -303,8 +304,33 @@ Return ONLY raw JSON, no markdown, no backticks:
     "knownFor": "What the area is known for.",
     "localTip": "Insider tip.",
     "languageNote": null
+  },
+  "priceHistory": {
+    "currency": "FILL_IN_LOCAL_CURRENCY_CODE_e.g_CAD_USD_GBP_AUD_EUR",
+    "currencySymbol": "FILL_IN_SYMBOL_e.g_$_£_€",
+    "data": [
+      {"year": 2019, "value": REPLACE_WITH_REAL_2019_ESTIMATE, "type": "historical"},
+      {"year": 2020, "value": REPLACE_WITH_REAL_2020_ESTIMATE, "type": "historical"},
+      {"year": 2021, "value": REPLACE_WITH_REAL_2021_ESTIMATE, "type": "historical"},
+      {"year": 2022, "value": REPLACE_WITH_REAL_2022_ESTIMATE, "type": "historical"},
+      {"year": 2023, "value": REPLACE_WITH_REAL_2023_ESTIMATE, "type": "historical"},
+      {"year": 2024, "value": REPLACE_WITH_REAL_2024_ESTIMATE, "type": "historical"},
+      {"year": 2025, "value": REPLACE_WITH_REAL_2025_ESTIMATE, "type": "projected"},
+      {"year": 2026, "value": REPLACE_WITH_REAL_2026_ESTIMATE, "type": "projected"},
+      {"year": 2027, "value": REPLACE_WITH_REAL_2027_ESTIMATE, "type": "projected"}
+    ],
+    "marketNote": "One sentence about what actually drove price changes in this specific market."
   }
 }
+
+PRICE HISTORY RULES:
+- Use real knowledge of ${city}, ${state}, ${country} market trends year by year
+- Reflect actual market events that happened in THAT city/region specifically — do NOT use generic national trends
+- Values must be realistic for the specific neighborhood, not city-wide averages
+- Account for real events: local housing booms, corrections, interest rate impacts, economic shifts in that region
+- Projected values should reflect current local market momentum — be conservative and honest
+- Replace ALL placeholder numbers with accurate estimates for ${street}, ${city}, ${state}, ${country}
+- The data array values MUST reflect the actual price trajectory of this specific neighborhood
 
 Fill ALL placeholder values with accurate data for ${street}, ${city}, ${state}, ${country}.`
 
