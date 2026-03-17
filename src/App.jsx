@@ -2,7 +2,7 @@ import { useState } from 'react'
 import AddressSearch from './components/AddressSearch'
 import LoadingState from './components/LoadingState'
 import Dashboard from './components/Dashboard'
-import { geocodeAddress } from './lib/nominatim'
+import { geocodeStructured } from './lib/nominatim'
 import { getCurrentWeather, getClimateNormals } from './lib/weather'
 import { analyzeProperty } from './lib/groq'
 
@@ -12,7 +12,7 @@ export default function App() {
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
 
-  const handleSearch = async (address) => {
+  const handleSearch = async ({ street, city, state, country }) => {
     setLoading(true)
     setError(null)
     setResult(null)
@@ -20,16 +20,13 @@ export default function App() {
 
     try {
       setLoadStep(0)
-      const geo = await geocodeAddress(address)
+      const geo = await geocodeStructured({ street, city, state, country })
 
       setLoadStep(1)
       const [weather, climate] = await Promise.all([
         getCurrentWeather(geo.lat, geo.lon),
         getClimateNormals(geo.lat, geo.lon),
       ])
-
-      setLoadStep(2)
-      // countriesnow data is baked into Groq prompt context
 
       setLoadStep(3)
       const ai = await analyzeProperty(geo, weather, climate)
@@ -46,8 +43,6 @@ export default function App() {
 
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', padding: '0 16px 80px' }}>
-
-      {/* Header */}
       <header style={{ padding: '48px 0 40px', textAlign: 'center' }}>
         <div style={{
           display: 'inline-block',
@@ -71,7 +66,6 @@ export default function App() {
         <AddressSearch onSearch={handleSearch} loading={loading} />
       </header>
 
-      {/* States */}
       {loading && <LoadingState step={loadStep} />}
 
       {error && (
@@ -90,11 +84,10 @@ export default function App() {
 
       {result && !loading && <Dashboard data={result} />}
 
-      {/* Empty state */}
       {!loading && !result && !error && (
         <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--hint)', fontSize: 13 }}>
           <div style={{ fontSize: 36, marginBottom: 12, opacity: 0.3 }}>◎</div>
-          Try searching for any address — Tokyo, London, New York, or your own street.
+          Fill in your address above — street, city, state/province, and country.
         </div>
       )}
     </div>
