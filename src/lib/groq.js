@@ -2,19 +2,13 @@ const GROQ_BASE = '/api/groq'
 const MODEL = 'llama-3.3-70b-versatile'
 
 async function groqChat(messages, json = false) {
-  const key = import.meta.env.VITE_GROQ_API_KEY
-  if (!key) throw new Error('Missing VITE_GROQ_API_KEY in .env')
-
   const res = await fetch(GROQ_BASE, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${key}`,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: MODEL,
       messages,
-      temperature: 0.2,
+      temperature: 0.7,
       max_tokens: 2400,
       ...(json && { response_format: { type: 'json_object' } }),
     }),
@@ -27,6 +21,119 @@ async function groqChat(messages, json = false) {
 
   const data = await res.json()
   return data.choices[0].message.content
+}
+
+// Physical plausibility constraints — catch obviously wrong AI outputs
+function validateEstimate(est, known) {
+  if (known.sqft) {
+    const minBeds = Math.floor(known.sqft / 500)
+    const maxBeds = Math.ceil(known.sqft / 150)
+    if (est.floorPlan.typicalBedrooms < minBeds) est.floorPlan.typicalBedrooms = minBeds
+    if (est.floorPlan.typicalBedrooms > maxBeds) est.floorPlan.typicalBedrooms = maxBeds
+    est.floorPlan.typicalSqft = known.sqft
+  }
+  if (known.beds) est.floorPlan.typicalBedrooms = known.beds
+  if (known.baths) est.floorPlan.typicalBathrooms = known.baths
+  if (known.yearBuilt) est.floorPlan.builtEra = `${known.yearBuilt}s`.replace(/(\d{3})\ds/, '$10s')
+
+  // If user knows purchase price, use it to sanity-check AI estimate
+  if (known.purchasePrice) {
+    const aiVal = est.propertyEstimate.estimatedValueUSD
+    const ratio = aiVal / known.purchasePrice
+    // If AI is off by more than 40%, anchor it closer to known price
+    if (ratio < 0.6 || ratio > 1.4) {
+      est.propertyEstimate.estimatedValueUSD = Math.round(known.purchasePrice * 1.05)
+      est.propertyEstimate.confidenceLevel = 'high'
+      est.propertyEstimate.priceContext = `Based on the known purchase price of $${known.purchasePrice.toLocaleString()}, current market value is estimated at a slight appreciation. ` + est.propertyEstimate.priceContext
+    }
+  }
+
+  // Cap scores at 100
+  const nb = est.neighborhood
+  nb.walkScore = Math.min(Math.max(Math.round(nb.walkScore), 0), 100)
+  nb.transitScore = Math.min(Math.max(Math.round(nb.transitScore), 0), 100)
+  nb.safetyRating = Math.min(Math.max(Math.round(nb.safetyRating), 0), 100)
+  nb.schoolRating = Math.min(Math.max(Math.round(nb.schoolRating), 0), 100)
+  est.investment.investmentScore = Math.min(Math.max(Math.round(est.investment.investmentScore), 0), 100)
+
+  return est
+}
+
+// Run 3 calls and take majority/median — much more accurate than single call
+async function selfConsistency(prompt) {
+  const calls = await Promise.all([
+    groqChat([{ role: 'user', content: prompt }], true),
+    groqChat([{ role: 'user', content: prompt }], true),
+    groqChat([{ role: 'user', content: prompt }], true),
+  ])
+
+  const parsed = calls.map(raw => {
+    try {
+      return JSON.parse(raw)
+    } catch {
+      return JSON.parse(raw.replace(/```json|```/g, '').trim())
+    }
+  }).filter(Boolean)
+
+  if (parsed.length === 0) throw new Error('All Groq calls failed to parse')
+  if (parsed.length === 1) return parsed[0]
+
+  // Aggregate: median for numbers, majority vote for strings
+  const median = (arr) => {
+    const s = [...arr].sort((a, b) => a - b)
+    return s[Math.floor(s.length / 2)]
+  }
+  const majority = (arr) => {
+    const counts = {}
+    arr.forEach(v => counts[v] = (counts[v] || 0) + 1)
+    return Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0]
+  }
+
+  return {
+    propertyEstimate: {
+      estimatedValueUSD: Math.round(median(parsed.map(p => p.propertyEstimate.estimatedValueUSD))),
+      pricePerSqftUSD: Math.round(median(parsed.map(p => p.propertyEstimate.pricePerSqftUSD))),
+      rentEstimateMonthlyUSD: Math.round(median(parsed.map(p => p.propertyEstimate.rentEstimateMonthlyUSD))),
+      confidenceLevel: majority(parsed.map(p => p.propertyEstimate.confidenceLevel)),
+      priceContext: parsed[0].propertyEstimate.priceContext,
+    },
+    costOfLiving: {
+      monthlyBudgetUSD: Math.round(median(parsed.map(p => p.costOfLiving.monthlyBudgetUSD))),
+      groceriesMonthlyUSD: Math.round(median(parsed.map(p => p.costOfLiving.groceriesMonthlyUSD))),
+      transportMonthlyUSD: Math.round(median(parsed.map(p => p.costOfLiving.transportMonthlyUSD))),
+      utilitiesMonthlyUSD: Math.round(median(parsed.map(p => p.costOfLiving.utilitiesMonthlyUSD))),
+      diningOutMonthlyUSD: Math.round(median(parsed.map(p => p.costOfLiving.diningOutMonthlyUSD))),
+      indexVsUSAverage: Math.round(median(parsed.map(p => p.costOfLiving.indexVsUSAverage))),
+      summary: parsed[0].costOfLiving.summary,
+    },
+    neighborhood: {
+      character: parsed[0].neighborhood.character,
+      walkScore: Math.round(median(parsed.map(p => p.neighborhood.walkScore))),
+      transitScore: Math.round(median(parsed.map(p => p.neighborhood.transitScore))),
+      safetyRating: Math.round(median(parsed.map(p => p.neighborhood.safetyRating))),
+      schoolRating: Math.round(median(parsed.map(p => p.neighborhood.schoolRating))),
+      pros: parsed[0].neighborhood.pros,
+      cons: parsed[0].neighborhood.cons,
+      bestFor: parsed[0].neighborhood.bestFor,
+    },
+    investment: {
+      rentYieldPercent: parseFloat(median(parsed.map(p => p.investment.rentYieldPercent)).toFixed(1)),
+      appreciationOutlook: majority(parsed.map(p => p.investment.appreciationOutlook)),
+      appreciationOutlookText: parsed[0].investment.appreciationOutlookText,
+      investmentScore: Math.round(median(parsed.map(p => p.investment.investmentScore))),
+      investmentSummary: parsed[0].investment.investmentSummary,
+    },
+    floorPlan: {
+      typicalSqft: Math.round(median(parsed.map(p => p.floorPlan.typicalSqft))),
+      typicalBedrooms: Math.round(median(parsed.map(p => p.floorPlan.typicalBedrooms))),
+      typicalBathrooms: parseFloat(median(parsed.map(p => p.floorPlan.typicalBathrooms)).toFixed(1)),
+      architecturalStyle: parsed[0].floorPlan.architecturalStyle,
+      builtEra: parsed[0].floorPlan.builtEra,
+      typicalLayout: parsed[0].floorPlan.typicalLayout,
+      commonFeatures: parsed[0].floorPlan.commonFeatures,
+    },
+    localInsights: parsed[0].localInsights,
+  }
 }
 
 const ASSESSOR_LINKS = {
@@ -56,8 +163,6 @@ const ASSESSOR_LINKS = {
       'British Columbia': 'https://www.bcassessment.ca/Property/Search',
       'Alberta': 'https://www.alberta.ca/assessment-services.aspx',
       'Quebec': 'https://www.roles.montreal.qc.ca',
-      'Nova Scotia': 'https://www.pvsc.ca/en/home/propertysearch/default.aspx',
-      'Manitoba': 'https://www.gov.mb.ca/finance/propertytax/pubs/prop_ass_searching.pdf',
     }
     return map[province] ?? `https://www.google.com/search?q=${encodeURIComponent((geo.userStreet ?? '') + ' ' + (geo.userCity ?? '') + ' ' + province + ' property assessment record')}`
   },
@@ -68,7 +173,6 @@ const ASSESSOR_LINKS = {
       'Victoria': 'https://www.land.vic.gov.au/valuations/find-a-valuation',
       'Queensland': 'https://www.qld.gov.au/environment/land/title/valuation',
       'Western Australia': 'https://www.landgate.wa.gov.au/property-and-location/property-valuation',
-      'South Australia': 'https://www.sa.gov.au/topics/planning-and-property/land-and-property-information/land-valuation',
     }
     return map[state] ?? `https://www.google.com/search?q=${encodeURIComponent((geo.userStreet ?? '') + ' ' + (geo.userCity ?? '') + ' ' + state + ' property valuation')}`
   },
@@ -83,9 +187,7 @@ const ASSESSOR_LINKS = {
 export function getAssessorLink(geo) {
   const country = (geo.userCountry ?? geo.address?.country ?? '').toLowerCase().trim()
   const handler = ASSESSOR_LINKS[country]
-  if (!handler) {
-    return `https://www.google.com/search?q=${encodeURIComponent((geo.userStreet ?? '') + ' ' + (geo.userCity ?? '') + ' ' + (geo.userCountry ?? '') + ' property public records assessor')}`
-  }
+  if (!handler) return `https://www.google.com/search?q=${encodeURIComponent((geo.userStreet ?? '') + ' ' + (geo.userCity ?? '') + ' ' + (geo.userCountry ?? '') + ' property public records assessor')}`
   return handler(geo)
 }
 
@@ -99,7 +201,7 @@ export function getFloorPlanSearchLink(geo) {
   return `https://www.google.com/search?q=${encodeURIComponent(parts + ' floor plan')}&tbm=isch`
 }
 
-export async function analyzeProperty(geoData, weatherData, climateData) {
+export async function analyzeProperty(geoData, weatherData, climateData, knownFacts = {}) {
   const { address, lat, lon, userStreet, userCity, userState, userCountry } = geoData
 
   const street = userStreet || address?.road || ''
@@ -110,14 +212,26 @@ export async function analyzeProperty(geoData, weatherData, climateData) {
   const county = address?.county || ''
 
   const weatherSummary = weatherData?.current
-    ? `Current: ${weatherData.current.temperature_2m}C, feels like ${weatherData.current.apparent_temperature}C, ${weatherData.current.relative_humidity_2m}% humidity`
+    ? `${weatherData.current.temperature_2m}C feels like ${weatherData.current.apparent_temperature}C, ${weatherData.current.relative_humidity_2m}% humidity`
     : 'unavailable'
 
   const climateSummary = climateData
     ? `5yr avg high: ${climateData.avgHighC}C, avg low: ${climateData.avgLowC}C, avg precip: ${climateData.avgPrecipMm}mm/day`
     : 'unavailable'
 
-  const prompt = `You are a senior real estate appraiser with 20 years of experience. Analyze this property and return a JSON report.
+  // Build known facts section — these are ground truth, not guesses
+  const knownLines = []
+  if (knownFacts.beds) knownLines.push(`CONFIRMED bedrooms: ${knownFacts.beds} (do not change this)`)
+  if (knownFacts.baths) knownLines.push(`CONFIRMED bathrooms: ${knownFacts.baths} (do not change this)`)
+  if (knownFacts.sqft) knownLines.push(`CONFIRMED square footage: ${knownFacts.sqft} sqft (do not change this)`)
+  if (knownFacts.yearBuilt) knownLines.push(`CONFIRMED year built: ${knownFacts.yearBuilt} (do not change this)`)
+  if (knownFacts.purchasePrice) knownLines.push(`CONFIRMED purchase price: $${knownFacts.purchasePrice.toLocaleString()} — use this as your primary anchor for current value estimation`)
+
+  const knownFactsSection = knownLines.length > 0
+    ? `\nCONFIRMED FACTS — treat these as ground truth, do not estimate differently:\n${knownLines.join('\n')}\n`
+    : '\nNo confirmed property facts provided — use your best estimate based on location and neighborhood.\n'
+
+  const prompt = `You are a senior real estate appraiser with 20 years of experience using the sales comparison approach. Analyze this specific property.
 
 PROPERTY:
 Street: ${street}
@@ -129,17 +243,17 @@ County: ${county}
 GPS: ${lat}, ${lon}
 Weather: ${weatherSummary}
 Climate: ${climateSummary}
+${knownFactsSection}
+ESTIMATION RULES:
+- Use ONLY the exact city and state above. Do not substitute a nearby city.
+- For affluent suburbs: single family homes are typically $600k-$2M+, do NOT use city-wide averages.
+- All scores must be integers 0-100. investmentScore realistic range: 40-80.
+- appreciationOutlook: exactly one of bearish, neutral, bullish.
+- confidenceLevel: exactly one of low, medium, high.
+- If purchase price is confirmed, current value should reflect reasonable appreciation from that anchor.
+- Be honest about uncertainty — use low confidence when you genuinely don't know.
 
-RULES:
-- Use ONLY the exact city and state above for pricing. Do not substitute a nearby city.
-- For affluent US/Canada/Australia suburbs, homes are typically $600k-$2M+. Do not use city-wide averages.
-- Single family homes in affluent suburbs: 2500-5000 sqft, 4-6 bedrooms, 3-4 bathrooms.
-- All scores (walkScore, transitScore, safetyRating, schoolRating, investmentScore) must be integers from 0 to 100.
-- investmentScore for typical residential: 40-80 range.
-- appreciationOutlook must be exactly one of: bearish, neutral, bullish
-- confidenceLevel must be exactly one of: low, medium, high
-
-Return ONLY a JSON object with NO extra text, NO markdown, NO backticks. Just the raw JSON object starting with { and ending with }:
+Return ONLY raw JSON, no markdown, no backticks:
 
 {
   "propertyEstimate": {
@@ -147,7 +261,7 @@ Return ONLY a JSON object with NO extra text, NO markdown, NO backticks. Just th
     "pricePerSqftUSD": 290,
     "rentEstimateMonthlyUSD": 3800,
     "confidenceLevel": "medium",
-    "priceContext": "Replace this with 2-3 sentences about comparable sales in the specific neighborhood."
+    "priceContext": "Write 2-3 sentences citing specific comparable sales in ${city}, ${state}."
   },
   "costOfLiving": {
     "monthlyBudgetUSD": 4200,
@@ -156,53 +270,44 @@ Return ONLY a JSON object with NO extra text, NO markdown, NO backticks. Just th
     "utilitiesMonthlyUSD": 220,
     "diningOutMonthlyUSD": 500,
     "indexVsUSAverage": 18,
-    "summary": "Replace with a summary sentence."
+    "summary": "One sentence summary."
   },
   "neighborhood": {
-    "character": "Replace with 2-3 sentences about the neighborhood character.",
+    "character": "2-3 sentences about this specific neighborhood.",
     "walkScore": 45,
     "transitScore": 30,
     "safetyRating": 82,
     "schoolRating": 88,
-    "pros": ["Good schools", "Safe streets", "Green spaces"],
-    "cons": ["Car dependent", "Limited nightlife"],
-    "bestFor": "Families and professionals"
+    "pros": ["pro 1", "pro 2", "pro 3"],
+    "cons": ["con 1", "con 2"],
+    "bestFor": "Who this area suits best."
   },
   "investment": {
     "rentYieldPercent": 4.2,
     "appreciationOutlook": "bullish",
-    "appreciationOutlookText": "Replace with outlook explanation.",
+    "appreciationOutlookText": "Explain the outlook.",
     "investmentScore": 68,
-    "investmentSummary": "Replace with investment summary."
+    "investmentSummary": "Investment summary."
   },
   "floorPlan": {
     "typicalSqft": 3200,
     "typicalBedrooms": 5,
     "typicalBathrooms": 3,
-    "architecturalStyle": "Replace with style.",
+    "architecturalStyle": "Style name.",
     "builtEra": "2000s",
-    "typicalLayout": "Replace with layout description.",
-    "commonFeatures": ["Hardwood floors", "Double garage", "Finished basement", "Open kitchen", "Main floor office"]
+    "typicalLayout": "Describe the typical floor plan layout.",
+    "commonFeatures": ["feature 1", "feature 2", "feature 3", "feature 4", "feature 5"]
   },
   "localInsights": {
-    "topAttractions": ["Attraction 1", "Attraction 2", "Attraction 3"],
-    "knownFor": "Replace with what the area is known for.",
-    "localTip": "Replace with a local insider tip.",
+    "topAttractions": ["attraction 1", "attraction 2", "attraction 3"],
+    "knownFor": "What the area is known for.",
+    "localTip": "Insider tip.",
     "languageNote": null
   }
 }
 
-Fill in all placeholder values with accurate data for ${street}, ${city}, ${state}, ${country}.`
+Fill ALL placeholder values with accurate data for ${street}, ${city}, ${state}, ${country}.`
 
-  const raw = await groqChat([{ role: 'user', content: prompt }], true)
-
-  let parsed
-  try {
-    parsed = JSON.parse(raw)
-  } catch (e) {
-    // Strip any accidental markdown fences and retry
-    const cleaned = raw.replace(/```json|```/g, '').trim()
-    parsed = JSON.parse(cleaned)
-  }
-  return parsed
+  const result = await selfConsistency(prompt)
+  return validateEstimate(result, knownFacts)
 }
