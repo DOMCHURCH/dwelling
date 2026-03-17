@@ -61,7 +61,7 @@ export default function AddressSearch({ onSearch, loading }) {
       <div style={{ marginBottom: 10 }}>
         <label style={labelStyle}>Street address</label>
         <input value={street} onChange={e => setStreet(e.target.value)}
-          placeholder="e.g. 473 Thessaly Circle" disabled={loading}
+          placeholder="e.g. 123 Maple Street" disabled={loading}
           style={inputStyle} onFocus={focus} onBlur={blur} />
       </div>
 
@@ -69,13 +69,13 @@ export default function AddressSearch({ onSearch, loading }) {
         <div>
           <label style={labelStyle}>City</label>
           <input value={city} onChange={e => setCity(e.target.value)}
-            placeholder="e.g. Englewood" disabled={loading}
+            placeholder="e.g. Austin" disabled={loading}
             style={inputStyle} onFocus={focus} onBlur={blur} />
         </div>
         <div>
           <label style={labelStyle}>State / Province <span style={{ color: 'var(--hint)' }}>(optional)</span></label>
           <input value={state} onChange={e => setState(e.target.value)}
-            placeholder="e.g. Colorado" disabled={loading}
+            placeholder="e.g. Texas" disabled={loading}
             style={inputStyle} onFocus={focus} onBlur={blur} />
         </div>
       </div>
