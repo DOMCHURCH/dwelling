@@ -18,7 +18,6 @@ export default function App() {
     setResult(null)
     setLoadStep(0)
     try {
-      setLoadStep(0)
       const geo = await geocodeStructured({ street, city, state, country })
       setLoadStep(1)
       const [weather, climate] = await Promise.all([
@@ -31,7 +30,7 @@ export default function App() {
       setResult({ geo, weather, climate, ai, knownFacts })
     } catch (err) {
       console.error(err)
-      setError(err.message ?? 'Something went wrong. Check your API key and try again.')
+      setError(err.message ?? 'Something went wrong.')
     } finally {
       setLoading(false)
     }
@@ -54,92 +53,116 @@ export default function App() {
 
   return (
     <div style={{ minHeight: '100vh' }}>
-      {/* Hero */}
-      <div style={{
-        maxWidth: 860,
-        margin: '0 auto',
-        padding: result ? '32px 20px 0' : '80px 20px 0',
-        transition: 'padding 0.4s ease',
+
+      {/* Nav */}
+      <nav style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '22px 40px',
+        borderBottom: result ? '1px solid var(--glass-border)' : 'none',
       }}>
-        {!result && (
-          <div style={{ textAlign: 'center', marginBottom: 52 }}>
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 8,
-              fontSize: 11, letterSpacing: '0.15em', textTransform: 'uppercase',
-              color: 'var(--accent)', marginBottom: 24,
-              padding: '6px 16px',
-              background: 'var(--accent-dim)',
-              border: '1px solid rgba(59,130,246,0.2)',
-              borderRadius: 100,
-            }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', display: 'inline-block', animation: 'pulse 2s ease infinite' }} />
-              Property Intelligence
-            </div>
-
-            <h1 style={{
-              fontSize: 'clamp(2.6rem, 6vw, 4.2rem)',
-              lineHeight: 1.05,
-              marginBottom: 20,
-              background: 'linear-gradient(135deg, #f1f5f9 0%, #94a3b8 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-            }}>
-              Know what any property<br />is actually worth
-            </h1>
-
-            <p style={{
-              fontSize: 16,
-              color: 'var(--text-2)',
-              maxWidth: 440,
-              margin: '0 auto 44px',
-              lineHeight: 1.7,
-              fontWeight: 300,
-            }}>
-              Enter an address anywhere in the world. Get market value, cost of living, neighborhood data, climate, and investment analysis — instantly.
-            </p>
-          </div>
-        )}
-
+        <div style={{
+          fontFamily: 'Syne, sans-serif', fontWeight: 800,
+          fontSize: 22, letterSpacing: '-0.04em', color: 'var(--text)',
+          cursor: 'pointer',
+        }} onClick={() => setResult(null)}>
+          DW<span style={{ color: 'var(--accent)' }}>.</span>
+        </div>
         {result && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28, flexWrap: 'wrap', gap: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{
-                width: 8, height: 8, borderRadius: '50%',
-                background: 'var(--accent)',
-                animation: 'pulse 2s ease infinite',
-              }} />
-              <span style={{ fontSize: 13, color: 'var(--text-2)', letterSpacing: '0.05em' }}>Dwelling</span>
-            </div>
-            <button onClick={() => setResult(null)} style={{
-              padding: '7px 16px',
-              background: 'var(--glass)',
-              border: '1px solid var(--glass-border)',
-              borderRadius: 100,
-              color: 'var(--text-2)',
-              fontSize: 12,
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-            }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--glass-border-hover)'; e.currentTarget.style.color = 'var(--text)' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.color = 'var(--text-2)' }}
-            >
-              ← New search
-            </button>
-          </div>
+          <button onClick={() => setResult(null)} style={{
+            padding: '8px 18px',
+            background: 'var(--glass)',
+            border: '1px solid var(--glass-border)',
+            borderRadius: 100,
+            color: 'var(--text-2)',
+            fontSize: 13,
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            fontFamily: 'DM Sans, sans-serif',
+          }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--text)' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.color = 'var(--text-2)' }}
+          >
+            ← New search
+          </button>
         )}
+      </nav>
 
-        <AddressSearch onSearch={handleSearch} loading={loading} compact={!!result} />
-      </div>
+      {!result && !loading && (
+        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '60px 40px 0' }}>
+          {/* Hero — asymmetric layout */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 60, alignItems: 'center', minHeight: '65vh' }}>
+            {/* Left — big type */}
+            <div>
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase',
+                color: 'var(--lime)', marginBottom: 28,
+                fontFamily: 'DM Sans, sans-serif', fontWeight: 500,
+              }}>
+                <span style={{
+                  width: 7, height: 7, borderRadius: '50%',
+                  background: 'var(--lime)',
+                  display: 'inline-block',
+                  animation: 'pulse 2s ease infinite',
+                  boxShadow: '0 0 8px var(--lime)',
+                }} />
+                Property Intelligence
+              </div>
 
-      <div style={{ maxWidth: 860, margin: '0 auto', padding: '0 20px 80px' }}>
+              <h1 style={{
+                fontSize: 'clamp(3rem, 5vw, 5.2rem)',
+                lineHeight: 0.95,
+                marginBottom: 28,
+                color: 'var(--text)',
+              }}>
+                Know what<br />
+                any home<br />
+                <span style={{ color: 'var(--accent-2)' }}>is worth.</span>
+              </h1>
+
+              <p style={{
+                fontSize: 16,
+                color: 'var(--text-2)',
+                maxWidth: 380,
+                marginBottom: 44,
+                lineHeight: 1.75,
+                fontWeight: 300,
+              }}>
+                Enter an address anywhere in the world. Get market value, cost of living, neighborhood data, and investment analysis — in seconds.
+              </p>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {['Market valuation', 'Cost of living', 'Climate data', 'Investment analysis'].map(f => (
+                  <span key={f} style={{
+                    padding: '7px 14px',
+                    background: 'var(--accent-dim)',
+                    border: '1px solid rgba(124,92,252,0.2)',
+                    borderRadius: 100,
+                    fontSize: 12,
+                    color: 'var(--accent-2)',
+                    fontFamily: 'DM Sans, sans-serif',
+                  }}>{f}</span>
+                ))}
+              </div>
+            </div>
+
+            {/* Right — search form */}
+            <div>
+              <AddressSearch onSearch={handleSearch} loading={loading} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Results / loading */}
+      <div style={{ maxWidth: 900, margin: '0 auto', padding: result || loading ? '32px 24px 80px' : '0 24px' }}>
         {loading && <LoadingState step={loadStep} />}
 
         {error && (
           <div style={{
             marginTop: 24,
             background: 'var(--red-dim)',
-            border: '1px solid rgba(239,68,68,0.2)',
+            border: '1px solid rgba(248,113,113,0.2)',
             borderRadius: 'var(--radius)',
             padding: '14px 18px',
             color: 'var(--red)',
@@ -150,30 +173,12 @@ export default function App() {
         )}
 
         {result && !loading && (
-          <Dashboard data={result} onRecalculate={handleRecalculate} />
-        )}
-
-        {!loading && !result && !error && (
-          <div style={{ textAlign: 'center', padding: '20px 0 60px' }}>
-            {/* Feature pills */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10, marginBottom: 60 }}>
-              {['Market valuation', 'Cost of living', 'Climate data', 'Neighborhood scores', 'Investment analysis', 'Floor plan info'].map(f => (
-                <span key={f} style={{
-                  padding: '8px 16px',
-                  background: 'var(--glass)',
-                  border: '1px solid var(--glass-border)',
-                  borderRadius: 100,
-                  fontSize: 12,
-                  color: 'var(--text-2)',
-                  backdropFilter: 'blur(8px)',
-                }}>{f}</span>
-              ))}
+          <>
+            <AddressSearch onSearch={handleSearch} loading={loading} compact />
+            <div style={{ marginTop: 24 }}>
+              <Dashboard data={result} onRecalculate={handleRecalculate} />
             </div>
-
-            <p style={{ fontSize: 12, color: 'var(--text-3)' }}>
-              Works for addresses in the US, Canada, UK, Australia, and 50+ countries
-            </p>
-          </div>
+          </>
         )}
       </div>
     </div>
