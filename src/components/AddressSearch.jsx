@@ -46,7 +46,7 @@ export default function AddressSearch({ onSearch, loading }) {
         baths: baths ? parseFloat(baths) : null,
         sqft: sqft ? parseInt(sqft) : null,
         yearBuilt: yearBuilt ? parseInt(yearBuilt) : null,
-        purchasePrice: purchasePrice ? parseInt(purchasePrice.replace(/,/g, '')) : null,
+        purchasePrice: purchasePrice ? parseInt(purchasePrice.replace(/[s,]/g, '')) : null,
       }
     })
   }
