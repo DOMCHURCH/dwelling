@@ -210,7 +210,7 @@ function CorrectionsPanel({ ai, knownFacts = {}, onRecalculate }) {
 
   return (
     <div style={{
-      background: "var(--glass)", border: "1px solid var(--border)",
+      background: "rgba(255,255,255,0.025)", border: "1px solid var(--border)",
       borderRadius: "var(--radius-lg)", padding: "16px 20px", marginBottom: 16,
     }}>
       <button onClick={() => setOpen(!open)} style={{
@@ -243,7 +243,7 @@ function CorrectionsPanel({ ai, knownFacts = {}, onRecalculate }) {
           </div>
           <button onClick={handleRecalculate} style={{
             padding: "10px 24px", background: "var(--accent)", border: "none",
-            borderRadius: "var(--radius-sm)", color: "#0a0a08", fontWeight: 500,
+            borderRadius: "var(--radius-sm)", color: "#fff", fontWeight: 500,
             fontSize: 13, cursor: "pointer",
           }}>
             Recalculate with corrections
@@ -268,7 +268,7 @@ export default function Dashboard({ data, onRecalculate }) {
 
       {/* Address Banner */}
       <div className="fade-up" style={{
-        background: 'var(--glass)',
+        background: 'rgba(255,255,255,0.025)',
         border: '1px solid var(--border)',
         borderRadius: 'var(--radius-lg)',
         padding: '20px 24px',
@@ -302,7 +302,7 @@ export default function Dashboard({ data, onRecalculate }) {
 
       {/* Google Maps Embed */}
       <div className="fade-up" style={{
-        background: 'var(--glass)',
+        background: 'rgba(255,255,255,0.025)',
         border: '1px solid var(--border)',
         borderRadius: 'var(--radius-lg)',
         overflow: 'hidden',
@@ -345,7 +345,7 @@ export default function Dashboard({ data, onRecalculate }) {
         <SectionCard title="Neighborhood" icon="🏘" delay={150}>
           <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: 20 }}>
             <ScoreRing score={neighborhood.walkScore} label="Walk" color="var(--accent)" />
-            <ScoreRing score={neighborhood.transitScore} label="Transit" color="var(--cyan)" />
+            <ScoreRing score={neighborhood.transitScore} label="Transit" color="var(--accent-2)" />
             <ScoreRing score={neighborhood.safetyRating} label="Safety" color="var(--green)" />
             <ScoreRing score={neighborhood.schoolRating} label="Schools" color="#c07ada" />
           </div>
@@ -364,7 +364,7 @@ export default function Dashboard({ data, onRecalculate }) {
           {climate && (
             <>
               <BarMeter label="Avg High" value={`${climate.avgHighC}°C`} max={50} color="var(--accent)" />
-              <BarMeter label="Avg Low" value={`${climate.avgLowC}°C`} max={50} color="var(--cyan)" />
+              <BarMeter label="Avg Low" value={`${climate.avgLowC}°C`} max={50} color="var(--accent-2)" />
               <BarMeter label="Avg Daily Precip" value={`${climate.avgPrecipMm}mm`} max={20} color="var(--green)" />
             </>
           )}
@@ -430,7 +430,7 @@ export default function Dashboard({ data, onRecalculate }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 16 }}>
           <StatCard label="Rent Yield" value={`${investment.rentYieldPercent}%`} sub="annual gross" accent="var(--green)" />
           <StatCard label="Investment Score" value={`${investment.investmentScore}/100`} />
-          <div style={{ background: 'var(--glass)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '16px 18px' }}>
+          <div style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '16px 18px' }}>
             <div style={{ fontSize: 11, color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Outlook</div>
             <Tag color={investment.appreciationOutlook === 'bullish' ? 'green' : investment.appreciationOutlook === 'bearish' ? 'red' : 'var(--accent)'}>
               {investment.appreciationOutlook.toUpperCase()}
@@ -462,8 +462,8 @@ export default function Dashboard({ data, onRecalculate }) {
               <p style={{ fontSize: 13, color: 'var(--text)' }}>{localInsights.localTip}</p>
             </div>
             {localInsights.languageNote && (
-              <div style={{ padding: '14px 16px', background: 'var(--cyan-dim)', borderRadius: 'var(--radius)', borderLeft: '3px solid var(--blue)' }}>
-                <div style={{ fontSize: 11, color: 'var(--cyan)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Language</div>
+              <div style={{ padding: '14px 16px', background: 'rgba(185,138,255,0.1)', borderRadius: 'var(--radius)', borderLeft: '3px solid var(--blue)' }}>
+                <div style={{ fontSize: 11, color: 'var(--accent-2)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Language</div>
                 <p style={{ fontSize: 13, color: 'var(--text)' }}>{localInsights.languageNote}</p>
               </div>
             )}
