@@ -3,7 +3,7 @@ import SectionCard from './SectionCard'
 import StatCard from './StatCard'
 import ScoreRing from './ScoreRing'
 import { weatherCodeToDescription } from '../lib/weather'
-import { getAssessorLink, getZillowLink } from '../lib/groq'
+import { getAssessorLink, getZillowLink, getFloorPlanSearchLink } from '../lib/groq'
 
 const fmt = (n) => n?.toLocaleString('en-US', { maximumFractionDigits: 0 }) ?? '—'
 const fmtUSD = (n) => n != null ? `$${fmt(n)}` : '—'
@@ -183,8 +183,80 @@ function IncomeSlider({ costOfLiving }) {
   )
 }
 
-export default function Dashboard({ data }) {
-  const { geo, weather, climate, ai } = data
+function CorrectionsPanel({ ai, knownFacts = {}, onRecalculate }) {
+  const [beds, setBeds] = useState(knownFacts.beds ?? ai.floorPlan.typicalBedrooms ?? "")
+  const [baths, setBaths] = useState(knownFacts.baths ?? ai.floorPlan.typicalBathrooms ?? "")
+  const [sqft, setSqft] = useState(knownFacts.sqft ?? ai.floorPlan.typicalSqft ?? "")
+  const [yearBuilt, setYearBuilt] = useState(knownFacts.yearBuilt ?? "")
+  const [purchasePrice, setPurchasePrice] = useState(knownFacts.purchasePrice ?? "")
+  const [open, setOpen] = useState(false)
+
+  const handleRecalculate = () => {
+    onRecalculate({
+      beds: beds ? parseInt(beds) : null,
+      baths: baths ? parseFloat(baths) : null,
+      sqft: sqft ? parseInt(sqft) : null,
+      yearBuilt: yearBuilt ? parseInt(yearBuilt) : null,
+      purchasePrice: purchasePrice ? parseInt(String(purchasePrice).replace(/,/g, "")) : null,
+    })
+    setOpen(false)
+  }
+
+  const iStyle = {
+    width: "100%", padding: "9px 12px",
+    background: "var(--bg-input)", border: "1px solid var(--border)",
+    borderRadius: "var(--radius-sm)", color: "var(--text)",
+    fontSize: 13, outline: "none",
+  }
+
+  return (
+    <div style={{
+      background: "var(--bg-card)", border: "1px solid var(--border)",
+      borderRadius: "var(--radius-lg)", padding: "16px 20px", marginBottom: 16,
+    }}>
+      <button onClick={() => setOpen(!open)} style={{
+        background: "none", border: "none", color: "var(--accent)",
+        fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, padding: 0,
+      }}>
+        <span style={{ fontSize: 16 }}>{open ? "-" : "+"}</span>
+        Correct AI estimates to improve accuracy
+      </button>
+      {open && (
+        <div style={{ marginTop: 14 }}>
+          <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 12 }}>
+            Enter the actual values you know. These override AI guesses and trigger a recalculation.
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10, marginBottom: 14 }}>
+            {[
+              { label: "Bedrooms", value: beds, set: setBeds },
+              { label: "Bathrooms", value: baths, set: setBaths },
+              { label: "Sqft", value: sqft, set: setSqft },
+              { label: "Year built", value: yearBuilt, set: setYearBuilt },
+              { label: "Purchase price ($)", value: purchasePrice, set: setPurchasePrice },
+            ].map(({ label, value, set }) => (
+              <div key={label}>
+                <div style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 5 }}>{label}</div>
+                <input value={value} onChange={e => set(e.target.value)} style={iStyle}
+                  onFocus={e => e.target.style.borderColor = "var(--border-active)"}
+                  onBlur={e => e.target.style.borderColor = "var(--border)"} />
+              </div>
+            ))}
+          </div>
+          <button onClick={handleRecalculate} style={{
+            padding: "10px 24px", background: "var(--accent)", border: "none",
+            borderRadius: "var(--radius-sm)", color: "#0a0a08", fontWeight: 500,
+            fontSize: 13, cursor: "pointer",
+          }}>
+            Recalculate with corrections
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default function Dashboard({ data, onRecalculate }) {
+  const { geo, weather, climate, ai, knownFacts } = data
   const { propertyEstimate, costOfLiving, neighborhood, investment, floorPlan, localInsights } = ai
 
   const currentWeather = weather?.current
@@ -192,9 +264,9 @@ export default function Dashboard({ data }) {
   const tempF = tempC != null ? Math.round(tempC * 9 / 5 + 32) : null
   const weatherDesc = currentWeather ? weatherCodeToDescription(currentWeather.weather_code) : null
 
-  const assessorUrl = getAssessorLink(geo.address)
-  const zillowUrl = getZillowLink(geo.displayName)
-  const floorPlanSearchUrl = `https://www.google.com/search?q=${encodeURIComponent(geo.displayName.split(',').slice(0,3).join(',') + ' floor plan site:zillow.com OR site:realtor.com OR site:redfin.com')}&tbm=isch`
+  const assessorUrl = getAssessorLink(geo)
+  const zillowUrl = getZillowLink(geo)
+  const floorPlanSearchUrl = getFloorPlanSearchLink(geo)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -232,6 +304,8 @@ export default function Dashboard({ data }) {
           </div>
         )}
       </div>
+
+      <CorrectionsPanel ai={ai} knownFacts={knownFacts} onRecalculate={onRecalculate} />
 
       {/* Property Estimate */}
       <SectionCard title="Property Estimate" icon="🏠" delay={50}>
