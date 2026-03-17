@@ -258,8 +258,8 @@ export default function Dashboard({ data }) {
           <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: 20 }}>
             <ScoreRing score={neighborhood.walkScore} label="Walk" color="var(--accent)" />
             <ScoreRing score={neighborhood.transitScore} label="Transit" color="var(--blue)" />
-            <ScoreRing score={neighborhood.safetyRating * 10} label="Safety" color="var(--green)" />
-            <ScoreRing score={neighborhood.schoolRating * 10} label="Schools" color="#c07ada" />
+            <ScoreRing score={neighborhood.safetyRating} label="Safety" color="var(--green)" />
+            <ScoreRing score={neighborhood.schoolRating} label="Schools" color="#c07ada" />
           </div>
           <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 14 }}>{neighborhood.character}</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
