@@ -12,22 +12,17 @@ export default function ScoreRing({ score, max = 100, label, color = 'var(--acce
           <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth={5} />
           <circle
             cx={size/2} cy={size/2} r={radius}
-            fill="none"
-            stroke={color}
-            strokeWidth={5}
+            fill="none" stroke={color} strokeWidth={5}
             strokeDasharray={`${dash} ${circ - dash}`}
             strokeLinecap="round"
-            style={{ transition: 'stroke-dasharray 1.2s cubic-bezier(0.16, 1, 0.3, 1)', filter: `drop-shadow(0 0 4px ${color})` }}
+            style={{ transition: 'stroke-dasharray 1.2s cubic-bezier(0.16, 1, 0.3, 1)', filter: `drop-shadow(0 0 5px ${color})` }}
           />
         </svg>
-        <div style={{
-          position: 'absolute', inset: 0,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <span style={{ fontSize: size * 0.24, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.02em' }}>{Math.round(clamped)}</span>
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ fontSize: size * 0.24, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.03em', fontFamily: 'Syne, sans-serif' }}>{Math.round(clamped)}</span>
         </div>
       </div>
-      <div style={{ fontSize: 10, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{label}</div>
+      <div style={{ fontSize: 10, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'DM Sans, sans-serif' }}>{label}</div>
     </div>
   )
 }
