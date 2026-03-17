@@ -12,7 +12,7 @@ export default function App() {
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
 
-  const handleSearch = async ({ street, city, state, country }) => {
+  const handleSearch = async ({ street, city, state, country, knownFacts }) => {
     setLoading(true)
     setError(null)
     setResult(null)
@@ -29,13 +29,28 @@ export default function App() {
       ])
 
       setLoadStep(3)
-      const ai = await analyzeProperty(geo, weather, climate)
+      const ai = await analyzeProperty(geo, weather, climate, knownFacts)
 
       setLoadStep(4)
-      setResult({ geo, weather, climate, ai })
+      setResult({ geo, weather, climate, ai, knownFacts })
     } catch (err) {
       console.error(err)
       setError(err.message ?? 'Something went wrong. Check your API key and try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleRecalculate = async (corrections) => {
+    if (!result) return
+    setLoading(true)
+    setError(null)
+    try {
+      const mergedFacts = { ...(result.knownFacts ?? {}), ...corrections }
+      const ai = await analyzeProperty(result.geo, result.weather, result.climate, mergedFacts)
+      setResult(prev => ({ ...prev, ai, knownFacts: mergedFacts }))
+    } catch (err) {
+      setError(err.message ?? 'Recalculation failed.')
     } finally {
       setLoading(false)
     }
@@ -45,15 +60,9 @@ export default function App() {
     <div style={{ maxWidth: 900, margin: '0 auto', padding: '0 16px 80px' }}>
       <header style={{ padding: '48px 0 40px', textAlign: 'center' }}>
         <div style={{
-          display: 'inline-block',
-          fontSize: 11,
-          letterSpacing: '0.2em',
-          textTransform: 'uppercase',
-          color: 'var(--accent)',
-          marginBottom: 16,
-          padding: '5px 14px',
-          border: '1px solid rgba(200,169,110,0.3)',
-          borderRadius: 20,
+          display: 'inline-block', fontSize: 11, letterSpacing: '0.2em',
+          textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 16,
+          padding: '5px 14px', border: '1px solid rgba(200,169,110,0.3)', borderRadius: 20,
         }}>
           Property Intelligence
         </div>
@@ -70,19 +79,17 @@ export default function App() {
 
       {error && (
         <div style={{
-          background: 'var(--red-dim)',
-          border: '1px solid rgba(192,90,90,0.3)',
-          borderRadius: 'var(--radius)',
-          padding: '16px 20px',
-          color: 'var(--red)',
-          fontSize: 14,
-          textAlign: 'center',
+          background: 'var(--red-dim)', border: '1px solid rgba(192,90,90,0.3)',
+          borderRadius: 'var(--radius)', padding: '16px 20px',
+          color: 'var(--red)', fontSize: 14, textAlign: 'center',
         }}>
           {error}
         </div>
       )}
 
-      {result && !loading && <Dashboard data={result} />}
+      {result && !loading && (
+        <Dashboard data={result} onRecalculate={handleRecalculate} />
+      )}
 
       {!loading && !result && !error && (
         <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--hint)', fontSize: 13 }}>
