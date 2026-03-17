@@ -91,6 +91,9 @@ export default function AddressSearch({ onSearch, loading }) {
                   </span>
                   {' — '}
                   {s.display_name.split(',').slice(1, 3).join(',')}
+                  <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--accent)' }}>
+                    {s.address?.country ?? ''}
+                  </span>
                 </div>
               ))}
             </div>
