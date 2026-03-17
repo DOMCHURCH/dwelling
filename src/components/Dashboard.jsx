@@ -1,10 +1,13 @@
+import { useState } from 'react'
 import SectionCard from './SectionCard'
 import StatCard from './StatCard'
 import ScoreRing from './ScoreRing'
 import { weatherCodeToDescription } from '../lib/weather'
+import { getAssessorLink, getZillowLink } from '../lib/groq'
 
 const fmt = (n) => n?.toLocaleString('en-US', { maximumFractionDigits: 0 }) ?? '—'
 const fmtUSD = (n) => n != null ? `$${fmt(n)}` : '—'
+const pct = (n) => n != null ? `${Math.round(n)}%` : '—'
 
 function Tag({ children, color = 'var(--accent)' }) {
   return (
@@ -23,7 +26,7 @@ function Tag({ children, color = 'var(--accent)' }) {
 }
 
 function BarMeter({ label, value, max, color = 'var(--accent)' }) {
-  const pct = Math.min((value / max) * 100, 100)
+  const p = Math.min((parseFloat(value) / max) * 100, 100)
   return (
     <div style={{ marginBottom: 12 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 5 }}>
@@ -31,8 +34,151 @@ function BarMeter({ label, value, max, color = 'var(--accent)' }) {
         <span style={{ color: 'var(--text)', fontWeight: 500 }}>{value}</span>
       </div>
       <div style={{ height: 4, background: 'var(--border)', borderRadius: 2, overflow: 'hidden' }}>
-        <div style={{ width: `${pct}%`, height: '100%', background: color, borderRadius: 2, transition: 'width 1s ease' }} />
+        <div style={{ width: `${p}%`, height: '100%', background: color, borderRadius: 2, transition: 'width 1s ease' }} />
       </div>
+    </div>
+  )
+}
+
+function LinkButton({ href, label, icon }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 7,
+        padding: '9px 16px',
+        background: 'var(--bg-input)',
+        border: '1px solid var(--border-active)',
+        borderRadius: 'var(--radius-sm)',
+        color: 'var(--accent)',
+        fontSize: 13,
+        fontWeight: 500,
+        textDecoration: 'none',
+        transition: 'background 0.15s',
+      }}
+      onMouseEnter={e => e.currentTarget.style.background = 'var(--accent-dim)'}
+      onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-input)'}
+    >
+      <span style={{ fontSize: 15 }}>{icon}</span>
+      {label}
+      <span style={{ fontSize: 11, color: 'var(--muted)' }}>↗</span>
+    </a>
+  )
+}
+
+function IncomeSlider({ costOfLiving }) {
+  const [mode, setMode] = useState('monthly')
+  const [income, setIncome] = useState(mode === 'monthly' ? 5000 : 60000)
+
+  const monthlyIncome = mode === 'monthly' ? income : Math.round(income / 12)
+  const total = costOfLiving.monthlyBudgetUSD
+
+  const categories = [
+    { label: 'Groceries', value: costOfLiving.groceriesMonthlyUSD },
+    { label: 'Transport', value: costOfLiving.transportMonthlyUSD },
+    { label: 'Utilities', value: costOfLiving.utilitiesMonthlyUSD },
+    { label: 'Dining out', value: costOfLiving.diningOutMonthlyUSD },
+  ]
+
+  const remaining = monthlyIncome - total
+  const remainingPct = Math.round((remaining / monthlyIncome) * 100)
+  const totalPct = Math.round((total / monthlyIncome) * 100)
+
+  const toggleMode = (m) => {
+    setMode(m)
+    setIncome(m === 'monthly' ? 5000 : 60000)
+  }
+
+  return (
+    <div>
+      {/* Toggle */}
+      <div style={{ display: 'flex', gap: 0, marginBottom: 20, border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', overflow: 'hidden', width: 'fit-content' }}>
+        {['monthly', 'yearly'].map(m => (
+          <button
+            key={m}
+            onClick={() => toggleMode(m)}
+            style={{
+              padding: '7px 18px',
+              background: mode === m ? 'var(--accent)' : 'transparent',
+              color: mode === m ? '#0a0a08' : 'var(--muted)',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: 13,
+              fontWeight: 500,
+              transition: 'all 0.15s',
+              textTransform: 'capitalize',
+            }}
+          >
+            {m}
+          </button>
+        ))}
+      </div>
+
+      {/* Slider */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 8 }}>
+          <span style={{ color: 'var(--muted)' }}>Your {mode} income</span>
+          <span style={{ color: 'var(--accent)', fontWeight: 500, fontFamily: "'Playfair Display', serif", fontSize: 18 }}>
+            {fmtUSD(income)}
+          </span>
+        </div>
+        <input
+          type="range"
+          min={mode === 'monthly' ? 1000 : 12000}
+          max={mode === 'monthly' ? 30000 : 360000}
+          step={mode === 'monthly' ? 100 : 1000}
+          value={income}
+          onChange={e => setIncome(Number(e.target.value))}
+          style={{ width: '100%', accentColor: 'var(--accent)' }}
+        />
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--hint)', marginTop: 4 }}>
+          <span>{fmtUSD(mode === 'monthly' ? 1000 : 12000)}</span>
+          <span>{fmtUSD(mode === 'monthly' ? 30000 : 360000)}</span>
+        </div>
+      </div>
+
+      {/* Income breakdown bar */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ height: 10, borderRadius: 5, overflow: 'hidden', background: 'var(--border)', display: 'flex' }}>
+          <div style={{ width: `${Math.min(totalPct, 100)}%`, background: totalPct > 80 ? 'var(--red)' : totalPct > 50 ? 'var(--accent)' : 'var(--green)', transition: 'width 0.4s ease' }} />
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginTop: 6 }}>
+          <span style={{ color: 'var(--muted)' }}>
+            Cost of living: <span style={{ color: totalPct > 80 ? 'var(--red)' : 'var(--text)', fontWeight: 500 }}>{totalPct}% of income</span>
+          </span>
+          <span style={{ color: remaining >= 0 ? 'var(--green)' : 'var(--red)', fontWeight: 500 }}>
+            {remaining >= 0 ? `${fmtUSD(remaining)} left` : `${fmtUSD(Math.abs(remaining))} over budget`}
+          </span>
+        </div>
+      </div>
+
+      {/* Category breakdown */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 32px', marginBottom: 16 }}>
+        {categories.map(({ label, value }) => {
+          const catPct = Math.round((value / monthlyIncome) * 100)
+          return (
+            <div key={label} style={{ padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, marginBottom: 3 }}>
+                <span style={{ color: 'var(--muted)' }}>{label}</span>
+                <span style={{ fontWeight: 500 }}>{fmtUSD(value)}</span>
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--hint)' }}>{catPct}% of {mode} income</div>
+            </div>
+          )
+        })}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
+        <StatCard label="Monthly cost" value={fmtUSD(total)} sub="estimated total" />
+        <StatCard label="vs US Average" value={`${costOfLiving.indexVsUSAverage > 0 ? '+' : ''}${costOfLiving.indexVsUSAverage}%`}
+          accent={costOfLiving.indexVsUSAverage > 15 ? 'var(--red)' : costOfLiving.indexVsUSAverage < -15 ? 'var(--green)' : 'var(--text)'} />
+      </div>
+
+      <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 14 }}>{costOfLiving.summary}</p>
     </div>
   )
 }
@@ -43,11 +189,12 @@ export default function Dashboard({ data }) {
 
   const currentWeather = weather?.current
   const tempC = currentWeather?.temperature_2m
-  const tempF = tempC != null ? Math.round(tempC * 9/5 + 32) : null
+  const tempF = tempC != null ? Math.round(tempC * 9 / 5 + 32) : null
   const weatherDesc = currentWeather ? weatherCodeToDescription(currentWeather.weather_code) : null
 
-  const outlookColor = investment.appreciationOutlook === 'bullish' ? 'green' :
-                       investment.appreciationOutlook === 'bearish' ? 'red' : 'var(--accent)'
+  const assessorUrl = getAssessorLink(geo.address)
+  const zillowUrl = getZillowLink(geo.displayName)
+  const floorPlanSearchUrl = `https://www.google.com/search?q=${encodeURIComponent(geo.displayName.split(',').slice(0,3).join(',') + ' floor plan site:zillow.com OR site:realtor.com OR site:redfin.com')}&tbm=isch`
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -64,7 +211,7 @@ export default function Dashboard({ data }) {
       }}>
         <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--accent-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M8 1C5.24 1 3 3.24 3 6c0 3.75 5 9 5 9s5-5.25 5-9c0-2.76-2.24-5-5-5zm0 6.75A1.75 1.75 0 1 1 8 4.25a1.75 1.75 0 0 1 0 3.5z" fill="var(--accent)"/>
+            <path d="M8 1C5.24 1 3 3.24 3 6c0 3.75 5 9 5 9s5-5.25 5-9c0-2.76-2.24-5-5-5zm0 6.75A1.75 1.75 0 1 1 8 4.25a1.75 1.75 0 0 1 0 3.5z" fill="var(--accent)" />
           </svg>
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -101,31 +248,12 @@ export default function Dashboard({ data }) {
 
       {/* Cost of Living */}
       <SectionCard title="Cost of Living" icon="💰" delay={100}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 16 }}>
-          <StatCard label="Monthly Budget" value={fmtUSD(costOfLiving.monthlyBudgetUSD)} sub="single person" />
-          <StatCard label="vs US Average" value={`${costOfLiving.indexVsUSAverage > 0 ? '+' : ''}${costOfLiving.indexVsUSAverage}%`}
-            accent={costOfLiving.indexVsUSAverage > 15 ? 'var(--red)' : costOfLiving.indexVsUSAverage < -15 ? 'var(--green)' : 'var(--text)'} />
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 32px', marginBottom: 16 }}>
-          {[
-            ['Groceries', fmtUSD(costOfLiving.groceriesMonthlyUSD)],
-            ['Transport', fmtUSD(costOfLiving.transportMonthlyUSD)],
-            ['Utilities', fmtUSD(costOfLiving.utilitiesMonthlyUSD)],
-            ['Dining out', fmtUSD(costOfLiving.diningOutMonthlyUSD)],
-          ].map(([k, v]) => (
-            <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border)', fontSize: 14 }}>
-              <span style={{ color: 'var(--muted)' }}>{k}</span>
-              <span style={{ fontWeight: 500 }}>{v}</span>
-            </div>
-          ))}
-        </div>
-        <p style={{ fontSize: 13, color: 'var(--muted)' }}>{costOfLiving.summary}</p>
+        <IncomeSlider costOfLiving={costOfLiving} />
       </SectionCard>
 
-      {/* Neighborhood + Climate side by side */}
+      {/* Neighborhood + Climate */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
 
-        {/* Neighborhood */}
         <SectionCard title="Neighborhood" icon="🏘" delay={150}>
           <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: 20 }}>
             <ScoreRing score={neighborhood.walkScore} label="Walk" color="var(--accent)" />
@@ -144,7 +272,6 @@ export default function Dashboard({ data }) {
           </div>
         </SectionCard>
 
-        {/* Climate */}
         <SectionCard title="Climate" icon="🌤" delay={200}>
           {climate && (
             <>
@@ -182,7 +309,7 @@ export default function Dashboard({ data }) {
       </div>
 
       {/* Floor Plan */}
-      <SectionCard title="Typical Floor Plan & Architecture" icon="📐" delay={250}>
+      <SectionCard title="Floor Plan & Architecture" icon="📐" delay={250}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12, marginBottom: 16 }}>
           <StatCard label="Typical Size" value={`${fmt(floorPlan.typicalSqft)} sqft`} />
           <StatCard label="Bedrooms" value={floorPlan.typicalBedrooms} />
@@ -193,8 +320,8 @@ export default function Dashboard({ data }) {
           <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>Architectural style</div>
           <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontStyle: 'italic', color: 'var(--accent)' }}>{floorPlan.architecturalStyle}</div>
         </div>
-        <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 14 }}>{floorPlan.typicalLayout}</p>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>{floorPlan.typicalLayout}</p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 20 }}>
           {floorPlan.commonFeatures.map((f, i) => (
             <span key={i} style={{
               padding: '4px 12px',
@@ -205,6 +332,19 @@ export default function Dashboard({ data }) {
               color: 'var(--muted)',
             }}>{f}</span>
           ))}
+        </div>
+
+        {/* Public records + floor plan links */}
+        <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+          <div style={{ fontSize: 11, color: 'var(--hint)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>View public records & floor plans</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+            <LinkButton href={assessorUrl} label="County Assessor" icon="🏛" />
+            <LinkButton href={zillowUrl} label="Zillow Listing" icon="🏡" />
+            <LinkButton href={floorPlanSearchUrl} label="Floor Plan Images" icon="📐" />
+          </div>
+          <p style={{ fontSize: 12, color: 'var(--hint)', marginTop: 10 }}>
+            County assessor records are public and available regardless of whether the property is listed for sale.
+          </p>
         </div>
       </SectionCard>
 
@@ -234,7 +374,7 @@ export default function Dashboard({ data }) {
             <div style={{ fontSize: 11, color: 'var(--hint)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Top Attractions</div>
             {localInsights.topAttractions.map((a, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: '1px solid var(--border)', fontSize: 13 }}>
-                <span style={{ color: 'var(--accent)', fontSize: 11, fontWeight: 500 }}>{String(i+1).padStart(2,'0')}</span>
+                <span style={{ color: 'var(--accent)', fontSize: 11, fontWeight: 500 }}>{String(i + 1).padStart(2, '0')}</span>
                 {a}
               </div>
             ))}
@@ -254,7 +394,6 @@ export default function Dashboard({ data }) {
         </div>
       </SectionCard>
 
-      {/* Footer disclaimer */}
       <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--hint)', padding: '8px 0' }}>
         All property estimates and scores are AI-generated approximations for informational purposes only. Not financial or legal advice.
       </p>
