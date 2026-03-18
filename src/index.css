@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Clash+Display:wght@400;500;600;700&family=Inter:wght@300;400;500&display=swap');
 
 *, *::before, *::after {
   box-sizing: border-box;
@@ -7,62 +7,81 @@
 }
 
 :root {
-  --bg: #0a0812;
-  --bg-2: #100d1f;
-  --bg-3: #16122a;
-  --glass: rgba(255,255,255,0.03);
-  --glass-hover: rgba(255,255,255,0.06);
-  --glass-border: rgba(255,255,255,0.07);
-  --glass-border-hover: rgba(255,255,255,0.14);
-  --text: #f0eeff;
-  --text-2: #9b93c4;
-  --text-3: #4a4570;
-  --accent: #7c5cfc;
-  --accent-2: #b98aff;
-  --accent-dim: rgba(124,92,252,0.12);
-  --accent-glow: rgba(124,92,252,0.3);
-  --lime: #c8f03a;
-  --cyan: #40e0d0;
-  --green: #34d399;
-  --green-dim: rgba(52,211,153,0.1);
-  --red: #f87171;
-  --red-dim: rgba(248,113,113,0.1);
-  --amber: #fbbf24;
-  --radius: 12px;
-  --radius-sm: 8px;
-  --radius-lg: 18px;
+  --emerald: #0a4a3a;
+  --emerald-dark: #062e24;
+  --emerald-light: #0d6b52;
+  --neon-pink: #ff2d78;
+  --acid-yellow: #eab308;
+  --tangerine: #ff6b2b;
+  --cobalt: #1a1aed;
+  --white: #ffffff;
+  --obsidian: #0a0a0f;
+  --text: #ffffff;
+  --text-2: rgba(255,255,255,0.7);
+  --text-3: rgba(255,255,255,0.4);
+  --border: rgba(255,255,255,0.15);
+  --border-heavy: rgba(255,255,255,0.4);
+  --radius: 0px;
+  --radius-sm: 0px;
+  --radius-lg: 0px;
+
+  /* keep compat vars */
+  --accent: #ff2d78;
+  --accent-2: #eab308;
+  --accent-dim: rgba(255,45,120,0.15);
+  --glass: rgba(0,0,0,0.3);
+  --glass-border: rgba(255,255,255,0.15);
+  --glass-border-hover: rgba(255,255,255,0.4);
+  --bg: #0a4a3a;
+  --bg-2: #062e24;
+  --bg-3: #041e18;
+  --green: #00ff88;
+  --green-dim: rgba(0,255,136,0.1);
+  --red: #ff2d78;
+  --red-dim: rgba(255,45,120,0.1);
+  --amber: #eab308;
+  --text-2: rgba(255,255,255,0.7);
+  --text-3: rgba(255,255,255,0.4);
+  --lime: #eab308;
+  --cyan: #00ffcc;
+  --cyan-dim: rgba(0,255,204,0.1);
 }
 
 html { scroll-behavior: smooth; }
 
 body {
-  font-family: 'DM Sans', -apple-system, sans-serif;
-  background: var(--bg);
-  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  background: var(--emerald-dark);
+  color: var(--white);
   min-height: 100vh;
   font-size: 15px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  cursor: crosshair;
+
+  /* Geometric grid pattern background */
   background-image:
-    radial-gradient(ellipse 100% 60% at 70% -10%, rgba(124,92,252,0.18) 0%, transparent 55%),
-    radial-gradient(ellipse 50% 40% at 10% 90%, rgba(64,224,208,0.06) 0%, transparent 50%),
-    radial-gradient(ellipse 60% 50% at 90% 60%, rgba(185,138,255,0.08) 0%, transparent 50%);
-  background-attachment: fixed;
+    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  background-color: var(--emerald-dark);
 }
 
 h1, h2, h3 {
-  font-family: 'Syne', sans-serif;
-  font-weight: 800;
-  letter-spacing: -0.03em;
+  font-family: 'Clash Display', 'Space Mono', monospace;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
 }
 
 input, button, select, textarea {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Space Mono', monospace;
+  cursor: crosshair;
 }
 
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(124,92,252,0.3); border-radius: 2px; }
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--emerald-dark); }
+::-webkit-scrollbar-thumb { background: var(--neon-pink); }
 
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(24px); }
@@ -84,9 +103,22 @@ input, button, select, textarea {
   to   { transform: rotate(360deg); }
 }
 
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-8px); }
+@keyframes glitch {
+  0%, 90%, 100% { transform: translate(0); }
+  91% { transform: translate(-2px, 1px); }
+  93% { transform: translate(2px, -1px); }
+  95% { transform: translate(-1px, 2px); }
+  97% { transform: translate(1px, -2px); }
+}
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+@keyframes scanline {
+  0% { top: -10%; }
+  100% { top: 110%; }
 }
 
 .fade-up {
@@ -94,8 +126,55 @@ input, button, select, textarea {
 }
 
 .skeleton {
-  background: linear-gradient(90deg, var(--glass) 25%, var(--glass-hover) 50%, var(--glass) 75%);
+  background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%);
   background-size: 600px 100%;
   animation: shimmer 1.6s infinite;
-  border-radius: var(--radius-sm);
+}
+
+/* Brutalist card */
+.brutal-card {
+  border: 2px solid var(--white);
+  background: var(--emerald);
+  position: relative;
+  box-shadow: 4px 4px 0px var(--neon-pink);
+  transition: box-shadow 0.1s, transform 0.1s;
+}
+
+.brutal-card:hover {
+  box-shadow: 6px 6px 0px var(--acid-yellow);
+  transform: translate(-2px, -2px);
+}
+
+/* Neon text glow */
+.neon-pink { color: var(--neon-pink); text-shadow: 0 0 20px var(--neon-pink), 0 0 40px rgba(255,45,120,0.5); }
+.neon-yellow { color: var(--acid-yellow); text-shadow: 0 0 20px var(--acid-yellow), 0 0 40px rgba(234,179,8,0.5); }
+.neon-green { color: var(--green); text-shadow: 0 0 20px var(--green), 0 0 40px rgba(0,255,136,0.5); }
+
+/* Marquee ticker */
+.marquee-wrapper {
+  overflow: hidden;
+  white-space: nowrap;
+  border-top: 2px solid var(--neon-pink);
+  border-bottom: 2px solid var(--neon-pink);
+  background: var(--neon-pink);
+  padding: 10px 0;
+}
+
+.marquee-content {
+  display: inline-block;
+  animation: marquee 20s linear infinite;
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--obsidian);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 768px) {
+  .hero-grid {
+    grid-template-columns: 1fr !important;
+    gap: 40px !important;
+    padding-top: 40px !important;
+  }
 }
