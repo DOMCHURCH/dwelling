@@ -202,7 +202,7 @@ export function getFloorPlanSearchLink(geo) {
   return `https://www.google.com/search?q=${encodeURIComponent(parts + ' floor plan')}&tbm=isch`
 }
 
-export async function analyzeProperty(geoData, weatherData, climateData, knownFacts = {}) {
+export async function analyzeProperty(geoData, weatherData, climateData, knownFacts = {}, realData = {}) {
   const { address, lat, lon, userStreet, userCity, userState, userCountry } = geoData
 
   const street = userStreet || address?.road || ''
@@ -232,6 +232,59 @@ export async function analyzeProperty(geoData, weatherData, climateData, knownFa
     ? `\nCONFIRMED FACTS — treat these as ground truth, do not estimate differently:\n${knownLines.join('\n')}\n`
     : '\nNo confirmed property facts provided — use your best estimate based on location and neighborhood.\n'
 
+  const { neighborhoodScores, censusData, fmr, floodZone } = realData ?? {}
+  const realParts = []
+
+  if (neighborhoodScores) {
+    realParts.push(
+      'REAL NEIGHBORHOOD DATA (OpenStreetMap Overpass API):' +
+      '\n- Amenities within 500m: ' + neighborhoodScores.amenityCount500m +
+      '\n- Nearby schools: ' + (neighborhoodScores.nearbySchools.join(', ') || 'none found') +
+      '\n- Nearby parks: ' + (neighborhoodScores.nearbyParks.join(', ') || 'none found') +
+      '\n- Nearby transit stops: ' + (neighborhoodScores.nearbyTransit.join(', ') || 'none found') +
+      '\n- Nearby grocery stores: ' + (neighborhoodScores.nearbyGrocery.join(', ') || 'none found') +
+      '\nUSE THESE EXACT SCORES: walkScore=' + neighborhoodScores.walkScore +
+      ', transitScore=' + neighborhoodScores.transitScore +
+      ', schoolRating=' + neighborhoodScores.schoolScore
+    )
+  }
+
+  if (censusData) {
+    realParts.push(
+      'REAL US CENSUS DATA (ACS 2022) for this exact census tract:' +
+      '\n- Median home value in tract: $' + (censusData.medianHomeValueUSD?.toLocaleString() ?? 'N/A') +
+      '\n- Median gross rent: $' + (censusData.medianGrossRentUSD?.toLocaleString() ?? 'N/A') + '/month' +
+      '\n- Median household income: $' + (censusData.medianHouseholdIncomeUSD?.toLocaleString() ?? 'N/A') + '/year' +
+      '\n- Owner occupancy rate: ' + (censusData.ownerOccupancyRate ?? 'N/A') + '%' +
+      '\nYOUR PROPERTY ESTIMATE must be anchored within 20% of the census median home value of $' +
+      (censusData.medianHomeValueUSD?.toLocaleString() ?? 'N/A') + ' unless justified.'
+    )
+  }
+
+  if (fmr) {
+    realParts.push(
+      'REAL HUD FAIR MARKET RENT (2024) for this county:' +
+      '\n- 2 bedroom: $' + fmr.twoBed + '/month' +
+      '\n- 3 bedroom: $' + fmr.threeBed + '/month' +
+      '\n- 4 bedroom: $' + fmr.fourBed + '/month' +
+      '\nBase your rent estimate on these HUD figures.'
+    )
+  }
+
+  if (floodZone) {
+    realParts.push(
+      'REAL FEMA FLOOD ZONE DATA:' +
+      '\n- Zone: ' + floodZone.zone +
+      '\n- In Special Flood Hazard Area: ' + (floodZone.inSpecialFloodHazardArea ? 'YES - HIGH RISK' : 'No') +
+      '\n- ' + floodZone.description +
+      '\nMention flood risk in investment analysis and pros/cons.'
+    )
+  }
+
+  const realDataContext = realParts.length > 0
+    ? 'REAL DATA FROM AUTHORITATIVE SOURCES — treat as ground truth:\n' + realParts.join('\n\n')
+    : 'No real property data available for this address — use your best estimate.'
+
   const prompt = `You are a senior real estate appraiser with 20 years of experience using the sales comparison approach. Analyze this specific property.
 
 PROPERTY:
@@ -245,6 +298,8 @@ GPS: ${lat}, ${lon}
 Weather: ${weatherSummary}
 Climate: ${climateSummary}
 ${knownFactsSection}
+${realDataContext}
+
 ESTIMATION RULES:
 - Use ONLY the exact city and state above. Do not substitute a nearby city.
 - For affluent suburbs: single family homes are typically $600k-$2M+, do NOT use city-wide averages.
