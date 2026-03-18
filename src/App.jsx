@@ -1,10 +1,13 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import AddressSearch from './components/AddressSearch'
 import LoadingState from './components/LoadingState'
 import Dashboard from './components/Dashboard'
 import { geocodeStructured } from './lib/nominatim'
 import { getCurrentWeather, getClimateNormals } from './lib/weather'
 import { analyzeProperty } from './lib/groq'
+import { getNeighborhoodScores } from './lib/overpass'
+import { getCensusData } from './lib/census'
+import { getFairMarketRent, getFloodZone } from './lib/hud'
 
 export default function App() {
   const [loading, setLoading] = useState(false)
@@ -12,22 +15,46 @@ export default function App() {
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
 
+  useEffect(() => {
+    if (result) {
+      const addr = [result.geo.userStreet, result.geo.userCity, result.geo.userCountry].filter(Boolean).join(', ')
+      document.title = `${addr} — Dwelling`
+    } else {
+      document.title = 'Dwelling — Property Intelligence'
+    }
+  }, [result])
+
   const handleSearch = async ({ street, city, state, country, knownFacts }) => {
     setLoading(true)
     setError(null)
     setResult(null)
     setLoadStep(0)
+
     try {
+      // Step 1: Geocode
+      setLoadStep(0)
       const geo = await geocodeStructured({ street, city, state, country })
+
+      // Step 2: Fetch all data in parallel
       setLoadStep(1)
-      const [weather, climate] = await Promise.all([
+      const postcode = geo.address?.postcode ?? ''
+
+      const [weather, climate, neighborhoodScores, censusData, fmr, floodZone] = await Promise.all([
         getCurrentWeather(geo.lat, geo.lon),
         getClimateNormals(geo.lat, geo.lon),
+        getNeighborhoodScores(geo.lat, geo.lon),
+        getCensusData(street, city, state, country),
+        getFairMarketRent(postcode),
+        getFloodZone(geo.lat, geo.lon),
       ])
+
+      // Step 3: Run AI analysis with real data as context
       setLoadStep(3)
-      const ai = await analyzeProperty(geo, weather, climate, knownFacts)
+      const realData = { neighborhoodScores, censusData, fmr, floodZone }
+      const ai = await analyzeProperty(geo, weather, climate, knownFacts ?? {}, realData)
+
       setLoadStep(4)
-      setResult({ geo, weather, climate, ai, knownFacts })
+      setResult({ geo, weather, climate, ai, knownFacts: knownFacts ?? {}, realData })
     } catch (err) {
       console.error(err)
       setError(err.message ?? 'Something went wrong.')
@@ -42,7 +69,7 @@ export default function App() {
     setError(null)
     try {
       const mergedFacts = { ...(result.knownFacts ?? {}), ...corrections }
-      const ai = await analyzeProperty(result.geo, result.weather, result.climate, mergedFacts)
+      const ai = await analyzeProperty(result.geo, result.weather, result.climate, mergedFacts, result.realData)
       setResult(prev => ({ ...prev, ai, knownFacts: mergedFacts }))
     } catch (err) {
       setError(err.message ?? 'Recalculation failed.')
@@ -53,8 +80,6 @@ export default function App() {
 
   return (
     <div style={{ minHeight: '100vh' }}>
-
-      {/* Nav */}
       <nav style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '22px 40px',
@@ -89,9 +114,7 @@ export default function App() {
 
       {!result && !loading && (
         <div style={{ maxWidth: 1100, margin: '0 auto', padding: '60px 40px 0' }}>
-          {/* Hero — asymmetric layout */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 60, alignItems: 'center', minHeight: '65vh' }}>
-            {/* Left — big type */}
+          <div className="hero-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 60, alignItems: 'center', minHeight: '65vh' }}>
             <div>
               <div style={{
                 display: 'inline-flex', alignItems: 'center', gap: 8,
@@ -101,38 +124,24 @@ export default function App() {
               }}>
                 <span style={{
                   width: 7, height: 7, borderRadius: '50%',
-                  background: 'var(--lime)',
-                  display: 'inline-block',
+                  background: 'var(--lime)', display: 'inline-block',
                   animation: 'pulse 2s ease infinite',
                   boxShadow: '0 0 8px var(--lime)',
                 }} />
                 Property Intelligence
               </div>
 
-              <h1 style={{
-                fontSize: 'clamp(3rem, 5vw, 5.2rem)',
-                lineHeight: 0.95,
-                marginBottom: 28,
-                color: 'var(--text)',
-              }}>
-                Know what<br />
-                any home<br />
+              <h1 style={{ fontSize: 'clamp(3rem, 5vw, 5.2rem)', lineHeight: 0.95, marginBottom: 28, color: 'var(--text)' }}>
+                Know what<br />any home<br />
                 <span style={{ color: 'var(--accent-2)' }}>is worth.</span>
               </h1>
 
-              <p style={{
-                fontSize: 16,
-                color: 'var(--text-2)',
-                maxWidth: 380,
-                marginBottom: 44,
-                lineHeight: 1.75,
-                fontWeight: 300,
-              }}>
+              <p style={{ fontSize: 16, color: 'var(--text-2)', maxWidth: 380, marginBottom: 44, lineHeight: 1.75, fontWeight: 300 }}>
                 Enter an address anywhere in the world. Get market value, cost of living, neighborhood data, and investment analysis — in seconds.
               </p>
 
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {['Market valuation', 'Cost of living', 'Climate data', 'Investment analysis'].map(f => (
+                {['Market valuation', 'Cost of living', 'Climate data', 'Investment analysis', 'Real neighborhood data'].map(f => (
                   <span key={f} style={{
                     padding: '7px 14px',
                     background: 'var(--accent-dim)',
@@ -146,7 +155,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* Right — search form */}
             <div>
               <AddressSearch onSearch={handleSearch} loading={loading} />
             </div>
@@ -154,7 +162,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Results / loading */}
       <div style={{ maxWidth: 900, margin: '0 auto', padding: result || loading ? '32px 24px 80px' : '0 24px' }}>
         {loading && <LoadingState step={loadStep} />}
 
