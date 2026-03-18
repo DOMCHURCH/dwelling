@@ -1,24 +1,32 @@
-export default function StatCard({ label, value, sub, accent, icon }) {
+import { useCountUp } from '../hooks/useCountUp'
+
+export default function StatCard({ label, value, sub, accent, icon, animate = false }) {
+  const isNumeric = animate && value != null && !isNaN(parseFloat(String(value).replace(/[^0-9.]/g, '')))
+  const prefix = animate && typeof value === 'string' && value.startsWith('$') ? '$' : ''
+  const suffix = animate && typeof value === 'string' && value.endsWith('%') ? '%' : ''
+  const rawNum = isNumeric ? parseFloat(String(value).replace(/[^0-9.]/g, '')) : null
+  const animated = useCountUp(isNumeric ? rawNum : null, 1200, prefix, suffix)
+  const displayed = isNumeric ? animated : value
+
   return (
     <div style={{
-      background: 'rgba(255,255,255,0.03)',
-      border: '1px solid var(--glass-border)',
-      borderRadius: 'var(--radius)',
-      padding: '14px 16px',
-      display: 'flex', flexDirection: 'column', gap: 4,
-      transition: 'all 0.2s',
+      border: '2px solid var(--white)',
+      padding: '16px',
+      background: 'rgba(0,0,0,0.3)',
+      position: 'relative',
+      transition: 'all 0.1s',
     }}
-      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(124,92,252,0.07)'; e.currentTarget.style.borderColor = 'rgba(124,92,252,0.2)' }}
-      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = 'var(--glass-border)' }}
+      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = accent ?? 'var(--neon-pink)' }}
+      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.3)'; e.currentTarget.style.borderColor = 'var(--white)' }}
     >
-      <div style={{ fontSize: 10, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.1em', display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'DM Sans, sans-serif' }}>
-        {icon && <span style={{ fontSize: 11 }}>{icon}</span>}
+      <div style={{ fontSize: 9, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 6, fontFamily: "'Space Mono', monospace", display: 'flex', alignItems: 'center', gap: 5 }}>
+        {icon && <span>{icon}</span>}
         {label}
       </div>
-      <div style={{ fontSize: 20, fontWeight: 800, color: accent ?? 'var(--text)', lineHeight: 1.2, letterSpacing: '-0.03em', fontFamily: 'Syne, sans-serif' }}>
-        {value}
+      <div style={{ fontSize: 22, fontWeight: 700, color: accent ?? 'var(--white)', lineHeight: 1.1, fontFamily: "'Space Mono', monospace" }}>
+        {displayed}
       </div>
-      {sub && <div style={{ fontSize: 11, color: 'var(--text-3)', fontFamily: 'DM Sans, sans-serif' }}>{sub}</div>}
+      {sub && <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 4, fontFamily: "'Space Mono', monospace" }}>{sub}</div>}
     </div>
   )
 }
