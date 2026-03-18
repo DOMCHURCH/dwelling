@@ -1,8 +1,8 @@
-const GROQ_BASE = '/api/groq'
-const MODEL = 'llama-3.3-70b-versatile'
+const CEREBRAS_BASE = '/api/cerebras'
+const MODEL = 'llama-3.3-70b'
 
-async function groqChat(messages, json = false) {
-  const res = await fetch(GROQ_BASE, {
+async function cerebrasChat(messages, json = false) {
+  const res = await fetch(CEREBRAS_BASE, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -16,7 +16,7 @@ async function groqChat(messages, json = false) {
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
-    throw new Error(err.error?.message ?? `Groq error ${res.status}`)
+    throw new Error(err.error?.message ?? `Cerebras error ${res.status}`)
   }
 
   const data = await res.json()
@@ -62,9 +62,9 @@ function validateEstimate(est, known) {
 // Run 3 calls and take majority/median — much more accurate than single call
 async function selfConsistency(prompt) {
   const calls = await Promise.all([
-    groqChat([{ role: 'user', content: prompt }], true),
-    groqChat([{ role: 'user', content: prompt }], true),
-    groqChat([{ role: 'user', content: prompt }], true),
+    cerebrasChat([{ role: 'user', content: prompt }], true),
+    cerebrasChat([{ role: 'user', content: prompt }], true),
+    cerebrasChat([{ role: 'user', content: prompt }], true),
   ])
 
   const parsed = calls.map(raw => {
