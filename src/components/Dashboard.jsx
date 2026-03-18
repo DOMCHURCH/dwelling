@@ -301,10 +301,10 @@ export default function Dashboard({ data, onRecalculate }) {
         )}
       </div>
 
-      {/* Google Maps Embed */}
+      {/* OpenStreetMap Embed */}
       <div className="fade-up" style={{
         background: 'rgba(255,255,255,0.025)',
-        border: '1px solid var(--border)',
+        border: '1px solid var(--glass-border)',
         borderRadius: 'var(--radius-lg)',
         overflow: 'hidden',
         height: 280,
@@ -315,8 +315,7 @@ export default function Dashboard({ data, onRecalculate }) {
           height="100%"
           style={{ border: 0, display: 'block' }}
           loading="lazy"
-          allowFullScreen
-          src={`https://maps.google.com/maps?q=${encodeURIComponent([geo.userStreet, geo.userCity, geo.userState, geo.userCountry].filter(Boolean).join(', '))}&output=embed&z=16`}
+          src={`https://www.openstreetmap.org/export/embed.html?bbox=${geo.lon - 0.005}%2C${geo.lat - 0.003}%2C${geo.lon + 0.005}%2C${geo.lat + 0.003}&layer=mapnik&marker=${geo.lat}%2C${geo.lon}`}
         />
       </div>
 
@@ -327,7 +326,7 @@ export default function Dashboard({ data, onRecalculate }) {
             const addr = [geo.userStreet, geo.userCity, geo.userState, geo.userCountry].filter(Boolean).join(', ')
             const subject = encodeURIComponent(`Property analysis: ${addr}`)
             const body = encodeURIComponent(`Check out this property analysis I found on Dwelling:\n\nhttps://dwelling-homes.netlify.app\n\nAddress: ${addr}\n\nEstimated value: ${fmtUSD(ai.propertyEstimate.estimatedValueUSD)}\nRent estimate: ${fmtUSD(ai.propertyEstimate.rentEstimateMonthlyUSD)}/mo\nInvestment score: ${ai.investment.investmentScore}/100\n\nPowered by Dwelling — Property Intelligence`)
-            window.open(`mailto:?subject=${subject}&body=${body}`)
+            window.location.href = `mailto:?subject=${subject}&body=${body}`
           }}
           style={{
             display: 'flex', alignItems: 'center', gap: 7,
