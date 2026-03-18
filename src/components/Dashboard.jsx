@@ -9,15 +9,15 @@ const fmt = (n) => n?.toLocaleString('en-US', { maximumFractionDigits: 0 }) ?? '
 const fmtUSD = (n) => n != null ? `$${fmt(n)}` : '—'
 const pct = (n) => n != null ? `${Math.round(n)}%` : '—'
 
-function Tag({ children, color = 'var(--accent)' }) {
+function Tag({ children, color = 'var(--neon-pink)' }) {
   return (
     <span style={{
       display: 'inline-block',
       padding: '3px 10px',
-      borderRadius: 20,
+      borderRadius: 0,
       fontSize: 12,
-      background: color === 'green' ? 'var(--green-dim)' : color === 'red' ? 'var(--red-dim)' : 'var(--accent-dim)',
-      color: color === 'green' ? 'var(--green)' : color === 'red' ? 'var(--red)' : 'var(--accent)',
+      background: color === 'green' ? 'var(--green-dim)' : color === 'red' ? 'var(--red-dim)' : 'rgba(255,45,120,0.15)',
+      color: color === 'green' ? 'var(--green)' : color === 'red' ? 'var(--red)' : 'var(--neon-pink)',
       fontWeight: 500,
     }}>
       {children}
@@ -25,7 +25,7 @@ function Tag({ children, color = 'var(--accent)' }) {
   )
 }
 
-function BarMeter({ label, value, max, color = 'var(--accent)' }) {
+function BarMeter({ label, value, max, color = 'var(--neon-pink)' }) {
   const p = Math.min((parseFloat(value) / max) * 100, 100)
   return (
     <div style={{ marginBottom: 12 }}>
@@ -51,16 +51,16 @@ function LinkButton({ href, label, icon }) {
         alignItems: 'center',
         gap: 7,
         padding: '9px 16px',
-        background: 'rgba(255,255,255,0.04)',
+        background: 'rgba(0,0,0,0.4)',
         border: '1px solid var(--border-active)',
-        borderRadius: 'var(--radius-sm)',
-        color: 'var(--accent)',
+        borderRadius: '0px',
+        color: 'var(--neon-pink)',
         fontSize: 13,
         fontWeight: 500,
         textDecoration: 'none',
         transition: 'background 0.15s',
       }}
-      onMouseEnter={e => e.currentTarget.style.background = 'var(--accent-dim)'}
+      onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,45,120,0.15)'}
       onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
     >
       <span style={{ fontSize: 15 }}>{icon}</span>
@@ -96,14 +96,14 @@ function IncomeSlider({ costOfLiving }) {
   return (
     <div>
       {/* Toggle */}
-      <div style={{ display: 'flex', gap: 0, marginBottom: 20, border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', overflow: 'hidden', width: 'fit-content' }}>
+      <div style={{ display: 'flex', gap: 0, marginBottom: 20, border: '2px solid rgba(255,255,255,0.2)', borderRadius: '0px', overflow: 'hidden', width: 'fit-content' }}>
         {['monthly', 'yearly'].map(m => (
           <button
             key={m}
             onClick={() => toggleMode(m)}
             style={{
               padding: '7px 18px',
-              background: mode === m ? 'var(--accent)' : 'transparent',
+              background: mode === m ? 'var(--neon-pink)' : 'transparent',
               color: mode === m ? 'var(--bg)' : 'var(--text-2)',
               border: 'none',
               cursor: 'pointer',
@@ -122,7 +122,7 @@ function IncomeSlider({ costOfLiving }) {
       <div style={{ marginBottom: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 8 }}>
           <span style={{ color: 'var(--text-2)' }}>Your {mode} income</span>
-          <span style={{ color: 'var(--accent)', fontWeight: 500, fontFamily: "'Playfair Display', serif", fontSize: 18 }}>
+          <span style={{ color: 'var(--neon-pink)', fontWeight: 500, fontFamily: "'Space Mono', monospace", fontSize: 18 }}>
             {fmtUSD(income)}
           </span>
         </div>
@@ -133,7 +133,7 @@ function IncomeSlider({ costOfLiving }) {
           step={mode === 'monthly' ? 100 : 1000}
           value={income}
           onChange={e => setIncome(Number(e.target.value))}
-          style={{ width: '100%', accentColor: 'var(--accent)' }}
+          style={{ width: '100%', accentColor: 'var(--neon-pink)' }}
         />
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-3)', marginTop: 4 }}>
           <span>{fmtUSD(mode === 'monthly' ? 1000 : 12000)}</span>
@@ -144,7 +144,7 @@ function IncomeSlider({ costOfLiving }) {
       {/* Income breakdown bar */}
       <div style={{ marginBottom: 20 }}>
         <div style={{ height: 10, borderRadius: 5, overflow: 'hidden', background: 'var(--glass-border)', display: 'flex' }}>
-          <div style={{ width: `${Math.min(totalPct, 100)}%`, background: totalPct > 80 ? 'var(--red)' : totalPct > 50 ? 'var(--accent)' : 'var(--green)', transition: 'width 0.4s ease' }} />
+          <div style={{ width: `${Math.min(totalPct, 100)}%`, background: totalPct > 80 ? 'var(--red)' : totalPct > 50 ? 'var(--neon-pink)' : 'var(--green)', transition: 'width 0.4s ease' }} />
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginTop: 6 }}>
           <span style={{ color: 'var(--text-2)' }}>
@@ -211,11 +211,11 @@ function CorrectionsPanel({ ai, knownFacts = {}, onRecalculate }) {
 
   return (
     <div style={{
-      background: "rgba(255,255,255,0.025)", border: "1px solid var(--border)",
+      background: "rgba(0,0,0,0.4)", border: "1px solid var(--border)",
       borderRadius: "var(--radius-lg)", padding: "16px 20px", marginBottom: 16,
     }}>
       <button onClick={() => setOpen(!open)} style={{
-        background: "none", border: "none", color: "var(--accent)",
+        background: "none", border: "none", color: "var(--neon-pink)",
         fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, padding: 0,
       }}>
         <span style={{ fontSize: 16 }}>{open ? "-" : "+"}</span>
@@ -243,7 +243,7 @@ function CorrectionsPanel({ ai, knownFacts = {}, onRecalculate }) {
             ))}
           </div>
           <button onClick={handleRecalculate} style={{
-            padding: "10px 24px", background: "var(--accent)", border: "none",
+            padding: "10px 24px", background: "var(--neon-pink)", border: "none",
             borderRadius: "var(--radius-sm)", color: "#fff", fontWeight: 500,
             fontSize: 13, cursor: "pointer",
           }}>
@@ -269,17 +269,17 @@ export default function Dashboard({ data, onRecalculate }) {
 
       {/* Address Banner */}
       <div className="fade-up" style={{
-        background: 'rgba(255,255,255,0.025)',
-        border: '1px solid var(--border)',
-        borderRadius: 'var(--radius-lg)',
+        background: 'rgba(0,0,0,0.4)',
+        border: '2px solid rgba(255,255,255,0.2)',
+        borderRadius: '0px',
         padding: '20px 24px',
         display: 'flex',
         alignItems: 'center',
         gap: 14,
       }}>
-        <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--accent-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,45,120,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M8 1C5.24 1 3 3.24 3 6c0 3.75 5 9 5 9s5-5.25 5-9c0-2.76-2.24-5-5-5zm0 6.75A1.75 1.75 0 1 1 8 4.25a1.75 1.75 0 0 1 0 3.5z" fill="var(--accent)" />
+            <path d="M8 1C5.24 1 3 3.24 3 6c0 3.75 5 9 5 9s5-5.25 5-9c0-2.76-2.24-5-5-5zm0 6.75A1.75 1.75 0 1 1 8 4.25a1.75 1.75 0 0 1 0 3.5z" fill="var(--neon-pink)" />
           </svg>
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -292,7 +292,7 @@ export default function Dashboard({ data, onRecalculate }) {
         </div>
         {weatherDesc && (
           <div style={{ textAlign: 'right', flexShrink: 0 }}>
-            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20 }}>
+            <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 20 }}>
               {tempC}°C
               <span style={{ fontSize: 13, color: 'var(--text-3)', marginLeft: 6 }}>/ {tempF}°F</span>
             </div>
@@ -303,9 +303,9 @@ export default function Dashboard({ data, onRecalculate }) {
 
       {/* OpenStreetMap Embed */}
       <div className="fade-up" style={{
-        background: 'rgba(255,255,255,0.025)',
-        border: '1px solid var(--glass-border)',
-        borderRadius: 'var(--radius-lg)',
+        background: 'rgba(0,0,0,0.4)',
+        border: '2px solid rgba(255,255,255,0.2)',
+        borderRadius: '0px',
         overflow: 'hidden',
         height: 280,
       }}>
@@ -331,16 +331,16 @@ export default function Dashboard({ data, onRecalculate }) {
           style={{
             display: 'flex', alignItems: 'center', gap: 7,
             padding: '8px 16px',
-            background: 'rgba(255,255,255,0.03)',
-            border: '1px solid var(--glass-border)',
-            borderRadius: 100,
+            background: 'rgba(0,0,0,0.3)',
+            border: '2px solid rgba(255,255,255,0.2)',
+            borderRadius: 0,
             color: 'var(--text-2)',
             fontSize: 12,
             cursor: 'pointer',
             transition: 'all 0.2s',
             fontFamily: 'DM Sans, sans-serif',
           }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(124,92,252,0.4)'; e.currentTarget.style.color = 'var(--accent-2)' }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(124,92,252,0.4)'; e.currentTarget.style.color = 'var(--acid-yellow)' }}
           onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.color = 'var(--text-2)' }}
         >
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -356,14 +356,14 @@ export default function Dashboard({ data, onRecalculate }) {
       {/* Property Estimate */}
       <SectionCard title="Property Estimate" icon="🏠" delay={50}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 16 }}>
-          <StatCard label="Est. Value" value={fmtUSD(propertyEstimate.estimatedValueUSD)} sub="market estimate" accent="var(--accent)" animate />
+          <StatCard label="Est. Value" value={fmtUSD(propertyEstimate.estimatedValueUSD)} sub="market estimate" accent="var(--neon-pink)" animate />
           <StatCard label="Price / sqft" value={fmtUSD(propertyEstimate.pricePerSqftUSD)} sub="avg for area" />
           <StatCard label="Rent / month" value={fmtUSD(propertyEstimate.rentEstimateMonthlyUSD)} sub="typical rental" accent="var(--green)" animate />
         </div>
         {realData?.censusData && (
-          <div style={{ marginBottom: 10, padding: '8px 12px', background: 'rgba(124,92,252,0.06)', border: '1px solid rgba(124,92,252,0.15)', borderRadius: 'var(--radius-sm)', fontSize: 11, color: 'var(--text-2)' }}>
-            Census tract median home value: <span style={{ color: 'var(--accent-2)', fontWeight: 600 }}>${realData.censusData.medianHomeValueUSD?.toLocaleString()}</span>
-            {realData.censusData.medianGrossRentUSD && <span> · Median rent: <span style={{ color: 'var(--accent-2)', fontWeight: 600 }}>${realData.censusData.medianGrossRentUSD?.toLocaleString()}/mo</span></span>}
+          <div style={{ marginBottom: 10, padding: '8px 12px', background: 'rgba(255,45,120,0.08)', border: '1px solid rgba(124,92,252,0.15)', borderRadius: '0px', fontSize: 11, color: 'var(--text-2)' }}>
+            Census tract median home value: <span style={{ color: 'var(--acid-yellow)', fontWeight: 600 }}>${realData.censusData.medianHomeValueUSD?.toLocaleString()}</span>
+            {realData.censusData.medianGrossRentUSD && <span> · Median rent: <span style={{ color: 'var(--acid-yellow)', fontWeight: 600 }}>${realData.censusData.medianGrossRentUSD?.toLocaleString()}/mo</span></span>}
             <span style={{ color: 'var(--text-3)', marginLeft: 8 }}>· US Census ACS 2022</span>
           </div>
         )}
@@ -383,8 +383,8 @@ export default function Dashboard({ data, onRecalculate }) {
 
         <SectionCard title="Neighborhood" icon="🏘" delay={150}>
           <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: 12 }}>
-            <ScoreRing score={realData?.neighborhoodScores?.walkScore ?? neighborhood.walkScore} label="Walk" color="var(--accent)" />
-            <ScoreRing score={realData?.neighborhoodScores?.transitScore ?? neighborhood.transitScore} label="Transit" color="var(--accent-2)" />
+            <ScoreRing score={realData?.neighborhoodScores?.walkScore ?? neighborhood.walkScore} label="Walk" color="var(--neon-pink)" />
+            <ScoreRing score={realData?.neighborhoodScores?.transitScore ?? neighborhood.transitScore} label="Transit" color="var(--acid-yellow)" />
             <ScoreRing score={neighborhood.safetyRating} label="Safety" color="var(--green)" />
             <ScoreRing score={realData?.neighborhoodScores?.schoolScore ?? neighborhood.schoolRating} label="Schools" color="#c07ada" />
           </div>
@@ -407,8 +407,8 @@ export default function Dashboard({ data, onRecalculate }) {
         <SectionCard title="Climate" icon="🌤" delay={200}>
           {climate && (
             <>
-              <BarMeter label="Avg High" value={`${climate.avgHighC}°C`} max={50} color="var(--accent)" />
-              <BarMeter label="Avg Low" value={`${climate.avgLowC}°C`} max={50} color="var(--accent-2)" />
+              <BarMeter label="Avg High" value={`${climate.avgHighC}°C`} max={50} color="var(--neon-pink)" />
+              <BarMeter label="Avg Low" value={`${climate.avgLowC}°C`} max={50} color="var(--acid-yellow)" />
               <BarMeter label="Avg Daily Precip" value={`${climate.avgPrecipMm}mm`} max={20} color="var(--green)" />
             </>
           )}
@@ -424,11 +424,11 @@ export default function Dashboard({ data, onRecalculate }) {
                       flex: '0 0 auto',
                       textAlign: 'center',
                       padding: '8px 10px',
-                      background: i === 0 ? 'var(--accent-dim)' : 'rgba(255,255,255,0.04)',
-                      borderRadius: 'var(--radius-sm)',
+                      background: i === 0 ? 'rgba(255,45,120,0.15)' : 'rgba(255,255,255,0.04)',
+                      borderRadius: '0px',
                       minWidth: 50,
                     }}>
-                      <div style={{ fontSize: 11, color: i === 0 ? 'var(--accent)' : 'var(--text-2)', marginBottom: 4 }}>{label}</div>
+                      <div style={{ fontSize: 11, color: i === 0 ? 'var(--neon-pink)' : 'var(--text-2)', marginBottom: 4 }}>{label}</div>
                       <div style={{ fontSize: 13, fontWeight: 500 }}>{Math.round(weather.daily.temperature_2m_max[i])}°</div>
                       <div style={{ fontSize: 11, color: 'var(--text-3)' }}>{Math.round(weather.daily.temperature_2m_min[i])}°</div>
                     </div>
@@ -450,16 +450,16 @@ export default function Dashboard({ data, onRecalculate }) {
         </div>
         <div style={{ marginBottom: 14 }}>
           <div style={{ fontSize: 12, color: 'var(--text-2)', marginBottom: 6 }}>Architectural style</div>
-          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontStyle: 'italic', color: 'var(--accent)' }}>{floorPlan.architecturalStyle}</div>
+          <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 18, fontStyle: 'italic', color: 'var(--neon-pink)' }}>{floorPlan.architecturalStyle}</div>
         </div>
         <p style={{ fontSize: 13, color: 'var(--text-2)', marginBottom: 16 }}>{floorPlan.typicalLayout}</p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 20 }}>
           {floorPlan.commonFeatures.map((f, i) => (
             <span key={i} style={{
               padding: '4px 12px',
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid var(--border)',
-              borderRadius: 20,
+              background: 'rgba(0,0,0,0.4)',
+              border: '2px solid rgba(255,255,255,0.2)',
+              borderRadius: 0,
               fontSize: 12,
               color: 'var(--text-2)',
             }}>{f}</span>
@@ -484,7 +484,7 @@ export default function Dashboard({ data, onRecalculate }) {
               padding: '10px 20px',
               background: realData.floodZone.riskLevel === 'high' ? 'var(--red-dim)' : realData.floodZone.riskLevel === 'moderate' ? 'rgba(251,191,36,0.1)' : 'var(--green-dim)',
               border: '1px solid ' + (realData.floodZone.riskLevel === 'high' ? 'rgba(248,113,113,0.3)' : realData.floodZone.riskLevel === 'moderate' ? 'rgba(251,191,36,0.3)' : 'rgba(52,211,153,0.3)'),
-              borderRadius: 'var(--radius)',
+              borderRadius: '0px',
               textAlign: 'center',
             }}>
               <div style={{ fontSize: 10, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>FEMA Zone</div>
@@ -510,9 +510,9 @@ export default function Dashboard({ data, onRecalculate }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 16 }}>
           <StatCard label="Rent Yield" value={`${investment.rentYieldPercent}%`} sub="annual gross" accent="var(--green)" />
           <StatCard label="Investment Score" value={`${investment.investmentScore}/100`} />
-          <div style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '16px 18px' }}>
+          <div style={{ background: 'rgba(0,0,0,0.4)', border: '2px solid rgba(255,255,255,0.2)', borderRadius: '0px', padding: '16px 18px' }}>
             <div style={{ fontSize: 11, color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Outlook</div>
-            <Tag color={investment.appreciationOutlook === 'bullish' ? 'green' : investment.appreciationOutlook === 'bearish' ? 'red' : 'var(--accent)'}>
+            <Tag color={investment.appreciationOutlook === 'bullish' ? 'green' : investment.appreciationOutlook === 'bearish' ? 'red' : 'var(--neon-pink)'}>
               {investment.appreciationOutlook.toUpperCase()}
             </Tag>
           </div>
@@ -523,7 +523,7 @@ export default function Dashboard({ data, onRecalculate }) {
 
       {/* Local Insights */}
       <SectionCard title="Local Insights" icon="🗺" delay={350}>
-        <p style={{ fontSize: 14, color: 'var(--text)', marginBottom: 16, fontStyle: 'italic', fontFamily: "'Playfair Display', serif" }}>
+        <p style={{ fontSize: 14, color: 'var(--text)', marginBottom: 16, fontStyle: 'italic', fontFamily: "'Space Mono', monospace" }}>
           "{localInsights.knownFor}"
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
@@ -531,19 +531,19 @@ export default function Dashboard({ data, onRecalculate }) {
             <div style={{ fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Top Attractions</div>
             {localInsights.topAttractions.map((a, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: '1px solid var(--border)', fontSize: 13 }}>
-                <span style={{ color: 'var(--accent)', fontSize: 11, fontWeight: 500 }}>{String(i + 1).padStart(2, '0')}</span>
+                <span style={{ color: 'var(--neon-pink)', fontSize: 11, fontWeight: 500 }}>{String(i + 1).padStart(2, '0')}</span>
                 {a}
               </div>
             ))}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ padding: '14px 16px', background: 'var(--accent-dim)', borderRadius: 'var(--radius)', borderLeft: '3px solid var(--accent)' }}>
-              <div style={{ fontSize: 11, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Local tip</div>
+            <div style={{ padding: '14px 16px', background: 'rgba(255,45,120,0.15)', borderRadius: '0px', borderLeft: '3px solid var(--accent)' }}>
+              <div style={{ fontSize: 11, color: 'var(--neon-pink)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Local tip</div>
               <p style={{ fontSize: 13, color: 'var(--text)' }}>{localInsights.localTip}</p>
             </div>
             {localInsights.languageNote && (
-              <div style={{ padding: '14px 16px', background: 'rgba(185,138,255,0.1)', borderRadius: 'var(--radius)', borderLeft: '3px solid var(--blue)' }}>
-                <div style={{ fontSize: 11, color: 'var(--accent-2)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Language</div>
+              <div style={{ padding: '14px 16px', background: 'rgba(185,138,255,0.1)', borderRadius: '0px', borderLeft: '3px solid var(--blue)' }}>
+                <div style={{ fontSize: 11, color: 'var(--acid-yellow)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Language</div>
                 <p style={{ fontSize: 13, color: 'var(--text)' }}>{localInsights.languageNote}</p>
               </div>
             )}
