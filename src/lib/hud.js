@@ -6,6 +6,8 @@ const HUD_BASE = 'https://www.huduser.gov/hudapi/public'
 // Get Fair Market Rent by ZIP code
 export async function getFairMarketRent(zipCode) {
   if (!HUD_TOKEN || !zipCode) return null
+  // HUD only works for US ZIP codes (5 digits) — skip Canadian/international postal codes
+  if (!/^\d{5}$/.test(zipCode.trim())) return null
 
   try {
     // First get the entity ID for this ZIP
@@ -47,7 +49,16 @@ export async function getFairMarketRent(zipCode) {
 // Get FEMA flood zone for a coordinate
 export async function getFloodZone(lat, lon) {
   try {
-    const url = `https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/28/query?geometry=${lon},${lat}&geometryType=esriGeometryPoint&spatialRel=esriSpatialRelIntersects&outFields=FLD_ZONE,SFHA_TF,ZONE_SUBTY&returnGeometry=false&f=json`
+    // Route through our proxy to avoid CORS
+    const params = new URLSearchParams({
+      geometry: lon + ',' + lat,
+      geometryType: 'esriGeometryPoint',
+      spatialRel: 'esriSpatialRelIntersects',
+      outFields: 'FLD_ZONE,SFHA_TF,ZONE_SUBTY',
+      returnGeometry: 'false',
+      f: 'json',
+    })
+    const url = '/api/fema?' + params.toString()
     const res = await fetch(url)
     const data = await res.json()
     const feature = data?.features?.[0]?.attributes
