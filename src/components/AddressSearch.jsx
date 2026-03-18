@@ -2,15 +2,15 @@ import { useState } from 'react'
 
 const inputStyle = {
   width: '100%',
-  padding: '11px 14px',
-  background: 'rgba(255,255,255,0.04)',
-  border: '1px solid var(--glass-border)',
-  borderRadius: 'var(--radius-sm)',
-  color: 'var(--text)',
+  padding: '14px 16px',
+  background: 'var(--obsidian)',
+  border: '2px solid var(--white)',
+  color: 'var(--white)',
   fontSize: 14,
   outline: 'none',
-  transition: 'border-color 0.2s, background 0.2s',
-  fontFamily: 'DM Sans, sans-serif',
+  fontFamily: "'Space Mono', monospace",
+  transition: 'border-color 0.1s, box-shadow 0.1s',
+  borderRadius: 0,
 }
 
 const labelStyle = {
@@ -18,10 +18,9 @@ const labelStyle = {
   fontSize: 10,
   color: 'var(--text-3)',
   textTransform: 'uppercase',
-  letterSpacing: '0.12em',
+  letterSpacing: '0.15em',
   marginBottom: 6,
-  fontWeight: 500,
-  fontFamily: 'DM Sans, sans-serif',
+  fontFamily: "'Space Mono', monospace",
 }
 
 export default function AddressSearch({ onSearch, loading, compact }) {
@@ -29,42 +28,25 @@ export default function AddressSearch({ onSearch, loading, compact }) {
   const [city, setCity] = useState('')
   const [state, setState] = useState('')
   const [country, setCountry] = useState('')
-  const [showDetails, setShowDetails] = useState(false)
-  const [beds, setBeds] = useState('')
-  const [baths, setBaths] = useState('')
-  const [sqft, setSqft] = useState('')
-  const [yearBuilt, setYearBuilt] = useState('')
-  const [purchasePrice, setPurchasePrice] = useState('')
 
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!street.trim() || !city.trim() || !country.trim()) return
-    onSearch({
-      street: street.trim(), city: city.trim(),
-      state: state.trim(), country: country.trim(),
-      knownFacts: {
-        beds: beds ? parseInt(beds) : null,
-        baths: baths ? parseFloat(baths) : null,
-        sqft: sqft ? parseInt(sqft) : null,
-        yearBuilt: yearBuilt ? parseInt(yearBuilt) : null,
-        purchasePrice: purchasePrice ? parseInt(purchasePrice.replace(/[\s,]/g, '')) : null,
-      }
-    })
+    onSearch({ street: street.trim(), city: city.trim(), state: state.trim(), country: country.trim(), knownFacts: {} })
   }
 
   const isValid = street.trim() && city.trim() && country.trim()
-  const focus = e => { e.target.style.borderColor = 'rgba(124,92,252,0.5)'; e.target.style.background = 'rgba(124,92,252,0.06)' }
-  const blur = e => { e.target.style.borderColor = 'var(--glass-border)'; e.target.style.background = 'rgba(255,255,255,0.04)' }
+  const focus = e => { e.target.style.borderColor = 'var(--neon-pink)'; e.target.style.boxShadow = '0 0 0 3px rgba(255,45,120,0.2)' }
+  const blur = e => { e.target.style.borderColor = 'var(--white)'; e.target.style.boxShadow = 'none' }
 
   if (compact) {
     return (
       <form onSubmit={handleSubmit}>
         <div style={{
-          display: 'flex', gap: 10, flexWrap: 'wrap',
-          background: 'var(--glass)',
-          border: '1px solid var(--glass-border)',
-          borderRadius: 'var(--radius-lg)',
-          padding: '14px 16px',
+          display: 'flex', gap: 8, flexWrap: 'wrap',
+          border: '2px solid var(--white)',
+          padding: '12px',
+          background: 'var(--emerald-dark)',
         }}>
           {[
             { val: street, set: setStreet, ph: 'Street address', flex: 2 },
@@ -74,20 +56,20 @@ export default function AddressSearch({ onSearch, loading, compact }) {
           ].map(({ val, set, ph, flex }) => (
             <input key={ph} value={val} onChange={e => set(e.target.value)}
               placeholder={ph} disabled={loading}
-              style={{ ...inputStyle, flex, minWidth: 100 }}
+              style={{ ...inputStyle, flex, minWidth: 100, fontSize: 13, padding: '10px 12px' }}
               onFocus={focus} onBlur={blur} />
           ))}
           <button type="submit" disabled={loading || !isValid} style={{
-            padding: '11px 22px',
-            background: isValid && !loading ? 'var(--accent)' : 'rgba(255,255,255,0.05)',
-            border: 'none', borderRadius: 'var(--radius-sm)',
-            color: isValid && !loading ? '#fff' : 'var(--text-3)',
-            fontWeight: 500, fontSize: 13,
-            cursor: loading || !isValid ? 'not-allowed' : 'pointer',
+            padding: '10px 20px',
+            background: isValid && !loading ? 'var(--neon-pink)' : 'rgba(255,255,255,0.1)',
+            border: '2px solid ' + (isValid && !loading ? 'var(--neon-pink)' : 'var(--text-3)'),
+            color: isValid && !loading ? 'var(--white)' : 'var(--text-3)',
+            fontFamily: "'Space Mono', monospace",
+            fontSize: 11, fontWeight: 700,
+            cursor: loading || !isValid ? 'not-allowed' : 'crosshair',
+            textTransform: 'uppercase', letterSpacing: '0.1em',
+            transition: 'all 0.1s',
             whiteSpace: 'nowrap',
-            boxShadow: isValid && !loading ? '0 0 20px var(--accent-glow)' : 'none',
-            transition: 'all 0.2s',
-            fontFamily: 'DM Sans, sans-serif',
           }}>
             {loading ? 'Analyzing...' : 'Search →'}
           </button>
@@ -99,14 +81,24 @@ export default function AddressSearch({ onSearch, loading, compact }) {
   return (
     <form onSubmit={handleSubmit}>
       <div style={{
-        background: 'rgba(255,255,255,0.03)',
-        border: '1px solid var(--glass-border)',
-        borderRadius: 'var(--radius-lg)',
+        border: '2px solid var(--white)',
         padding: '24px',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)',
+        background: 'rgba(0,0,0,0.4)',
+        boxShadow: '6px 6px 0px var(--acid-yellow)',
+        position: 'relative',
       }}>
+        {/* Corner label */}
+        <div style={{
+          position: 'absolute', top: -14, left: 20,
+          background: 'var(--neon-pink)',
+          padding: '2px 12px',
+          fontFamily: "'Space Mono', monospace",
+          fontSize: 10, fontWeight: 700,
+          color: 'var(--white)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.15em',
+        }}>Enter Address</div>
+
         <div style={{ marginBottom: 12 }}>
           <label style={labelStyle}>Street address</label>
           <input value={street} onChange={e => setStreet(e.target.value)}
@@ -114,7 +106,7 @@ export default function AddressSearch({ onSearch, loading, compact }) {
             style={inputStyle} onFocus={focus} onBlur={blur} />
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
           <div>
             <label style={labelStyle}>City</label>
             <input value={city} onChange={e => setCity(e.target.value)}
@@ -129,80 +121,31 @@ export default function AddressSearch({ onSearch, loading, compact }) {
           </div>
         </div>
 
-        <div style={{ marginBottom: 16 }}>
+        <div style={{ marginBottom: 20 }}>
           <label style={labelStyle}>Country</label>
           <input value={country} onChange={e => setCountry(e.target.value)}
             placeholder="e.g. United States" disabled={loading}
             style={inputStyle} onFocus={focus} onBlur={blur} />
         </div>
 
-        <button type="button" onClick={() => setShowDetails(!showDetails)} style={{
-          background: 'none', border: 'none', color: 'var(--accent-2)',
-          fontSize: 12, cursor: 'pointer', padding: '0 0 16px',
-          display: 'flex', alignItems: 'center', gap: 7,
-          fontFamily: 'DM Sans, sans-serif',
-          opacity: 0.75, transition: 'opacity 0.2s',
-        }}
-          onMouseEnter={e => e.currentTarget.style.opacity = '1'}
-          onMouseLeave={e => e.currentTarget.style.opacity = '0.75'}
-        >
-          <span style={{
-            width: 18, height: 18, borderRadius: '50%',
-            border: '1px solid rgba(185,138,255,0.4)',
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 12,
-          }}>{showDetails ? '−' : '+'}</span>
-          {showDetails ? 'Hide details' : 'Add known property details'} — improves accuracy
-        </button>
-
-        {showDetails && (
-          <div style={{
-            background: 'rgba(124,92,252,0.05)',
-            border: '1px solid rgba(124,92,252,0.15)',
-            borderRadius: 'var(--radius)',
-            padding: '14px', marginBottom: 16,
-          }}>
-            <p style={{ fontSize: 11, color: 'var(--text-2)', marginBottom: 12, lineHeight: 1.6 }}>
-              Known facts override AI estimates. Purchase price is the strongest anchor for valuation.
-            </p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 10 }}>
-              {[
-                { label: 'Bedrooms', value: beds, set: setBeds, placeholder: '5' },
-                { label: 'Bathrooms', value: baths, set: setBaths, placeholder: '3' },
-                { label: 'Sqft', value: sqft, set: setSqft, placeholder: '3250' },
-                { label: 'Year built', value: yearBuilt, set: setYearBuilt, placeholder: '2008' },
-                { label: 'Purchase price', value: purchasePrice, set: setPurchasePrice, placeholder: '1,100,000' },
-              ].map(({ label, value, set, placeholder }) => (
-                <div key={label}>
-                  <label style={labelStyle}>{label}</label>
-                  <input value={value} onChange={e => set(e.target.value)}
-                    placeholder={placeholder} disabled={loading}
-                    style={{ ...inputStyle, padding: '9px 12px', fontSize: 13 }}
-                    onFocus={focus} onBlur={blur} />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         <button type="submit" disabled={loading || !isValid} style={{
-          width: '100%', padding: '13px',
-          background: isValid && !loading
-            ? 'linear-gradient(135deg, var(--accent) 0%, #5b3de8 100%)'
-            : 'rgba(255,255,255,0.04)',
-          border: isValid && !loading ? 'none' : '1px solid var(--glass-border)',
-          borderRadius: 'var(--radius-sm)',
-          color: isValid && !loading ? '#fff' : 'var(--text-3)',
-          fontWeight: 600, fontSize: 14,
-          cursor: loading || !isValid ? 'not-allowed' : 'pointer',
-          transition: 'all 0.2s',
-          letterSpacing: '0.01em',
-          fontFamily: 'DM Sans, sans-serif',
-          boxShadow: isValid && !loading ? '0 8px 24px rgba(124,92,252,0.4)' : 'none',
+          width: '100%', padding: '16px',
+          background: isValid && !loading ? 'var(--neon-pink)' : 'rgba(255,255,255,0.05)',
+          border: '2px solid ' + (isValid && !loading ? 'var(--neon-pink)' : 'rgba(255,255,255,0.2)'),
+          color: isValid && !loading ? 'var(--white)' : 'var(--text-3)',
+          fontFamily: "'Space Mono', monospace",
+          fontWeight: 700, fontSize: 14,
+          cursor: loading || !isValid ? 'not-allowed' : 'crosshair',
+          textTransform: 'uppercase', letterSpacing: '0.15em',
+          transition: 'all 0.1s',
+          boxShadow: isValid && !loading ? '4px 4px 0px var(--acid-yellow)' : 'none',
         }}
-          onMouseEnter={e => { if (isValid && !loading) e.currentTarget.style.transform = 'translateY(-1px)' }}
-          onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)' }}
+          onMouseEnter={e => { if (isValid && !loading) { e.currentTarget.style.transform = 'translate(-2px,-2px)'; e.currentTarget.style.boxShadow = '6px 6px 0px var(--acid-yellow)' }}}
+          onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = isValid && !loading ? '4px 4px 0px var(--acid-yellow)' : 'none' }}
+          onMouseDown={e => { e.currentTarget.style.transform = 'translate(2px,2px)'; e.currentTarget.style.boxShadow = '2px 2px 0px var(--acid-yellow)' }}
+          onMouseUp={e => { e.currentTarget.style.transform = 'translate(-2px,-2px)'; e.currentTarget.style.boxShadow = '6px 6px 0px var(--acid-yellow)' }}
         >
-          {loading ? 'Analyzing...' : 'Analyze property →'}
+          {loading ? '⟳ Analyzing...' : '→ Analyze Property'}
         </button>
       </div>
     </form>
