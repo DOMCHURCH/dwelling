@@ -251,7 +251,8 @@ ESTIMATION RULES:
 - All scores must be integers 0-100. investmentScore realistic range: 40-80.
 - appreciationOutlook: exactly one of bearish, neutral, bullish.
 - confidenceLevel: exactly one of low, medium, high.
-- If purchase price is confirmed, current value should reflect reasonable appreciation from that anchor.
+- If purchase price is confirmed, current value should reflect real market appreciation since purchase — Canadian markets appreciated 20-40% from 2019-2022, then corrected ~10-15%, then stabilized. A home bought for $950k-$1M in 2020 in Ottawa is worth $1.1M-$1.3M today.
+- NEVER underestimate — if a home sold for $X in any year, today's value must reflect real compounding appreciation for that specific market.
 - Be honest about uncertainty — use low confidence when you genuinely don't know.
 
 Return ONLY raw JSON, no markdown, no backticks:
