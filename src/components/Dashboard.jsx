@@ -256,7 +256,7 @@ function CorrectionsPanel({ ai, knownFacts = {}, onRecalculate }) {
 }
 
 export default function Dashboard({ data, onRecalculate }) {
-  const { geo, weather, climate, ai, knownFacts } = data
+  const { geo, weather, climate, ai, knownFacts, realData } = data
   const { propertyEstimate, costOfLiving, neighborhood, investment, floorPlan, localInsights } = ai
 
   const currentWeather = weather?.current
@@ -360,6 +360,13 @@ export default function Dashboard({ data, onRecalculate }) {
           <StatCard label="Price / sqft" value={fmtUSD(propertyEstimate.pricePerSqftUSD)} sub="avg for area" />
           <StatCard label="Rent / month" value={fmtUSD(propertyEstimate.rentEstimateMonthlyUSD)} sub="typical rental" accent="var(--green)" animate />
         </div>
+        {realData?.censusData && (
+          <div style={{ marginBottom: 10, padding: '8px 12px', background: 'rgba(124,92,252,0.06)', border: '1px solid rgba(124,92,252,0.15)', borderRadius: 'var(--radius-sm)', fontSize: 11, color: 'var(--text-2)' }}>
+            Census tract median home value: <span style={{ color: 'var(--accent-2)', fontWeight: 600 }}>${realData.censusData.medianHomeValueUSD?.toLocaleString()}</span>
+            {realData.censusData.medianGrossRentUSD && <span> · Median rent: <span style={{ color: 'var(--accent-2)', fontWeight: 600 }}>${realData.censusData.medianGrossRentUSD?.toLocaleString()}/mo</span></span>}
+            <span style={{ color: 'var(--text-3)', marginLeft: 8 }}>· US Census ACS 2022</span>
+          </div>
+        )}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <Tag>Confidence: {propertyEstimate.confidenceLevel}</Tag>
           <p style={{ fontSize: 13, color: 'var(--text-2)', flex: 1, minWidth: 200 }}>{propertyEstimate.priceContext}</p>
@@ -375,12 +382,17 @@ export default function Dashboard({ data, onRecalculate }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: 16 }}>
 
         <SectionCard title="Neighborhood" icon="🏘" delay={150}>
-          <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: 20 }}>
-            <ScoreRing score={neighborhood.walkScore} label="Walk" color="var(--accent)" />
-            <ScoreRing score={neighborhood.transitScore} label="Transit" color="var(--accent-2)" />
+          <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: 12 }}>
+            <ScoreRing score={realData?.neighborhoodScores?.walkScore ?? neighborhood.walkScore} label="Walk" color="var(--accent)" />
+            <ScoreRing score={realData?.neighborhoodScores?.transitScore ?? neighborhood.transitScore} label="Transit" color="var(--accent-2)" />
             <ScoreRing score={neighborhood.safetyRating} label="Safety" color="var(--green)" />
-            <ScoreRing score={neighborhood.schoolRating} label="Schools" color="#c07ada" />
+            <ScoreRing score={realData?.neighborhoodScores?.schoolScore ?? neighborhood.schoolRating} label="Schools" color="#c07ada" />
           </div>
+          {realData?.neighborhoodScores && (
+            <div style={{ textAlign: 'center', fontSize: 10, color: 'var(--text-3)', marginBottom: 14, letterSpacing: '0.06em' }}>
+              WALK · TRANSIT · SCHOOL SCORES FROM OPENSTREETMAP REAL DATA
+            </div>
+          )}
           <p style={{ fontSize: 13, color: 'var(--text-2)', marginBottom: 14 }}>{neighborhood.character}</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
             {neighborhood.pros.map((p, i) => <Tag key={i} color="green">+ {p}</Tag>)}
@@ -461,6 +473,35 @@ export default function Dashboard({ data, onRecalculate }) {
       {ai.priceHistory && (
         <SectionCard title="Price History & Projection" icon="📊" delay={275}>
           <PriceHistoryChart priceHistory={ai.priceHistory} />
+        </SectionCard>
+      )}
+
+      {/* Flood Zone */}
+      {realData?.floodZone && (
+        <SectionCard title="Flood Risk" icon="🌊" delay={280} className="fade-up">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+            <div style={{
+              padding: '10px 20px',
+              background: realData.floodZone.riskLevel === 'high' ? 'var(--red-dim)' : realData.floodZone.riskLevel === 'moderate' ? 'rgba(251,191,36,0.1)' : 'var(--green-dim)',
+              border: '1px solid ' + (realData.floodZone.riskLevel === 'high' ? 'rgba(248,113,113,0.3)' : realData.floodZone.riskLevel === 'moderate' ? 'rgba(251,191,36,0.3)' : 'rgba(52,211,153,0.3)'),
+              borderRadius: 'var(--radius)',
+              textAlign: 'center',
+            }}>
+              <div style={{ fontSize: 10, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>FEMA Zone</div>
+              <div style={{ fontSize: 28, fontWeight: 800, fontFamily: 'Syne, sans-serif', color: realData.floodZone.riskLevel === 'high' ? 'var(--red)' : realData.floodZone.riskLevel === 'moderate' ? 'var(--amber)' : 'var(--green)' }}>
+                {realData.floodZone.zone}
+              </div>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>{realData.floodZone.description}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-2)' }}>
+                {realData.floodZone.inSpecialFloodHazardArea
+                  ? 'This property is in a Special Flood Hazard Area. Flood insurance is typically required.'
+                  : 'This property is not in a Special Flood Hazard Area. Standard insurance applies.'}
+              </div>
+              <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 6 }}>Source: FEMA National Flood Hazard Layer</div>
+            </div>
+          </div>
         </SectionCard>
       )}
 
