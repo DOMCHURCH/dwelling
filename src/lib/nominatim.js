@@ -1,21 +1,37 @@
 const BASE = 'https://nominatim.openstreetmap.org'
 
-// Structured geocode — uses separate fields so Nominatim finds the exact location
-export async function geocodeStructured({ street, city, state, country }) {
-  const params = new URLSearchParams({
-    street,
-    city,
-    state,
-    country,
-    format: 'json',
-    addressdetails: 1,
-    limit: 1,
-  })
+async function nominatimFetch(params) {
+  params.set('format', 'json')
+  params.set('addressdetails', 1)
+  params.set('limit', 1)
   const res = await fetch(`${BASE}/search?${params}`, {
     headers: { 'Accept-Language': 'en', 'User-Agent': 'DwellingApp/1.0' },
   })
-  const data = await res.json()
+  return res.json()
+}
+
+// Geocode with structured fields first, fall back to free-form query if no results
+export async function geocodeStructured({ street, city, state, country }) {
+  // 1. Try structured search
+  const structuredParams = new URLSearchParams({ street, city, country })
+  if (state) structuredParams.set('state', state)
+  let data = await nominatimFetch(structuredParams)
+
+  // 2. Fall back to free-form query (handles unusual addresses, abbreviations, etc.)
+  if (!data.length) {
+    const q = [street, city, state, country].filter(Boolean).join(', ')
+    data = await nominatimFetch(new URLSearchParams({ q }))
+  }
+
+  // 3. City-only last resort so coordinates are at least in the right area
+  if (!data.length && city && country) {
+    const cityParams = new URLSearchParams({ city, country })
+    if (state) cityParams.set('state', state)
+    data = await nominatimFetch(cityParams)
+  }
+
   if (!data.length) throw new Error('Address not found — double-check the street, city, and country.')
+
   const r = data[0]
   return {
     lat: parseFloat(r.lat),
