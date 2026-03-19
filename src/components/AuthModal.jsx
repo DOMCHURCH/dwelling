@@ -46,6 +46,22 @@ export default function AuthModal({ onAuth }) {
       if (mode === 'signup') {
         const { data, error: signUpError } = await supabase.auth.signUp({ email, password })
         if (signUpError) throw signUpError
+
+        // Insert user record — retry a few times in case of timing issues
+        let inserted = false
+        for (let i = 0; i < 3; i++) {
+          const { error: insertError } = await supabase.from('users').insert({
+            id: data.user.id,
+            email: data.user.email,
+            terms_accepted_at: new Date().toISOString(),
+            analyses_used: 0,
+            is_pro: false,
+          })
+          if (!insertError || insertError.code === '23505') { inserted = true; break }
+          await new Promise(r => setTimeout(r, 500))
+        }
+        if (!inserted) console.warn('User record insert failed — trigger may handle it')
+
         onAuth(data.user)
       } else {
         const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
@@ -172,22 +188,11 @@ export default function AuthModal({ onAuth }) {
             display: 'flex', flexDirection: 'column',
             boxShadow: '8px 8px 0px #ff2d78',
           }}>
-            <div style={{
-              padding: '16px 24px', borderBottom: '2px solid rgba(255,255,255,0.2)',
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              flexShrink: 0,
-            }}>
+            <div style={{ padding: '16px 24px', borderBottom: '2px solid rgba(255,255,255,0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
               <span style={{ fontFamily: MONO, fontSize: 13, fontWeight: 700, color: '#ffffff', textTransform: 'uppercase' }}>Terms & Conditions</span>
-              <button onClick={() => setShowTermsFull(false)} style={{
-                background: 'transparent', border: '1px solid rgba(255,255,255,0.3)',
-                color: '#ffffff', fontFamily: MONO, fontSize: 11, padding: '6px 12px', cursor: 'crosshair',
-              }}>✕ Close</button>
+              <button onClick={() => setShowTermsFull(false)} style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.3)', color: '#ffffff', fontFamily: MONO, fontSize: 11, padding: '6px 12px', cursor: 'crosshair' }}>✕ Close</button>
             </div>
-            <div style={{
-              flex: 1, overflowY: 'scroll', padding: '24px',
-              fontFamily: "'Inter', sans-serif", fontSize: 13,
-              color: 'rgba(255,255,255,0.7)', lineHeight: 1.8,
-            }}>
+            <div style={{ flex: 1, overflowY: 'scroll', padding: '24px', fontFamily: "'Inter', sans-serif", fontSize: 13, color: 'rgba(255,255,255,0.7)', lineHeight: 1.8 }}>
               <p style={{ fontFamily: MONO, fontSize: 10, color: 'rgba(255,255,255,0.3)', marginBottom: 20 }}>Last updated: June 2025. By creating an account, you agree to all terms below.</p>
               {TERMS_SECTIONS.map(({ title, body }) => (
                 <div key={title} style={{ marginBottom: 20 }}>
