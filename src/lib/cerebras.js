@@ -3,10 +3,21 @@ import { supabase } from './supabase'
 const CEREBRAS_BASE = '/api/cerebras'
 const MODEL = 'llama-3.1-8b'
 
+async function getAuthToken() {
+  // Try getting session, refresh if expired
+  const { data: { session }, error } = await supabase.auth.getSession()
+  if (session?.access_token) return session.access_token
+
+  // Try refreshing the session
+  const { data: refreshed } = await supabase.auth.refreshSession()
+  if (refreshed?.session?.access_token) return refreshed.session.access_token
+
+  return null
+}
+
 async function cerebrasChat(messages, json = false) {
-  // Get current session token to send with request
-  const { data: { session } } = await supabase.auth.getSession()
-  const token = session?.access_token ?? ''
+  const token = await getAuthToken()
+  if (!token) throw new Error('Not authenticated. Please sign in again.')
 
   const res = await fetch(CEREBRAS_BASE, {
     method: 'POST',
@@ -59,7 +70,7 @@ function validateEstimate(est, known, realScores) {
   nb.schoolRating = Math.min(Math.max(Math.round(nb.schoolRating), 0), 100)
   est.investment.investmentScore = Math.min(Math.max(Math.round(est.investment.investmentScore), 0), 100)
 
-  // Lock walk/transit/school scores to real Overpass data
+  // Lock walk/transit/school to real Overpass data — AI cannot override
   if (realScores) {
     nb.walkScore = realScores.walkScore
     nb.transitScore = realScores.transitScore
@@ -176,7 +187,7 @@ export async function analyzeProperty(geoData, weatherData, climateData, knownFa
       '\n- Nearby parks: ' + (neighborhoodScores.nearbyParks.join(', ') || 'none found') +
       '\n- Nearby transit stops: ' + (neighborhoodScores.nearbyTransit.join(', ') || 'none found') +
       '\n- Nearby grocery stores: ' + (neighborhoodScores.nearbyGrocery.join(', ') || 'none found') +
-      '\nNOTE: Walk, transit, and school scores are computed from real data separately. Focus your neighborhood section on character, safety, pros/cons, and bestFor only.'
+      '\nNOTE: Walk, transit, and school scores are computed from real data and will override your JSON values. Only provide safetyRating in the neighborhood section.'
     )
   }
 
@@ -212,7 +223,7 @@ export async function analyzeProperty(geoData, weatherData, climateData, knownFa
     ? 'REAL DATA FROM AUTHORITATIVE SOURCES:\n' + realParts.join('\n\n')
     : 'No real property data available — use your best estimate.'
 
-  const prompt = `You are a senior real estate appraiser with 20 years of experience. Analyze this specific property.
+  const prompt = `You are a senior real estate appraiser with 20 years of experience. Analyze this specific property and fill in ALL fields with real, specific data. Do NOT use placeholder text like "pro 1", "feature 1", "attraction 1" — replace every placeholder with actual specific content.
 
 PROPERTY:
 Street: ${street}
@@ -227,15 +238,20 @@ Climate: ${climateSummary}
 ${knownFactsSection}
 ${realDataContext}
 
-RULES:
-- Use ONLY the exact city and state above.
-- For affluent suburbs: single family homes are typically $600k-$2M+.
-- investmentScore realistic range: 40-80.
-- appreciationOutlook: exactly one of bearish, neutral, bullish.
-- confidenceLevel: exactly one of low, medium, high.
-- safetyRating: use your knowledge of this specific neighborhood's safety reputation.
+CRITICAL RULES:
+- Replace ALL placeholder values with real specific content for ${city}, ${state}, ${country}
+- pros must be real specific pros of this exact neighborhood (not "pro 1")
+- cons must be real specific cons (not "con 1")
+- commonFeatures must be real features typical of homes in this area (not "feature 1")
+- topAttractions must be real nearby attractions (not "attraction 1")
+- priceContext must cite real comparable sales with specific addresses or price ranges
+- All price history values must be real estimates (not 0)
+- appreciationOutlook: exactly one of bearish, neutral, bullish
+- confidenceLevel: exactly one of low, medium, high
+- investmentScore: integer 40-80
+- safetyRating: use real knowledge of this neighborhood's safety
 
-Return ONLY raw JSON, no markdown:
+Return ONLY raw JSON, no markdown, no backticks, no explanations:
 
 {
   "propertyEstimate": {
@@ -243,7 +259,7 @@ Return ONLY raw JSON, no markdown:
     "pricePerSqftUSD": 290,
     "rentEstimateMonthlyUSD": 3800,
     "confidenceLevel": "medium",
-    "priceContext": "2-3 sentences with specific comparable sales in ${city}, ${state}."
+    "priceContext": "Real comparable sales context for ${city}."
   },
   "costOfLiving": {
     "monthlyBudgetUSD": 4200,
@@ -252,59 +268,59 @@ Return ONLY raw JSON, no markdown:
     "utilitiesMonthlyUSD": 220,
     "diningOutMonthlyUSD": 500,
     "indexVsUSAverage": 18,
-    "summary": "One sentence summary."
+    "summary": "One sentence about cost of living in ${city}."
   },
   "neighborhood": {
-    "character": "2-3 sentences about this specific neighborhood.",
+    "character": "2-3 specific sentences about this exact neighborhood in ${city}.",
     "walkScore": 45,
     "transitScore": 30,
     "safetyRating": 82,
     "schoolRating": 88,
-    "pros": ["pro 1", "pro 2", "pro 3"],
-    "cons": ["con 1", "con 2"],
-    "bestFor": "Who this area suits best."
+    "pros": ["Specific pro 1 for this area", "Specific pro 2", "Specific pro 3"],
+    "cons": ["Specific con 1 for this area", "Specific con 2"],
+    "bestFor": "Specific description of who this area suits."
   },
   "investment": {
     "rentYieldPercent": 4.2,
     "appreciationOutlook": "bullish",
-    "appreciationOutlookText": "Explain the outlook.",
+    "appreciationOutlookText": "Specific outlook for ${city} market.",
     "investmentScore": 68,
-    "investmentSummary": "Investment summary."
+    "investmentSummary": "Specific investment summary for this property."
   },
   "floorPlan": {
     "typicalSqft": 3200,
-    "typicalBedrooms": 5,
+    "typicalBedrooms": 4,
     "typicalBathrooms": 3,
-    "architecturalStyle": "Style name.",
-    "builtEra": "2000s",
-    "typicalLayout": "Describe the typical floor plan layout.",
-    "commonFeatures": ["feature 1", "feature 2", "feature 3", "feature 4", "feature 5"]
+    "architecturalStyle": "Real architectural style for this area.",
+    "builtEra": "1990s",
+    "typicalLayout": "Specific layout description for homes in this neighborhood.",
+    "commonFeatures": ["Real feature 1", "Real feature 2", "Real feature 3", "Real feature 4", "Real feature 5"]
   },
   "localInsights": {
-    "topAttractions": ["attraction 1", "attraction 2", "attraction 3"],
-    "knownFor": "What the area is known for.",
-    "localTip": "Insider tip.",
+    "topAttractions": ["Real attraction near ${city}", "Real attraction 2", "Real attraction 3"],
+    "knownFor": "What ${city} and this neighborhood are actually known for.",
+    "localTip": "Real insider tip about this area.",
     "languageNote": null
   },
   "priceHistory": {
-    "currency": "FILL_IN_CURRENCY_CODE",
-    "currencySymbol": "FILL_IN_SYMBOL",
+    "currency": "CAD",
+    "currencySymbol": "$",
     "data": [
-      {"year": 2019, "value": 0, "type": "historical"},
-      {"year": 2020, "value": 0, "type": "historical"},
-      {"year": 2021, "value": 0, "type": "historical"},
-      {"year": 2022, "value": 0, "type": "historical"},
-      {"year": 2023, "value": 0, "type": "historical"},
-      {"year": 2024, "value": 0, "type": "historical"},
-      {"year": 2025, "value": 0, "type": "projected"},
-      {"year": 2026, "value": 0, "type": "projected"},
-      {"year": 2027, "value": 0, "type": "projected"}
+      {"year": 2019, "value": 750000, "type": "historical"},
+      {"year": 2020, "value": 820000, "type": "historical"},
+      {"year": 2021, "value": 980000, "type": "historical"},
+      {"year": 2022, "value": 1050000, "type": "historical"},
+      {"year": 2023, "value": 980000, "type": "historical"},
+      {"year": 2024, "value": 1000000, "type": "historical"},
+      {"year": 2025, "value": 1020000, "type": "projected"},
+      {"year": 2026, "value": 1050000, "type": "projected"},
+      {"year": 2027, "value": 1080000, "type": "projected"}
     ],
-    "marketNote": "One sentence about what drove price changes in this market."
+    "marketNote": "Specific note about ${city} market trends."
   }
 }
 
-Replace all 0 values with real estimates for ${street}, ${city}, ${state}, ${country}.`
+IMPORTANT: The example numbers above are just format examples. Replace ALL values with real accurate estimates for ${street}, ${city}, ${state}, ${country}. Every string placeholder must be replaced with real specific content.`
 
   const raw = await cerebrasChat([{ role: 'user', content: prompt }], true)
   const result = JSON.parse(raw.replace(/```json|```/g, '').trim())
