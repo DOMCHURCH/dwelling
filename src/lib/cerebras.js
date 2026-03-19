@@ -337,7 +337,25 @@ Return ONLY raw JSON (no markdown, no backticks):
 
 CRITICAL: Replace every 0 with a real number. The 2024 historical value and estimatedValueUSD must be within 5% of each other. All strings must be specific to ${street}, ${city}, ${country} — no generic filler text.`
 
-  const raw = await cerebrasChat([{ role: 'user', content: prompt }], true)
-  const result = JSON.parse(raw.replace(/```json|```/g, '').trim())
+  let raw = await cerebrasChat([{ role: 'user', content: prompt }], true)
+  let result = JSON.parse(raw.replace(/```json|```/g, '').trim())
+
+  // If AI returned 0 for key fields, retry once with a simpler focused prompt
+  if (!result.propertyEstimate?.estimatedValueUSD || !result.costOfLiving?.monthlyBudgetUSD) {
+    const retryPrompt = `You are a real estate appraiser. For the property at ${street}, ${city}, ${state}, ${country}, provide realistic estimates. This is a residential property in an established neighborhood.
+
+Return ONLY this JSON with ALL zeros replaced by real numbers:
+${JSON.stringify(result, null, 2)}
+
+Fill every 0 with a real estimate for ${city}, ${country}. estimatedValueUSD must be a realistic home value for this city and neighborhood. monthlyBudgetUSD must be a realistic monthly cost of living for ${city}. All price history values must show the real market trajectory.`
+
+    const retryRaw = await cerebrasChat([{ role: 'user', content: retryPrompt }], true)
+    const retryResult = JSON.parse(retryRaw.replace(/```json|```/g, '').trim())
+    // Merge — only replace zeros with retry values
+    if (retryResult.propertyEstimate?.estimatedValueUSD > 0) result.propertyEstimate = retryResult.propertyEstimate
+    if (retryResult.costOfLiving?.monthlyBudgetUSD > 0) result.costOfLiving = retryResult.costOfLiving
+    if (retryResult.priceHistory?.data?.some(d => d.value > 0)) result.priceHistory = retryResult.priceHistory
+  }
+
   return validateEstimate(result, knownFacts, neighborhoodScores)
 }
