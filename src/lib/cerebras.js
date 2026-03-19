@@ -59,84 +59,6 @@ function validateEstimate(est, known) {
   return est
 }
 
-// Run 3 calls and take majority/median — much more accurate than single call
-async function selfConsistency(prompt) {
-  const calls = await Promise.all([
-    cerebrasChat([{ role: 'user', content: prompt }], true),
-    cerebrasChat([{ role: 'user', content: prompt }], true),
-    cerebrasChat([{ role: 'user', content: prompt }], true),
-  ])
-
-  const parsed = calls.map(raw => {
-    try {
-      return JSON.parse(raw)
-    } catch {
-      return JSON.parse(raw.replace(/```json|```/g, '').trim())
-    }
-  }).filter(Boolean)
-
-  if (parsed.length === 0) throw new Error('All Groq calls failed to parse')
-  if (parsed.length === 1) return parsed[0]
-
-  // Aggregate: median for numbers, majority vote for strings
-  const median = (arr) => {
-    const s = [...arr].sort((a, b) => a - b)
-    return s[Math.floor(s.length / 2)]
-  }
-  const majority = (arr) => {
-    const counts = {}
-    arr.forEach(v => counts[v] = (counts[v] || 0) + 1)
-    return Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0]
-  }
-
-  return {
-    propertyEstimate: {
-      estimatedValueUSD: Math.round(median(parsed.map(p => p.propertyEstimate.estimatedValueUSD))),
-      pricePerSqftUSD: Math.round(median(parsed.map(p => p.propertyEstimate.pricePerSqftUSD))),
-      rentEstimateMonthlyUSD: Math.round(median(parsed.map(p => p.propertyEstimate.rentEstimateMonthlyUSD))),
-      confidenceLevel: majority(parsed.map(p => p.propertyEstimate.confidenceLevel)),
-      priceContext: parsed[0].propertyEstimate.priceContext,
-    },
-    costOfLiving: {
-      monthlyBudgetUSD: Math.round(median(parsed.map(p => p.costOfLiving.monthlyBudgetUSD))),
-      groceriesMonthlyUSD: Math.round(median(parsed.map(p => p.costOfLiving.groceriesMonthlyUSD))),
-      transportMonthlyUSD: Math.round(median(parsed.map(p => p.costOfLiving.transportMonthlyUSD))),
-      utilitiesMonthlyUSD: Math.round(median(parsed.map(p => p.costOfLiving.utilitiesMonthlyUSD))),
-      diningOutMonthlyUSD: Math.round(median(parsed.map(p => p.costOfLiving.diningOutMonthlyUSD))),
-      indexVsUSAverage: Math.round(median(parsed.map(p => p.costOfLiving.indexVsUSAverage))),
-      summary: parsed[0].costOfLiving.summary,
-    },
-    neighborhood: {
-      character: parsed[0].neighborhood.character,
-      walkScore: Math.round(median(parsed.map(p => p.neighborhood.walkScore))),
-      transitScore: Math.round(median(parsed.map(p => p.neighborhood.transitScore))),
-      safetyRating: Math.round(median(parsed.map(p => p.neighborhood.safetyRating))),
-      schoolRating: Math.round(median(parsed.map(p => p.neighborhood.schoolRating))),
-      pros: parsed[0].neighborhood.pros,
-      cons: parsed[0].neighborhood.cons,
-      bestFor: parsed[0].neighborhood.bestFor,
-    },
-    investment: {
-      rentYieldPercent: parseFloat(median(parsed.map(p => p.investment.rentYieldPercent)).toFixed(1)),
-      appreciationOutlook: majority(parsed.map(p => p.investment.appreciationOutlook)),
-      appreciationOutlookText: parsed[0].investment.appreciationOutlookText,
-      investmentScore: Math.round(median(parsed.map(p => p.investment.investmentScore))),
-      investmentSummary: parsed[0].investment.investmentSummary,
-    },
-    floorPlan: {
-      typicalSqft: Math.round(median(parsed.map(p => p.floorPlan.typicalSqft))),
-      typicalBedrooms: Math.round(median(parsed.map(p => p.floorPlan.typicalBedrooms))),
-      typicalBathrooms: parseFloat(median(parsed.map(p => p.floorPlan.typicalBathrooms)).toFixed(1)),
-      architecturalStyle: parsed[0].floorPlan.architecturalStyle,
-      builtEra: parsed[0].floorPlan.builtEra,
-      typicalLayout: parsed[0].floorPlan.typicalLayout,
-      commonFeatures: parsed[0].floorPlan.commonFeatures,
-    },
-    localInsights: parsed[0].localInsights,
-    priceHistory: parsed[0].priceHistory,
-  }
-}
-
 const ASSESSOR_LINKS = {
   'united states': (geo) => {
     const state = (geo.userState ?? '').trim()
@@ -390,6 +312,7 @@ PRICE HISTORY RULES:
 
 Fill ALL placeholder values with accurate data for ${street}, ${city}, ${state}, ${country}.`
 
-  const result = await selfConsistency(prompt)
+  const raw = await cerebrasChat([{ role: 'user', content: prompt }], true)
+  const result = JSON.parse(raw.replace(/```json|```/g, '').trim())
   return validateEstimate(result, knownFacts)
 }
