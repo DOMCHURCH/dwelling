@@ -4,14 +4,10 @@ const CEREBRAS_BASE = '/api/cerebras'
 const MODEL = 'llama-3.1-8b'
 
 async function getAuthToken() {
-  // Try getting session, refresh if expired
-  const { data: { session }, error } = await supabase.auth.getSession()
+  const { data: { session } } = await supabase.auth.getSession()
   if (session?.access_token) return session.access_token
-
-  // Try refreshing the session
   const { data: refreshed } = await supabase.auth.refreshSession()
   if (refreshed?.session?.access_token) return refreshed.session.access_token
-
   return null
 }
 
@@ -28,7 +24,7 @@ async function cerebrasChat(messages, json = false) {
     body: JSON.stringify({
       model: MODEL,
       messages,
-      temperature: 0.7,
+      temperature: 0.3,
       max_tokens: 8000,
       ...(json && { response_format: { type: 'json_object' } }),
     }),
@@ -44,6 +40,7 @@ async function cerebrasChat(messages, json = false) {
 }
 
 function validateEstimate(est, known, realScores) {
+  // Known facts override AI
   if (known.sqft) {
     const minBeds = Math.floor(known.sqft / 500)
     const maxBeds = Math.ceil(known.sqft / 150)
@@ -61,7 +58,21 @@ function validateEstimate(est, known, realScores) {
     if (ratio < 0.6 || ratio > 1.4) {
       est.propertyEstimate.estimatedValueUSD = Math.round(known.purchasePrice * 1.05)
       est.propertyEstimate.confidenceLevel = 'high'
-      est.propertyEstimate.priceContext = `Based on the known purchase price of $${known.purchasePrice.toLocaleString()}, current market value is estimated at a slight appreciation. ` + est.propertyEstimate.priceContext
+      est.propertyEstimate.priceContext = `Based on the known purchase price of $${known.purchasePrice.toLocaleString()}, current market value is estimated with slight appreciation. ` + est.propertyEstimate.priceContext
+    }
+  }
+
+  // Enforce price/history consistency — current estimate must match last historical year
+  if (est.priceHistory?.data?.length) {
+    const lastHistorical = [...est.priceHistory.data]
+      .filter(d => d.type === 'historical')
+      .sort((a, b) => b.year - a.year)[0]
+    if (lastHistorical) {
+      const ratio = est.propertyEstimate.estimatedValueUSD / lastHistorical.value
+      // If they differ by more than 15%, anchor estimate to last historical
+      if (ratio < 0.85 || ratio > 1.15) {
+        est.propertyEstimate.estimatedValueUSD = lastHistorical.value
+      }
     }
   }
 
@@ -70,7 +81,7 @@ function validateEstimate(est, known, realScores) {
   nb.schoolRating = Math.min(Math.max(Math.round(nb.schoolRating), 0), 100)
   est.investment.investmentScore = Math.min(Math.max(Math.round(est.investment.investmentScore), 0), 100)
 
-  // Lock walk/transit/school to real Overpass data — AI cannot override
+  // Lock walk/transit/school to real Overpass data
   if (realScores) {
     nb.walkScore = realScores.walkScore
     nb.transitScore = realScores.transitScore
@@ -79,6 +90,13 @@ function validateEstimate(est, known, realScores) {
     nb.walkScore = Math.min(Math.max(Math.round(nb.walkScore), 0), 100)
     nb.transitScore = Math.min(Math.max(Math.round(nb.transitScore), 0), 100)
   }
+
+  // Strip placeholder text
+  const isPlaceholder = (s) => /^(pro|con|feature|attraction)\s*\d+$/i.test(s?.trim())
+  if (est.neighborhood.pros?.some(isPlaceholder)) est.neighborhood.pros = ['Established residential neighborhood', 'Access to public transit', 'Proximity to parks and green space']
+  if (est.neighborhood.cons?.some(isPlaceholder)) est.neighborhood.cons = ['Car dependent for some errands', 'Limited walkable retail']
+  if (est.floorPlan.commonFeatures?.some(isPlaceholder)) est.floorPlan.commonFeatures = ['Attached garage', 'Hardwood floors', 'Updated kitchen', 'Private backyard', 'Finished basement']
+  if (est.localInsights.topAttractions?.some(isPlaceholder)) est.localInsights.topAttractions = ['Local parks', 'Shopping centres', 'Community centres']
 
   return est
 }
@@ -94,11 +112,11 @@ const ASSESSOR_LINKS = {
       'Texas': `https://www.google.com/search?q=${encodeURIComponent(street + ' ' + city + ' TX county appraisal district property record')}`,
       'Florida': `https://www.google.com/search?q=${encodeURIComponent(street + ' ' + city + ' FL county property appraiser record')}`,
       'New York': `https://www.google.com/search?q=${encodeURIComponent(street + ' ' + city + ' NY property assessment record')}`,
-      'Illinois': `https://www.cookcountyassessor.com/address-search`,
-      'Washington': `https://blue.kingcounty.com/Assessor/eRealProperty/default.aspx`,
-      'Arizona': `https://mcassessor.maricopa.gov`,
+      'Illinois': 'https://www.cookcountyassessor.com/address-search',
+      'Washington': 'https://blue.kingcounty.com/Assessor/eRealProperty/default.aspx',
+      'Arizona': 'https://mcassessor.maricopa.gov',
       'Georgia': `https://www.google.com/search?q=${encodeURIComponent(street + ' ' + city + ' GA county tax assessor property record')}`,
-      'Nevada': `https://assessor.clarkcountynv.gov`,
+      'Nevada': 'https://assessor.clarkcountynv.gov',
     }
     return stateMap[state] ?? `https://www.google.com/search?q=${encodeURIComponent(street + ' ' + city + ' ' + state + ' county assessor property record')}`
   },
@@ -167,160 +185,153 @@ export async function analyzeProperty(geoData, weatherData, climateData, knownFa
     : 'unavailable'
 
   const knownLines = []
-  if (knownFacts.beds) knownLines.push(`CONFIRMED bedrooms: ${knownFacts.beds} (do not change this)`)
-  if (knownFacts.baths) knownLines.push(`CONFIRMED bathrooms: ${knownFacts.baths} (do not change this)`)
-  if (knownFacts.sqft) knownLines.push(`CONFIRMED square footage: ${knownFacts.sqft} sqft (do not change this)`)
-  if (knownFacts.yearBuilt) knownLines.push(`CONFIRMED year built: ${knownFacts.yearBuilt} (do not change this)`)
-  if (knownFacts.purchasePrice) knownLines.push(`CONFIRMED purchase price: $${knownFacts.purchasePrice.toLocaleString()} — use this as your primary anchor for current value estimation`)
+  if (knownFacts.beds) knownLines.push(`CONFIRMED bedrooms: ${knownFacts.beds}`)
+  if (knownFacts.baths) knownLines.push(`CONFIRMED bathrooms: ${knownFacts.baths}`)
+  if (knownFacts.sqft) knownLines.push(`CONFIRMED square footage: ${knownFacts.sqft} sqft`)
+  if (knownFacts.yearBuilt) knownLines.push(`CONFIRMED year built: ${knownFacts.yearBuilt}`)
+  if (knownFacts.purchasePrice) knownLines.push(`CONFIRMED purchase price: $${knownFacts.purchasePrice.toLocaleString()} — anchor your current value estimate to this`)
 
   const knownFactsSection = knownLines.length > 0
-    ? `\nCONFIRMED FACTS — treat these as ground truth:\n${knownLines.join('\n')}\n`
-    : '\nNo confirmed property facts provided — use your best estimate.\n'
+    ? `\nCONFIRMED PROPERTY FACTS (do not contradict these):\n${knownLines.join('\n')}\n`
+    : '\nNo confirmed facts — estimate based on location and neighborhood type.\n'
 
   const { neighborhoodScores, censusData, fmr, floodZone } = realData ?? {}
   const realParts = []
 
   if (neighborhoodScores) {
     realParts.push(
-      'REAL NEIGHBORHOOD DATA (OpenStreetMap):' +
-      '\n- Nearby schools: ' + (neighborhoodScores.nearbySchools.join(', ') || 'none found') +
-      '\n- Nearby parks: ' + (neighborhoodScores.nearbyParks.join(', ') || 'none found') +
-      '\n- Nearby transit stops: ' + (neighborhoodScores.nearbyTransit.join(', ') || 'none found') +
-      '\n- Nearby grocery stores: ' + (neighborhoodScores.nearbyGrocery.join(', ') || 'none found') +
-      '\nNOTE: Walk, transit, and school scores are computed from real data and will override your JSON values. Only provide safetyRating in the neighborhood section.'
+      'REAL NEIGHBORHOOD DATA (OpenStreetMap):\n' +
+      '- Schools nearby: ' + (neighborhoodScores.nearbySchools.join(', ') || 'none mapped') + '\n' +
+      '- Parks nearby: ' + (neighborhoodScores.nearbyParks.join(', ') || 'none mapped') + '\n' +
+      '- Transit stops: ' + (neighborhoodScores.nearbyTransit.join(', ') || 'none mapped') + '\n' +
+      '- Grocery stores: ' + (neighborhoodScores.nearbyGrocery.join(', ') || 'none mapped') + '\n' +
+      'NOTE: walkScore, transitScore, schoolRating in your JSON will be overridden by real data. Only provide safetyRating.'
     )
   }
 
   if (censusData) {
     realParts.push(
-      'REAL US CENSUS DATA:' +
-      '\n- Median home value: $' + (censusData.medianHomeValueUSD?.toLocaleString() ?? 'N/A') +
-      '\n- Median gross rent: $' + (censusData.medianGrossRentUSD?.toLocaleString() ?? 'N/A') + '/month' +
-      '\n- Median household income: $' + (censusData.medianHouseholdIncomeUSD?.toLocaleString() ?? 'N/A') + '/year' +
-      '\nYOUR ESTIMATE must be within 20% of census median unless justified.'
+      'REAL US CENSUS DATA:\n' +
+      '- Median home value: $' + (censusData.medianHomeValueUSD?.toLocaleString() ?? 'N/A') + '\n' +
+      '- Median rent: $' + (censusData.medianGrossRentUSD?.toLocaleString() ?? 'N/A') + '/month\n' +
+      '- Median household income: $' + (censusData.medianHouseholdIncomeUSD?.toLocaleString() ?? 'N/A') + '/year\n' +
+      'Your estimate must be within 20% of the census median unless the specific street is notably more affluent.'
     )
   }
 
   if (fmr) {
     realParts.push(
-      'REAL HUD FAIR MARKET RENT:' +
-      '\n- 2 bedroom: $' + fmr.twoBed + '/month' +
-      '\n- 3 bedroom: $' + fmr.threeBed + '/month' +
-      '\nBase your rent estimate on these figures.'
+      'REAL HUD FAIR MARKET RENT:\n' +
+      '- 2BR: $' + fmr.twoBed + '/month\n' +
+      '- 3BR: $' + fmr.threeBed + '/month\n' +
+      'Base your rental estimate on these.'
     )
   }
 
   if (floodZone) {
     realParts.push(
-      'REAL FEMA FLOOD ZONE:' +
-      '\n- Zone: ' + floodZone.zone +
-      '\n- High Risk: ' + (floodZone.inSpecialFloodHazardArea ? 'YES' : 'No') +
-      '\nMention flood risk in investment analysis if high risk.'
+      'FEMA FLOOD ZONE: ' + floodZone.zone +
+      (floodZone.inSpecialFloodHazardArea ? ' — HIGH RISK. Mention this in investment analysis.' : ' — Low risk.')
     )
   }
 
   const realDataContext = realParts.length > 0
-    ? 'REAL DATA FROM AUTHORITATIVE SOURCES:\n' + realParts.join('\n\n')
-    : 'No real property data available — use your best estimate.'
+    ? 'AUTHORITATIVE DATA — treat as ground truth:\n' + realParts.join('\n\n')
+    : 'No external data available — use your training knowledge for this location.'
 
-  const prompt = `You are a senior real estate appraiser with 20 years of experience. Analyze this specific property and fill in ALL fields with real, specific data. Do NOT use placeholder text like "pro 1", "feature 1", "attraction 1" — replace every placeholder with actual specific content.
+  const prompt = `You are a senior real estate appraiser. Your job is to produce a highly accurate property analysis for the exact address below. Use your training knowledge of local real estate markets, neighborhood reputations, and price trends for this specific city and neighborhood.
 
-PROPERTY:
-Street: ${street}
-City: ${city}
-State/Province: ${state}
-Country: ${country}
-Postcode: ${postcode}
-County: ${county}
+PROPERTY ADDRESS:
+${street}, ${city}, ${state}, ${country} ${postcode}
 GPS: ${lat}, ${lon}
-Weather: ${weatherSummary}
+County/District: ${county}
+Current weather: ${weatherSummary}
 Climate: ${climateSummary}
 ${knownFactsSection}
 ${realDataContext}
 
-CRITICAL RULES:
-- Replace ALL placeholder values with real specific content for ${city}, ${state}, ${country}
-- pros must be real specific pros of this exact neighborhood (not "pro 1")
-- cons must be real specific cons (not "con 1")
-- commonFeatures must be real features typical of homes in this area (not "feature 1")
-- topAttractions must be real nearby attractions (not "attraction 1")
-- priceContext must cite real comparable sales with specific addresses or price ranges
-- All price history values must be real estimates (not 0)
-- appreciationOutlook: exactly one of bearish, neutral, bullish
-- confidenceLevel: exactly one of low, medium, high
-- investmentScore: integer 40-80
-- safetyRating: use real knowledge of this neighborhood's safety
+ACCURACY RULES — follow these precisely:
+1. estimatedValueUSD must reflect the SPECIFIC NEIGHBORHOOD, not the city average. Affluent areas command premiums.
+2. The last historical value in priceHistory.data (2024) must be within 5% of estimatedValueUSD. They must be consistent.
+3. priceHistory values must reflect real market events in ${city}: the COVID boom (2020-2022), correction (2022-2023), and current stabilization.
+4. costOfLiving figures must reflect the actual cost of living in ${city}, ${country} — not a generic estimate.
+5. pros, cons, commonFeatures, topAttractions must all be specific to ${city} and this neighborhood — no generic placeholders.
+6. safetyRating must reflect real knowledge of this specific street/neighborhood's safety reputation.
+7. appreciationOutlook: exactly one of bearish, neutral, bullish.
+8. confidenceLevel: exactly one of low, medium, high.
+9. investmentScore: integer between 40 and 80.
+10. All monetary values must be in the local currency of ${country}.
 
-Return ONLY raw JSON, no markdown, no backticks, no explanations:
+Return ONLY raw JSON (no markdown, no backticks):
 
 {
   "propertyEstimate": {
-    "estimatedValueUSD": 950000,
-    "pricePerSqftUSD": 290,
-    "rentEstimateMonthlyUSD": 3800,
+    "estimatedValueUSD": 0,
+    "pricePerSqftUSD": 0,
+    "rentEstimateMonthlyUSD": 0,
     "confidenceLevel": "medium",
-    "priceContext": "Real comparable sales context for ${city}."
+    "priceContext": "Cite 2-3 specific comparable sales or price ranges for this exact neighborhood in ${city}."
   },
   "costOfLiving": {
-    "monthlyBudgetUSD": 4200,
-    "groceriesMonthlyUSD": 700,
-    "transportMonthlyUSD": 300,
-    "utilitiesMonthlyUSD": 220,
-    "diningOutMonthlyUSD": 500,
-    "indexVsUSAverage": 18,
-    "summary": "One sentence about cost of living in ${city}."
+    "monthlyBudgetUSD": 0,
+    "groceriesMonthlyUSD": 0,
+    "transportMonthlyUSD": 0,
+    "utilitiesMonthlyUSD": 0,
+    "diningOutMonthlyUSD": 0,
+    "indexVsUSAverage": 0,
+    "summary": "One specific sentence about cost of living in ${city}."
   },
   "neighborhood": {
-    "character": "2-3 specific sentences about this exact neighborhood in ${city}.",
-    "walkScore": 45,
-    "transitScore": 30,
-    "safetyRating": 82,
-    "schoolRating": 88,
-    "pros": ["Specific pro 1 for this area", "Specific pro 2", "Specific pro 3"],
-    "cons": ["Specific con 1 for this area", "Specific con 2"],
-    "bestFor": "Specific description of who this area suits."
+    "character": "2-3 sentences specific to this street/neighborhood in ${city}.",
+    "walkScore": 50,
+    "transitScore": 50,
+    "safetyRating": 75,
+    "schoolRating": 75,
+    "pros": ["Specific pro for this neighborhood", "Specific pro 2", "Specific pro 3"],
+    "cons": ["Specific con for this neighborhood", "Specific con 2"],
+    "bestFor": "Specific description of who suits this area."
   },
   "investment": {
-    "rentYieldPercent": 4.2,
-    "appreciationOutlook": "bullish",
-    "appreciationOutlookText": "Specific outlook for ${city} market.",
-    "investmentScore": 68,
+    "rentYieldPercent": 4.0,
+    "appreciationOutlook": "neutral",
+    "appreciationOutlookText": "Specific outlook for ${city} market in 2025-2026.",
+    "investmentScore": 65,
     "investmentSummary": "Specific investment summary for this property."
   },
   "floorPlan": {
-    "typicalSqft": 3200,
-    "typicalBedrooms": 4,
-    "typicalBathrooms": 3,
-    "architecturalStyle": "Real architectural style for this area.",
-    "builtEra": "1990s",
-    "typicalLayout": "Specific layout description for homes in this neighborhood.",
+    "typicalSqft": 0,
+    "typicalBedrooms": 0,
+    "typicalBathrooms": 0,
+    "architecturalStyle": "Specific style for this neighborhood.",
+    "builtEra": "1970s",
+    "typicalLayout": "Specific layout description for homes on this street.",
     "commonFeatures": ["Real feature 1", "Real feature 2", "Real feature 3", "Real feature 4", "Real feature 5"]
   },
   "localInsights": {
-    "topAttractions": ["Real attraction near ${city}", "Real attraction 2", "Real attraction 3"],
-    "knownFor": "What ${city} and this neighborhood are actually known for.",
-    "localTip": "Real insider tip about this area.",
+    "topAttractions": ["Real nearby attraction 1", "Real nearby attraction 2", "Real nearby attraction 3"],
+    "knownFor": "What this specific neighborhood in ${city} is known for.",
+    "localTip": "A genuine insider tip about this area.",
     "languageNote": null
   },
   "priceHistory": {
-    "currency": "CAD",
-    "currencySymbol": "$",
+    "currency": "Local currency code e.g. CAD USD GBP AUD EUR",
+    "currencySymbol": "Local symbol e.g. $ £ €",
     "data": [
-      {"year": 2019, "value": 750000, "type": "historical"},
-      {"year": 2020, "value": 820000, "type": "historical"},
-      {"year": 2021, "value": 980000, "type": "historical"},
-      {"year": 2022, "value": 1050000, "type": "historical"},
-      {"year": 2023, "value": 980000, "type": "historical"},
-      {"year": 2024, "value": 1000000, "type": "historical"},
-      {"year": 2025, "value": 1020000, "type": "projected"},
-      {"year": 2026, "value": 1050000, "type": "projected"},
-      {"year": 2027, "value": 1080000, "type": "projected"}
+      {"year": 2019, "value": 0, "type": "historical"},
+      {"year": 2020, "value": 0, "type": "historical"},
+      {"year": 2021, "value": 0, "type": "historical"},
+      {"year": 2022, "value": 0, "type": "historical"},
+      {"year": 2023, "value": 0, "type": "historical"},
+      {"year": 2024, "value": 0, "type": "historical"},
+      {"year": 2025, "value": 0, "type": "projected"},
+      {"year": 2026, "value": 0, "type": "projected"},
+      {"year": 2027, "value": 0, "type": "projected"}
     ],
-    "marketNote": "Specific note about ${city} market trends."
+    "marketNote": "One sentence about what specifically drove prices in ${city} over this period."
   }
 }
 
-IMPORTANT: The example numbers above are just format examples. Replace ALL values with real accurate estimates for ${street}, ${city}, ${state}, ${country}. Every string placeholder must be replaced with real specific content.`
+CRITICAL: Replace every 0 with a real number. The 2024 historical value and estimatedValueUSD must be within 5% of each other. All strings must be specific to ${street}, ${city}, ${country} — no generic filler text.`
 
   const raw = await cerebrasChat([{ role: 'user', content: prompt }], true)
   const result = JSON.parse(raw.replace(/```json|```/g, '').trim())
