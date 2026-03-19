@@ -97,30 +97,41 @@ const FAQ_ITEMS = [
 function FAQ() {
   const [open, setOpen] = useState(null)
   return (
-    <section style={{ borderTop: '2px solid #ffffff', padding: '60px 40px', maxWidth: 1200, margin: '0 auto' }}>
-      <div style={{ fontFamily: MONO, fontSize: 10, color: '#ff2d78', letterSpacing: '0.3em', textTransform: 'uppercase', marginBottom: 8 }}>Support</div>
-      <h2 style={{ fontFamily: MONO, fontSize: 'clamp(1.5rem, 4vw, 2.5rem)', fontWeight: 700, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '-0.02em', marginBottom: 40 }}>
-        Frequently Asked<br />Questions
-      </h2>
-      <div>
-        {FAQ_ITEMS.map((item, i) => (
-          <div key={i} style={{ borderTop: i === 0 ? '2px solid #ffffff' : '1px solid rgba(255,255,255,0.15)', borderBottom: i === FAQ_ITEMS.length - 1 ? '2px solid #ffffff' : 'none' }}>
-            <button onClick={() => setOpen(open === i ? null : i)} style={{
-              width: '100%', textAlign: 'left',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '20px 0', background: 'transparent', border: 'none',
-              cursor: 'crosshair', gap: 16,
+    <section style={{ borderTop: '2px solid #ffffff', padding: '60px 40px', width: '100%' }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+        <div style={{ fontFamily: MONO, fontSize: 10, color: '#ff2d78', letterSpacing: '0.3em', textTransform: 'uppercase', marginBottom: 8 }}>Support</div>
+        <h2 style={{ fontFamily: MONO, fontSize: 'clamp(1.5rem, 4vw, 2.5rem)', fontWeight: 700, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '-0.02em', marginBottom: 40 }}>
+          Frequently Asked<br />Questions
+        </h2>
+        {/* FAQ items always take full width */}
+        <div style={{ width: '100%' }}>
+          {FAQ_ITEMS.map((item, i) => (
+            <div key={i} style={{
+              borderTop: i === 0 ? '2px solid #ffffff' : '1px solid rgba(255,255,255,0.15)',
+              borderBottom: i === FAQ_ITEMS.length - 1 ? '2px solid #ffffff' : 'none',
+              width: '100%',
             }}>
-              <span style={{ fontFamily: MONO, fontSize: 13, fontWeight: 700, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{item.q}</span>
-              <span style={{ fontFamily: MONO, fontSize: 18, color: '#ff2d78', flexShrink: 0, transition: 'transform 0.2s', transform: open === i ? 'rotate(45deg)' : 'none' }}>+</span>
-            </button>
-            {open === i && (
-              <div style={{ paddingBottom: 20, paddingRight: 40 }}>
-                <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, color: 'rgba(255,255,255,0.7)', lineHeight: 1.8 }}>{item.a}</p>
+              <button onClick={() => setOpen(open === i ? null : i)} style={{
+                width: '100%', textAlign: 'left',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '20px 0', background: 'transparent', border: 'none',
+                cursor: 'crosshair', gap: 16, minHeight: 64,
+              }}>
+                <span style={{ fontFamily: MONO, fontSize: 13, fontWeight: 700, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.05em', flex: 1 }}>{item.q}</span>
+                <span style={{ fontFamily: MONO, fontSize: 18, color: '#ff2d78', flexShrink: 0, transition: 'transform 0.2s', transform: open === i ? 'rotate(45deg)' : 'none', width: 24, textAlign: 'center' }}>+</span>
+              </button>
+              <div style={{
+                overflow: 'hidden',
+                maxHeight: open === i ? 200 : 0,
+                transition: 'max-height 0.2s ease',
+              }}>
+                <div style={{ paddingBottom: 20, paddingRight: 40 }}>
+                  <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, color: 'rgba(255,255,255,0.7)', lineHeight: 1.8 }}>{item.a}</p>
+                </div>
               </div>
-            )}
-          </div>
-        ))}
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   )
@@ -184,12 +195,12 @@ export default function App() {
   }, [])
 
   const loadUserRecord = async (userId) => {
-    const { data } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle()
-    setUserRecord(data)
+    // Retry a few times to give the trigger time to create the row
+    for (let i = 0; i < 5; i++) {
+      const { data } = await supabase.from('users').select('*').eq('id', userId).maybeSingle()
+      if (data) { setUserRecord(data); return }
+      await new Promise(r => setTimeout(r, 800))
+    }
   }
 
   useEffect(() => {
@@ -203,8 +214,7 @@ export default function App() {
 
   const handleAuth = async (authedUser) => {
     setUser(authedUser)
-    // Wait a moment for the trigger to create the user record
-    setTimeout(() => loadUserRecord(authedUser.id), 1000)
+    loadUserRecord(authedUser.id)
   }
 
   const handleSignOut = async () => {
@@ -281,18 +291,19 @@ export default function App() {
     }
   }
 
+  // Counter: show actual remaining from DB, or loading indicator
   const analysesLeft = userRecord
-    ? userRecord.is_pro ? '∞' : Math.max(0, FREE_LIMIT - (userRecord.analyses_used ?? 0))
-    : FREE_LIMIT
+    ? userRecord.is_pro
+      ? '∞'
+      : Math.max(0, FREE_LIMIT - (userRecord.analyses_used ?? 0))
+    : '...'
 
-  // Show loading spinner while checking auth
   if (authLoading) return (
     <div style={{ minHeight: '100vh', background: '#0a0a0f', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ fontFamily: MONO, fontSize: 13, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.2em' }}>Loading...</div>
     </div>
   )
 
-  // Block entire app until signed in
   if (!user) return <AuthModal onAuth={handleAuth} />
 
   return (
@@ -313,7 +324,7 @@ export default function App() {
           <span style={{ fontFamily: MONO, fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
             Property Intelligence Platform
           </span>
-          <span style={{ fontFamily: MONO, fontSize: 11, color: userRecord?.is_pro ? '#00ff88' : 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          <span style={{ fontFamily: MONO, fontSize: 11, color: userRecord?.is_pro ? '#00ff88' : analysesLeft <= 3 ? '#ff2d78' : 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
             {userRecord?.is_pro ? '★ Pro' : `${analysesLeft} / ${FREE_LIMIT} left`}
           </span>
           {result && (
