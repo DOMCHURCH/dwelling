@@ -45,7 +45,7 @@ function TermsModal({ onClose }) {
             { title: '1. Definitions', body: `"Platform" means the Dwelling website and all associated services. "Company" refers to Dwelling. "User" refers to any individual accessing the Platform.` },
             { title: '2. Services', body: `The Platform provides automated property intelligence reports based on publicly available data and AI-generated analysis. All Services are provided on an "as-is" basis.` },
             { title: '3. No Professional Advice', body: `ALL CONTENT IS FOR INFORMATIONAL PURPOSES ONLY. Nothing constitutes financial, real estate, investment, legal, medical, or tax advice. Always consult a qualified licensed professional before making any property-related decision.` },
-            { title: '4. Data Accuracy Disclaimer', body: `The Company makes no warranties regarding accuracy, completeness, or timeliness of any Content. Property valuations are algorithmic estimates only. AI-generated outputs are subject to model limitations and inherent uncertainty.` },
+            { title: '4. Data Accuracy Disclaimer', body: `The Company makes no warranties regarding accuracy, completeness, or timeliness of any Content. Property valuations are algorithmic estimates only.` },
             { title: '5. User Obligations', body: `You agree to: (a) use the Platform solely for lawful purposes; (b) not scrape or redistribute Content at scale; (c) not reverse-engineer Platform systems; (d) comply with all applicable laws.` },
             { title: '6. Intellectual Property', body: `All Platform technology, design, software, and original Content are the exclusive property of the Company.` },
             { title: '7. Limitation of Liability', body: `TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE COMPANY SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES. TOTAL LIABILITY SHALL NOT EXCEED CAD $100.00.` },
@@ -140,21 +140,12 @@ export default function App() {
   const realtimeRef = useRef(null)
 
   const subscribeToUserRecord = (userId) => {
-    // Unsubscribe from any existing subscription
-    if (realtimeRef.current) {
-      supabase.removeChannel(realtimeRef.current)
-    }
-    // Subscribe to realtime changes on this user's row
+    if (realtimeRef.current) supabase.removeChannel(realtimeRef.current)
     const channel = supabase
       .channel(`user-${userId}`)
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'users',
-        filter: `id=eq.${userId}`,
-      }, (payload) => {
-        if (payload.new) setUserRecord(payload.new)
-      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users', filter: `id=eq.${userId}` },
+        (payload) => { if (payload.new) setUserRecord(payload.new) }
+      )
       .subscribe()
     realtimeRef.current = channel
   }
@@ -164,15 +155,11 @@ export default function App() {
     if (data) {
       setUserRecord(data)
     } else {
-      // Row not created yet by trigger — poll until it appears
       let attempts = 0
       const interval = setInterval(async () => {
         attempts++
         const { data: retryData } = await supabase.from('users').select('*').eq('id', userId).maybeSingle()
-        if (retryData) {
-          setUserRecord(retryData)
-          clearInterval(interval)
-        }
+        if (retryData) { setUserRecord(retryData); clearInterval(interval) }
         if (attempts >= 10) clearInterval(interval)
       }, 600)
     }
@@ -181,26 +168,14 @@ export default function App() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        setUser(session.user)
-        loadUserRecord(session.user.id)
-      }
+      if (session?.user) { setUser(session.user); loadUserRecord(session.user.id) }
       setAuthLoading(false)
     })
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        setUser(session.user)
-        loadUserRecord(session.user.id)
-      } else {
-        setUser(null)
-        setUserRecord(null)
-        if (realtimeRef.current) supabase.removeChannel(realtimeRef.current)
-      }
+      if (session?.user) { setUser(session.user); loadUserRecord(session.user.id) }
+      else { setUser(null); setUserRecord(null); if (realtimeRef.current) supabase.removeChannel(realtimeRef.current) }
     })
-    return () => {
-      subscription.unsubscribe()
-      if (realtimeRef.current) supabase.removeChannel(realtimeRef.current)
-    }
+    return () => { subscription.unsubscribe(); if (realtimeRef.current) supabase.removeChannel(realtimeRef.current) }
   }, [])
 
   useEffect(() => {
@@ -212,42 +187,18 @@ export default function App() {
     }
   }, [result])
 
-  const handleAuth = async (authedUser) => {
+  const handleAuth = (authedUser) => {
     setUser(authedUser)
     loadUserRecord(authedUser.id)
   }
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
-    setUser(null)
-    setUserRecord(null)
-    setResult(null)
+    setUser(null); setUserRecord(null); setResult(null)
     if (realtimeRef.current) supabase.removeChannel(realtimeRef.current)
   }
 
-  const checkAndIncrementUsage = async () => {
-    if (userRecord?.is_pro) return true
-
-    const resetAt = new Date(userRecord?.analyses_reset_at ?? 0)
-    const now = new Date()
-    const isNewMonth = now.getMonth() !== resetAt.getMonth() || now.getFullYear() !== resetAt.getFullYear()
-    const currentUsage = isNewMonth ? 0 : (userRecord?.analyses_used ?? 0)
-
-    if (currentUsage >= FREE_LIMIT) { setShowPaywall(true); return false }
-
-    const updates = {
-      analyses_used: currentUsage + 1,
-      ...(isNewMonth && { analyses_reset_at: now.toISOString() }),
-    }
-    // Update DB — realtime subscription will update userRecord automatically
-    await supabase.from('users').update(updates).eq('id', user.id)
-    return true
-  }
-
   const handleSearch = async ({ street, city, state, country, knownFacts }) => {
-    const allowed = await checkAndIncrementUsage()
-    if (!allowed) return
-
     setLoading(true)
     setError(null)
     setResult(null)
@@ -271,7 +222,12 @@ export default function App() {
       setResult({ geo, weather, climate, ai, knownFacts: knownFacts ?? {}, realData })
     } catch (err) {
       console.error(err)
-      setError(err.message ?? 'Something went wrong.')
+      // Show paywall if server returns 429
+      if (err.message?.includes('limit reached') || err.message?.includes('429')) {
+        setShowPaywall(true)
+      } else {
+        setError(err.message ?? 'Something went wrong.')
+      }
     } finally {
       setLoading(false)
     }
