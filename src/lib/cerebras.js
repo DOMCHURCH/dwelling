@@ -62,16 +62,20 @@ function validateEstimate(est, known, realScores) {
     }
   }
 
-  // Enforce price/history consistency — current estimate must match last historical year
+  // Enforce price/history consistency — only when both values are non-zero
   if (est.priceHistory?.data?.length) {
     const lastHistorical = [...est.priceHistory.data]
-      .filter(d => d.type === 'historical')
+      .filter(d => d.type === 'historical' && d.value > 0)
       .sort((a, b) => b.year - a.year)[0]
     if (lastHistorical) {
-      const ratio = est.propertyEstimate.estimatedValueUSD / lastHistorical.value
-      // If they differ by more than 15%, anchor estimate to last historical
-      if (ratio < 0.85 || ratio > 1.15) {
+      if (est.propertyEstimate.estimatedValueUSD === 0) {
+        // AI returned 0 for estimate but filled history — use last historical
         est.propertyEstimate.estimatedValueUSD = lastHistorical.value
+      } else {
+        const ratio = est.propertyEstimate.estimatedValueUSD / lastHistorical.value
+        if (ratio < 0.85 || ratio > 1.15) {
+          est.propertyEstimate.estimatedValueUSD = lastHistorical.value
+        }
       }
     }
   }
