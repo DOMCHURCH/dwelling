@@ -1,10 +1,19 @@
+import { supabase } from './supabase'
+
 const CEREBRAS_BASE = '/api/cerebras'
 const MODEL = 'llama-3.1-8b'
 
 async function cerebrasChat(messages, json = false) {
+  // Get current session token to send with request
+  const { data: { session } } = await supabase.auth.getSession()
+  const token = session?.access_token ?? ''
+
   const res = await fetch(CEREBRAS_BASE, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
     body: JSON.stringify({
       model: MODEL,
       messages,
@@ -45,13 +54,12 @@ function validateEstimate(est, known, realScores) {
     }
   }
 
-  // Cap scores at 100
   const nb = est.neighborhood
   nb.safetyRating = Math.min(Math.max(Math.round(nb.safetyRating), 0), 100)
   nb.schoolRating = Math.min(Math.max(Math.round(nb.schoolRating), 0), 100)
   est.investment.investmentScore = Math.min(Math.max(Math.round(est.investment.investmentScore), 0), 100)
 
-  // LOCK walk/transit/school scores to real Overpass data — AI cannot override these
+  // Lock walk/transit/school scores to real Overpass data
   if (realScores) {
     nb.walkScore = realScores.walkScore
     nb.transitScore = realScores.transitScore
@@ -155,8 +163,8 @@ export async function analyzeProperty(geoData, weatherData, climateData, knownFa
   if (knownFacts.purchasePrice) knownLines.push(`CONFIRMED purchase price: $${knownFacts.purchasePrice.toLocaleString()} — use this as your primary anchor for current value estimation`)
 
   const knownFactsSection = knownLines.length > 0
-    ? `\nCONFIRMED FACTS — treat these as ground truth, do not estimate differently:\n${knownLines.join('\n')}\n`
-    : '\nNo confirmed property facts provided — use your best estimate based on location and neighborhood.\n'
+    ? `\nCONFIRMED FACTS — treat these as ground truth:\n${knownLines.join('\n')}\n`
+    : '\nNo confirmed property facts provided — use your best estimate.\n'
 
   const { neighborhoodScores, censusData, fmr, floodZone } = realData ?? {}
   const realParts = []
@@ -168,38 +176,35 @@ export async function analyzeProperty(geoData, weatherData, climateData, knownFa
       '\n- Nearby parks: ' + (neighborhoodScores.nearbyParks.join(', ') || 'none found') +
       '\n- Nearby transit stops: ' + (neighborhoodScores.nearbyTransit.join(', ') || 'none found') +
       '\n- Nearby grocery stores: ' + (neighborhoodScores.nearbyGrocery.join(', ') || 'none found') +
-      '\nNOTE: Walk, transit, and school scores are computed separately from real data and will override your estimates. Focus on safetyRating only.'
+      '\nNOTE: Walk, transit, and school scores are computed from real data separately. Focus your neighborhood section on character, safety, pros/cons, and bestFor only.'
     )
   }
 
   if (censusData) {
     realParts.push(
-      'REAL US CENSUS DATA (ACS 2022):' +
+      'REAL US CENSUS DATA:' +
       '\n- Median home value: $' + (censusData.medianHomeValueUSD?.toLocaleString() ?? 'N/A') +
       '\n- Median gross rent: $' + (censusData.medianGrossRentUSD?.toLocaleString() ?? 'N/A') + '/month' +
       '\n- Median household income: $' + (censusData.medianHouseholdIncomeUSD?.toLocaleString() ?? 'N/A') + '/year' +
-      '\n- Owner occupancy rate: ' + (censusData.ownerOccupancyRate ?? 'N/A') + '%' +
-      '\nYOUR ESTIMATE must be within 20% of census median $' + (censusData.medianHomeValueUSD?.toLocaleString() ?? 'N/A') + ' unless justified.'
+      '\nYOUR ESTIMATE must be within 20% of census median unless justified.'
     )
   }
 
   if (fmr) {
     realParts.push(
-      'REAL HUD FAIR MARKET RENT (2024):' +
+      'REAL HUD FAIR MARKET RENT:' +
       '\n- 2 bedroom: $' + fmr.twoBed + '/month' +
       '\n- 3 bedroom: $' + fmr.threeBed + '/month' +
-      '\n- 4 bedroom: $' + fmr.fourBed + '/month' +
-      '\nBase your rent estimate on these HUD figures.'
+      '\nBase your rent estimate on these figures.'
     )
   }
 
   if (floodZone) {
     realParts.push(
-      'REAL FEMA FLOOD ZONE DATA:' +
+      'REAL FEMA FLOOD ZONE:' +
       '\n- Zone: ' + floodZone.zone +
-      '\n- In Special Flood Hazard Area: ' + (floodZone.inSpecialFloodHazardArea ? 'YES - HIGH RISK' : 'No') +
-      '\n- ' + floodZone.description +
-      '\nMention flood risk in investment analysis and pros/cons.'
+      '\n- High Risk: ' + (floodZone.inSpecialFloodHazardArea ? 'YES' : 'No') +
+      '\nMention flood risk in investment analysis if high risk.'
     )
   }
 
@@ -222,17 +227,15 @@ Climate: ${climateSummary}
 ${knownFactsSection}
 ${realDataContext}
 
-ESTIMATION RULES:
-- Use ONLY the exact city and state above. Do not substitute a nearby city.
-- For affluent suburbs: single family homes are typically $600k-$2M+, do NOT use city-wide averages.
-- All scores must be integers 0-100. investmentScore realistic range: 40-80.
+RULES:
+- Use ONLY the exact city and state above.
+- For affluent suburbs: single family homes are typically $600k-$2M+.
+- investmentScore realistic range: 40-80.
 - appreciationOutlook: exactly one of bearish, neutral, bullish.
 - confidenceLevel: exactly one of low, medium, high.
-- If purchase price is confirmed, current value should reflect real market appreciation since purchase.
-- NEVER underestimate — reflect real compounding appreciation for that specific market.
-- For safetyRating: use your knowledge of this specific neighborhood's crime and safety reputation.
+- safetyRating: use your knowledge of this specific neighborhood's safety reputation.
 
-Return ONLY raw JSON, no markdown, no backticks:
+Return ONLY raw JSON, no markdown:
 
 {
   "propertyEstimate": {
@@ -240,7 +243,7 @@ Return ONLY raw JSON, no markdown, no backticks:
     "pricePerSqftUSD": 290,
     "rentEstimateMonthlyUSD": 3800,
     "confidenceLevel": "medium",
-    "priceContext": "Write 2-3 sentences citing specific comparable sales in ${city}, ${state}."
+    "priceContext": "2-3 sentences with specific comparable sales in ${city}, ${state}."
   },
   "costOfLiving": {
     "monthlyBudgetUSD": 4200,
@@ -284,7 +287,7 @@ Return ONLY raw JSON, no markdown, no backticks:
     "languageNote": null
   },
   "priceHistory": {
-    "currency": "FILL_IN_LOCAL_CURRENCY_CODE",
+    "currency": "FILL_IN_CURRENCY_CODE",
     "currencySymbol": "FILL_IN_SYMBOL",
     "data": [
       {"year": 2019, "value": 0, "type": "historical"},
@@ -301,16 +304,9 @@ Return ONLY raw JSON, no markdown, no backticks:
   }
 }
 
-PRICE HISTORY RULES:
-- Replace all 0 values with real estimates for ${city}, ${state}, ${country}
-- Reflect actual market events specific to this city/region
-- Values must be realistic for this specific neighborhood
-- Projected values should reflect current local market momentum
-
-Fill ALL values with accurate data for ${street}, ${city}, ${state}, ${country}.`
+Replace all 0 values with real estimates for ${street}, ${city}, ${state}, ${country}.`
 
   const raw = await cerebrasChat([{ role: 'user', content: prompt }], true)
   const result = JSON.parse(raw.replace(/```json|```/g, '').trim())
-  // Pass real scores to validateEstimate so they permanently override AI values
   return validateEstimate(result, knownFacts, neighborhoodScores)
 }
