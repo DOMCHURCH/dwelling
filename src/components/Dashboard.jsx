@@ -6,8 +6,8 @@ import PriceHistoryChart from './PriceHistoryChart'
 import { weatherCodeToDescription } from '../lib/weather'
 
 const fmt = (n) => (n != null && n !== 0) ? n.toLocaleString('en-US', { maximumFractionDigits: 0 }) : '—'
-const fmtUSD = (n) => (n != null && n !== 0) ? `$${fmt(n)}` : '—'
-const pct = (n) => (n != null && n !== 0) ? `${Math.round(n)}%` : '—'
+const fmtUSD = (n) => (n != null && n !== 0) ? `$${n.toLocaleString('en-US', { maximumFractionDigits: 0 })}` : '—'
+const pct = (n) => (n != null && n !== 0 && !isNaN(n)) ? `${Math.round(n)}%` : '—'
 
 function Tag({ children, color = 'var(--neon-pink)' }) {
   return (
@@ -85,8 +85,8 @@ function IncomeSlider({ costOfLiving }) {
   ]
 
   const remaining = monthlyIncome - total
-  const remainingPct = Math.round((remaining / monthlyIncome) * 100)
-  const totalPct = Math.round((total / monthlyIncome) * 100)
+  const remainingPct = total > 0 ? Math.round((remaining / monthlyIncome) * 100) : 0
+  const totalPct = total > 0 ? Math.round((total / monthlyIncome) * 100) : 0
 
   const toggleMode = (m) => {
     setMode(m)
@@ -148,10 +148,10 @@ function IncomeSlider({ costOfLiving }) {
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginTop: 6 }}>
           <span style={{ color: 'var(--text-2)' }}>
-            Cost of living: <span style={{ color: totalPct > 80 ? 'var(--red)' : 'var(--text)', fontWeight: 500 }}>{totalPct}% of income</span>
+            Cost of living: <span style={{ color: totalPct > 80 ? 'var(--red)' : 'var(--text)', fontWeight: 500 }}>{total > 0 ? `${totalPct}% of income` : '—'}</span>
           </span>
           <span style={{ color: remaining >= 0 ? 'var(--green)' : 'var(--red)', fontWeight: 500 }}>
-            {remaining >= 0 ? `${fmtUSD(remaining)} left` : `${fmtUSD(Math.abs(remaining))} over budget`}
+            {total > 0 ? (remaining >= 0 ? `${fmtUSD(remaining)} left` : `${fmtUSD(Math.abs(remaining))} over budget`) : '—'}
           </span>
         </div>
       </div>
@@ -159,14 +159,14 @@ function IncomeSlider({ costOfLiving }) {
       {/* Category breakdown */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 32px', marginBottom: 16 }}>
         {categories.map(({ label, value }) => {
-          const catPct = Math.round((value / monthlyIncome) * 100)
+          const catPct = value > 0 ? Math.round((value / monthlyIncome) * 100) : null
           return (
             <div key={label} style={{ padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, marginBottom: 3 }}>
                 <span style={{ color: 'var(--text-2)' }}>{label}</span>
                 <span style={{ fontWeight: 500 }}>{fmtUSD(value)}</span>
               </div>
-              <div style={{ fontSize: 11, color: 'var(--text-3)' }}>{catPct}% of {mode} income</div>
+              <div style={{ fontSize: 11, color: 'var(--text-3)' }}>{catPct != null ? `${catPct}% of ${mode} income` : '—'}</div>
             </div>
           )
         })}
@@ -174,7 +174,7 @@ function IncomeSlider({ costOfLiving }) {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
         <StatCard label="Monthly cost" value={fmtUSD(total)} sub="estimated total" />
-        <StatCard label="vs US Average" value={`${costOfLiving.indexVsUSAverage > 0 ? '+' : ''}${costOfLiving.indexVsUSAverage}%`}
+        <StatCard label="vs US Average" value={costOfLiving.indexVsUSAverage ? `${costOfLiving.indexVsUSAverage > 0 ? '+' : ''}${costOfLiving.indexVsUSAverage}%` : '—'}
           accent={costOfLiving.indexVsUSAverage > 15 ? 'var(--red)' : costOfLiving.indexVsUSAverage < -15 ? 'var(--green)' : 'var(--text)'} />
       </div>
 
