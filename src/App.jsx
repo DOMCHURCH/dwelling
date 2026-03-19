@@ -2,26 +2,28 @@ import { useState, useEffect } from 'react'
 import AddressSearch from './components/AddressSearch'
 import LoadingState from './components/LoadingState'
 import Dashboard from './components/Dashboard'
+import AuthModal from './components/AuthModal'
+import PaywallModal from './components/PaywallModal'
 import { geocodeStructured } from './lib/nominatim'
 import { getCurrentWeather, getClimateNormals } from './lib/weather'
 import { analyzeProperty } from './lib/cerebras'
 import { getNeighborhoodScores } from './lib/overpass'
 import { getCensusData } from './lib/census'
 import { getFairMarketRent, getFloodZone } from './lib/hud'
+import { supabase } from './lib/supabase'
+
+const MONO = "'Space Mono', monospace"
+const FREE_LIMIT = 10
 
 function MarqueeTicker() {
   const items = ['MARKET ANALYSIS ★', 'PROPERTY INTELLIGENCE ★', 'REAL DATA ★', 'NEIGHBORHOOD SCORES ★', 'INVESTMENT INSIGHTS ★', 'CLIMATE DATA ★', 'COST OF LIVING ★', 'PRICE HISTORY ★']
   const text = items.join('   ')
   return (
     <div className="marquee-wrapper">
-      <div className="marquee-content">
-        {text}&nbsp;&nbsp;&nbsp;{text}
-      </div>
+      <div className="marquee-content">{text}&nbsp;&nbsp;&nbsp;{text}</div>
     </div>
   )
 }
-
-const MONO = "'Space Mono', monospace"
 
 function TermsModal({ onClose }) {
   return (
@@ -29,106 +31,52 @@ function TermsModal({ onClose }) {
       position: 'fixed', inset: 0, zIndex: 1000,
       background: 'rgba(0,0,0,0.85)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: '20px',
+      padding: 20,
     }} onClick={onClose}>
       <div onClick={e => e.stopPropagation()} style={{
-        background: 'var(--obsidian)',
-        border: '2px solid var(--white)',
-        maxWidth: 760, width: '100%',
-        maxHeight: '85vh',
+        background: '#0a0a0f', border: '2px solid #ffffff',
+        maxWidth: 760, width: '100%', maxHeight: '85vh',
         display: 'flex', flexDirection: 'column',
-        boxShadow: '8px 8px 0px var(--neon-pink)',
+        boxShadow: '8px 8px 0px #ff2d78',
       }}>
-        {/* Header */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '20px 28px',
-          borderBottom: '2px solid var(--white)',
-          flexShrink: 0,
-        }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 28px', borderBottom: '2px solid #ffffff', flexShrink: 0 }}>
           <div>
-            <div style={{ fontFamily: MONO, fontSize: 10, color: 'var(--neon-pink)', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 4 }}>Legal</div>
-            <div style={{ fontFamily: MONO, fontSize: 16, fontWeight: 700, color: 'var(--white)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Terms & Conditions</div>
+            <div style={{ fontFamily: MONO, fontSize: 10, color: '#ff2d78', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 4 }}>Legal</div>
+            <div style={{ fontFamily: MONO, fontSize: 16, fontWeight: 700, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Terms & Conditions</div>
           </div>
           <button onClick={onClose} style={{
-            background: 'transparent', border: '2px solid var(--white)',
-            color: 'var(--white)', fontFamily: MONO, fontSize: 12,
+            background: 'transparent', border: '2px solid #ffffff',
+            color: '#ffffff', fontFamily: MONO, fontSize: 12,
             padding: '8px 14px', cursor: 'crosshair',
             textTransform: 'uppercase', letterSpacing: '0.1em',
           }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--white)'; e.currentTarget.style.color = 'var(--obsidian)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--white)' }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.color = '#0a0a0f' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#ffffff' }}
           >✕ Close</button>
         </div>
-
-        {/* Body */}
-        <div style={{
-          overflowY: 'auto', padding: '28px',
-          fontFamily: "'Inter', sans-serif", fontSize: 13,
-          color: 'var(--text-2)', lineHeight: 1.8,
-        }}>
-          <p style={{ color: 'var(--text-3)', fontSize: 11, fontFamily: MONO, marginBottom: 24 }}>Last updated: June 2025 — Effective immediately upon use of the Platform.</p>
-
+        <div style={{ overflowY: 'auto', padding: '28px', fontFamily: "'Inter', sans-serif", fontSize: 13, color: 'rgba(255,255,255,0.7)', lineHeight: 1.8 }}>
+          <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11, fontFamily: MONO, marginBottom: 24 }}>Last updated: June 2025</p>
           {[
-            {
-              title: '1. Definitions',
-              body: `"Platform" means the Dwelling website, application, and all associated services. "Company," "we," "us," or "our" refers to Dwelling. "User," "you," or "your" refers to any individual accessing or using the Platform. "Content" means all data, analyses, reports, scores, estimates, and outputs generated by or through the Platform. "Third-Party Data" means any data sourced from external providers including but not limited to OpenStreetMap, government databases, census bureaus, weather APIs, and AI inference models.`
-            },
-            {
-              title: '2. Services',
-              body: `The Platform provides automated property intelligence reports based on publicly available data and AI-generated analysis. Services include estimated property valuations, neighborhood scores, climate data, cost-of-living indices, investment outlook summaries, and related informational content. All Services are provided on an "as-is" and "as-available" basis.`
-            },
-            {
-              title: '3. No Professional Advice',
-              body: `ALL CONTENT PROVIDED BY THE PLATFORM IS FOR INFORMATIONAL PURPOSES ONLY. Nothing on the Platform constitutes financial advice, real estate advice, investment advice, legal advice, medical advice, tax advice, or any other form of professional advice. You should not rely on any Content as the basis for any financial, investment, legal, real estate, or other decision. Always consult a qualified licensed professional before making any property-related decision. The Company expressly disclaims any responsibility for decisions made in reliance on Platform outputs.`
-            },
-            {
-              title: '4. Data Accuracy Disclaimer',
-              body: `The Company makes no representations or warranties, express or implied, regarding the accuracy, completeness, reliability, suitability, or timeliness of any Content. Property valuations are algorithmic estimates only and may differ materially from actual market values. Neighborhood scores, safety ratings, and school ratings are computationally derived and do not reflect verified ground-truth conditions. The Platform relies on Third-Party Data sources which may be incomplete, outdated, erroneous, or unavailable. AI-generated outputs are subject to model limitations, hallucination, and inherent uncertainty. The Company is not responsible for errors, omissions, or inaccuracies in any Content or Third-Party Data.`
-            },
-            {
-              title: '5. User Obligations',
-              body: `By using the Platform, you agree to: (a) use the Platform solely for lawful, personal, non-commercial purposes unless otherwise authorized in writing; (b) not scrape, harvest, copy, reproduce, or redistribute Content at scale; (c) not attempt to reverse-engineer, decompile, or interfere with the Platform or its underlying systems; (d) not use the Platform to make representations to third parties about property values or conditions without independent professional verification; (e) comply with all applicable laws and regulations in your jurisdiction.`
-            },
-            {
-              title: '6. Intellectual Property',
-              body: `All Platform technology, design, software, algorithms, trademarks, and original Content are the exclusive property of the Company and are protected by applicable intellectual property laws. You are granted a limited, non-exclusive, non-transferable, revocable license to access and use the Platform for personal informational purposes only. No rights are granted beyond those expressly stated herein. Third-Party Data remains the property of its respective owners and is subject to their applicable terms.`
-            },
-            {
-              title: '7. Limitation of Liability',
-              body: `TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE COMPANY AND ITS OFFICERS, DIRECTORS, EMPLOYEES, AGENTS, LICENSORS, AND SUPPLIERS SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, PUNITIVE, OR EXEMPLARY DAMAGES, INCLUDING BUT NOT LIMITED TO LOSS OF PROFITS, LOSS OF DATA, LOSS OF GOODWILL, OR FINANCIAL LOSSES, ARISING OUT OF OR IN CONNECTION WITH YOUR USE OF OR INABILITY TO USE THE PLATFORM, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES. IN NO EVENT SHALL THE COMPANY'S TOTAL CUMULATIVE LIABILITY TO YOU EXCEED ONE HUNDRED DOLLARS (CAD $100.00) OR THE AMOUNT YOU PAID TO THE COMPANY IN THE TWELVE (12) MONTHS PRECEDING THE CLAIM, WHICHEVER IS LESSER. SOME JURISDICTIONS DO NOT ALLOW THE EXCLUSION OR LIMITATION OF CERTAIN DAMAGES; IN SUCH JURISDICTIONS, OUR LIABILITY SHALL BE LIMITED TO THE FULLEST EXTENT PERMITTED BY LAW.`
-            },
-            {
-              title: '8. Indemnification',
-              body: `You agree to defend, indemnify, and hold harmless the Company and its affiliates, officers, directors, employees, and agents from and against any and all claims, liabilities, damages, losses, costs, and expenses (including reasonable legal fees) arising out of or relating to: (a) your use of or access to the Platform; (b) your violation of these Terms; (c) your violation of any applicable law or regulation; (d) any decision made in reliance on Content generated by the Platform; or (e) any dispute between you and any third party in connection with your use of the Platform.`
-            },
-            {
-              title: '9. Privacy',
-              body: `Your use of the Platform is also governed by our Privacy Policy, which is incorporated into these Terms by reference. By using the Platform, you consent to the collection and use of information as described therein. The Company does not sell personal data to third parties.`
-            },
-            {
-              title: '10. Termination',
-              body: `The Company reserves the right to suspend or terminate your access to the Platform at any time, with or without notice, for any reason including but not limited to breach of these Terms. Upon termination, all licenses granted herein shall immediately cease. Provisions that by their nature should survive termination shall survive, including Sections 3, 4, 6, 7, 8, and 11.`
-            },
-            {
-              title: '11. Governing Law & Dispute Resolution',
-              body: `These Terms shall be governed by and construed in accordance with the laws of the Province of Ontario and the federal laws of Canada applicable therein, without regard to conflict of law principles. Any dispute arising under these Terms shall be subject to the exclusive jurisdiction of the courts of Ontario, Canada. Users accessing the Platform from other jurisdictions do so at their own risk and are responsible for compliance with local laws.`
-            },
-            {
-              title: '12. Modifications',
-              body: `The Company reserves the right to modify these Terms at any time. Updated Terms will be posted on the Platform with a revised effective date. Continued use of the Platform following such modifications constitutes your acceptance of the updated Terms.`
-            },
+            { title: '1. Definitions', body: `"Platform" means the Dwelling website and all associated services. "Company" refers to Dwelling. "User" refers to any individual accessing the Platform. "Content" means all data, analyses, and outputs generated by the Platform. "Third-Party Data" means data sourced from external providers including OpenStreetMap, government databases, weather APIs, and AI models.` },
+            { title: '2. Services', body: `The Platform provides automated property intelligence reports based on publicly available data and AI-generated analysis. Services include estimated property valuations, neighborhood scores, climate data, cost-of-living indices, and investment summaries. All Services are provided on an "as-is" basis.` },
+            { title: '3. No Professional Advice', body: `ALL CONTENT IS FOR INFORMATIONAL PURPOSES ONLY. Nothing constitutes financial, real estate, investment, legal, medical, or tax advice. Always consult a qualified licensed professional before making any property-related decision. The Company expressly disclaims responsibility for decisions made in reliance on Platform outputs.` },
+            { title: '4. Data Accuracy Disclaimer', body: `The Company makes no warranties regarding accuracy, completeness, or timeliness of any Content. Property valuations are algorithmic estimates only. Neighborhood scores are computationally derived. The Platform relies on Third-Party Data which may be incomplete, outdated, or erroneous. AI-generated outputs are subject to model limitations and inherent uncertainty.` },
+            { title: '5. User Obligations', body: `You agree to: (a) use the Platform solely for lawful purposes; (b) not scrape or redistribute Content at scale; (c) not reverse-engineer or interfere with Platform systems; (d) not represent Platform outputs to third parties as professional valuations; (e) comply with all applicable laws.` },
+            { title: '6. Intellectual Property', body: `All Platform technology, design, software, and original Content are the exclusive property of the Company. You are granted a limited, non-exclusive, revocable license to access the Platform for personal use only.` },
+            { title: '7. Limitation of Liability', body: `TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE COMPANY SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES. IN NO EVENT SHALL THE COMPANY'S TOTAL LIABILITY EXCEED CAD $100.00 OR THE AMOUNT PAID IN THE PRECEDING 12 MONTHS, WHICHEVER IS LESSER.` },
+            { title: '8. Indemnification', body: `You agree to defend, indemnify, and hold harmless the Company from any claims, liabilities, damages, and expenses arising from your use of the Platform, violation of these Terms, or decisions made in reliance on Platform outputs.` },
+            { title: '9. Privacy', body: `Your use is governed by our Privacy Policy. The Company does not sell personal data to third parties.` },
+            { title: '10. Termination', body: `The Company may suspend or terminate access at any time without notice. Sections 3, 4, 6, 7, 8, and 11 survive termination.` },
+            { title: '11. Governing Law', body: `These Terms are governed by the laws of Ontario, Canada. Disputes are subject to the exclusive jurisdiction of Ontario courts.` },
+            { title: '12. Modifications', body: `The Company may modify these Terms at any time. Continued use constitutes acceptance of updated Terms.` },
           ].map(({ title, body }) => (
             <div key={title} style={{ marginBottom: 24 }}>
-              <div style={{ fontFamily: MONO, fontSize: 12, fontWeight: 700, color: 'var(--white)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>{title}</div>
-              <p style={{ color: 'var(--text-2)' }}>{body}</p>
+              <div style={{ fontFamily: MONO, fontSize: 12, fontWeight: 700, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>{title}</div>
+              <p>{body}</p>
             </div>
           ))}
-
-          <div style={{ borderTop: '1px solid var(--border)', paddingTop: 20, marginTop: 8 }}>
-            <p style={{ fontFamily: MONO, fontSize: 11, color: 'var(--text-3)', textAlign: 'center' }}>
-              BY USING THE PLATFORM YOU ACKNOWLEDGE THAT YOU HAVE READ, UNDERSTOOD, AND AGREE TO BE BOUND BY THESE TERMS AND CONDITIONS.
-            </p>
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.15)', paddingTop: 20, marginTop: 8 }}>
+            <p style={{ fontFamily: MONO, fontSize: 11, color: 'rgba(255,255,255,0.3)', textAlign: 'center' }}>BY USING THE PLATFORM YOU AGREE TO THESE TERMS AND CONDITIONS.</p>
           </div>
         </div>
       </div>
@@ -137,63 +85,39 @@ function TermsModal({ onClose }) {
 }
 
 const FAQ_ITEMS = [
-  {
-    q: 'How accurate are the property estimates?',
-    a: 'Estimates are AI-generated using real neighborhood data, census figures, and market trends. They are informational approximations — accuracy varies by location and data availability. Always verify with a licensed appraiser before making financial decisions.',
-  },
-  {
-    q: 'Where does the data come from?',
-    a: 'We pull from multiple authoritative sources: OpenStreetMap (neighborhood scores), Open-Meteo (weather/climate), US Census Bureau (tract-level housing data), HUD (fair market rents), FEMA (flood zones), and AI analysis powered by Cerebras.',
-  },
-  {
-    q: 'Is Dwelling free to use?',
-    a: 'Yes, Dwelling is currently free. We plan to introduce a Pro tier in the future with higher usage limits and additional features.',
-  },
-  {
-    q: 'Does Dwelling work outside the United States?',
-    a: 'Yes. Dwelling supports addresses globally. Some data sources (Census, HUD, FEMA) are US-specific, so international analyses rely more heavily on AI estimation and OpenStreetMap data.',
-  },
-  {
-    q: 'Can I use the results to make a real estate decision?',
-    a: 'No. All outputs are informational only and do not constitute financial, legal, or real estate advice. You should always consult a qualified professional before making any property-related decision.',
-  },
-  {
-    q: 'Does Dwelling store my address searches?',
-    a: 'We do not store your search history on our servers. Searches are processed in real time and discarded.',
-  },
-  {
-    q: 'What is the "Correct AI Estimates" feature?',
-    a: 'If you know specific facts about the property — bedrooms, bathrooms, square footage, year built, or purchase price — you can enter them to improve the accuracy of the AI analysis. These confirmed facts override the AI\'s assumptions.',
-  },
-  {
-    q: 'Why does the walk score seem off for my address?',
-    a: 'Walk and transit scores are calculated from OpenStreetMap amenity data within a 500m radius of the address. In suburban or rural areas, fewer mapped amenities will result in lower scores even if the area is practically accessible by car.',
-  },
+  { q: 'How accurate are the property estimates?', a: 'Estimates are AI-generated using real neighborhood data, census figures, and market trends. They are informational approximations — accuracy varies by location and data availability. Always verify with a licensed appraiser before making financial decisions.' },
+  { q: 'Where does the data come from?', a: 'We pull from multiple authoritative sources: OpenStreetMap (neighborhood scores), Open-Meteo (weather/climate), US Census Bureau (tract-level housing data), HUD (fair market rents), FEMA (flood zones), and AI analysis powered by Cerebras.' },
+  { q: 'Is Dwelling free to use?', a: 'Free users get 10 analyses per month. Upgrade to Pro for $9/month to get unlimited analyses.' },
+  { q: 'Does Dwelling work outside the United States?', a: 'Yes. Dwelling supports addresses globally. Some data sources (Census, HUD, FEMA) are US-specific, so international analyses rely more on AI estimation and OpenStreetMap data.' },
+  { q: 'Can I use the results to make a real estate decision?', a: 'No. All outputs are informational only and do not constitute financial, legal, or real estate advice. Always consult a qualified professional before making any property-related decision.' },
+  { q: 'Does Dwelling store my address searches?', a: 'We do not store your search history on our servers. Searches are processed in real time and discarded.' },
+  { q: 'What is the "Correct AI Estimates" feature?', a: "If you know specific facts about the property — bedrooms, bathrooms, square footage, year built, or purchase price — you can enter them to improve AI accuracy. These confirmed facts override the AI's assumptions." },
+  { q: 'Why does the walk score seem off for my address?', a: 'Walk and transit scores are calculated from OpenStreetMap amenity data within a 500m radius. In suburban or rural areas, fewer mapped amenities result in lower scores even if the area is practically accessible by car.' },
 ]
 
 function FAQ() {
   const [open, setOpen] = useState(null)
   return (
-    <section style={{ borderTop: '2px solid var(--white)', padding: '60px 40px', maxWidth: 1200, margin: '0 auto' }}>
-      <div style={{ fontFamily: MONO, fontSize: 10, color: 'var(--neon-pink)', letterSpacing: '0.3em', textTransform: 'uppercase', marginBottom: 8 }}>Support</div>
-      <h2 style={{ fontFamily: MONO, fontSize: 'clamp(1.5rem, 4vw, 2.5rem)', fontWeight: 700, color: 'var(--white)', textTransform: 'uppercase', letterSpacing: '-0.02em', marginBottom: 40 }}>
+    <section style={{ borderTop: '2px solid #ffffff', padding: '60px 40px', maxWidth: 1200, margin: '0 auto' }}>
+      <div style={{ fontFamily: MONO, fontSize: 10, color: '#ff2d78', letterSpacing: '0.3em', textTransform: 'uppercase', marginBottom: 8 }}>Support</div>
+      <h2 style={{ fontFamily: MONO, fontSize: 'clamp(1.5rem, 4vw, 2.5rem)', fontWeight: 700, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '-0.02em', marginBottom: 40 }}>
         Frequently Asked<br />Questions
       </h2>
-      <div style={{ display: 'grid', gap: 0 }}>
+      <div>
         {FAQ_ITEMS.map((item, i) => (
-          <div key={i} style={{ borderTop: i === 0 ? '2px solid var(--white)' : '1px solid var(--border)', borderBottom: i === FAQ_ITEMS.length - 1 ? '2px solid var(--white)' : 'none' }}>
+          <div key={i} style={{ borderTop: i === 0 ? '2px solid #ffffff' : '1px solid rgba(255,255,255,0.15)', borderBottom: i === FAQ_ITEMS.length - 1 ? '2px solid #ffffff' : 'none' }}>
             <button onClick={() => setOpen(open === i ? null : i)} style={{
               width: '100%', textAlign: 'left',
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               padding: '20px 0', background: 'transparent', border: 'none',
               cursor: 'crosshair', gap: 16,
             }}>
-              <span style={{ fontFamily: MONO, fontSize: 13, fontWeight: 700, color: 'var(--white)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{item.q}</span>
-              <span style={{ fontFamily: MONO, fontSize: 18, color: 'var(--neon-pink)', flexShrink: 0, transition: 'transform 0.2s', transform: open === i ? 'rotate(45deg)' : 'none' }}>+</span>
+              <span style={{ fontFamily: MONO, fontSize: 13, fontWeight: 700, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{item.q}</span>
+              <span style={{ fontFamily: MONO, fontSize: 18, color: '#ff2d78', flexShrink: 0, transition: 'transform 0.2s', transform: open === i ? 'rotate(45deg)' : 'none' }}>+</span>
             </button>
             {open === i && (
               <div style={{ paddingBottom: 20, paddingRight: 40 }}>
-                <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, color: 'var(--text-2)', lineHeight: 1.8 }}>{item.a}</p>
+                <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, color: 'rgba(255,255,255,0.7)', lineHeight: 1.8 }}>{item.a}</p>
               </div>
             )}
           </div>
@@ -206,34 +130,25 @@ function FAQ() {
 function Footer({ onTermsClick }) {
   return (
     <footer style={{
-      borderTop: '2px solid var(--white)',
-      padding: '32px 40px',
+      borderTop: '2px solid #ffffff', padding: '32px 40px',
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      flexWrap: 'wrap', gap: 16,
-      background: 'var(--obsidian)',
+      flexWrap: 'wrap', gap: 16, background: '#0a0a0f',
     }}>
-      <div style={{ fontFamily: MONO, fontSize: 13, fontWeight: 700, color: 'var(--white)', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
-        DW<span style={{ color: 'var(--neon-pink)' }}>.</span>ELLING
+      <div style={{ fontFamily: MONO, fontSize: 13, fontWeight: 700, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
+        DW<span style={{ color: '#ff2d78' }}>.</span>ELLING
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
-        <span style={{ fontFamily: MONO, fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-          © 2025 Dwelling. All rights reserved.
-        </span>
+        <span style={{ fontFamily: MONO, fontSize: 11, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>© 2025 Dwelling. All rights reserved.</span>
         <button onClick={onTermsClick} style={{
           background: 'transparent', border: 'none',
-          fontFamily: MONO, fontSize: 11, color: 'var(--text-2)',
+          fontFamily: MONO, fontSize: 11, color: 'rgba(255,255,255,0.7)',
           textTransform: 'uppercase', letterSpacing: '0.1em',
-          cursor: 'crosshair', textDecoration: 'underline',
-          padding: 0,
+          cursor: 'crosshair', textDecoration: 'underline', padding: 0,
         }}
-          onMouseEnter={e => e.currentTarget.style.color = 'var(--neon-pink)'}
-          onMouseLeave={e => e.currentTarget.style.color = 'var(--text-2)'}
-        >
-          Terms & Conditions
-        </button>
-        <span style={{ fontFamily: MONO, fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-          Not financial advice
-        </span>
+          onMouseEnter={e => e.currentTarget.style.color = '#ff2d78'}
+          onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.7)'}
+        >Terms & Conditions</button>
+        <span style={{ fontFamily: MONO, fontSize: 11, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Not financial advice</span>
       </div>
     </footer>
   )
@@ -245,6 +160,34 @@ export default function App() {
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
   const [showTerms, setShowTerms] = useState(false)
+  const [showAuth, setShowAuth] = useState(false)
+  const [showPaywall, setShowPaywall] = useState(false)
+  const [user, setUser] = useState(null)
+  const [userRecord, setUserRecord] = useState(null)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser(session.user)
+        loadUserRecord(session.user.id)
+      }
+    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser(session.user)
+        loadUserRecord(session.user.id)
+      } else {
+        setUser(null)
+        setUserRecord(null)
+      }
+    })
+    return () => subscription.unsubscribe()
+  }, [])
+
+  const loadUserRecord = async (userId) => {
+    const { data } = await supabase.from('users').select('*').eq('id', userId).single()
+    setUserRecord(data)
+  }
 
   useEffect(() => {
     if (result) {
@@ -255,13 +198,48 @@ export default function App() {
     }
   }, [result])
 
+  const handleAuth = async (authedUser) => {
+    setUser(authedUser)
+    await loadUserRecord(authedUser.id)
+    setShowAuth(false)
+  }
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    setUser(null)
+    setUserRecord(null)
+    setResult(null)
+  }
+
+  const checkAndIncrementUsage = async () => {
+    if (!user) { setShowAuth(true); return false }
+    if (userRecord?.is_pro) return true
+
+    const resetAt = new Date(userRecord?.analyses_reset_at ?? 0)
+    const now = new Date()
+    const isNewMonth = now.getMonth() !== resetAt.getMonth() || now.getFullYear() !== resetAt.getFullYear()
+    let currentUsage = isNewMonth ? 0 : (userRecord?.analyses_used ?? 0)
+
+    if (currentUsage >= FREE_LIMIT) { setShowPaywall(true); return false }
+
+    const updates = {
+      analyses_used: currentUsage + 1,
+      ...(isNewMonth && { analyses_reset_at: now.toISOString() }),
+    }
+    const { data } = await supabase.from('users').update(updates).eq('id', user.id).select().single()
+    setUserRecord(data)
+    return true
+  }
+
   const handleSearch = async ({ street, city, state, country, knownFacts }) => {
+    const allowed = await checkAndIncrementUsage()
+    if (!allowed) return
+
     setLoading(true)
     setError(null)
     setResult(null)
     setLoadStep(0)
     try {
-      setLoadStep(0)
       const geo = await geocodeStructured({ street, city, state, country })
       setLoadStep(1)
       const postcode = geo.address?.postcode ?? ''
@@ -301,51 +279,59 @@ export default function App() {
     }
   }
 
+  const analysesLeft = userRecord
+    ? userRecord.is_pro ? '∞' : Math.max(0, FREE_LIMIT - (userRecord.analyses_used ?? 0))
+    : FREE_LIMIT
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
 
       {showTerms && <TermsModal onClose={() => setShowTerms(false)} />}
+      {showAuth && <AuthModal onClose={() => setShowAuth(false)} onAuth={handleAuth} />}
+      {showPaywall && <PaywallModal onClose={() => setShowPaywall(false)} onUpgrade={() => alert('Stripe coming soon!')} />}
 
-      {/* Nav */}
       <nav style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '20px 40px',
-        borderBottom: '2px solid var(--white)',
-        background: 'var(--obsidian)',
+        padding: '20px 40px', borderBottom: '2px solid #ffffff', background: '#0a0a0f',
       }}>
-        <div style={{
-          fontFamily: MONO,
-          fontWeight: 700,
-          fontSize: 20,
-          letterSpacing: '0.15em',
-          color: 'var(--white)',
-          textTransform: 'uppercase',
-          cursor: 'crosshair',
-        }} onClick={() => setResult(null)}>
-          DW<span className="neon-pink">.</span>ELLING
+        <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: 20, letterSpacing: '0.15em', color: '#ffffff', textTransform: 'uppercase', cursor: 'crosshair' }}
+          onClick={() => setResult(null)}>
+          DW<span style={{ color: '#ff2d78' }}>.</span>ELLING
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-          <span style={{ fontFamily: MONO, fontSize: 11, color: 'var(--text-2)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+          <span style={{ fontFamily: MONO, fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
             Property Intelligence Platform
           </span>
+          {user && (
+            <span style={{ fontFamily: MONO, fontSize: 11, color: userRecord?.is_pro ? '#00ff88' : 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              {userRecord?.is_pro ? '★ Pro' : `${analysesLeft} / ${FREE_LIMIT} left`}
+            </span>
+          )}
           {result && (
             <button onClick={() => setResult(null)} style={{
-              padding: '8px 16px',
-              background: 'transparent',
-              border: '2px solid var(--white)',
-              color: 'var(--white)',
-              fontSize: 11,
-              cursor: 'crosshair',
-              fontFamily: MONO,
-              textTransform: 'uppercase',
-              letterSpacing: '0.1em',
-              transition: 'all 0.1s',
+              padding: '8px 16px', background: 'transparent', border: '2px solid #ffffff',
+              color: '#ffffff', fontSize: 11, cursor: 'crosshair', fontFamily: MONO,
+              textTransform: 'uppercase', letterSpacing: '0.1em',
             }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'var(--white)'; e.currentTarget.style.color = 'var(--obsidian)' }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--white)' }}
-            >
-              ← New Search
-            </button>
+              onMouseEnter={e => { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.color = '#0a0a0f' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#ffffff' }}
+            >← New Search</button>
+          )}
+          {user ? (
+            <button onClick={handleSignOut} style={{
+              padding: '8px 16px', background: 'transparent', border: '2px solid rgba(255,255,255,0.3)',
+              color: 'rgba(255,255,255,0.5)', fontSize: 11, cursor: 'crosshair', fontFamily: MONO,
+              textTransform: 'uppercase', letterSpacing: '0.1em',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = '#ff2d78'; e.currentTarget.style.color = '#ff2d78' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)'; e.currentTarget.style.color = 'rgba(255,255,255,0.5)' }}
+            >Sign Out</button>
+          ) : (
+            <button onClick={() => setShowAuth(true)} style={{
+              padding: '8px 16px', background: '#ff2d78', border: '2px solid #ff2d78',
+              color: '#ffffff', fontSize: 11, cursor: 'crosshair', fontFamily: MONO,
+              textTransform: 'uppercase', letterSpacing: '0.1em',
+            }}>Sign In</button>
           )}
         </div>
       </nav>
@@ -354,129 +340,70 @@ export default function App() {
 
       {!result && !loading && (
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '80px 40px 0', width: '100%' }}>
-          {/* HERO */}
           <div style={{ position: 'relative', marginBottom: 80 }}>
             <div style={{
               position: 'absolute', right: -20, top: -40,
-              fontFamily: MONO,
-              fontSize: 'clamp(120px, 20vw, 280px)',
-              fontWeight: 700,
-              color: 'transparent',
-              WebkitTextStroke: '2px rgba(255,255,255,0.08)',
-              userSelect: 'none',
-              lineHeight: 1,
-              zIndex: 0,
+              fontFamily: MONO, fontSize: 'clamp(120px, 20vw, 280px)', fontWeight: 700,
+              color: 'transparent', WebkitTextStroke: '2px rgba(255,255,255,0.08)',
+              userSelect: 'none', lineHeight: 1, zIndex: 0,
             }}>$</div>
-
             <div style={{ position: 'relative', zIndex: 1 }}>
-              <div style={{
-                fontFamily: MONO,
-                fontSize: 11,
-                letterSpacing: '0.3em',
-                textTransform: 'uppercase',
-                color: 'var(--neon-pink)',
-                marginBottom: 20,
-                display: 'flex', alignItems: 'center', gap: 12,
-              }}>
-                <span style={{ display: 'inline-block', width: 40, height: 2, background: 'var(--neon-pink)' }} />
+              <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.3em', textTransform: 'uppercase', color: '#ff2d78', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 12 }}>
+                <span style={{ display: 'inline-block', width: 40, height: 2, background: '#ff2d78' }} />
                 EST. 2025 — REAL ESTATE INTELLIGENCE
               </div>
-
-              <h1 style={{
-                fontSize: 'clamp(3.5rem, 9vw, 9rem)',
-                lineHeight: 0.9,
-                marginBottom: 32,
-                fontFamily: "'Clash Display', 'Space Mono', monospace",
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                letterSpacing: '-0.03em',
-              }}>
-                <span style={{ display: 'block', color: 'var(--white)' }}>KNOW</span>
-                <span style={{ display: 'block', WebkitTextStroke: '2px var(--acid-yellow)', color: 'transparent' }}>WHAT</span>
-                <span style={{ display: 'block', color: 'var(--neon-pink)', textShadow: '4px 4px 0px rgba(255,45,120,0.3)' }}>ANY HOME</span>
-                <span style={{ display: 'block', color: 'var(--white)' }}>IS WORTH.</span>
+              <h1 style={{ fontSize: 'clamp(3.5rem, 9vw, 9rem)', lineHeight: 0.9, marginBottom: 32, fontFamily: "'Clash Display', 'Space Mono', monospace", fontWeight: 700, textTransform: 'uppercase', letterSpacing: '-0.03em' }}>
+                <span style={{ display: 'block', color: '#ffffff' }}>KNOW</span>
+                <span style={{ display: 'block', WebkitTextStroke: '2px #eab308', color: 'transparent' }}>WHAT</span>
+                <span style={{ display: 'block', color: '#ff2d78', textShadow: '4px 4px 0px rgba(255,45,120,0.3)' }}>ANY HOME</span>
+                <span style={{ display: 'block', color: '#ffffff' }}>IS WORTH.</span>
               </h1>
-
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 60, alignItems: 'start' }}>
                 <div>
-                  <p style={{
-                    fontFamily: "'Inter', sans-serif",
-                    fontSize: 16, color: 'var(--text-2)',
-                    maxWidth: 420, marginBottom: 40, lineHeight: 1.8,
-                  }}>
+                  <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 16, color: 'rgba(255,255,255,0.7)', maxWidth: 420, marginBottom: 40, lineHeight: 1.8 }}>
                     Enter any address in the world. Get real market data, neighborhood scores, climate analysis, and AI-powered investment insights — instantly.
                   </p>
                   <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 40 }}>
-                    {['Real Data', 'Global Coverage', 'AI Analysis', 'Free'].map(f => (
-                      <span key={f} style={{
-                        padding: '6px 14px',
-                        border: '2px solid var(--white)',
-                        fontFamily: MONO,
-                        fontSize: 11,
-                        color: 'var(--white)',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.1em',
-                      }}>{f}</span>
+                    {['Real Data', 'Global Coverage', 'AI Analysis', '10 Free/Month'].map(f => (
+                      <span key={f} style={{ padding: '6px 14px', border: '2px solid #ffffff', fontFamily: MONO, fontSize: 11, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{f}</span>
                     ))}
                   </div>
                 </div>
                 <div>
                   <AddressSearch onSearch={handleSearch} loading={loading} />
+                  {!user && (
+                    <p style={{ fontFamily: MONO, fontSize: 11, color: 'rgba(255,255,255,0.3)', textAlign: 'center', marginTop: 12, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                      <span style={{ color: '#ff2d78', cursor: 'crosshair', textDecoration: 'underline' }} onClick={() => setShowAuth(true)}>Sign in</span> to track your usage
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Stats bar */}
-          <div style={{
-            display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
-            border: '2px solid var(--white)',
-            marginBottom: 60,
-          }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', border: '2px solid #ffffff', marginBottom: 60 }}>
             {[
               { num: '140M+', label: 'US Properties' },
               { num: '50+', label: 'Countries' },
-              { num: '100%', label: 'Free' },
+              { num: '10', label: 'Free/Month' },
               { num: 'LIVE', label: 'Real Data' },
             ].map((s, i) => (
-              <div key={i} style={{
-                padding: '24px',
-                borderRight: i < 3 ? '2px solid var(--white)' : 'none',
-                textAlign: 'center',
-              }}>
-                <div style={{
-                  fontFamily: MONO,
-                  fontSize: 'clamp(1.5rem, 3vw, 2.5rem)',
-                  fontWeight: 700,
-                  color: i === 0 ? 'var(--neon-pink)' : i === 1 ? 'var(--acid-yellow)' : i === 2 ? 'var(--green)' : 'var(--cyan)',
-                  textShadow: i === 0 ? '0 0 20px rgba(255,45,120,0.5)' : 'none',
-                  marginBottom: 4,
-                }}>{s.num}</div>
-                <div style={{ fontFamily: MONO, fontSize: 10, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.15em' }}>{s.label}</div>
+              <div key={i} style={{ padding: '24px', borderRight: i < 3 ? '2px solid #ffffff' : 'none', textAlign: 'center' }}>
+                <div style={{ fontFamily: MONO, fontSize: 'clamp(1.5rem, 3vw, 2.5rem)', fontWeight: 700, color: i === 0 ? '#ff2d78' : i === 1 ? '#eab308' : i === 2 ? '#00ff88' : '#00ffcc', marginBottom: 4 }}>{s.num}</div>
+                <div style={{ fontFamily: MONO, fontSize: 10, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.15em' }}>{s.label}</div>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Results */}
       <div style={{ maxWidth: 960, margin: '0 auto', padding: result || loading ? '40px 24px 80px' : '0 24px', width: '100%' }}>
         {loading && <LoadingState step={loadStep} />}
-
         {error && (
-          <div style={{
-            border: '2px solid var(--neon-pink)',
-            background: 'rgba(255,45,120,0.1)',
-            padding: '16px 20px',
-            fontFamily: MONO,
-            fontSize: 13,
-            color: 'var(--neon-pink)',
-            marginTop: 24,
-          }}>
+          <div style={{ border: '2px solid #ff2d78', background: 'rgba(255,45,120,0.1)', padding: '16px 20px', fontFamily: MONO, fontSize: 13, color: '#ff2d78', marginTop: 24 }}>
             ⚠ {error}
           </div>
         )}
-
         {result && !loading && (
           <>
             <div style={{ marginBottom: 24 }}>
@@ -487,10 +414,7 @@ export default function App() {
         )}
       </div>
 
-      {/* FAQ — only on home screen */}
       {!result && !loading && <FAQ />}
-
-      {/* Footer — always visible */}
       <div style={{ marginTop: 'auto' }}>
         <Footer onTermsClick={() => setShowTerms(true)} />
       </div>
