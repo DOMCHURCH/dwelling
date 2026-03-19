@@ -1,5 +1,5 @@
 const CEREBRAS_BASE = '/api/cerebras'
-const MODEL = 'llama-3.3-70b'
+const MODEL = 'llama-3.1-8b'
 
 async function cerebrasChat(messages, json = false) {
   const res = await fetch(CEREBRAS_BASE, {
