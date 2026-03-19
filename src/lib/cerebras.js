@@ -23,8 +23,7 @@ async function cerebrasChat(messages, json = false) {
   return data.choices[0].message.content
 }
 
-// Physical plausibility constraints — catch obviously wrong AI outputs
-function validateEstimate(est, known) {
+function validateEstimate(est, known, realScores) {
   if (known.sqft) {
     const minBeds = Math.floor(known.sqft / 500)
     const maxBeds = Math.ceil(known.sqft / 150)
@@ -36,11 +35,9 @@ function validateEstimate(est, known) {
   if (known.baths) est.floorPlan.typicalBathrooms = known.baths
   if (known.yearBuilt) est.floorPlan.builtEra = `${known.yearBuilt}s`.replace(/(\d{3})\ds/, '$10s')
 
-  // If user knows purchase price, use it to sanity-check AI estimate
   if (known.purchasePrice) {
     const aiVal = est.propertyEstimate.estimatedValueUSD
     const ratio = aiVal / known.purchasePrice
-    // If AI is off by more than 40%, anchor it closer to known price
     if (ratio < 0.6 || ratio > 1.4) {
       est.propertyEstimate.estimatedValueUSD = Math.round(known.purchasePrice * 1.05)
       est.propertyEstimate.confidenceLevel = 'high'
@@ -50,11 +47,19 @@ function validateEstimate(est, known) {
 
   // Cap scores at 100
   const nb = est.neighborhood
-  nb.walkScore = Math.min(Math.max(Math.round(nb.walkScore), 0), 100)
-  nb.transitScore = Math.min(Math.max(Math.round(nb.transitScore), 0), 100)
   nb.safetyRating = Math.min(Math.max(Math.round(nb.safetyRating), 0), 100)
   nb.schoolRating = Math.min(Math.max(Math.round(nb.schoolRating), 0), 100)
   est.investment.investmentScore = Math.min(Math.max(Math.round(est.investment.investmentScore), 0), 100)
+
+  // LOCK walk/transit/school scores to real Overpass data — AI cannot override these
+  if (realScores) {
+    nb.walkScore = realScores.walkScore
+    nb.transitScore = realScores.transitScore
+    nb.schoolRating = realScores.schoolScore
+  } else {
+    nb.walkScore = Math.min(Math.max(Math.round(nb.walkScore), 0), 100)
+    nb.transitScore = Math.min(Math.max(Math.round(nb.transitScore), 0), 100)
+  }
 
   return est
 }
@@ -142,7 +147,6 @@ export async function analyzeProperty(geoData, weatherData, climateData, knownFa
     ? `5yr avg high: ${climateData.avgHighC}C, avg low: ${climateData.avgLowC}C, avg precip: ${climateData.avgPrecipMm}mm/day`
     : 'unavailable'
 
-  // Build known facts section — these are ground truth, not guesses
   const knownLines = []
   if (knownFacts.beds) knownLines.push(`CONFIRMED bedrooms: ${knownFacts.beds} (do not change this)`)
   if (knownFacts.baths) knownLines.push(`CONFIRMED bathrooms: ${knownFacts.baths} (do not change this)`)
@@ -159,33 +163,29 @@ export async function analyzeProperty(geoData, weatherData, climateData, knownFa
 
   if (neighborhoodScores) {
     realParts.push(
-      'REAL NEIGHBORHOOD DATA (OpenStreetMap Overpass API):' +
-      '\n- Amenities within 500m: ' + neighborhoodScores.amenityCount500m +
+      'REAL NEIGHBORHOOD DATA (OpenStreetMap):' +
       '\n- Nearby schools: ' + (neighborhoodScores.nearbySchools.join(', ') || 'none found') +
       '\n- Nearby parks: ' + (neighborhoodScores.nearbyParks.join(', ') || 'none found') +
       '\n- Nearby transit stops: ' + (neighborhoodScores.nearbyTransit.join(', ') || 'none found') +
       '\n- Nearby grocery stores: ' + (neighborhoodScores.nearbyGrocery.join(', ') || 'none found') +
-      '\nUSE THESE EXACT SCORES: walkScore=' + neighborhoodScores.walkScore +
-      ', transitScore=' + neighborhoodScores.transitScore +
-      ', schoolRating=' + neighborhoodScores.schoolScore
+      '\nNOTE: Walk, transit, and school scores are computed separately from real data and will override your estimates. Focus on safetyRating only.'
     )
   }
 
   if (censusData) {
     realParts.push(
-      'REAL US CENSUS DATA (ACS 2022) for this exact census tract:' +
-      '\n- Median home value in tract: $' + (censusData.medianHomeValueUSD?.toLocaleString() ?? 'N/A') +
+      'REAL US CENSUS DATA (ACS 2022):' +
+      '\n- Median home value: $' + (censusData.medianHomeValueUSD?.toLocaleString() ?? 'N/A') +
       '\n- Median gross rent: $' + (censusData.medianGrossRentUSD?.toLocaleString() ?? 'N/A') + '/month' +
       '\n- Median household income: $' + (censusData.medianHouseholdIncomeUSD?.toLocaleString() ?? 'N/A') + '/year' +
       '\n- Owner occupancy rate: ' + (censusData.ownerOccupancyRate ?? 'N/A') + '%' +
-      '\nYOUR PROPERTY ESTIMATE must be anchored within 20% of the census median home value of $' +
-      (censusData.medianHomeValueUSD?.toLocaleString() ?? 'N/A') + ' unless justified.'
+      '\nYOUR ESTIMATE must be within 20% of census median $' + (censusData.medianHomeValueUSD?.toLocaleString() ?? 'N/A') + ' unless justified.'
     )
   }
 
   if (fmr) {
     realParts.push(
-      'REAL HUD FAIR MARKET RENT (2024) for this county:' +
+      'REAL HUD FAIR MARKET RENT (2024):' +
       '\n- 2 bedroom: $' + fmr.twoBed + '/month' +
       '\n- 3 bedroom: $' + fmr.threeBed + '/month' +
       '\n- 4 bedroom: $' + fmr.fourBed + '/month' +
@@ -204,10 +204,10 @@ export async function analyzeProperty(geoData, weatherData, climateData, knownFa
   }
 
   const realDataContext = realParts.length > 0
-    ? 'REAL DATA FROM AUTHORITATIVE SOURCES — treat as ground truth:\n' + realParts.join('\n\n')
-    : 'No real property data available for this address — use your best estimate.'
+    ? 'REAL DATA FROM AUTHORITATIVE SOURCES:\n' + realParts.join('\n\n')
+    : 'No real property data available — use your best estimate.'
 
-  const prompt = `You are a senior real estate appraiser with 20 years of experience using the sales comparison approach. Analyze this specific property.
+  const prompt = `You are a senior real estate appraiser with 20 years of experience. Analyze this specific property.
 
 PROPERTY:
 Street: ${street}
@@ -228,9 +228,9 @@ ESTIMATION RULES:
 - All scores must be integers 0-100. investmentScore realistic range: 40-80.
 - appreciationOutlook: exactly one of bearish, neutral, bullish.
 - confidenceLevel: exactly one of low, medium, high.
-- If purchase price is confirmed, current value should reflect real market appreciation since purchase — Canadian markets appreciated 20-40% from 2019-2022, then corrected ~10-15%, then stabilized. A home bought for $950k-$1M in 2020 in Ottawa is worth $1.1M-$1.3M today.
-- NEVER underestimate — if a home sold for $X in any year, today's value must reflect real compounding appreciation for that specific market.
-- Be honest about uncertainty — use low confidence when you genuinely don't know.
+- If purchase price is confirmed, current value should reflect real market appreciation since purchase.
+- NEVER underestimate — reflect real compounding appreciation for that specific market.
+- For safetyRating: use your knowledge of this specific neighborhood's crime and safety reputation.
 
 Return ONLY raw JSON, no markdown, no backticks:
 
@@ -284,35 +284,33 @@ Return ONLY raw JSON, no markdown, no backticks:
     "languageNote": null
   },
   "priceHistory": {
-    "currency": "FILL_IN_LOCAL_CURRENCY_CODE_e.g_CAD_USD_GBP_AUD_EUR",
-    "currencySymbol": "FILL_IN_SYMBOL_e.g_$_£_€",
+    "currency": "FILL_IN_LOCAL_CURRENCY_CODE",
+    "currencySymbol": "FILL_IN_SYMBOL",
     "data": [
-      {"year": 2019, "value": REPLACE_WITH_REAL_2019_ESTIMATE, "type": "historical"},
-      {"year": 2020, "value": REPLACE_WITH_REAL_2020_ESTIMATE, "type": "historical"},
-      {"year": 2021, "value": REPLACE_WITH_REAL_2021_ESTIMATE, "type": "historical"},
-      {"year": 2022, "value": REPLACE_WITH_REAL_2022_ESTIMATE, "type": "historical"},
-      {"year": 2023, "value": REPLACE_WITH_REAL_2023_ESTIMATE, "type": "historical"},
-      {"year": 2024, "value": REPLACE_WITH_REAL_2024_ESTIMATE, "type": "historical"},
-      {"year": 2025, "value": REPLACE_WITH_REAL_2025_ESTIMATE, "type": "projected"},
-      {"year": 2026, "value": REPLACE_WITH_REAL_2026_ESTIMATE, "type": "projected"},
-      {"year": 2027, "value": REPLACE_WITH_REAL_2027_ESTIMATE, "type": "projected"}
+      {"year": 2019, "value": 0, "type": "historical"},
+      {"year": 2020, "value": 0, "type": "historical"},
+      {"year": 2021, "value": 0, "type": "historical"},
+      {"year": 2022, "value": 0, "type": "historical"},
+      {"year": 2023, "value": 0, "type": "historical"},
+      {"year": 2024, "value": 0, "type": "historical"},
+      {"year": 2025, "value": 0, "type": "projected"},
+      {"year": 2026, "value": 0, "type": "projected"},
+      {"year": 2027, "value": 0, "type": "projected"}
     ],
-    "marketNote": "One sentence about what actually drove price changes in this specific market."
+    "marketNote": "One sentence about what drove price changes in this market."
   }
 }
 
 PRICE HISTORY RULES:
-- Use real knowledge of ${city}, ${state}, ${country} market trends year by year
-- Reflect actual market events that happened in THAT city/region specifically — do NOT use generic national trends
-- Values must be realistic for the specific neighborhood, not city-wide averages
-- Account for real events: local housing booms, corrections, interest rate impacts, economic shifts in that region
-- Projected values should reflect current local market momentum — be conservative and honest
-- Replace ALL placeholder numbers with accurate estimates for ${street}, ${city}, ${state}, ${country}
-- The data array values MUST reflect the actual price trajectory of this specific neighborhood
+- Replace all 0 values with real estimates for ${city}, ${state}, ${country}
+- Reflect actual market events specific to this city/region
+- Values must be realistic for this specific neighborhood
+- Projected values should reflect current local market momentum
 
-Fill ALL placeholder values with accurate data for ${street}, ${city}, ${state}, ${country}.`
+Fill ALL values with accurate data for ${street}, ${city}, ${state}, ${country}.`
 
   const raw = await cerebrasChat([{ role: 'user', content: prompt }], true)
   const result = JSON.parse(raw.replace(/```json|```/g, '').trim())
-  return validateEstimate(result, knownFacts)
+  // Pass real scores to validateEstimate so they permanently override AI values
+  return validateEstimate(result, knownFacts, neighborhoodScores)
 }
