@@ -25,7 +25,7 @@ const TERMS_SECTIONS = [
   { title: '7. Governing Law', body: 'These Terms are governed by the laws of Ontario, Canada.' },
 ]
 
-export default function AuthModal({ onClose, onAuth }) {
+export default function AuthModal({ onAuth }) {
   const [mode, setMode] = useState('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -46,16 +46,6 @@ export default function AuthModal({ onClose, onAuth }) {
       if (mode === 'signup') {
         const { data, error: signUpError } = await supabase.auth.signUp({ email, password })
         if (signUpError) throw signUpError
-
-        const { error: insertError } = await supabase.from('users').insert({
-          id: data.user.id,
-          email: data.user.email,
-          terms_accepted_at: new Date().toISOString(),
-          analyses_used: 0,
-          is_pro: false,
-        })
-        if (insertError && insertError.code !== '23505') throw insertError
-
         onAuth(data.user)
       } else {
         const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
@@ -71,7 +61,6 @@ export default function AuthModal({ onClose, onAuth }) {
 
   return (
     <>
-      {/* Main auth modal */}
       <div style={{
         position: 'fixed', inset: 0, zIndex: 1000,
         background: 'rgba(0,0,0,0.92)',
@@ -79,12 +68,10 @@ export default function AuthModal({ onClose, onAuth }) {
         padding: 20,
       }}>
         <div style={{
-          background: '#0a0a0f',
-          border: '2px solid #ffffff',
+          background: '#0a0a0f', border: '2px solid #ffffff',
           maxWidth: 460, width: '100%',
           boxShadow: '8px 8px 0px #ff2d78',
         }}>
-          {/* Header */}
           <div style={{ padding: '24px 28px 20px', borderBottom: '2px solid rgba(255,255,255,0.2)' }}>
             <div style={{ fontFamily: MONO, fontSize: 10, color: '#ff2d78', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 6 }}>
               {mode === 'signup' ? 'Create Account' : 'Welcome Back'}
@@ -97,9 +84,7 @@ export default function AuthModal({ onClose, onAuth }) {
             </div>
           </div>
 
-          {/* Body */}
           <div style={{ padding: '24px 28px' }}>
-            {/* Mode toggle */}
             <div style={{ display: 'flex', marginBottom: 24, border: '2px solid rgba(255,255,255,0.2)' }}>
               {['signin', 'signup'].map(m => (
                 <button key={m} onClick={() => { setMode(m); setError(null) }} style={{
@@ -116,7 +101,6 @@ export default function AuthModal({ onClose, onAuth }) {
               ))}
             </div>
 
-            {/* Email */}
             <div style={{ marginBottom: 12 }}>
               <div style={{ fontFamily: MONO, fontSize: 10, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 6 }}>Email</div>
               <input type="email" value={email} onChange={e => setEmail(e.target.value)}
@@ -126,7 +110,6 @@ export default function AuthModal({ onClose, onAuth }) {
               />
             </div>
 
-            {/* Password */}
             <div style={{ marginBottom: 20 }}>
               <div style={{ fontFamily: MONO, fontSize: 10, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 6 }}>Password</div>
               <input type="password" value={password} onChange={e => setPassword(e.target.value)}
@@ -137,7 +120,6 @@ export default function AuthModal({ onClose, onAuth }) {
               />
             </div>
 
-            {/* T&C checkbox — signup only */}
             {mode === 'signup' && (
               <div style={{ marginBottom: 20, padding: '16px', border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.03)' }}>
                 <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'crosshair' }}>
@@ -157,14 +139,12 @@ export default function AuthModal({ onClose, onAuth }) {
               </div>
             )}
 
-            {/* Error */}
             {error && (
               <div style={{ marginBottom: 16, padding: '10px 14px', border: '1px solid #ff2d78', background: 'rgba(255,45,120,0.1)', fontFamily: MONO, fontSize: 11, color: '#ff2d78' }}>
                 ⚠ {error}
               </div>
             )}
 
-            {/* Submit */}
             <button onClick={handleSubmit} disabled={loading} style={{
               width: '100%', padding: '14px',
               background: loading ? 'rgba(255,255,255,0.1)' : '#ff2d78',
@@ -179,7 +159,6 @@ export default function AuthModal({ onClose, onAuth }) {
         </div>
       </div>
 
-      {/* Full T&C overlay */}
       {showTermsFull && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 1100,
@@ -189,12 +168,10 @@ export default function AuthModal({ onClose, onAuth }) {
         }} onClick={() => setShowTermsFull(false)}>
           <div onClick={e => e.stopPropagation()} style={{
             background: '#0a0a0f', border: '2px solid #ffffff',
-            maxWidth: 700, width: '100%',
-            height: '80vh',
+            maxWidth: 700, width: '100%', height: '80vh',
             display: 'flex', flexDirection: 'column',
             boxShadow: '8px 8px 0px #ff2d78',
           }}>
-            {/* Fixed header */}
             <div style={{
               padding: '16px 24px', borderBottom: '2px solid rgba(255,255,255,0.2)',
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -206,12 +183,8 @@ export default function AuthModal({ onClose, onAuth }) {
                 color: '#ffffff', fontFamily: MONO, fontSize: 11, padding: '6px 12px', cursor: 'crosshair',
               }}>✕ Close</button>
             </div>
-
-            {/* Scrollable content */}
             <div style={{
-              flex: 1,
-              overflowY: 'scroll',
-              padding: '24px',
+              flex: 1, overflowY: 'scroll', padding: '24px',
               fontFamily: "'Inter', sans-serif", fontSize: 13,
               color: 'rgba(255,255,255,0.7)', lineHeight: 1.8,
             }}>
