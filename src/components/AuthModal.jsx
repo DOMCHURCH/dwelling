@@ -47,22 +47,26 @@ export default function AuthModal({ onAuth }) {
         const { data, error: signUpError } = await supabase.auth.signUp({ email, password })
         if (signUpError) throw signUpError
 
-        // Insert user record — retry a few times in case of timing issues
-        let inserted = false
-        for (let i = 0; i < 3; i++) {
-          const { error: insertError } = await supabase.from('users').insert({
-            id: data.user.id,
-            email: data.user.email,
-            terms_accepted_at: new Date().toISOString(),
-            analyses_used: 0,
-            is_pro: false,
-          })
-          if (!insertError || insertError.code === '23505') { inserted = true; break }
-          await new Promise(r => setTimeout(r, 500))
-        }
-        if (!inserted) console.warn('User record insert failed — trigger may handle it')
+        // Wait for Supabase session to be fully established
+        await new Promise(r => setTimeout(r, 2000))
 
-        onAuth(data.user)
+        // Get fresh session after delay
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) throw new Error('Session not established. Please try signing in.')
+
+        // Insert user record using the now-established session
+        const { error: insertError } = await supabase.from('users').insert({
+          id: session.user.id,
+          email: session.user.email,
+          terms_accepted_at: new Date().toISOString(),
+          analyses_used: 0,
+          is_pro: false,
+        })
+        if (insertError && insertError.code !== '23505') {
+          console.warn('Insert error:', insertError.message)
+        }
+
+        onAuth(session.user)
       } else {
         const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
         if (signInError) throw signInError
@@ -169,7 +173,7 @@ export default function AuthModal({ onAuth }) {
               textTransform: 'uppercase', letterSpacing: '0.15em',
               cursor: loading ? 'not-allowed' : 'crosshair',
             }}>
-              {loading ? 'Please wait...' : mode === 'signup' ? 'Create Account →' : 'Sign In →'}
+              {loading ? 'Setting up your account...' : mode === 'signup' ? 'Create Account →' : 'Sign In →'}
             </button>
           </div>
         </div>
