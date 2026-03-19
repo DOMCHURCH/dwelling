@@ -47,26 +47,14 @@ export default function AuthModal({ onAuth }) {
         const { data, error: signUpError } = await supabase.auth.signUp({ email, password })
         if (signUpError) throw signUpError
 
-        // Wait for Supabase session to be fully established
-        await new Promise(r => setTimeout(r, 2000))
-
-        // Get fresh session after delay
-        const { data: { session } } = await supabase.auth.getSession()
-        if (!session) throw new Error('Session not established. Please try signing in.')
-
-        // Insert user record using the now-established session
-        const { error: insertError } = await supabase.from('users').insert({
-          id: session.user.id,
-          email: session.user.email,
-          terms_accepted_at: new Date().toISOString(),
-          analyses_used: 0,
-          is_pro: false,
+        // Call server-side register endpoint — uses service key, bypasses RLS
+        await fetch('/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: data.user.id, email: data.user.email }),
         })
-        if (insertError && insertError.code !== '23505') {
-          console.warn('Insert error:', insertError.message)
-        }
 
-        onAuth(session.user)
+        onAuth(data.user)
       } else {
         const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
         if (signInError) throw signInError
@@ -173,7 +161,7 @@ export default function AuthModal({ onAuth }) {
               textTransform: 'uppercase', letterSpacing: '0.15em',
               cursor: loading ? 'not-allowed' : 'crosshair',
             }}>
-              {loading ? 'Setting up your account...' : mode === 'signup' ? 'Create Account →' : 'Sign In →'}
+              {loading ? 'Please wait...' : mode === 'signup' ? 'Create Account →' : 'Sign In →'}
             </button>
           </div>
         </div>
