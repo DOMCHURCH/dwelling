@@ -563,6 +563,39 @@ export default function App() {
     if (realtimeRef.current) supabase.removeChannel(realtimeRef.current)
   }
 
+
+  // Fetch real comparable properties (Redfin for US, Realtor.ca for Canada)
+  const getComps = async ({ street, city, state, country, lat, lon, postcode }) => {
+    try {
+      const res = await fetch('/api/comps', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ street, city, state, country, lat, lon, postcode }),
+      })
+      if (!res.ok) return null
+      const data = await res.json()
+      return data?.comps?.length ? data : null
+    } catch { return null }
+  }
+
+  // Fetch price index (FHFA for US, StatCan for Canada)
+  const getPriceIndex = async ({ city, state, country, province, lat, lon }) => {
+    try {
+      const isCanada = country?.toLowerCase().includes('canada')
+      const endpoint = isCanada ? '/api/statcan' : '/api/fhfa'
+      const body = isCanada
+        ? { city, province: state || province, lat, lon }
+        : { city, state, lat, lon }
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      if (!res.ok) return null
+      return await res.json()
+    } catch { return null }
+  }
+
   const handleSearch = async ({ street, city, state, country, knownFacts }) => {
     if (loading) return
     setLoading(true); setError(null); setResult(null); setLoadStep(0)
@@ -571,7 +604,11 @@ export default function App() {
       const postcode = geo.address?.postcode ?? ''
       const [weather, climate, neighborhoodScores] = await Promise.all([getCurrentWeather(geo.lat, geo.lon), getClimateNormals(geo.lat, geo.lon), getNeighborhoodScores(geo.lat, geo.lon)]); setLoadStep(2)
       const [censusData, fmr, floodZone] = await Promise.all([getCensusData(street, city, state, country), getFairMarketRent(postcode), getFloodZone(geo.lat, geo.lon)]); setLoadStep(3)
-      const realData = { neighborhoodScores, censusData, fmr, floodZone }
+      const [compsData, priceIndex] = await Promise.allSettled([
+        getComps({ street, city, state, country, lat: geo.lat, lon: geo.lon, postcode }),
+        getPriceIndex({ city, state, country, lat: geo.lat, lon: geo.lon }),
+      ])
+      const realData = { neighborhoodScores, censusData, fmr, floodZone, comps: compsData.value || null, priceIndex: priceIndex.value || null }
       const ai = await analyzeProperty(geo, weather, climate, knownFacts ?? {}, realData); setLoadStep(4)
       console.log('AI RESULT:', JSON.stringify(ai, null, 2))
       setResult({ geo, weather, climate, ai, knownFacts: knownFacts ?? {}, realData })
