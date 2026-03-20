@@ -102,6 +102,62 @@ US MARKET CONTEXT (2025):
   return macroContext + censusSnippet + rentSnippet
 }
 
+
+// Format real comparable properties for AI context
+function buildCompsContext(realData, currency) {
+  const comps = realData.comps?.comps
+  const priceIndex = realData.priceIndex
+
+  const lines = []
+
+  if (comps?.length) {
+    const source = realData.comps.source === 'redfin' ? 'Redfin' : 'Realtor.ca'
+    lines.push(`\nREAL COMPARABLE PROPERTIES (from ${source} — use these as primary price anchors):`)
+    comps.slice(0, 5).forEach((c, i) => {
+      const parts = [
+        `${i + 1}. ${c.address}`,
+        c.price ? `${currency} ${c.price.toLocaleString()}` : '',
+        c.beds ? `${c.beds}bd` : '',
+        c.baths ? `${c.baths}ba` : '',
+        c.sqft ? `${c.sqft.toLocaleString()} sqft` : '',
+        c.pricePerSqft ? `${currency} ${c.pricePerSqft}/sqft` : '',
+        c.soldDate ? `sold ${c.soldDate}` : c.type === 'active_listing' ? 'active listing' : '',
+      ].filter(Boolean)
+      lines.push(parts.join(' | '))
+    })
+
+    const prices = comps.map(c => c.price).filter(Boolean)
+    if (prices.length >= 2) {
+      const avg = Math.round(prices.reduce((a, b) => a + b, 0) / prices.length)
+      const min = Math.min(...prices)
+      const max = Math.max(...prices)
+      lines.push(`Comparable price range: ${currency} ${min.toLocaleString()} – ${currency} ${max.toLocaleString()} (avg: ${currency} ${avg.toLocaleString()})`)
+      lines.push(`INSTRUCTION: Your estimatedValue MUST fall within or close to this range. Do not deviate more than 20% without explicit justification.`)
+    }
+  }
+
+  if (priceIndex?.multipliers) {
+    const src = priceIndex.source || 'price index'
+    lines.push(`\nPRICE INDEX DATA (${src}):`)
+    if (priceIndex.marketNote) lines.push(priceIndex.marketNote)
+    const m = priceIndex.multipliers
+    const years = Object.keys(m).sort()
+    lines.push(`Historical appreciation multipliers (relative to 2025=1.0): ${years.map(y => `${y}: ${m[y]}`).join(', ')}`)
+    lines.push(`INSTRUCTION: Use these multipliers to calibrate your price history data points. They reflect actual market cycles for this region.`)
+  }
+
+  if (priceIndex?.assessment?.avgAssessment) {
+    lines.push(`\nMUNICIPAL ASSESSMENT DATA: Nearby properties average assessed value: ${currency} ${priceIndex.assessment.avgAssessment.toLocaleString()}`)
+    lines.push(`Note: Assessment values are typically 5-15% below market value in this region.`)
+  }
+
+  if (priceIndex?.nhpi?.marketNote) {
+    lines.push(`\nSTATISTICS CANADA NHPI: ${priceIndex.nhpi.marketNote}`)
+  }
+
+  return lines.join('\n')
+}
+
 function finalizeAnalysis(est, known, realData, currency, currencySymbol, city, country) {
   if (known.sqft) est.floorPlan.typicalSqft = known.sqft
   if (known.beds) est.floorPlan.typicalBedrooms = known.beds
@@ -269,6 +325,8 @@ OPENSTREETMAP REAL DATA:
     ? `\nFEMA FLOOD ZONE: ${realData.floodZone.zone} — ${realData.floodZone.inSpecialFloodHazardArea ? 'HIGH RISK — mention this in analysis' : 'Low risk'}`
     : ''
 
+  const compsContext = buildCompsContext(realData, currency)
+
   // Pass 1: Deep chain-of-thought reasoning
   const cotPrompt = `You are a senior real estate appraiser and certified market analyst with 20+ years of experience appraising residential properties in ${city}, ${country}. You have deep knowledge of local neighbourhoods, micro-market dynamics, and regional economic drivers.
 
@@ -281,6 +339,7 @@ CONFIRMED PROPERTY FACTS:
 ${knownLines || 'No confirmed facts provided — estimate based on location and neighbourhood type.'}
 ${osmnData}
 ${floodInfo}
+${compsContext}
 ${marketContext}
 
 You must reason through this property carefully and systematically. Think like a licensed appraiser doing a full market analysis. Work through every step below:
