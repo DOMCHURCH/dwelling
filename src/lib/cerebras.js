@@ -246,11 +246,12 @@ QUALITY RULES — every field must meet these standards:
 
   // Sanitize — model returns strings like "2,500,000" or "$1.2M" — strip and parse
   const toNum = (v) => {
-    if (typeof v === 'number') return Math.round(v)
-    if (!v) return null  // Return null instead of 0 for missing values
-    const s = String(v).replace(/[^0-9.]/g, '') // strip $, commas, CAD, spaces
+    if (typeof v === 'number') return isNaN(v) ? null : Math.round(v)
+    if (!v || v === '' || v === '—' || v === 'N/A') return null
+    const s = String(v).trim().replace(/[^0-9.]/g, '') // strip $, commas, CAD, spaces, etc
+    if (!s) return null
     const n = parseFloat(s)
-    return isNaN(n) ? null : Math.round(n)  // Return null for invalid numbers
+    return isNaN(n) || n === 0 ? null : Math.round(n)
   }
   const p = result.propertyEstimate
   p.estimatedValueUSD      = toNum(p.estimatedValueUSD)
