@@ -168,19 +168,7 @@ input[type="range"] {
   border: 1px solid rgba(255,255,255,0.08);
 }
 
-/* ─── ORB ANIMATIONS (compositor-only, no layout/paint) ─── */
-@keyframes orb-drift-1 {
-  0%   { transform: translateX(-50%) translateY(0px); }
-  100% { transform: translateX(-50%) translateY(30px); }
-}
-@keyframes orb-drift-2 {
-  0%   { transform: translate(0, 0); }
-  100% { transform: translate(20px, -20px); }
-}
-@keyframes orb-drift-3 {
-  0%   { transform: translate(0, 0); }
-  100% { transform: translate(-15px, 25px); }
-}
+
 
 /* ─── SCROLL-REVEAL (replaces framer whileInView) ─── */
 .reveal { opacity: 1; transform: none; }
