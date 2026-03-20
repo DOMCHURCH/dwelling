@@ -10,13 +10,12 @@ const supabaseAdmin = createClient(
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Skip-Count')
 
   if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
   try {
-    // 1. Verify the user's auth token
     const authHeader = req.headers.authorization
     if (!authHeader?.startsWith('Bearer ')) {
       return res.status(401).json({ error: 'Unauthorized' })
@@ -25,15 +24,16 @@ export default async function handler(req, res) {
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
     if (authError || !user) return res.status(401).json({ error: 'Invalid session' })
 
-    // 2. Load user record
     const { data: userRecord } = await supabaseAdmin
       .from('users')
       .select('analyses_used, analyses_reset_at, is_pro')
       .eq('id', user.id)
       .maybeSingle()
 
-    // 3. Check usage limit (skip for pro users)
-    if (!userRecord?.is_pro) {
+    // Only count usage if this is NOT the follow-up call
+    const skipCount = req.headers['x-skip-count'] === 'true'
+
+    if (!userRecord?.is_pro && !skipCount) {
       const resetAt = new Date(userRecord?.analyses_reset_at ?? 0)
       const now = new Date()
       const isNewMonth = now.getMonth() !== resetAt.getMonth() || now.getFullYear() !== resetAt.getFullYear()
@@ -43,7 +43,6 @@ export default async function handler(req, res) {
         return res.status(429).json({ error: 'Monthly analysis limit reached. Upgrade to Pro for unlimited analyses.' })
       }
 
-      // 4. Increment usage counter
       await supabaseAdmin
         .from('users')
         .update({
@@ -51,9 +50,17 @@ export default async function handler(req, res) {
           ...(isNewMonth && { analyses_reset_at: now.toISOString() }),
         })
         .eq('id', user.id)
+    } else if (!userRecord?.is_pro && skipCount) {
+      // Still check the limit even if not counting, to block over-limit users
+      const resetAt = new Date(userRecord?.analyses_reset_at ?? 0)
+      const now = new Date()
+      const isNewMonth = now.getMonth() !== resetAt.getMonth() || now.getFullYear() !== resetAt.getFullYear()
+      const currentUsage = isNewMonth ? 0 : (userRecord?.analyses_used ?? 0)
+      if (currentUsage > FREE_LIMIT) {
+        return res.status(429).json({ error: 'Monthly analysis limit reached. Upgrade to Pro for unlimited analyses.' })
+      }
     }
 
-    // 5. Forward request to Cerebras
     const response = await fetch('https://api.cerebras.ai/v1/chat/completions', {
       method: 'POST',
       headers: {
