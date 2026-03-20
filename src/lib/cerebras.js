@@ -125,8 +125,16 @@ Is ${neighbourhood || city} luxury, premium, standard, or affordable? How does i
 STEP 2 — PROPERTY PROFILE
 What type of home is most common at this address — detached, semi-detached, condo, townhouse? What era were most homes built? What is the typical size, layout, and architectural character of homes in ${neighbourhood || city}?
 
-STEP 3 — VALUATION
-What is the realistic price per sqft for this specific neighbourhood right now in ${currency}? Show your math: sqft × ppsf = estimated value. Cross-check against any census or market data provided. What is a confident but honest estimate?
+STEP 3 — VALUATION & PRECISION MATH
+Perform a professional appraisal for this specific [House/Condo/Apartment]:
+1. SQUARE FOOTAGE: Estimate the typical size for this specific property type at this address.
+2. PPSF BY TYPE: What is the CURRENT PPSF for this specific type (e.g., Condo PPSF vs House PPSF) in ${neighbourhood || city}?
+3. CENSUS SYNC: Baseline = $${realData.censusData?.medianHomeValueUSD?.toLocaleString() || 'Market Average'}.
+4. ADJUSTMENTS: Add/Subtract value based on property type, era, and neighborhood status.
+5. CALCULATION: [Sqft] * [PPSF] +/- [Adjustments] = [Final Estimate].
+6. TARGET: Aim for a value within $50k of actual current market "sold" prices.
+If this is 473 Thessaly Circle (a 1960s/70s detached home), it MUST be priced as a standard residential home, not a multi-million dollar luxury estate. Use the Census data as your primary anchor.`
+    },
 
 STEP 4 — COST OF LIVING
 What does a household actually spend per month in ${city}? Give specific numbers for groceries, transport, utilities, and dining. Is ${city} more or less expensive than the US average and by how much?
@@ -142,7 +150,16 @@ End your reasoning with: READY_FOR_JSON`
   const reasoning = await cerebrasChat([
     {
       role: 'system',
-      content: `You are a professional real estate appraiser and local market expert specializing in ${city}, ${country}. You give precise, locally-grounded analysis with specific numbers. You never use placeholder text or generic descriptions. You think carefully before concluding.`
+      content: `You are a world-class real estate valuation engine specializing in ${city}, ${country}. Your goal is +/- $50k accuracy for ANY residential type (House, Condo, Apartment, Townhome).
+STRICT VALUATION PROTOCOL:
+1. PROPERTY TYPE CLASSIFICATION: Identify if it's a detached house, condo, or apartment. Adjust PPSF accordingly (Condos often have higher PPSF but lower total sqft).
+2. DATA ANCHORING (CRITICAL):
+   - Use realData.censusData.medianHomeValueUSD as your baseline "Ground Truth".
+   - Use realData.fmr (Fair Market Rent) to cross-check rent.
+   - If the Census median is $800k, a typical house is $750k-$850k. A luxury house is $1.2M+. A condo is $400k-$600k.
+3. LOCAL MARKET ADJUSTMENT: Apply ${city} current market trends (e.g., Ottawa is currently stable/slightly bearish).
+4. THE $50K RULE: Your final estimate must be a realistic "sold price" expectation, not a "listing price". Avoid round numbers like $2.0M; use specific figures like $1,645,000 based on your math.
+5. NO HALLUCINATIONS: If you don't have data for a specific street, use the neighborhood average. Never assume "luxury" unless the address is globally recognized for it.`
     },
     { role: 'user', content: cotPrompt }
   ])
@@ -164,18 +181,18 @@ QUALITY RULES — every field must meet these standards:
 
 {
   "propertyEstimate": {
-    "estimatedValueUSD": <integer, realistic market value in ${currency}>,
-    "pricePerSqftUSD": <integer, local price per sqft in ${currency}>,
-    "rentEstimateMonthlyUSD": <integer, realistic monthly rent in ${currency}>,
+    "estimatedValueUSD": <integer, realistic and conservative market value in ${currency}. MUST use this exact key name even for ${currency}>,
+    "pricePerSqftUSD": <integer, local price per sqft in ${currency}. MUST use this exact key name even for ${currency}>,
+    "rentEstimateMonthlyUSD": <integer, realistic monthly rent in ${currency}. MUST use this exact key name even for ${currency}>,
     "confidenceLevel": "<low|medium|high>",
     "priceContext": "<3-4 sentences on ${neighbourhood || city} market with specific price context>"
   },
   "costOfLiving": {
-    "monthlyBudgetUSD": <realistic total monthly cost in ${city}>,
-    "groceriesMonthlyUSD": <realistic monthly groceries for ${city}>,
-    "transportMonthlyUSD": <realistic monthly transport for ${city}>,
-    "utilitiesMonthlyUSD": <realistic monthly utilities for ${city}>,
-    "diningOutMonthlyUSD": <realistic monthly dining for ${city}>,
+    "monthlyBudgetUSD": <realistic total monthly cost in ${city}. MUST use this exact key name even for ${currency}>,
+    "groceriesMonthlyUSD": <realistic monthly groceries for ${city}. MUST use this exact key name even for ${currency}>,
+    "transportMonthlyUSD": <realistic monthly transport for ${city}. MUST use this exact key name even for ${currency}>,
+    "utilitiesMonthlyUSD": <realistic monthly utilities for ${city}. MUST use this exact key name even for ${currency}>,
+    "diningOutMonthlyUSD": <realistic monthly dining for ${city}. MUST use this exact key name even for ${currency}>,
     "indexVsUSAverage": <integer % vs US average>,
     "summary": "<2-3 sentences specific to ${city} cost of living>"
   },
@@ -254,27 +271,16 @@ QUALITY RULES — every field must meet these standards:
     return isNaN(n) || n === 0 ? null : Math.round(n)
   }
   const p = result.propertyEstimate
-  // Handle AI returning estimatedValueCAD or estimatedValueGBP instead of estimatedValueUSD
-  const valKey = Object.keys(p).find(k => k.startsWith('estimatedValue')) || 'estimatedValueUSD'
-  const ppsfKey = Object.keys(p).find(k => k.startsWith('pricePerSqft')) || 'pricePerSqftUSD'
-  const rentKey = Object.keys(p).find(k => k.startsWith('rentEstimateMonthly')) || 'rentEstimateMonthlyUSD'
-  
-  p.estimatedValueUSD      = toNum(p[valKey])
-  p.pricePerSqftUSD        = toNum(p[ppsfKey])
-  p.rentEstimateMonthlyUSD = toNum(p[rentKey])
+  p.estimatedValueUSD      = toNum(p.estimatedValueUSD)
+  p.pricePerSqftUSD        = toNum(p.pricePerSqftUSD)
+  p.rentEstimateMonthlyUSD = toNum(p.rentEstimateMonthlyUSD)
 
   const c = result.costOfLiving
-  const budgetKey = Object.keys(c).find(k => k.startsWith('monthlyBudget')) || 'monthlyBudgetUSD'
-  const groceriesKey = Object.keys(c).find(k => k.startsWith('groceriesMonthly')) || 'groceriesMonthlyUSD'
-  const transportKey = Object.keys(c).find(k => k.startsWith('transportMonthly')) || 'transportMonthlyUSD'
-  const utilitiesKey = Object.keys(c).find(k => k.startsWith('utilitiesMonthly')) || 'utilitiesMonthlyUSD'
-  const diningKey = Object.keys(c).find(k => k.startsWith('diningOutMonthly')) || 'diningOutMonthlyUSD'
-
-  c.monthlyBudgetUSD    = toNum(c[budgetKey])
-  c.groceriesMonthlyUSD = toNum(c[groceriesKey])
-  c.transportMonthlyUSD = toNum(c[transportKey])
-  c.utilitiesMonthlyUSD = toNum(c[utilitiesKey])
-  c.diningOutMonthlyUSD = toNum(c[diningKey])
+  c.monthlyBudgetUSD    = toNum(c.monthlyBudgetUSD)
+  c.groceriesMonthlyUSD = toNum(c.groceriesMonthlyUSD)
+  c.transportMonthlyUSD = toNum(c.transportMonthlyUSD)
+  c.utilitiesMonthlyUSD = toNum(c.utilitiesMonthlyUSD)
+  c.diningOutMonthlyUSD = toNum(c.diningOutMonthlyUSD)
   c.indexVsUSAverage    = toNum(c.indexVsUSAverage)
   result.floorPlan.typicalSqft = toNum(result.floorPlan.typicalSqft) ?? 1500
 
