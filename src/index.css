@@ -127,11 +127,11 @@ button, input, select, textarea {
 /* ─── ANIMATIONS ─── */
 @keyframes float {
   0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-12px); }
+  50% { transform: translateY(-5px); }
 }
 @keyframes glow-pulse {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 0.8; }
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
 }
 @keyframes shimmer {
   0% { background-position: -200% center; }
@@ -192,7 +192,6 @@ input[type="range"] {
 .reveal.in-view {
   opacity: 1;
   transform: translateY(0);
-  will-change: auto;
 }
 .reveal-left {
   opacity: 0;
@@ -212,11 +211,7 @@ input[type="range"] {
 .reveal-d2 { transition-delay: 0.16s; }
 .reveal-d3 { transition-delay: 0.24s; }
 
-/* ─── CONTENT VISIBILITY ─── */
-.cv-section {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 400px;
-}
+
 
 @media (prefers-reduced-motion: reduce) {
   .reveal, .reveal-left, .reveal-right { opacity: 1; transform: none; transition: none; }
