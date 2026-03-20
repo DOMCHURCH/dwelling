@@ -24,9 +24,9 @@ export default function BlurText({ text, className = '', style = {} }) {
             display: 'inline-block',
             marginRight: '0.25em',
             opacity: visible ? 1 : 0,
-            filter: visible ? 'blur(0px)' : 'blur(12px)',
-            transform: visible ? 'translateY(0)' : 'translateY(30px)',
-            transition: `opacity 0.5s ease ${i * 80}ms, filter 0.5s ease ${i * 80}ms, transform 0.5s ease ${i * 80}ms`,
+            filter: visible ? 'blur(0px)' : 'blur(4px)',
+            transform: visible ? 'translateY(0)' : 'translateY(12px)',
+            transition: `opacity 0.3s ease ${i * 35}ms, filter 0.3s ease ${i * 35}ms, transform 0.3s ease ${i * 35}ms`,
           }}
         >
           {word}
