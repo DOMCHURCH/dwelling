@@ -97,8 +97,8 @@ function FAQ() {
                 <span style={{ fontFamily: MONO, fontSize: 18, color: '#ff2d78', flexShrink: 0, transition: 'transform 0.2s', transform: open === i ? 'rotate(45deg)' : 'none', width: 24, textAlign: 'center' }}>+</span>
               </button>
               <div style={{ overflow: 'hidden', maxHeight: open === i ? 300 : 0, transition: 'max-height 0.25s ease' }}>
-                <div style={{ paddingBottom: 20, paddingRight: 40, fontFamily: "'Inter', sans-serif", fontSize: 14, color: 'rgba(255,255,255,0.6)', lineHeight: 1.6 }}>
-                  {item.a}
+                <div style={{ paddingBottom: 20, paddingRight: 40 }}>
+                  <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, color: 'rgba(255,255,255,0.7)', lineHeight: 1.8 }}>{item.a}</p>
                 </div>
               </div>
             </div>
@@ -150,53 +150,32 @@ export default function App() {
     realtimeRef.current = channel
   }
 
-  const loadUserRecord = async (userId, email) => {
-    let { data } = await supabase.from('users').select('*').eq('id', userId).maybeSingle()
-    
-    // Si l'utilisateur n'existe pas dans la table 'users', on l'enregistre immédiatement
-    if (!data) {
-      console.log('User not found in table, registering...')
-      const res = await fetch('/api/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, email }),
-      })
-      if (res.ok) {
-        const retry = await supabase.from('users').select('*').eq('id', userId).maybeSingle()
-        data = retry.data
-      }
-    }
-
+  const loadUserRecord = async (userId) => {
+    const { data } = await supabase.from('users').select('*').eq('id', userId).maybeSingle()
     if (data) {
       setUserRecord(data)
-      subscribeToUserRecord(userId)
+    } else {
+      let attempts = 0
+      const interval = setInterval(async () => {
+        attempts++
+        const { data: retryData } = await supabase.from('users').select('*').eq('id', userId).maybeSingle()
+        if (retryData) { setUserRecord(retryData); clearInterval(interval) }
+        if (attempts >= 10) clearInterval(interval)
+      }, 600)
     }
+    subscribeToUserRecord(userId)
   }
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) { 
-        setUser(session.user)
-        loadUserRecord(session.user.id, session.user.email) 
-      }
+      if (session?.user) { setUser(session.user); loadUserRecord(session.user.id) }
       setAuthLoading(false)
     })
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) { 
-        setUser(session.user)
-        loadUserRecord(session.user.id, session.user.email) 
-      } else { 
-        setUser(null)
-        setUserRecord(null)
-        if (realtimeRef.current) supabase.removeChannel(realtimeRef.current) 
-      }
+      if (session?.user) { setUser(session.user); loadUserRecord(session.user.id) }
+      else { setUser(null); setUserRecord(null); if (realtimeRef.current) supabase.removeChannel(realtimeRef.current) }
     })
-
-    return () => { 
-      subscription.unsubscribe()
-      if (realtimeRef.current) supabase.removeChannel(realtimeRef.current) 
-    }
+    return () => { subscription.unsubscribe(); if (realtimeRef.current) supabase.removeChannel(realtimeRef.current) }
   }, [])
 
   useEffect(() => {
@@ -210,19 +189,17 @@ export default function App() {
 
   const handleAuth = (authedUser) => {
     setUser(authedUser)
-    loadUserRecord(authedUser.id, authedUser.email)
+    loadUserRecord(authedUser.id)
   }
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
-    setUser(null)
-    setUserRecord(null)
-    setResult(null)
+    setUser(null); setUserRecord(null); setResult(null)
     if (realtimeRef.current) supabase.removeChannel(realtimeRef.current)
   }
 
   const handleSearch = async ({ street, city, state, country, knownFacts }) => {
-    if (loading) return 
+    if (loading) return // Empêche le double-clic
     setLoading(true)
     setError(null)
     setResult(null)
@@ -232,6 +209,8 @@ export default function App() {
       setLoadStep(1)
       const postcode = geo.address?.postcode ?? ''
       
+      // Exécuter les appels API de manière séquentielle ou groupée intelligemment
+      // pour éviter de saturer les connexions navigateur
       const [weather, climate, neighborhoodScores] = await Promise.all([
         getCurrentWeather(geo.lat, geo.lon),
         getClimateNormals(geo.lat, geo.lon),
@@ -249,15 +228,19 @@ export default function App() {
       setLoadStep(3)
       const realData = { neighborhoodScores, censusData, fmr, floodZone }
       
+      // Augmenter le timeout pour l'IA Cerebras si nécessaire
       const ai = await analyzeProperty(geo, weather, climate, knownFacts ?? {}, realData)
       
       setLoadStep(4)
       setResult({ geo, weather, climate, ai, knownFacts: knownFacts ?? {}, realData })
     } catch (err) {
       console.error(err)
+      // Ignorer les erreurs de contexte invalidé (extension context invalidated)
       if (err.message?.includes('Extension context invalidated') || err.message?.includes('context invalidated')) {
+        console.warn('Extension context invalidated - request may have been cancelled')
         return
       }
+      // Show paywall if server returns 429
       if (err.message?.includes('limit reached') || err.message?.includes('429')) {
         setShowPaywall(true)
       } else {
@@ -315,48 +298,77 @@ export default function App() {
               onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#ffffff' }}
             >← New Search</button>
           )}
-          <button onClick={handleSignOut} style={{ padding: '8px 16px', background: 'transparent', border: '2px solid rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.5)', fontSize: 11, cursor: 'crosshair', fontFamily: MONO, textTransform: 'uppercase', letterSpacing: '0.1em' }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = '#ffffff'; e.currentTarget.style.color = '#ffffff' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'; e.currentTarget.style.color = 'rgba(255,255,255,0.5)' }}
+          <button onClick={handleSignOut} style={{ padding: '8px 16px', background: 'transparent', border: '2px solid rgba(255,255,255,0.3)', color: 'rgba(255,255,255,0.5)', fontSize: 11, cursor: 'crosshair', fontFamily: MONO, textTransform: 'uppercase', letterSpacing: '0.1em' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = '#ff2d78'; e.currentTarget.style.color = '#ff2d78' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)'; e.currentTarget.style.color = 'rgba(255,255,255,0.5)' }}
           >Sign Out</button>
         </div>
       </nav>
 
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <MarqueeTicker />
-        {!result && !loading && (
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
-            <AddressSearch onSearch={handleSearch} />
-          </div>
-        )}
-        {loading && (
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <LoadingState step={loadStep} />
-          </div>
-        )}
-        {error && !loading && (
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-            <div style={{ background: 'rgba(255,45,120,0.1)', border: '2px solid #ff2d78', padding: '32px', maxWidth: 500, width: '100%', textAlign: 'center' }}>
-              <div style={{ fontFamily: MONO, fontSize: 24, color: '#ff2d78', marginBottom: 16 }}>⚠ ERROR</div>
-              <div style={{ fontFamily: MONO, fontSize: 13, color: '#ffffff', lineHeight: 1.6, marginBottom: 24, textTransform: 'uppercase' }}>{error}</div>
-              <button onClick={() => setError(null)} style={{ padding: '12px 24px', background: '#ff2d78', border: 'none', color: '#ffffff', fontFamily: MONO, fontSize: 12, fontWeight: 700, cursor: 'crosshair', textTransform: 'uppercase' }}>Try Again</button>
+      <MarqueeTicker />
+
+      {!result && !loading && (
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '80px 40px 0', width: '100%' }}>
+          <div style={{ position: 'relative', marginBottom: 80 }}>
+            <div style={{ position: 'absolute', right: -20, top: -40, fontFamily: MONO, fontSize: 'clamp(120px, 20vw, 280px)', fontWeight: 700, color: 'transparent', WebkitTextStroke: '2px rgba(255,255,255,0.08)', userSelect: 'none', lineHeight: 1, zIndex: 0 }}>$</div>
+            <div style={{ position: 'relative', zIndex: 1 }}>
+              <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.3em', textTransform: 'uppercase', color: '#ff2d78', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 12 }}>
+                <span style={{ display: 'inline-block', width: 40, height: 2, background: '#ff2d78' }} />
+                EST. 2025 — REAL ESTATE INTELLIGENCE
+              </div>
+              <h1 style={{ fontSize: 'clamp(3.5rem, 9vw, 9rem)', lineHeight: 0.9, marginBottom: 32, fontFamily: "'Clash Display', 'Space Mono', monospace", fontWeight: 700, textTransform: 'uppercase', letterSpacing: '-0.03em' }}>
+                <span style={{ display: 'block', color: '#ffffff' }}>KNOW</span>
+                <span style={{ display: 'block', WebkitTextStroke: '2px #eab308', color: 'transparent' }}>WHAT</span>
+                <span style={{ display: 'block', color: '#ff2d78', textShadow: '4px 4px 0px rgba(255,45,120,0.3)' }}>ANY HOME</span>
+                <span style={{ display: 'block', color: '#ffffff' }}>IS WORTH.</span>
+              </h1>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 60, alignItems: 'start' }}>
+                <div>
+                  <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 16, color: 'rgba(255,255,255,0.7)', maxWidth: 420, marginBottom: 40, lineHeight: 1.8 }}>
+                    Enter any address in the world. Get real market data, neighborhood scores, climate analysis, and AI-powered investment insights — instantly.
+                  </p>
+                  <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 40 }}>
+                    {['Real Data', 'Global Coverage', 'AI Analysis', '10 Free/Month'].map(f => (
+                      <span key={f} style={{ padding: '6px 14px', border: '2px solid #ffffff', fontFamily: MONO, fontSize: 11, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{f}</span>
+                    ))}
+                  </div>
+                </div>
+                <div><AddressSearch onSearch={handleSearch} loading={loading} /></div>
+              </div>
             </div>
           </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', border: '2px solid #ffffff', marginBottom: 60 }}>
+            {[
+              { num: '140M+', label: 'US Properties' },
+              { num: '50+', label: 'Countries' },
+              { num: '10', label: 'Free/Month' },
+              { num: 'LIVE', label: 'Real Data' },
+            ].map((s, i) => (
+              <div key={i} style={{ padding: '24px', borderRight: i < 3 ? '2px solid #ffffff' : 'none', textAlign: 'center' }}>
+                <div style={{ fontFamily: MONO, fontSize: 'clamp(1.5rem, 3vw, 2.5rem)', fontWeight: 700, color: i === 0 ? '#ff2d78' : i === 1 ? '#eab308' : i === 2 ? '#00ff88' : '#00ffcc', marginBottom: 4 }}>{s.num}</div>
+                <div style={{ fontFamily: MONO, fontSize: 10, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.15em' }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div style={{ maxWidth: 960, margin: '0 auto', padding: result || loading ? '40px 24px 80px' : '0 24px', width: '100%' }}>
+        {loading && <LoadingState step={loadStep} />}
+        {error && (
+          <div style={{ border: '2px solid #ff2d78', background: 'rgba(255,45,120,0.1)', padding: '16px 20px', fontFamily: MONO, fontSize: 13, color: '#ff2d78', marginTop: 24 }}>⚠ {error}</div>
         )}
         {result && !loading && (
-          <Dashboard 
-            geo={result.geo} 
-            weather={result.weather} 
-            climate={result.climate} 
-            ai={result.ai} 
-            knownFacts={result.knownFacts}
-            onRecalculate={handleRecalculate}
-          />
+          <>
+            <div style={{ marginBottom: 24 }}><AddressSearch onSearch={handleSearch} loading={loading} compact /></div>
+            <Dashboard data={result} onRecalculate={handleRecalculate} />
+          </>
         )}
-      </main>
+      </div>
 
-      <FAQ />
-      <Footer onTermsClick={() => setShowTerms(true)} />
+      {!result && !loading && <FAQ />}
+      <div style={{ marginTop: 'auto' }}><Footer onTermsClick={() => setShowTerms(true)} /></div>
     </div>
   )
 }
