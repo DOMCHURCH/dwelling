@@ -237,12 +237,17 @@ QUALITY RULES — every field must meet these standards:
 
   const result = JSON.parse(raw.replace(/```json|```/g, '').trim())
 
-  // Sanitize — model returns strings like "2,500,000" or "$1.2M" — strip and parse
+  // Sanitize — model returns strings like "2,500,000", "$1.2M", "850K CAD" — handle suffixes
   const toNum = (v) => {
     if (typeof v === 'number') return Math.round(v)
     if (!v) return 0
-    const s = String(v).replace(/[^0-9.]/g, '') // strip $, commas, CAD, spaces
-    const n = parseFloat(s)
+    const s = String(v).trim()
+    const mMatch = s.match(/([0-9,.]+)\s*[Mm]/)
+    if (mMatch) return Math.round(parseFloat(mMatch[1].replace(/,/g, '')) * 1_000_000)
+    const kMatch = s.match(/([0-9,.]+)\s*[Kk]/)
+    if (kMatch) return Math.round(parseFloat(kMatch[1].replace(/,/g, '')) * 1_000)
+    const clean = s.replace(/[^0-9.]/g, '')
+    const n = parseFloat(clean)
     return isNaN(n) ? 0 : Math.round(n)
   }
   const p = result.propertyEstimate
