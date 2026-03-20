@@ -167,6 +167,7 @@ function Navbar({ user, userRecord, analysesLeft, onSignOut, onHome, onScrollTo 
         <button onClick={onHome} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 22, color: '#fff', padding: 0 }}>
           DW<span style={{ opacity: 0.4 }}>.</span>ELLING
         </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {user && (
             <>
               <span className="liquid-glass" style={{ borderRadius: 40, padding: '5px 12px', fontSize: 12, fontFamily: "'Barlow',sans-serif", color: userRecord?.is_pro ? '#fbbf24' : low ? '#f87171' : 'rgba(255,255,255,0.5)' }}>
