@@ -16,20 +16,13 @@ import { getNeighborhoodScores } from './lib/overpass'
 import { getCensusData } from './lib/census'
 import { getFairMarketRent, getFloodZone } from './lib/hud'
 import { supabase } from './lib/supabase'
+import { IMG } from './images'
 
 const FREE_LIMIT = 10
 
 // Image paths — served as static files from /public, browser handles
 // lazy loading, caching, and async decoding natively.
-const IMG = {
-  hero:        '/images/hero-neighborhood.webp',
-  texture:     '/images/architecture-texture.webp',
-  neighborhood:'/images/neighborhood-night.webp',
-  house:       '/images/house-night.webp',
-  mapPins:     '/images/map-pins.webp',
-  priceChart:  '/images/price-chart.webp',
-  city:        '/images/city-silhouette.webp',
-}
+// IMG imported from images.js
 
 // ─── SECTION BACKGROUND ──────────────────────────────────────────────────────
 // Static positioned background — no JS, no repaints on scroll.
@@ -267,7 +260,7 @@ function HowItWorks() {
     { num: '03', icon: '🧠', title: 'AI builds your report', desc: 'Cerebras Llama synthesizes everything into a full property intelligence report in under 30 seconds.' },
   ]
   return (
-    <section id="how-it-works" style={{ padding: '96px 0', position: 'relative', overflow: 'hidden' }}>
+    <section id="how-it-works" style={{ padding: '96px 0', position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
       <SectionBg src={IMG.neighborhood} opacity={0.2} />
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px', position: 'relative', zIndex: 2 }}>
         <Reveal>
@@ -308,7 +301,7 @@ function FeatureRows({ onScrollTo }) {
     { title: 'Investment analysis you can act on.', desc: 'Rent yield, appreciation outlook, investment score — synthesized from price history, neighborhood trends, and market context. Clear. Honest. Actionable.', img: IMG.priceChart, reverse: false, shimmer: true },
   ]
   return (
-    <section id="features" style={{ padding: '64px 0', position: 'relative', overflow: 'hidden' }}>
+    <section id="features" style={{ padding: '64px 0', position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
       <SectionBg src={IMG.texture} opacity={0.05} />
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px', position: 'relative', zIndex: 2 }}>
         <Reveal>
@@ -460,7 +453,7 @@ function Pricing({ onUpgrade }) {
 // ─── CTA + FOOTER ────────────────────────────────────────────────────────────
 function CTAFooter({ onTermsClick, onScrollToTop, onUpgrade }) {
   return (
-    <section style={{ padding: '96px 0 0', position: 'relative', overflow: 'hidden' }}>
+    <section style={{ padding: '96px 0 0', position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
       <SectionBg src={IMG.city} opacity={0.28} />
       <div style={{ maxWidth: 860, margin: '0 auto', textAlign: 'center', padding: '0 24px 80px', position: 'relative', zIndex: 2 }}>
         <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: 600, height: 400, borderRadius: '50%', background: 'radial-gradient(circle,rgba(168,85,247,0.07) 0%,transparent 65%)', filter: 'blur(40px)', pointerEvents: 'none', animation: 'glow-pulse 5s ease-in-out infinite' }} />
