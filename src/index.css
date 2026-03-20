@@ -183,27 +183,12 @@ input[type="range"] {
 }
 
 /* ─── SCROLL-REVEAL (replaces framer whileInView) ─── */
-.reveal {
-  opacity: 0;
-  transform: translateY(24px);
-  transition: opacity 0.5s ease, transform 0.5s ease;
-}
-.reveal.in-view {
-  opacity: 1;
-  transform: translateY(0);
-}
-.reveal-left {
-  opacity: 0;
-  transform: translateX(-32px);
-  transition: opacity 0.5s ease, transform 0.5s ease;
-}
-.reveal-left.in-view { opacity: 1; transform: translateX(0); }
-.reveal-right {
-  opacity: 0;
-  transform: translateX(32px);
-  transition: opacity 0.5s ease, transform 0.5s ease;
-}
-.reveal-right.in-view { opacity: 1; transform: translateX(0); }
+.reveal { opacity: 1; transform: none; }
+.reveal.in-view { opacity: 1; transform: none; }
+.reveal-left { opacity: 1; transform: none; }
+.reveal-left.in-view { opacity: 1; transform: none; }
+.reveal-right { opacity: 1; transform: none; }
+.reveal-right.in-view { opacity: 1; transform: none; }
 
 /* stagger delays */
 .reveal-d1 { transition-delay: 0.08s; }
