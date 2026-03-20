@@ -39,7 +39,7 @@ async function fetchOverpass(query, retries = 1) {
 
 export async function getNeighborhoodScores(lat, lon) {
   try {
-    // UNE SEULE REQUÊTE à 2km pour tout récupérer d'un coup
+    // Une requête groupée pour tout récupérer
     const query = `
       [out:json][timeout:30];
       (
@@ -51,6 +51,8 @@ export async function getNeighborhoodScores(lat, lon) {
         node["public_transport"="station"](around:2000,${lat},${lon});
         node["highway"="bus_stop"](around:2000,${lat},${lon});
         node["railway"~"station|subway_entrance"](around:2000,${lat},${lon});
+        // Récupérer les bâtiments proches pour identifier le type de propriété
+        way["building"](around:50,${lat},${lon});
       );
       out body;
     `
@@ -58,8 +60,16 @@ export async function getNeighborhoodScores(lat, lon) {
     const data = await fetchOverpass(query)
     const allPlaces = data?.elements ?? []
 
-    // Filtrage local pour simuler le rayon de 1km (500m approx)
-    // On calcule la distance approximative (Pythagore suffit pour de petites distances)
+    // Identifier le type de bâtiment le plus proche
+    const buildings = allPlaces.filter(p => p.tags?.building)
+    let buildingType = 'house'
+    if (buildings.length > 0) {
+      const b = buildings[0].tags
+      if (b['building:levels'] > 3 || b.building === 'apartments') buildingType = 'apartment'
+      else if (b.building === 'semidetached_house' || b.building === 'terrace') buildingType = 'semi-detached'
+      else if (b.building === 'detached') buildingType = 'detached'
+    }
+
     const getDist = (p) => {
       const dy = (p.lat - lat) * 111320
       const dx = (p.lon - lon) * 40075000 * Math.cos(lat * Math.PI / 180) / 360
@@ -92,6 +102,7 @@ export async function getNeighborhoodScores(lat, lon) {
       nearbyParks: parks.filter(p => p.tags?.name).map(p => p.tags.name).slice(0, 3),
       nearbyTransit: transit.filter(p => p.tags?.name).map(p => p.tags.name).slice(0, 5),
       nearbyGrocery: grocery.filter(p => p.tags?.name).map(p => p.tags.name).slice(0, 3),
+      buildingType,
       dataSource: 'OpenStreetMap Overpass API',
     }
   } catch (err) {
