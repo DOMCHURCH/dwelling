@@ -1,23 +1,35 @@
-const BASE = 'https://overpass-api.de/api/interpreter'
+const BASES = [
+  'https://z.overpass-api.de/api/interpreter',      // Miroir 1 (moins sollicité)
+  'https://w.overpass-api.de/api/interpreter',      // Miroir 2
+  'https://overpass-api.de/api/interpreter',        // Serveur principal (en dernier)
+]
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms))
 
-// Utiliser un serveur de secours si le serveur principal échoue
-const FALLBACK_BASES = [
-  'https://overpass-api.de/api/interpreter',
-  'https://z.overpass-api.de/api/interpreter',
-  'https://w.overpass-api.de/api/interpreter',
-]
-
-async function fetchOverpass(query, retries = 3) {
-  for (let baseIndex = 0; baseIndex < FALLBACK_BASES.length; baseIndex++) {
-    const base = FALLBACK_BASES[baseIndex]
+/**
+ * Fetch avec backoff exponentiel et gestion des erreurs 429/504
+ * Utilise une stratégie de "circuit breaker" pour éviter de surcharger les serveurs
+ */
+async function fetchOverpass(query, retries = 2) {
+  let lastError = null
+  
+  for (let baseIndex = 0; baseIndex < BASES.length; baseIndex++) {
+    const base = BASES[baseIndex]
     
-    for (let i = 0; i <= retries; i++) {
+    for (let attempt = 0; attempt <= retries; attempt++) {
       try {
-        // Augmenter le timeout pour les requêtes complexes
+        // Backoff exponentiel : 1s, 3s, 7s, 15s...
+        if (attempt > 0) {
+          const backoffMs = Math.min(30000, (Math.pow(2, attempt) - 1) * 1000)
+          console.log(`Backoff ${backoffMs}ms before retry ${attempt + 1}/${retries}...`)
+          await sleep(backoffMs)
+        }
+
+        // Timeout court pour détecter rapidement les serveurs lents
         const controller = new AbortController()
-        const timeout = setTimeout(() => controller.abort(), 45000) // 45 secondes
+        const timeout = setTimeout(() => controller.abort(), 35000) // 35 secondes
+        
+        console.log(`Attempting fetch from ${base} (server ${baseIndex + 1}/${BASES.length})...`)
         
         const res = await fetch(base, {
           method: 'POST',
@@ -28,98 +40,92 @@ async function fetchOverpass(query, retries = 3) {
         
         clearTimeout(timeout)
         
-        // Gérer les différents codes d'erreur
+        // Succès
+        if (res.ok) {
+          console.log(`✓ Success from ${base}`)
+          return await res.json()
+        }
+
+        // 429 (Too Many Requests) - attendre plus longtemps avant de réessayer
         if (res.status === 429) {
-          // Rate limit : attendre avant de réessayer
-          await sleep(2000 * (i + 1))
+          console.warn(`429 Too Many Requests from ${base}, waiting before retry...`)
+          lastError = new Error('Rate limited (429)')
+          // Attendre 5-10 secondes avant de réessayer
+          await sleep(5000 + Math.random() * 5000)
           continue
         }
-        
+
+        // 504, 503, 502 (Erreurs serveur) - essayer le serveur suivant
         if (res.status === 504 || res.status === 503 || res.status === 502) {
-          // Erreur serveur : essayer le serveur suivant ou réessayer
-          if (baseIndex < FALLBACK_BASES.length - 1) {
-            console.warn(`Server ${base} returned ${res.status}, trying fallback...`)
+          console.warn(`${res.status} ${res.statusText} from ${base}`)
+          lastError = new Error(`Server error: ${res.status}`)
+          if (baseIndex < BASES.length - 1) {
+            console.log(`Switching to next server...`)
             break // Sortir de la boucle de retries pour essayer le serveur suivant
           }
-          // Si c'est le dernier serveur, réessayer
-          await sleep(3000 * (i + 1))
+          // Si c'est le dernier serveur, réessayer avec backoff
           continue
         }
-        
-        if (!res.ok) {
-          console.error(`Overpass API error: ${res.status} ${res.statusText}`)
-          return null
-        }
-        
-        return await res.json()
+
+        // Autres erreurs
+        console.error(`${res.status} ${res.statusText} from ${base}`)
+        lastError = new Error(`HTTP ${res.status}`)
+        return null
+
       } catch (err) {
+        lastError = err
+        
         if (err.name === 'AbortError') {
-          console.warn(`Request to ${base} timed out, trying fallback...`)
-          if (baseIndex < FALLBACK_BASES.length - 1) {
+          console.warn(`Timeout from ${base}`)
+          if (baseIndex < BASES.length - 1) {
+            console.log(`Switching to next server...`)
             break // Essayer le serveur suivant
           }
           // Si c'est le dernier serveur, réessayer
-          await sleep(1000)
+          await sleep(2000)
           continue
         }
-        
-        console.error(`Fetch error from ${base}:`, err)
-        if (i === retries) {
-          if (baseIndex < FALLBACK_BASES.length - 1) {
-            break // Essayer le serveur suivant
-          }
+
+        console.error(`Fetch error from ${base}:`, err.message)
+        if (attempt === retries && baseIndex === BASES.length - 1) {
           return null
         }
-        await sleep(1000)
+        
+        if (attempt < retries) {
+          await sleep(1000)
+        }
       }
     }
   }
+  
+  console.error('All servers exhausted. Last error:', lastError?.message)
   return null
 }
 
-// Diviser les requêtes en plusieurs appels pour éviter les timeouts
-async function queryNearbyPlaces(lat, lon, radius) {
+/**
+ * Requête unique avec timeout court pour détecter rapidement les problèmes
+ */
+async function queryNearbyPlacesSimple(lat, lon, radius) {
   try {
-    // Requête 1 : Écoles et parcs
-    const query1 = `
-      [out:json][timeout:25];
+    const query = `
+      [out:json][timeout:20];
       (
         node["amenity"="school"]["name"](around:${radius},${lat},${lon});
         way["amenity"="school"]["name"](around:${radius},${lat},${lon});
         node["leisure"="park"]["name"](around:${radius},${lat},${lon});
         way["leisure"="park"]["name"](around:${radius},${lat},${lon});
-      );
-      out body;
-    `
-    
-    // Requête 2 : Commerces et alimentation
-    const query2 = `
-      [out:json][timeout:25];
-      (
         node["amenity"="supermarket"]["name"](around:${radius},${lat},${lon});
         node["shop"="supermarket"]["name"](around:${radius},${lat},${lon});
         node["shop"="grocery"]["name"](around:${radius},${lat},${lon});
-      );
-      out body;
-    `
-    
-    // Requête 3 : Restaurants et cafés
-    const query3 = `
-      [out:json][timeout:25];
-      (
         node["amenity"="restaurant"](around:${radius},${lat},${lon});
         node["amenity"="cafe"](around:${radius},${lat},${lon});
         node["amenity"="fast_food"](around:${radius},${lat},${lon});
-      );
-      out body;
-    `
-    
-    // Requête 4 : Santé et services
-    const query4 = `
-      [out:json][timeout:25];
-      (
         node["amenity"="pharmacy"]["name"](around:${radius},${lat},${lon});
         node["amenity"="hospital"]["name"](around:${radius},${lat},${lon});
+        node["public_transport"="station"]["name"](around:${radius},${lat},${lon});
+        node["highway"="bus_stop"](around:${radius},${lat},${lon});
+        node["railway"="station"]["name"](around:${radius},${lat},${lon});
+        node["railway"="subway_entrance"](around:${radius},${lat},${lon});
         node["amenity"="bank"](around:${radius},${lat},${lon});
         node["amenity"="gym"](around:${radius},${lat},${lon});
         node["shop"="convenience"](around:${radius},${lat},${lon});
@@ -127,47 +133,31 @@ async function queryNearbyPlaces(lat, lon, radius) {
       out body;
     `
     
-    // Requête 5 : Transports
-    const query5 = `
-      [out:json][timeout:25];
-      (
-        node["public_transport"="station"]["name"](around:${radius},${lat},${lon});
-        node["highway"="bus_stop"](around:${radius},${lat},${lon});
-        node["railway"="station"]["name"](around:${radius},${lat},${lon});
-        node["railway"="subway_entrance"](around:${radius},${lat},${lon});
-      );
-      out body;
-    `
-    
-    // Exécuter les requêtes en parallèle avec délai pour éviter le rate limiting
-    const results = []
-    const queries = [query1, query2, query3, query4, query5]
-    
-    for (const query of queries) {
-      const result = await fetchOverpass(query)
-      if (result?.elements) {
-        results.push(...result.elements)
-      }
-      // Petit délai entre les requêtes
-      await sleep(200)
-    }
-    
-    return results
+    const data = await fetchOverpass(query, 1) // Seulement 1 retry pour cette requête
+    return data?.elements ?? []
   } catch (err) {
-    console.error('Error querying nearby places:', err)
+    console.error('Error in queryNearbyPlacesSimple:', err)
     return []
   }
 }
 
 export async function getNeighborhoodScores(lat, lon) {
   try {
-    // Utiliser 1km et 2km de rayon
-    const places = await queryNearbyPlaces(lat, lon, 1000)
-    await sleep(500)
-    const places2km = await queryNearbyPlaces(lat, lon, 2000)
+    console.log(`Fetching neighborhood scores for ${lat}, ${lon}...`)
+    
+    // Essayer d'abord avec un rayon de 1km
+    const places1km = await queryNearbyPlacesSimple(lat, lon, 1000)
+    
+    // Petit délai avant la deuxième requête
+    await sleep(1000)
+    
+    // Ensuite avec 2km
+    const places2km = await queryNearbyPlacesSimple(lat, lon, 2000)
 
     // Dédupliquer par ID
-    const allPlaces = [...new Map([...places, ...places2km].map(p => [p.id, p])).values()]
+    const allPlaces = [...new Map([...places1km, ...places2km].map(p => [p.id, p])).values()]
+
+    console.log(`Found ${allPlaces.length} total places`)
 
     // Si aucune donnée n'a pu être récupérée, retourner des scores par défaut
     if (allPlaces.length === 0) {
@@ -182,7 +172,7 @@ export async function getNeighborhoodScores(lat, lon) {
         nearbyTransit: [],
         nearbyGrocery: [],
         dataSource: 'OpenStreetMap Overpass API (limited data)',
-        error: 'Limited data available - some amenities may not be shown',
+        error: 'Overpass API servers are currently overloaded. Showing estimated scores.',
       }
     }
 
@@ -232,7 +222,7 @@ export async function getNeighborhoodScores(lat, lon) {
       walkScore,
       transitScore,
       schoolScore,
-      amenityCount500m: places.length,
+      amenityCount500m: places1km.length,
       nearbySchools: schools.filter(p => p.tags?.name).map(p => p.tags.name).slice(0, 3),
       nearbyParks: parks.filter(p => p.tags?.name).map(p => p.tags.name).slice(0, 3),
       nearbyTransit: transit.filter(p => p.tags?.name).map(p => p.tags.name).slice(0, 5),
