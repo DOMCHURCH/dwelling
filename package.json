@@ -8,10 +8,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "@supabase/supabase-js": "^2.45.0",
+    "framer-motion": "^11.18.2",
     "groq-sdk": "^0.3.3",
-    "@supabase/supabase-js": "^2.45.0"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.1",
