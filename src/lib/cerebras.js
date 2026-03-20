@@ -25,7 +25,7 @@ async function cerebrasChat(messages, json = false) {
       model: MODEL,
       messages,
       temperature: 0.1, 
-      max_tokens: 8000,
+      max_tokens: 4096 ,
       ...(json && { response_format: { type: 'json_object' } }),
     }),
   })
