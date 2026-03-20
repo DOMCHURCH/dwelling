@@ -3,6 +3,79 @@ import SectionCard from './SectionCard'
 import StatCard from './StatCard'
 import ScoreRing from './ScoreRing'
 import PriceHistoryChart from './PriceHistoryChart'
+
+// ─── STREET VIEW IMAGE ────────────────────────────────────────────────────────
+// Uses Mapillary (free, no key needed for embed) + fallback to OSM static map
+// For best results with real street-level photos, add a Google Maps API key
+// to VITE_GOOGLE_MAPS_KEY in Vercel env vars — then Google Street View activates.
+function StreetViewImage({ lat, lon, address }) {
+  const [imgError, setImgError] = useState(false)
+  const [source, setSource] = useState('google')
+
+  const googleKey = import.meta.env.VITE_GOOGLE_MAPS_KEY
+  
+  // Google Street View Static API — free up to 25,000/day with key
+  const googleUrl = googleKey
+    ? `https://maps.googleapis.com/maps/api/streetview?size=800x400&location=${lat},${lon}&fov=90&pitch=0&key=${googleKey}`
+    : null
+
+  // Mapillary embed — completely free, shows crowdsourced street photos
+  const mapillaryUrl = `https://www.mapillary.com/embed?map_style=Mapillary%20dark&image_key=latest&style=classic&traffic_sign_layer=false&map_layer=false&lat=${lat}&lng=${lon}&z=17&menu=false`
+
+  // OSM static map as final fallback
+  const osmUrl = `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lon}&zoom=17&size=800x300&markers=${lat},${lon},red-pushpin`
+
+  if (imgError && source === 'google') {
+    setSource('mapillary')
+    setImgError(false)
+  }
+
+  return (
+    <div style={{ marginBottom: 16, borderRadius: 16, overflow: 'hidden', position: 'relative' }}>
+      <div style={{ position: 'absolute', top: 10, left: 12, zIndex: 2 }}>
+        <span className="liquid-glass" style={{ borderRadius: 20, padding: '4px 10px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.06em' }}>
+          📸 Street View
+        </span>
+      </div>
+
+      {source === 'google' && googleUrl ? (
+        <img
+          src={googleUrl}
+          alt={`Street view of ${address}`}
+          onError={() => { setImgError(true); setSource('mapillary') }}
+          style={{ width: '100%', height: 220, objectFit: 'cover', display: 'block', filter: 'brightness(0.85)' }}
+        />
+      ) : source === 'mapillary' ? (
+        <iframe
+          src={mapillaryUrl}
+          style={{ width: '100%', height: 220, border: 'none', display: 'block' }}
+          title="Street view"
+          allowFullScreen
+          onError={() => setSource('osm')}
+        />
+      ) : (
+        <div style={{ width: '100%', height: 220, background: 'rgba(255,255,255,0.03)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          <span style={{ fontSize: 28 }}>🏠</span>
+          <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 12, color: 'rgba(255,255,255,0.3)', fontWeight: 300 }}>Street view unavailable for this address</span>
+          <a
+            href={`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lon}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ fontFamily: "'Barlow',sans-serif", fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}
+          >
+            View on Google Maps ↗
+          </a>
+        </div>
+      )}
+
+      {/* Address overlay */}
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(transparent, rgba(0,0,0,0.7))', padding: '24px 14px 10px' }}>
+        <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.7)', margin: 0 }}>{address}</p>
+      </div>
+    </div>
+  )
+}
+
 import { weatherCodeToDescription } from '../lib/weather'
 
 const fmt = (n) => (n != null && n !== 0) ? n.toLocaleString('en-US', { maximumFractionDigits: 0 }) : '—'
@@ -258,28 +331,9 @@ export default function Dashboard({ data, onRecalculate }) {
         />
       </div>
 
-      {/* Share button */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: -8 }}>
-        <button
-          onClick={() => {
-            const addr = [geo.userStreet, geo.userCity, geo.userState, geo.userCountry].filter(Boolean).join(', ')
-            const subject = encodeURIComponent(`Property analysis: ${addr}`)
-            const body = encodeURIComponent(`Check out this property analysis I found on Dwelling:\n\nhttps://dwelling-homes.netlify.app\n\nAddress: ${addr}\n\nEstimated value: ${fmtUSD(ai.propertyEstimate.estimatedValueUSD)}\nRent estimate: ${fmtUSD(ai.propertyEstimate.rentEstimateMonthlyUSD)}/mo\nInvestment score: ${ai.investment.investmentScore}/100\n\nPowered by Dwelling — Property Intelligence`)
-            window.location.href = `mailto:?subject=${subject}&body=${body}`
-          }}
-          className="liquid-glass"
-          style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 16px', borderRadius: 40, color: 'rgba(255,255,255,0.5)', fontSize: 12, cursor: 'pointer', fontFamily: "'Barlow', sans-serif", fontWeight: 300, border: 'none', transition: 'all 0.2s' }}
-          onMouseEnter={e => e.currentTarget.style.color = '#ffffff'}
-          onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.5)'}
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
-          </svg>
-          Share via email
-        </button>
-      </div>
+      {/* Street View Image */}
+      <StreetViewImage lat={geo.lat} lon={geo.lon} address={[geo.userStreet, geo.userCity, geo.userState, geo.userCountry].filter(Boolean).join(', ')} />
 
-      <CorrectionsPanel ai={ai} knownFacts={knownFacts} onRecalculate={onRecalculate} />
 
       {/* Property Estimate */}
       <SectionCard title="Property Estimate" icon="🏠" delay={50}>
