@@ -171,13 +171,13 @@ export default function PriceHistoryChart({ priceHistory }) {
         {current && (
           <div>
             <div style={{ fontSize: 10, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 3 }}>Current est.</div>
-            <div style={{ fontSize: 22, fontWeight: 800, fontFamily: 'Syne, sans-serif', letterSpacing: '-0.03em', color: 'var(--text)' }}>{fmtUSD(current.value)}</div>
+            <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "'Instrument Serif', serif", fontStyle: 'italic', letterSpacing: '-0.03em', color: 'var(--text)' }}>{fmtUSD(current.value)}</div>
           </div>
         )}
         {change && (
           <div>
             <div style={{ fontSize: 10, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 3 }}>Since {first.year}</div>
-            <div style={{ fontSize: 22, fontWeight: 800, fontFamily: 'Syne, sans-serif', letterSpacing: '-0.03em', color: change > 0 ? 'var(--green)' : 'var(--red)' }}>
+            <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "'Instrument Serif', serif", fontStyle: 'italic', letterSpacing: '-0.03em', color: change > 0 ? 'var(--green)' : 'var(--red)' }}>
               {change > 0 ? '+' : ''}{change}%
             </div>
           </div>
