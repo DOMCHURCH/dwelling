@@ -573,6 +573,7 @@ export default function App() {
       const [censusData, fmr, floodZone] = await Promise.all([getCensusData(street, city, state, country), getFairMarketRent(postcode), getFloodZone(geo.lat, geo.lon)]); setLoadStep(3)
       const realData = { neighborhoodScores, censusData, fmr, floodZone }
       const ai = await analyzeProperty(geo, weather, climate, knownFacts ?? {}, realData); setLoadStep(4)
+      console.log('AI RESULT:', JSON.stringify(ai, null, 2))
       setResult({ geo, weather, climate, ai, knownFacts: knownFacts ?? {}, realData })
     } catch (err) {
       console.error(err)
