@@ -27,24 +27,31 @@ import { supabase } from './lib/supabase'
 
 const FREE_LIMIT = 10
 
-// ─── CSS PARALLAX SECTION ────────────────────────────────────────────────────
-// Uses background-attachment:fixed — pure CSS, GPU composited, zero JS
-function ParallaxBg({ src, opacity = 0.3, height, children, style = {} }) {
+// ─── PERF-SAFE PARALLAX ──────────────────────────────────────────────────────
+// Uses position:fixed child + translateZ(0) so Chrome composites it on the GPU.
+// NO background-attachment:fixed (causes full repaint every scroll frame).
+// The image div is position:fixed, clipped by the parent's overflow:hidden.
+function ParallaxBg({ src, opacity = 0.28, children, style = {}, id }) {
   return (
-    <div style={{ position: 'relative', overflow: 'hidden', ...style }}>
-      {/* Fixed-position background — scrolls at different speed from content */}
+    <div id={id} style={{ position: 'relative', overflow: 'hidden', ...style }}>
+      {/* GPU-composited fixed layer — no repaint on scroll */}
       <div style={{
-        position: 'absolute', inset: 0,
+        position: 'absolute', inset: 0, zIndex: 0,
         backgroundImage: `url(${src})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
-        backgroundAttachment: 'fixed',
+        backgroundRepeat: 'no-repeat',
         opacity,
-        zIndex: 0,
+        transform: 'translateZ(0)',   // own compositor layer
         willChange: 'transform',
+        WebkitTransform: 'translateZ(0)',
       }} />
-      {/* Top + bottom gradient fades */}
-      <div style={{ position: 'absolute', inset: 0, zIndex: 1, background: 'linear-gradient(to bottom, #000 0%, transparent 12%, transparent 88%, #000 100%)' }} />
+      {/* Gradient fades top + bottom */}
+      <div style={{
+        position: 'absolute', inset: 0, zIndex: 1,
+        background: 'linear-gradient(to bottom,#000 0%,transparent 14%,transparent 86%,#000 100%)',
+        pointerEvents: 'none',
+      }} />
       <div style={{ position: 'relative', zIndex: 2 }}>
         {children}
       </div>
@@ -69,14 +76,14 @@ function TermsModal({ onClose }) {
       <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} onClick={e => e.stopPropagation()}
         className="liquid-glass-strong" style={{ borderRadius: 24, maxWidth: 700, width: '100%', height: '80vh', display: 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 28px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
-          <span style={{ fontFamily: "'Instrument Serif', serif", fontStyle: 'italic', fontSize: 22, color: '#fff' }}>Terms & Conditions</span>
-          <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#fff', fontFamily: "'Barlow', sans-serif", fontSize: 12, padding: '6px 14px', cursor: 'pointer' }}>✕ Close</button>
+          <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 22, color: '#fff' }}>Terms & Conditions</span>
+          <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#fff', fontFamily: "'Barlow',sans-serif", fontSize: 12, padding: '6px 14px', cursor: 'pointer' }}>✕ Close</button>
         </div>
         <div style={{ flex: 1, overflowY: 'scroll', padding: '28px' }}>
           {sections.map(({ title, body }) => (
             <div key={title} style={{ marginBottom: 24 }}>
-              <div style={{ fontFamily: "'Instrument Serif', serif", fontStyle: 'italic', fontSize: 17, color: '#fff', marginBottom: 8 }}>{title}</div>
-              <p style={{ fontFamily: "'Barlow', sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.8 }}>{body}</p>
+              <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 17, color: '#fff', marginBottom: 8 }}>{title}</div>
+              <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.8 }}>{body}</p>
             </div>
           ))}
         </div>
@@ -131,7 +138,7 @@ function FAQ() {
 }
 
 // ─── NAVBAR ──────────────────────────────────────────────────────────────────
-function Navbar({ user, userRecord, analysesLeft, onSignOut, onHome }) {
+function Navbar({ user, userRecord, analysesLeft, onSignOut, onHome, onScrollTo }) {
   const [scrolled, setScrolled] = useState(false)
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 50)
@@ -146,13 +153,13 @@ function Navbar({ user, userRecord, analysesLeft, onSignOut, onHome }) {
           DW<span style={{ opacity: 0.4 }}>.</span>ELLING
         </button>
         <div className="liquid-glass" style={{ borderRadius: 40, padding: '5px', display: 'flex', gap: 2 }}>
-          {['Features', 'Pricing', 'FAQ'].map(link => (
-            <a key={link} href={`#${link.toLowerCase()}`}
-              style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, fontFamily: "'Barlow',sans-serif", padding: '6px 14px', borderRadius: 36, textDecoration: 'none', transition: 'background 0.15s, color 0.15s' }}
+          {[['Features','features'],['Pricing','pricing'],['FAQ','faq']].map(([label, id]) => (
+            <button key={id} onClick={() => onScrollTo(id)}
+              style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, fontFamily: "'Barlow',sans-serif", padding: '6px 14px', borderRadius: 36, background: 'transparent', border: 'none', cursor: 'pointer', transition: 'background 0.15s, color 0.15s' }}
               onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.color = '#fff' }}
               onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.6)' }}>
-              {link}
-            </a>
+              {label}
+            </button>
           ))}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -176,14 +183,12 @@ function Navbar({ user, userRecord, analysesLeft, onSignOut, onHome }) {
 }
 
 // ─── HERO ────────────────────────────────────────────────────────────────────
-function Hero({ onSearch, loading }) {
+function Hero({ onSearch, loading, onScrollTo }) {
   return (
     <section style={{ minHeight: '100vh', position: 'relative', overflow: 'hidden', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      {/* CSS fixed parallax bg */}
-      <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${img_hero_neighborhood})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed', opacity: 0.42, zIndex: 0 }} />
-      {/* Subtle grid */}
+      {/* GPU layer — no background-attachment:fixed */}
+      <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${img_hero_neighborhood})`, backgroundSize: 'cover', backgroundPosition: 'center', opacity: 0.42, transform: 'translateZ(0)', WebkitTransform: 'translateZ(0)', willChange: 'transform', zIndex: 0 }} />
       <div style={{ position: 'absolute', inset: 0, zIndex: 1, backgroundImage: 'repeating-linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px),repeating-linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px)', backgroundSize: '60px 60px' }} />
-      {/* Fades */}
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 220, background: 'linear-gradient(to bottom,#000,transparent)', zIndex: 2 }} />
       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 300, background: 'linear-gradient(to top,#000,transparent)', zIndex: 2 }} />
 
@@ -218,7 +223,8 @@ function Hero({ onSearch, loading }) {
         </motion.div>
 
         <motion.div animate={{ y: [0, 7, 0] }} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-          style={{ position: 'absolute', bottom: 28, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
+          style={{ position: 'absolute', bottom: 28, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, cursor: 'pointer' }}
+          onClick={() => onScrollTo('how-it-works')}>
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style={{ opacity: 0.3 }}>
             <path d="M8 3v10M3 9l5 5 5-5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
@@ -237,7 +243,7 @@ function HowItWorks() {
     { num: '03', icon: '🧠', title: 'AI builds your report', desc: 'Cerebras Llama synthesizes everything into a complete property intelligence report in under 30 seconds.' },
   ]
   return (
-    <ParallaxBg src={img_neighborhood_night} opacity={0.2} style={{ padding: '96px 0' }}>
+    <ParallaxBg src={img_neighborhood_night} opacity={0.2} id="how-it-works" style={{ padding: '96px 0' }}>
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px' }}>
         <motion.span initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
           className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '6px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>
@@ -248,7 +254,7 @@ function HowItWorks() {
         </h2>
         <motion.p initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }}
           style={{ color: 'rgba(255,255,255,0.5)', fontSize: 15, fontFamily: "'Barlow',sans-serif", fontWeight: 300, maxWidth: 460, lineHeight: 1.7, marginBottom: 56 }}>
-          Just enter an address and get a full property intelligence report in seconds. No upgrades required to try it.
+          Just enter an address and get a full property intelligence report in seconds.
         </motion.p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(250px,1fr))', gap: 14 }}>
           {steps.map((s, i) => (
@@ -267,15 +273,14 @@ function HowItWorks() {
 }
 
 // ─── FEATURE ROWS ────────────────────────────────────────────────────────────
-function FeatureRows() {
+function FeatureRows({ onScrollTo }) {
   const rows = [
     { title: 'Know what a home is really worth.', desc: 'AI-powered estimates grounded in census tract data, HUD fair market rents, and real neighborhood context. Not just a number — full price context with confidence levels.', img: img_house_night, reverse: false },
     { title: "Neighborhood intelligence that's actually real.", desc: 'Walk scores, transit scores, school ratings — all derived from real OpenStreetMap data within a 2km radius. Not estimated. Actually counted.', img: img_map_pins, reverse: true, glow: true },
     { title: 'Investment analysis you can act on.', desc: 'Rent yield, appreciation outlook, investment score — synthesized from price history, neighborhood trends, and market context. Clear. Honest. Actionable.', img: img_price_chart, reverse: false, shimmer: true },
   ]
   return (
-    <ParallaxBg src={img_architecture_texture} opacity={0.05} id="features" style={{ padding: '64px 0' }}
-      overlayStyle={{ background: 'linear-gradient(to bottom,#000 0%,transparent 6%,transparent 94%,#000 100%)' }}>
+    <ParallaxBg src={img_architecture_texture} opacity={0.05} id="features" style={{ padding: '64px 0' }}>
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px' }}>
         <motion.span initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
           className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '6px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>
@@ -289,9 +294,12 @@ function FeatureRows() {
             <motion.div initial={{ opacity: 0, x: row.reverse ? 32 : -32 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }} style={{ flex: '1 1 260px' }}>
               <h3 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(1.4rem,3vw,1.9rem)', color: '#fff', marginBottom: 14, lineHeight: 1.1 }}>{row.title}</h3>
               <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 14, color: 'rgba(255,255,255,0.5)', lineHeight: 1.8, marginBottom: 22 }}>{row.desc}</p>
-              <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} className="liquid-glass-strong"
+              <motion.button
+                whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
+                onClick={() => onScrollTo('pricing')}
+                className="liquid-glass-strong"
                 style={{ borderRadius: 40, padding: '10px 20px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: '#fff', border: 'none', cursor: 'pointer' }}>
-                Learn more →
+                Get started →
               </motion.button>
             </motion.div>
             <motion.div initial={{ opacity: 0, x: row.reverse ? -32 : 32 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }} style={{ flex: '1 1 260px' }}>
@@ -368,7 +376,7 @@ function Stats() {
 }
 
 // ─── PRICING ─────────────────────────────────────────────────────────────────
-function Pricing() {
+function Pricing({ onUpgrade }) {
   const free = ['10 analyses/month','All data sources','AI property analysis','Neighborhood scores','Climate & weather']
   const pro = ['Unlimited analyses','All data sources','AI property analysis','Neighborhood scores','Climate & weather','Priority support','Early feature access']
   return (
@@ -388,7 +396,11 @@ function Pricing() {
             <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 15, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>/month</span>
           </div>
           <div style={{ marginBottom: 24 }}>{free.map(f => <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}><span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>✓</span><span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{f}</span></div>)}</div>
-          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="liquid-glass-strong" style={{ width: '100%', padding: '12px', borderRadius: 40, border: 'none', color: '#fff', fontFamily: "'Barlow',sans-serif", fontWeight: 500, fontSize: 13, cursor: 'pointer' }}>Get started free</motion.button>
+          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="liquid-glass-strong" style={{ width: '100%', padding: '12px', borderRadius: 40, border: 'none', color: '#fff', fontFamily: "'Barlow',sans-serif", fontWeight: 500, fontSize: 13, cursor: 'pointer' }}>
+            Start for free
+          </motion.button>
         </motion.div>
         <motion.div initial={{ opacity: 0, x: 20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.45 }} className="liquid-glass-strong" style={{ borderRadius: 18, padding: 28, border: '1px solid rgba(255,255,255,0.2)' }}>
           <div style={{ display: 'inline-block', background: '#fff', color: '#000', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 10, borderRadius: 20, padding: '3px 10px', marginBottom: 10 }}>Most Popular</div>
@@ -398,7 +410,11 @@ function Pricing() {
             <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 15, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>/month</span>
           </div>
           <div style={{ marginBottom: 24 }}>{pro.map(f => <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}><span style={{ color: '#fff', fontSize: 12 }}>✓</span><span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: '#fff' }}>{f}</span></div>)}</div>
-          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} style={{ width: '100%', padding: '12px', borderRadius: 40, border: 'none', background: '#fff', color: '#000', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Upgrade to Pro →</motion.button>
+          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+            onClick={onUpgrade}
+            style={{ width: '100%', padding: '12px', borderRadius: 40, border: 'none', background: '#fff', color: '#000', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+            Upgrade to Pro →
+          </motion.button>
         </motion.div>
       </div>
     </section>
@@ -406,25 +422,29 @@ function Pricing() {
 }
 
 // ─── CTA + FOOTER ────────────────────────────────────────────────────────────
-function CTAFooter({ onTermsClick }) {
+function CTAFooter({ onTermsClick, onScrollToTop, onUpgrade }) {
   return (
-    <ParallaxBg src={img_city_silhouette} opacity={0.28} style={{ padding: '96px 0 0' }}
-      overlayStyle={{ background: 'linear-gradient(to bottom,#000 0%,transparent 18%,rgba(0,0,0,0.3) 60%,#000 100%)' }}>
+    <ParallaxBg src={img_city_silhouette} opacity={0.28} style={{ padding: '96px 0 0' }}>
       <div style={{ maxWidth: 860, margin: '0 auto', textAlign: 'center', padding: '0 24px 80px', position: 'relative', zIndex: 1 }}>
         <motion.div animate={{ opacity: [0.3, 0.6, 0.3] }} transition={{ duration: 5, repeat: Infinity }}
           style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: 600, height: 400, borderRadius: '50%', background: 'radial-gradient(circle,rgba(168,85,247,0.07) 0%,transparent 65%)', filter: 'blur(40px)', pointerEvents: 'none' }} />
         <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2.2rem,6vw,4.5rem)', color: '#fff', lineHeight: 0.9, letterSpacing: '-0.03em', marginBottom: 20 }}>
           <BlurText text="Your next property search starts here." />
         </h2>
-        <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 16, color: 'rgba(255,255,255,0.5)', marginBottom: 36, lineHeight: 1.7 }}>Free to start. Instant results. No credit card required.</p>
+        <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 16, color: 'rgba(255,255,255,0.5)', marginBottom: 36, lineHeight: 1.7 }}>
+          Free to start. Instant results. No credit card required.
+        </p>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} className="liquid-glass-strong"
+          <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
+            onClick={onScrollToTop}
+            className="liquid-glass-strong"
             style={{ borderRadius: 40, padding: '13px 28px', fontFamily: "'Barlow',sans-serif", fontSize: 14, color: '#fff', border: 'none', cursor: 'pointer' }}>
             Start for free →
           </motion.button>
           <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
+            onClick={onUpgrade}
             style={{ borderRadius: 40, padding: '13px 28px', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 14, background: '#fff', color: '#000', border: 'none', cursor: 'pointer' }}>
-            See pricing
+            Upgrade to Pro
           </motion.button>
         </div>
       </div>
@@ -456,6 +476,13 @@ export default function App() {
   const [userRecord, setUserRecord] = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
   const realtimeRef = useRef(null)
+
+  // Smooth scroll to section by id
+  const scrollTo = (id) => {
+    const el = document.getElementById(id)
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    else window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   const subscribeToUserRecord = (userId) => {
     if (realtimeRef.current) supabase.removeChannel(realtimeRef.current)
@@ -553,7 +580,13 @@ export default function App() {
       <GlobalBackground />
       {showTerms && <TermsModal onClose={() => setShowTerms(false)} />}
       {showPaywall && <PaywallModal onClose={() => setShowPaywall(false)} onUpgrade={() => alert('Stripe coming soon!')} />}
-      <Navbar user={user} userRecord={userRecord} analysesLeft={analysesLeft} onSignOut={handleSignOut} onHome={() => setResult(null)} />
+
+      <Navbar
+        user={user} userRecord={userRecord} analysesLeft={analysesLeft}
+        onSignOut={handleSignOut}
+        onHome={() => { setResult(null); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+        onScrollTo={scrollTo}
+      />
 
       {(result || loading) ? (
         <div style={{ maxWidth: 960, margin: '0 auto', padding: '100px 24px 80px', width: '100%', position: 'relative', zIndex: 1 }}>
@@ -576,14 +609,18 @@ export default function App() {
         </div>
       ) : (
         <div style={{ position: 'relative', zIndex: 1 }}>
-          <Hero onSearch={handleSearch} loading={loading} />
+          <Hero onSearch={handleSearch} loading={loading} onScrollTo={scrollTo} />
           <HowItWorks />
-          <FeatureRows />
+          <FeatureRows onScrollTo={scrollTo} />
           <FeaturesGrid />
           <Stats />
-          <Pricing />
+          <Pricing onUpgrade={() => setShowPaywall(true)} />
           <FAQ />
-          <CTAFooter onTermsClick={() => setShowTerms(true)} />
+          <CTAFooter
+            onTermsClick={() => setShowTerms(true)}
+            onScrollToTop={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            onUpgrade={() => setShowPaywall(true)}
+          />
         </div>
       )}
     </div>
