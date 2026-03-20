@@ -199,6 +199,7 @@ export default function App() {
   }
 
   const handleSearch = async ({ street, city, state, country, knownFacts }) => {
+    if (loading) return // Empêche le double-clic
     setLoading(true)
     setError(null)
     setResult(null)
@@ -207,17 +208,29 @@ export default function App() {
       const geo = await geocodeStructured({ street, city, state, country })
       setLoadStep(1)
       const postcode = geo.address?.postcode ?? ''
-      const [weather, climate, neighborhoodScores, censusData, fmr, floodZone] = await Promise.all([
+      
+      // Exécuter les appels API de manière séquentielle ou groupée intelligemment
+      // pour éviter de saturer les connexions navigateur
+      const [weather, climate, neighborhoodScores] = await Promise.all([
         getCurrentWeather(geo.lat, geo.lon),
         getClimateNormals(geo.lat, geo.lon),
         getNeighborhoodScores(geo.lat, geo.lon),
+      ])
+      
+      setLoadStep(2)
+      
+      const [censusData, fmr, floodZone] = await Promise.all([
         getCensusData(street, city, state, country),
         getFairMarketRent(postcode),
         getFloodZone(geo.lat, geo.lon),
       ])
+      
       setLoadStep(3)
       const realData = { neighborhoodScores, censusData, fmr, floodZone }
+      
+      // Augmenter le timeout pour l'IA Cerebras si nécessaire
       const ai = await analyzeProperty(geo, weather, climate, knownFacts ?? {}, realData)
+      
       setLoadStep(4)
       setResult({ geo, weather, climate, ai, knownFacts: knownFacts ?? {}, realData })
     } catch (err) {
