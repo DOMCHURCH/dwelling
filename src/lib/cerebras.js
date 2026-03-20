@@ -254,15 +254,27 @@ QUALITY RULES — every field must meet these standards:
     return isNaN(n) || n === 0 ? null : Math.round(n)
   }
   const p = result.propertyEstimate
-  p.estimatedValueUSD      = toNum(p.estimatedValueUSD)
-  p.pricePerSqftUSD        = toNum(p.pricePerSqftUSD)
-  p.rentEstimateMonthlyUSD = toNum(p.rentEstimateMonthlyUSD)
+  // Handle AI returning estimatedValueCAD or estimatedValueGBP instead of estimatedValueUSD
+  const valKey = Object.keys(p).find(k => k.startsWith('estimatedValue')) || 'estimatedValueUSD'
+  const ppsfKey = Object.keys(p).find(k => k.startsWith('pricePerSqft')) || 'pricePerSqftUSD'
+  const rentKey = Object.keys(p).find(k => k.startsWith('rentEstimateMonthly')) || 'rentEstimateMonthlyUSD'
+  
+  p.estimatedValueUSD      = toNum(p[valKey])
+  p.pricePerSqftUSD        = toNum(p[ppsfKey])
+  p.rentEstimateMonthlyUSD = toNum(p[rentKey])
+
   const c = result.costOfLiving
-  c.monthlyBudgetUSD    = toNum(c.monthlyBudgetUSD)
-  c.groceriesMonthlyUSD = toNum(c.groceriesMonthlyUSD)
-  c.transportMonthlyUSD = toNum(c.transportMonthlyUSD)
-  c.utilitiesMonthlyUSD = toNum(c.utilitiesMonthlyUSD)
-  c.diningOutMonthlyUSD = toNum(c.diningOutMonthlyUSD)
+  const budgetKey = Object.keys(c).find(k => k.startsWith('monthlyBudget')) || 'monthlyBudgetUSD'
+  const groceriesKey = Object.keys(c).find(k => k.startsWith('groceriesMonthly')) || 'groceriesMonthlyUSD'
+  const transportKey = Object.keys(c).find(k => k.startsWith('transportMonthly')) || 'transportMonthlyUSD'
+  const utilitiesKey = Object.keys(c).find(k => k.startsWith('utilitiesMonthly')) || 'utilitiesMonthlyUSD'
+  const diningKey = Object.keys(c).find(k => k.startsWith('diningOutMonthly')) || 'diningOutMonthlyUSD'
+
+  c.monthlyBudgetUSD    = toNum(c[budgetKey])
+  c.groceriesMonthlyUSD = toNum(c[groceriesKey])
+  c.transportMonthlyUSD = toNum(c[transportKey])
+  c.utilitiesMonthlyUSD = toNum(c[utilitiesKey])
+  c.diningOutMonthlyUSD = toNum(c[diningKey])
   c.indexVsUSAverage    = toNum(c.indexVsUSAverage)
   result.floorPlan.typicalSqft = toNum(result.floorPlan.typicalSqft) ?? 1500
 
