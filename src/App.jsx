@@ -222,6 +222,11 @@ export default function App() {
       setResult({ geo, weather, climate, ai, knownFacts: knownFacts ?? {}, realData })
     } catch (err) {
       console.error(err)
+      // Ignorer les erreurs de contexte invalidé (extension context invalidated)
+      if (err.message?.includes('Extension context invalidated') || err.message?.includes('context invalidated')) {
+        console.warn('Extension context invalidated - request may have been cancelled')
+        return
+      }
       // Show paywall if server returns 429
       if (err.message?.includes('limit reached') || err.message?.includes('429')) {
         setShowPaywall(true)
