@@ -53,14 +53,14 @@ function finalizeAnalysis(est, known, realData) {
 
   const sqft = est.floorPlan.typicalSqft
   const val  = est.propertyEstimate.estimatedValueUSD
-  if (sqft > 0 && val > 0) {
+  if (sqft != null && sqft > 0 && val != null && val > 0) {
     est.propertyEstimate.pricePerSqftUSD = Math.round(val / sqft)
   }
 
   const annualRent = (est.propertyEstimate.rentEstimateMonthlyUSD || 0) * 12
-  const yieldPct   = val > 0 ? (annualRent / val) * 100 : 0
+  const yieldPct   = val != null && val > 0 ? (annualRent / val) * 100 : 0
   if (yieldPct < 2.5 || yieldPct > 7) {
-    est.propertyEstimate.rentEstimateMonthlyUSD = Math.round((val * 0.04) / 12)
+    est.propertyEstimate.rentEstimateMonthlyUSD = val != null && val > 0 ? Math.round((val * 0.04) / 12) : null
   }
 
   if (realData.neighborhoodScores) {
@@ -69,7 +69,7 @@ function finalizeAnalysis(est, known, realData) {
     est.neighborhood.schoolRating = realData.neighborhoodScores.schoolScore
   }
 
-  if (est.priceHistory?.data?.length && val > 0) {
+  if (est.priceHistory?.data?.length && val != null && val > 0) {
     const m = { 2022:0.88, 2023:0.93, 2024:0.97, 2025:1.0, 2026:1.04, 2027:1.07 }
     est.priceHistory.data = est.priceHistory.data.map(d => ({
       ...d,
@@ -100,8 +100,8 @@ export async function analyzeProperty(geoData, weatherData, climateData, knownFa
     realData.censusData?.medianGrossRentUSD
       ? `Census median rent: ${currency} ${Math.round(realData.censusData.medianGrossRentUSD * (isCanada ? 1.35 : 1)).toLocaleString()}/mo`
       : '',
-    realData.fmr?.rent_50_2
-      ? `Fair Market Rent (2BR): ${currency} ${realData.fmr.rent_50_2}/mo`
+    realData.fmr?.twoBed
+      ? `Fair Market Rent (2BR): ${currency} ${realData.fmr.twoBed}/mo`
       : '',
     knownFacts.sqft         ? `Known sqft: ${knownFacts.sqft}`                                          : '',
     knownFacts.beds         ? `Known bedrooms: ${knownFacts.beds}`                                      : '',
@@ -247,10 +247,10 @@ QUALITY RULES — every field must meet these standards:
   // Sanitize — model returns strings like "2,500,000" or "$1.2M" — strip and parse
   const toNum = (v) => {
     if (typeof v === 'number') return Math.round(v)
-    if (!v) return 0
+    if (!v) return null  // Return null instead of 0 for missing values
     const s = String(v).replace(/[^0-9.]/g, '') // strip $, commas, CAD, spaces
     const n = parseFloat(s)
-    return isNaN(n) ? 0 : Math.round(n)
+    return isNaN(n) ? null : Math.round(n)  // Return null for invalid numbers
   }
   const p = result.propertyEstimate
   p.estimatedValueUSD      = toNum(p.estimatedValueUSD)
@@ -263,7 +263,7 @@ QUALITY RULES — every field must meet these standards:
   c.utilitiesMonthlyUSD = toNum(c.utilitiesMonthlyUSD)
   c.diningOutMonthlyUSD = toNum(c.diningOutMonthlyUSD)
   c.indexVsUSAverage    = toNum(c.indexVsUSAverage)
-  result.floorPlan.typicalSqft = toNum(result.floorPlan.typicalSqft) || 1500
+  result.floorPlan.typicalSqft = toNum(result.floorPlan.typicalSqft) ?? 1500
 
   return finalizeAnalysis(result, knownFacts, realData)
 }
