@@ -128,7 +128,7 @@ const FAQ_ITEMS = [
 function FAQ() {
   const [open, setOpen] = useState(null)
   return (
-    <section id="faq" className="cv-section" style={{ padding: '96px 24px', maxWidth: 780, margin: '0 auto', position: 'relative', zIndex: 1 }}>
+    <section id="faq" style={{ padding: '96px 24px', maxWidth: 780, margin: '0 auto', position: 'relative', zIndex: 1 }}>
       <Reveal>
         <span className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '6px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>Support</span>
       </Reveal>
@@ -267,7 +267,7 @@ function HowItWorks() {
     { num: '03', icon: '🧠', title: 'AI builds your report', desc: 'Cerebras Llama synthesizes everything into a full property intelligence report in under 30 seconds.' },
   ]
   return (
-    <section id="how-it-works" className="cv-section" style={{ padding: '96px 0', position: 'relative', overflow: 'hidden' }}>
+    <section id="how-it-works" style={{ padding: '96px 0', position: 'relative', overflow: 'hidden' }}>
       <SectionBg src={IMG.neighborhood} opacity={0.2} />
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px', position: 'relative', zIndex: 2 }}>
         <Reveal>
@@ -308,7 +308,7 @@ function FeatureRows({ onScrollTo }) {
     { title: 'Investment analysis you can act on.', desc: 'Rent yield, appreciation outlook, investment score — synthesized from price history, neighborhood trends, and market context. Clear. Honest. Actionable.', img: IMG.priceChart, reverse: false, shimmer: true },
   ]
   return (
-    <section id="features" className="cv-section" style={{ padding: '64px 0', position: 'relative', overflow: 'hidden' }}>
+    <section id="features" style={{ padding: '64px 0', position: 'relative', overflow: 'hidden' }}>
       <SectionBg src={IMG.texture} opacity={0.05} />
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px', position: 'relative', zIndex: 2 }}>
         <Reveal>
@@ -353,7 +353,7 @@ function FeaturesGrid() {
     { icon: '🔒', title: 'Secure & Private', desc: 'Your searches are never stored. Bank-grade auth with Supabase.' },
   ]
   return (
-    <section className="cv-section" style={{ padding: '80px 24px', maxWidth: 1100, margin: '0 auto', position: 'relative', zIndex: 1 }}>
+    <section style={{ padding: '80px 24px', maxWidth: 1100, margin: '0 auto', position: 'relative', zIndex: 1 }}>
       <Reveal>
         <span className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '6px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>Built different</span>
       </Reveal>
@@ -380,7 +380,7 @@ function FeaturesGrid() {
 // ─── STATS ───────────────────────────────────────────────────────────────────
 function Stats() {
   return (
-    <section className="cv-section" style={{ padding: '80px 24px', maxWidth: 940, margin: '0 auto', position: 'relative', zIndex: 1 }}>
+    <section style={{ padding: '80px 24px', maxWidth: 940, margin: '0 auto', position: 'relative', zIndex: 1 }}>
       <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 560, height: 560, borderRadius: '50%', background: 'radial-gradient(circle,rgba(99,102,241,0.07) 0%,transparent 70%)', filter: 'blur(40px)', pointerEvents: 'none', animation: 'glow-pulse 5s ease-in-out infinite' }} />
       <Reveal>
         <div className="liquid-glass-strong" style={{ borderRadius: 26, padding: '44px 28px', position: 'relative', zIndex: 1 }}>
@@ -411,7 +411,7 @@ function Pricing({ onUpgrade }) {
   const pro = ['Unlimited analyses','All data sources','AI property analysis','Neighborhood scores','Climate & weather','Priority support','Early feature access']
   const btnBase = { borderRadius: 40, border: 'none', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13, cursor: 'pointer', transition: 'transform 0.15s, opacity 0.15s' }
   return (
-    <section id="pricing" className="cv-section" style={{ padding: '80px 24px', maxWidth: 880, margin: '0 auto', position: 'relative', zIndex: 1 }}>
+    <section id="pricing" style={{ padding: '80px 24px', maxWidth: 880, margin: '0 auto', position: 'relative', zIndex: 1 }}>
       <Reveal>
         <span className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '6px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>Pricing</span>
       </Reveal>
@@ -460,7 +460,7 @@ function Pricing({ onUpgrade }) {
 // ─── CTA + FOOTER ────────────────────────────────────────────────────────────
 function CTAFooter({ onTermsClick, onScrollToTop, onUpgrade }) {
   return (
-    <section className="cv-section" style={{ padding: '96px 0 0', position: 'relative', overflow: 'hidden' }}>
+    <section style={{ padding: '96px 0 0', position: 'relative', overflow: 'hidden' }}>
       <SectionBg src={IMG.city} opacity={0.28} />
       <div style={{ maxWidth: 860, margin: '0 auto', textAlign: 'center', padding: '0 24px 80px', position: 'relative', zIndex: 2 }}>
         <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: 600, height: 400, borderRadius: '50%', background: 'radial-gradient(circle,rgba(168,85,247,0.07) 0%,transparent 65%)', filter: 'blur(40px)', pointerEvents: 'none', animation: 'glow-pulse 5s ease-in-out infinite' }} />
