@@ -180,7 +180,7 @@ function Navbar({ user, userRecord, analysesLeft, onSignOut, onHome, onScrollTo 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {user && (
             <>
-              <span className="liquid-glass" style={{ borderRadius: 40, padding: '5px 12px', fontSize: 12, fontFamily: "'Barlow',sans-serif", color: userRecord?.is_pro ? '#fbbf24' : low ? '#f87171' : 'rgba(255,255,255,0.5)', animation: low ? 'glow-pulse 1.5s ease-in-out infinite' : 'none' }}>
+              <span className="liquid-glass" style={{ borderRadius: 40, padding: '5px 12px', fontSize: 12, fontFamily: "'Barlow',sans-serif", color: userRecord?.is_pro ? '#fbbf24' : low ? '#f87171' : 'rgba(255,255,255,0.5)' }}>
                 {userRecord?.is_pro ? '★ Pro' : `${analysesLeft} / ${FREE_LIMIT} left`}
               </span>
               <button onClick={onSignOut} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.3)', padding: '5px 8px', transition: 'color 0.2s' }}
@@ -213,7 +213,7 @@ function Hero({ onSearch, loading, onScrollTo }) {
 
       <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', maxWidth: 900, margin: '0 auto', padding: '128px 24px 96px' }}>
         {/* Simple CSS fade-in on mount — no framer hooks */}
-        <div style={{ animation: 'fadeUp 0.5s ease 0.1s both' }}>
+        <div style={{}}>
           <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 16px', marginBottom: 28 }}>
             <span style={{ background: '#fff', color: '#000', fontSize: 11, fontFamily: "'Barlow',sans-serif", fontWeight: 600, borderRadius: 20, padding: '2px 8px' }}>AI Powered</span>
             <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>Know what any home is worth — instantly.</span>
@@ -224,15 +224,15 @@ function Hero({ onSearch, loading, onScrollTo }) {
           <BlurText text="Property Intelligence. Reimagined." />
         </h1>
 
-        <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 16, fontFamily: "'Barlow',sans-serif", fontWeight: 300, maxWidth: 540, lineHeight: 1.7, marginBottom: 40, animation: 'fadeUp 0.5s ease 0.35s both' }}>
+        <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 16, fontFamily: "'Barlow',sans-serif", fontWeight: 300, maxWidth: 540, lineHeight: 1.7, marginBottom: 40 }}>
           Enter any address in the world. Get real market data, neighborhood scores, climate analysis, and AI-powered investment insights — instantly.
         </p>
 
-        <div style={{ width: '100%', maxWidth: 600, animation: 'fadeUp 0.5s ease 0.5s both' }}>
+        <div style={{ width: '100%', maxWidth: 600 }}>
           <AddressSearch onSearch={onSearch} loading={loading} />
         </div>
 
-        <div style={{ display: 'flex', gap: 10, marginTop: 20, flexWrap: 'wrap', justifyContent: 'center', animation: 'fadeUp 0.5s ease 0.65s both' }}>
+        <div style={{ display: 'flex', gap: 10, marginTop: 20, flexWrap: 'wrap', justifyContent: 'center' }}>
           {[['140M+','US Properties'],['50+','Countries'],['10','Free / Month'],['<30s','Analysis time']].map(([val, lbl]) => (
             <div key={lbl} className="liquid-glass" style={{ borderRadius: 40, padding: '7px 16px', display: 'flex', alignItems: 'center', gap: 7 }}>
               <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 17, color: '#fff' }}>{val}</span>
@@ -241,7 +241,7 @@ function Hero({ onSearch, loading, onScrollTo }) {
           ))}
         </div>
 
-        <div style={{ position: 'absolute', bottom: 28, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, cursor: 'pointer', animation: 'float 2s ease-in-out infinite' }} onClick={() => onScrollTo('how-it-works')}>
+        <div style={{ position: 'absolute', bottom: 28, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, cursor: 'pointer' }} onClick={() => onScrollTo('how-it-works')}>
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style={{ opacity: 0.3 }}>
             <path d="M8 3v10M3 9l5 5 5-5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
@@ -326,8 +326,8 @@ function FeatureRows({ onScrollTo }) {
               <div className="liquid-glass" style={{ borderRadius: 18, overflow: 'hidden', aspectRatio: '4/3', position: 'relative' }}>
                 <img src={row.img} alt="" loading="lazy" decoding="async"
                   style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                {row.glow && <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 50% 50%,rgba(99,160,255,0.15) 0%,transparent 60%)', animation: 'glow-pulse 2.5s ease-in-out infinite', pointerEvents: 'none' }} />}
-                {row.shimmer && <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.05) 50%,transparent 100%)', backgroundSize: '200% 100%', animation: 'shimmer 2.5s linear infinite', pointerEvents: 'none' }} />}
+                
+                
               </div>
             </RevealRight>
           </div>
@@ -374,7 +374,7 @@ function FeaturesGrid() {
 function Stats() {
   return (
     <section style={{ padding: '80px 24px', maxWidth: 940, margin: '0 auto', position: 'relative', zIndex: 1 }}>
-      <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 560, height: 560, borderRadius: '50%', background: 'radial-gradient(circle,rgba(99,102,241,0.07) 0%,transparent 70%)', filter: 'blur(40px)', pointerEvents: 'none', animation: 'glow-pulse 5s ease-in-out infinite' }} />
+      <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 560, height: 560, borderRadius: '50%', background: 'radial-gradient(circle,rgba(99,102,241,0.07) 0%,transparent 65%)', pointerEvents: 'none' }} />
       <Reveal>
         <div className="liquid-glass-strong" style={{ borderRadius: 26, padding: '44px 28px', position: 'relative', zIndex: 1 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 28, textAlign: 'center' }}>
@@ -456,7 +456,7 @@ function CTAFooter({ onTermsClick, onScrollToTop, onUpgrade }) {
     <section style={{ padding: '96px 0 0', position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
       <SectionBg src={IMG.city} opacity={0.28} />
       <div style={{ maxWidth: 860, margin: '0 auto', textAlign: 'center', padding: '0 24px 80px', position: 'relative', zIndex: 2 }}>
-        <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: 600, height: 400, borderRadius: '50%', background: 'radial-gradient(circle,rgba(168,85,247,0.07) 0%,transparent 65%)', filter: 'blur(40px)', pointerEvents: 'none', animation: 'glow-pulse 5s ease-in-out infinite' }} />
+        <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: 600, height: 400, borderRadius: '50%', background: 'radial-gradient(circle,rgba(168,85,247,0.07) 0%,transparent 65%)', pointerEvents: 'none' }} />
         <Reveal>
           <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2.2rem,6vw,4.5rem)', color: '#fff', lineHeight: 0.9, letterSpacing: '-0.03em', marginBottom: 20 }}>
             <BlurText text="Your next property search starts here." />
@@ -597,7 +597,7 @@ export default function App() {
 
   if (authLoading) return (
     <div style={{ minHeight: '100vh', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 28, color: '#fff', animation: 'glow-pulse 2s ease-in-out infinite' }}>
+      <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 28, color: '#fff' }}>
         DW<span style={{ opacity: 0.4 }}>.</span>ELLING
       </div>
     </div>
