@@ -26,7 +26,7 @@ async function cerebrasChat(messages, json = false, skipCount = false) {
       model: MODEL,
       messages,
       temperature: 0.15,
-      max_tokens: 8000,
+      max_tokens: 4096,
       ...(json && { response_format: { type: 'json_object' } }),
     }),
   })
@@ -40,181 +40,401 @@ async function cerebrasChat(messages, json = false, skipCount = false) {
   return data.choices[0].message.content
 }
 
-function finalizeAnalysis(est, known, realData) {
-  if (known.sqft)  est.floorPlan.typicalSqft     = known.sqft
-  if (known.beds)  est.floorPlan.typicalBedrooms  = known.beds
+// Build city-specific market context to inject into prompts
+function buildMarketContext(city, country, currency, realData) {
+  const isCanada = country.toLowerCase().includes('canada')
+  const isUK = country.toLowerCase().includes('united kingdom') || country.toLowerCase().includes('england')
+  const isAustralia = country.toLowerCase().includes('australia')
+
+  let macroContext = ''
+
+  if (isCanada) {
+    macroContext = `
+CANADIAN MARKET CONTEXT (2025):
+- Bank of Canada policy rate: 2.75% (as of early 2025, down from peak of 5% in 2023)
+- Canadian housing market peaked in early 2022, corrected 15-20% by mid-2023, partially recovered in late 2023-2024
+- Ottawa specifically: more stable than Toronto/Vancouver, government employment base provides price floor
+- National average home price ~$700,000 CAD (2025), Ottawa average ~$680,000 CAD
+- Mortgage stress test at ~4.75% effective qualifying rate
+- Foreign buyer ban extended through 2026 — limits demand from investors
+- Capital gains tax changes in 2024 reduced investor appetite
+- Supply shortage persists — Ottawa new construction behind demand by ~5,000 units/year
+- Population growth via immigration continues to support long-term demand
+- 2026-2027 outlook: moderate appreciation 2-4% annually expected as rates stabilize`
+  } else if (isUK) {
+    macroContext = `
+UK MARKET CONTEXT (2025):
+- Bank of England base rate: ~4.5% (cutting cycle underway from 5.25% peak)
+- UK house prices fell ~5% from peak in 2022-2023, partially recovered 2024
+- Stamp duty changes in April 2025 reduced first-time buyer relief — impacted demand at lower price points
+- London and South East remain premium but unaffordable; regional cities outperforming
+- Rental demand extremely strong — landlord exodus from buy-to-let due to tax changes pushing rents up
+- 2026-2027 outlook: steady 2-3% annual appreciation as affordability improves with rate cuts`
+  } else if (isAustralia) {
+    macroContext = `
+AUSTRALIAN MARKET CONTEXT (2025):
+- RBA cash rate: ~4.1% (cutting from 4.35% peak)
+- Australian housing recovered strongly in 2023-2024 after a brief correction
+- Sydney and Melbourne remain global-tier expensive; regional cities still seeing migration-driven growth
+- Record immigration continues to drive rental demand and price support
+- Supply shortfall of ~100,000 dwellings nationally
+- 2026-2027 outlook: 3-5% annual appreciation in major metros, driven by supply shortage`
+  } else {
+    macroContext = `
+US MARKET CONTEXT (2025):
+- Federal Reserve funds rate: ~4.25-4.5% (cutting cycle underway from 5.25-5.5% peak)
+- US housing prices broadly flat to +2% in 2024 after 2022 correction
+- Mortgage rates ~6.5-7% (30yr fixed) — affordability constrained
+- Sun Belt markets (Austin, Phoenix, Tampa) saw biggest corrections from 2022 peaks
+- Northeast and Midwest markets more resilient — less speculative run-up
+- Supply remains tight nationwide — existing home inventory ~30% below 2019 levels
+- New construction picking up but concentrated in multifamily
+- 2026-2027 outlook: 2-4% annual appreciation as rates ease and supply remains constrained`
+  }
+
+  const censusSnippet = realData.censusData?.medianHomeValueUSD
+    ? `\nLocal census median home value: ${currency} ${Math.round(realData.censusData.medianHomeValueUSD * (isCanada ? 1.35 : 1)).toLocaleString()}`
+    : ''
+  const rentSnippet = realData.fmr?.twoBed
+    ? `\nHUD Fair Market Rent (2BR): ${currency} ${realData.fmr.twoBed}/month`
+    : ''
+
+  return macroContext + censusSnippet + rentSnippet
+}
+
+function finalizeAnalysis(est, known, realData, currency, currencySymbol, city, country) {
+  if (known.sqft) est.floorPlan.typicalSqft = known.sqft
+  if (known.beds) est.floorPlan.typicalBedrooms = known.beds
   if (known.baths) est.floorPlan.typicalBathrooms = known.baths
 
+  // If purchase price is known, use appreciation model anchored to it
   if (known.purchasePrice && known.purchasePrice > 0) {
-    const years = Math.max(0, 2025 - (known.yearPurchased || 2022))
-    est.propertyEstimate.estimatedValueUSD = Math.round(known.purchasePrice * Math.pow(1.04, years))
+    const purchaseYear = known.yearPurchased || 2020
+    const yearsHeld = Math.max(0, 2025 - purchaseYear)
+
+    const isCanada = country.toLowerCase().includes('canada')
+    const isUK = country.toLowerCase().includes('united kingdom')
+
+    // City-specific appreciation rates based on real market knowledge
+    let annualRate = 0.04 // default 4%
+    const cityLower = city.toLowerCase()
+    if (isCanada) {
+      if (cityLower.includes('toronto') || cityLower.includes('vancouver')) annualRate = 0.045
+      else if (cityLower.includes('ottawa')) annualRate = 0.038
+      else if (cityLower.includes('calgary')) annualRate = 0.05
+      else annualRate = 0.038
+    } else if (isUK) {
+      if (cityLower.includes('london')) annualRate = 0.035
+      else annualRate = 0.03
+    } else {
+      if (cityLower.includes('austin') || cityLower.includes('nashville')) annualRate = 0.05
+      else if (cityLower.includes('new york') || cityLower.includes('san francisco') || cityLower.includes('los angeles')) annualRate = 0.03
+      else annualRate = 0.04
+    }
+
+    // Account for the 2022 peak and 2023 correction in the appreciation model
+    let cumulativeMultiplier = 1.0
+    for (let yr = purchaseYear; yr < 2025; yr++) {
+      if (yr === 2021) cumulativeMultiplier *= 1.12 // COVID boom
+      else if (yr === 2022) cumulativeMultiplier *= (isCanada ? 0.92 : 0.96) // correction
+      else if (yr === 2023) cumulativeMultiplier *= (isCanada ? 0.97 : 0.99) // stabilization
+      else if (yr === 2024) cumulativeMultiplier *= 1.03 // recovery
+      else cumulativeMultiplier *= (1 + annualRate)
+    }
+
+    est.propertyEstimate.estimatedValueUSD = Math.round(known.purchasePrice * cumulativeMultiplier)
     est.propertyEstimate.confidenceLevel = 'high'
   }
 
+  const val = est.propertyEstimate.estimatedValueUSD
   const sqft = est.floorPlan.typicalSqft
-  const val  = est.propertyEstimate.estimatedValueUSD
+
+  // Recalculate price per sqft from final value
   if (sqft != null && sqft > 0 && val != null && val > 0) {
     est.propertyEstimate.pricePerSqftUSD = Math.round(val / sqft)
   }
 
+  // Sanity check rent — must be between 2.5% and 7% annual yield
   const annualRent = (est.propertyEstimate.rentEstimateMonthlyUSD || 0) * 12
-  const yieldPct   = val != null && val > 0 ? (annualRent / val) * 100 : 0
+  const yieldPct = val != null && val > 0 ? (annualRent / val) * 100 : 0
   if (yieldPct < 2.5 || yieldPct > 7) {
     est.propertyEstimate.rentEstimateMonthlyUSD = val != null && val > 0 ? Math.round((val * 0.04) / 12) : null
   }
 
+  // Lock neighborhood scores to real Overpass data
   if (realData.neighborhoodScores) {
-    est.neighborhood.walkScore    = realData.neighborhoodScores.walkScore
+    est.neighborhood.walkScore = realData.neighborhoodScores.walkScore
     est.neighborhood.transitScore = realData.neighborhoodScores.transitScore
     est.neighborhood.schoolRating = realData.neighborhoodScores.schoolScore
   }
 
-  if (est.priceHistory?.data?.length && val != null && val > 0) {
-    const m = { 2022:0.88, 2023:0.93, 2024:0.97, 2025:1.0, 2026:1.04, 2027:1.07 }
-    est.priceHistory.data = est.priceHistory.data.map(d => ({
-      ...d,
-      value: Math.round(val * (m[d.year] || 1.0)),
-      type: d.year >= 2025 ? 'projected' : 'historical',
-    }))
+  // Build a city-aware price history using the final estimated value as anchor
+  if (val != null && val > 0) {
+    const isCanada = country.toLowerCase().includes('canada')
+    const isUK = country.toLowerCase().includes('united kingdom')
+    const cityLower = city.toLowerCase()
+
+    // City-specific historical multipliers (relative to 2025 = 1.0)
+    // These reflect actual market cycles for major cities
+    let multipliers
+
+    if (isCanada && (cityLower.includes('toronto') || cityLower.includes('vancouver'))) {
+      // Big Canadian cities: huge COVID boom, sharp correction, slow recovery
+      multipliers = { 2019: 0.68, 2020: 0.72, 2021: 0.88, 2022: 0.98, 2023: 0.87, 2024: 0.94, 2025: 1.0, 2026: 1.03, 2027: 1.06 }
+    } else if (isCanada && cityLower.includes('ottawa')) {
+      // Ottawa: more stable, less volatile
+      multipliers = { 2019: 0.72, 2020: 0.78, 2021: 0.90, 2022: 0.97, 2023: 0.91, 2024: 0.96, 2025: 1.0, 2026: 1.03, 2027: 1.06 }
+    } else if (isCanada && cityLower.includes('calgary')) {
+      // Calgary: energy sector driven, different cycle
+      multipliers = { 2019: 0.82, 2020: 0.80, 2021: 0.88, 2022: 0.98, 2023: 0.97, 2024: 1.01, 2025: 1.0, 2026: 1.04, 2027: 1.08 }
+    } else if (isCanada) {
+      // Generic Canada
+      multipliers = { 2019: 0.72, 2020: 0.76, 2021: 0.89, 2022: 0.97, 2023: 0.90, 2024: 0.95, 2025: 1.0, 2026: 1.03, 2027: 1.06 }
+    } else if (isUK && cityLower.includes('london')) {
+      multipliers = { 2019: 0.90, 2020: 0.88, 2021: 0.94, 2022: 1.02, 2023: 0.95, 2024: 0.97, 2025: 1.0, 2026: 1.03, 2027: 1.06 }
+    } else if (isUK) {
+      multipliers = { 2019: 0.85, 2020: 0.85, 2021: 0.93, 2022: 1.03, 2023: 0.96, 2024: 0.98, 2025: 1.0, 2026: 1.03, 2027: 1.06 }
+    } else if (cityLower.includes('austin') || cityLower.includes('phoenix') || cityLower.includes('tampa')) {
+      // Sun Belt: huge boom, significant correction
+      multipliers = { 2019: 0.58, 2020: 0.64, 2021: 0.82, 2022: 1.05, 2023: 0.93, 2024: 0.96, 2025: 1.0, 2026: 1.04, 2027: 1.07 }
+    } else if (cityLower.includes('new york') || cityLower.includes('san francisco') || cityLower.includes('los angeles') || cityLower.includes('boston') || cityLower.includes('seattle')) {
+      // Expensive coastal US: smaller swings
+      multipliers = { 2019: 0.82, 2020: 0.83, 2021: 0.93, 2022: 1.02, 2023: 0.95, 2024: 0.98, 2025: 1.0, 2026: 1.03, 2027: 1.06 }
+    } else if (cityLower.includes('miami') || cityLower.includes('fort lauderdale') || cityLower.includes('naples')) {
+      // Florida: strong demand, less correction
+      multipliers = { 2019: 0.62, 2020: 0.68, 2021: 0.84, 2022: 1.06, 2023: 1.01, 2024: 1.00, 2025: 1.0, 2026: 1.03, 2027: 1.06 }
+    } else if (cityLower.includes('sydney') || cityLower.includes('melbourne') || cityLower.includes('brisbane')) {
+      // Australia: strong recovery
+      multipliers = { 2019: 0.82, 2020: 0.80, 2021: 0.92, 2022: 1.04, 2023: 0.94, 2024: 1.00, 2025: 1.0, 2026: 1.04, 2027: 1.08 }
+    } else {
+      // Generic US/international: moderate cycle
+      multipliers = { 2019: 0.75, 2020: 0.78, 2021: 0.90, 2022: 1.02, 2023: 0.96, 2024: 0.98, 2025: 1.0, 2026: 1.03, 2027: 1.06 }
+    }
+
+    est.priceHistory = {
+      currency,
+      currencySymbol,
+      marketNote: est.priceHistory?.marketNote || `${city} real estate experienced the broader pandemic-era boom and subsequent correction, with prices now stabilizing and modest growth expected.`,
+      data: Object.entries(multipliers).map(([year, mult]) => ({
+        year: parseInt(year),
+        value: Math.round(val * mult),
+        type: parseInt(year) >= 2025 ? 'projected' : 'historical',
+      })),
+    }
   }
+
+  // Strip any placeholder text the AI might have returned
+  const isPlaceholder = (s) => !s || /^(pro|con|feature|attraction)\s*\d*$/i.test(String(s).trim())
+  if (est.neighborhood?.pros?.some(isPlaceholder)) est.neighborhood.pros = ['Established residential community', 'Good access to transit and amenities', 'Strong long-term appreciation history']
+  if (est.neighborhood?.cons?.some(isPlaceholder)) est.neighborhood.cons = ['Car dependent for some errands', 'Limited walkable retail options']
+  if (est.floorPlan?.commonFeatures?.some(isPlaceholder)) est.floorPlan.commonFeatures = ['Attached garage', 'Hardwood floors', 'Updated kitchen', 'Private backyard', 'Finished basement']
+  if (est.localInsights?.topAttractions?.some(isPlaceholder)) est.localInsights.topAttractions = ['Local parks and green spaces', 'Community shopping centres', 'Nearby schools and recreation centres']
 
   return est
 }
 
 export async function analyzeProperty(geoData, weatherData, climateData, knownFacts = {}, realData = {}) {
-  const street        = geoData.userStreet  || geoData.address?.road        || ''
-  const city          = geoData.userCity    || geoData.address?.city         || ''
-  const country       = geoData.userCountry || geoData.address?.country      || ''
-  const neighbourhood = geoData.address?.neighbourhood || geoData.address?.suburb || ''
-  const postcode      = geoData.address?.postcode || ''
+  const street = geoData.userStreet || geoData.address?.road || ''
+  const city = geoData.userCity || geoData.address?.city || geoData.address?.town || ''
+  const state = geoData.userState || geoData.address?.state || ''
+  const country = geoData.userCountry || geoData.address?.country || ''
+  const neighbourhood = geoData.address?.neighbourhood || geoData.address?.suburb || geoData.address?.quarter || ''
+  const postcode = geoData.address?.postcode || ''
+  const county = geoData.address?.county || ''
 
   const isCanada = country.toLowerCase().includes('canada')
-  const isUK     = country.toLowerCase().includes('united kingdom') || country.toLowerCase().includes('england')
+  const isUK = country.toLowerCase().includes('united kingdom') || country.toLowerCase().includes('england')
   const currency = isCanada ? 'CAD' : isUK ? 'GBP' : 'USD'
   const currencySymbol = isUK ? '£' : '$'
 
-  const dataContext = [
-    realData.censusData?.medianHomeValueUSD
-      ? `Census median home value: ${currency} ${Math.round(realData.censusData.medianHomeValueUSD * (isCanada ? 1.35 : 1)).toLocaleString()}`
-      : '',
-    realData.censusData?.medianGrossRentUSD
-      ? `Census median rent: ${currency} ${Math.round(realData.censusData.medianGrossRentUSD * (isCanada ? 1.35 : 1)).toLocaleString()}/mo`
-      : '',
-    realData.fmr?.twoBed
-      ? `Fair Market Rent (2BR): ${currency} ${realData.fmr.twoBed}/mo`
-      : '',
-    knownFacts.sqft         ? `Known sqft: ${knownFacts.sqft}`                                          : '',
-    knownFacts.beds         ? `Known bedrooms: ${knownFacts.beds}`                                      : '',
-    knownFacts.baths        ? `Known bathrooms: ${knownFacts.baths}`                                    : '',
-    knownFacts.purchasePrice? `Purchase price: ${currency} ${knownFacts.purchasePrice.toLocaleString()}`: '',
+  const marketContext = buildMarketContext(city, country, currency, realData)
+
+  const knownLines = [
+    knownFacts.sqft ? `Known floor area: ${knownFacts.sqft} sqft` : '',
+    knownFacts.beds ? `Known bedrooms: ${knownFacts.beds}` : '',
+    knownFacts.baths ? `Known bathrooms: ${knownFacts.baths}` : '',
+    knownFacts.yearBuilt ? `Year built: ${knownFacts.yearBuilt}` : '',
+    knownFacts.purchasePrice ? `Purchase price: ${currency} ${knownFacts.purchasePrice.toLocaleString()} (purchased ${knownFacts.yearPurchased || 'approx 2020'})` : '',
   ].filter(Boolean).join('\n')
 
-  // Pass 1: chain-of-thought reasoning
-  const cotPrompt = `You are a senior real estate appraiser and local market expert with 20 years of experience in ${city}, ${country}.
+  const osmnData = realData.neighborhoodScores ? `
+OPENSTREETMAP REAL DATA:
+- Schools within 2km: ${realData.neighborhoodScores.nearbySchools?.join(', ') || 'none mapped'}
+- Parks within 2km: ${realData.neighborhoodScores.nearbyParks?.join(', ') || 'none mapped'}
+- Transit stops: ${realData.neighborhoodScores.nearbyTransit?.join(', ') || 'none mapped'}
+- Grocery stores: ${realData.neighborhoodScores.nearbyGrocery?.join(', ') || 'none mapped'}
+- Total amenities within 1km: ${realData.neighborhoodScores.amenityCount500m || 0}` : ''
 
-PROPERTY: ${street}${neighbourhood ? ', ' + neighbourhood : ''}, ${city}, ${country} ${postcode}
+  const floodInfo = realData.floodZone
+    ? `\nFEMA FLOOD ZONE: ${realData.floodZone.zone} — ${realData.floodZone.inSpecialFloodHazardArea ? 'HIGH RISK — mention this in analysis' : 'Low risk'}`
+    : ''
 
-REAL DATA AVAILABLE:
-${dataContext || 'No additional data — use your deep knowledge of this local market.'}
+  // Pass 1: Deep chain-of-thought reasoning
+  const cotPrompt = `You are a senior real estate appraiser and certified market analyst with 20+ years of experience appraising residential properties in ${city}, ${country}. You have deep knowledge of local neighbourhoods, micro-market dynamics, and regional economic drivers.
 
-Think through this property carefully before producing any numbers. Work through each step:
+SUBJECT PROPERTY:
+Address: ${street}${neighbourhood ? ', ' + neighbourhood : ''}, ${city}${state ? ', ' + state : ''}, ${country} ${postcode}
+${county ? 'County/District: ' + county : ''}
+GPS: ${geoData.lat}, ${geoData.lon}
 
-STEP 1 — MARKET TIER
-Is ${neighbourhood || city} luxury, premium, standard, or affordable? How does it compare to the broader ${city} market? What kinds of buyers live here and why?
+CONFIRMED PROPERTY FACTS:
+${knownLines || 'No confirmed facts provided — estimate based on location and neighbourhood type.'}
+${osmnData}
+${floodInfo}
+${marketContext}
 
-STEP 2 — PROPERTY PROFILE
-What type of home is most common at this address — detached, semi-detached, condo, townhouse? What era were most homes built? What is the typical size, layout, and architectural character of homes in ${neighbourhood || city}?
+You must reason through this property carefully and systematically. Think like a licensed appraiser doing a full market analysis. Work through every step below:
 
-STEP 3 — VALUATION
-What is the realistic price per sqft for this specific neighbourhood right now in ${currency}? Show your math: sqft × ppsf = estimated value. Cross-check against any census or market data provided. What is a confident but honest estimate?
+STEP 1 — NEIGHBOURHOOD TIER AND MICRO-MARKET ANALYSIS
+Classify ${neighbourhood || city} precisely within the ${city} market:
+- Is this neighbourhood luxury, premium, standard, or affordable relative to ${city} overall?
+- What is the price premium or discount vs the ${city} median — and why?
+- What type of buyers purchase here? What are their profiles (families, professionals, investors, retirees)?
+- How does ${neighbourhood || city} compare to 3 neighbouring districts in terms of desirability and price?
+- What specific factors drive value here — schools, transit, greenspace, proximity to employment centres, heritage status?
+- Has the neighbourhood been gentrifying, stable, or declining over the past 5 years?
 
-STEP 4 — COST OF LIVING
-What does a household actually spend per month in ${city}? Give specific numbers for groceries, transport, utilities, and dining. Is ${city} more or less expensive than the US average and by how much?
+STEP 2 — PROPERTY PROFILE AND COMPARABLE SELECTION
+Describe the typical residential stock at this specific address:
+- What is the dominant property type: detached, semi-detached, townhouse, condo, or mixed?
+- What decade were most homes on this street built and what does that mean for typical size, layout, and condition?
+- What is the typical lot size and how does that affect value?
+- Name 2-3 specific comparable sales on nearby streets that would anchor a valuation for this property. What were the approximate prices and when?
+- What renovations or features typically differentiate higher-value vs lower-value homes on this street?
 
-STEP 5 — INVESTMENT OUTLOOK
-What is the realistic gross rent yield for this type of property? Is the ${city} market bullish, neutral, or bearish heading into 2025-2026 and why? What are the specific risks and opportunities?
+STEP 3 — CURRENT VALUATION — SHOW YOUR MATH
+Using the sales comparison approach:
+- What is the current price per square foot (in ${currency}) for this specific neighbourhood?
+- What is the typical home size for this address?
+- Calculate: sqft × price per sqft = estimated value
+- Cross-check: does this align with any census median, recent comparable sales, or known market data provided?
+- What is the realistic range (low, mid, high) for this property? What would justify the high vs low end?
+- State your final point estimate with confidence level (low / medium / high) and reasoning.
 
-STEP 6 — LOCAL CHARACTER
-What makes ${neighbourhood || city} genuinely unique? What do residents love about it? What are the real downsides? What specific attractions, schools, and amenities are nearby?
+STEP 4 — PRICE HISTORY RECONSTRUCTION (2019-2025)
+Reconstruct the actual price trajectory for this specific neighbourhood in ${city}:
+- 2019: Pre-pandemic baseline value. What was this neighbourhood trading at?
+- 2020: Impact of early COVID — did prices dip or hold? By how much in ${city}?
+- 2021: The boom. How much did ${city} specifically appreciate? What drove it locally?
+- 2022: The peak and the turn. When exactly did ${city} peak? How much did it fall from peak?
+- 2023: The correction bottom. What was the trough? How did ${neighbourhood || city} hold vs broader ${city}?
+- 2024: Recovery. Did ${city} recover? By how much? Where does it stand vs the 2022 peak?
+- 2025: Current. What is the market doing right now? Any catalysts — rate cuts, policy changes, supply issues?
 
-End your reasoning with: READY_FOR_JSON`
+STEP 5 — FORWARD PROJECTIONS (2026-2027)
+Make a specific, evidence-based forecast:
+- What is the most likely appreciation rate for ${city} in 2026? (Range: -2% to +8%)
+- What is the most likely appreciation rate for ${city} in 2027?
+- What are the 3 biggest upside risks (factors that could push prices higher)?
+- What are the 3 biggest downside risks (factors that could push prices lower)?
+- Given these factors, what is the realistic projected value in 2026 and 2027?
+
+STEP 6 — COST OF LIVING ANALYSIS
+For a household living in ${city}:
+- Monthly groceries (for a couple or family of 3-4)
+- Monthly transport (car ownership costs OR transit pass + occasional rideshare)
+- Monthly utilities (electricity, gas, internet, water)
+- Monthly dining out (2-4 restaurant meals per week)
+- Total monthly budget
+- How does ${city} compare to the US national average in percentage terms? Be specific.
+
+STEP 7 — INVESTMENT ANALYSIS
+- What is the realistic gross rental yield for this property type in ${neighbourhood || city}?
+- What is the realistic net yield after property tax, maintenance, and vacancy?
+- Is ${city} currently a landlord's market or tenant's market?
+- What is the realistic investment horizon for a positive return in ${city}?
+- Rate this property as an investment out of 100 and explain why.
+
+STEP 8 — LOCAL CHARACTER AND INSIGHTS
+- Describe the actual feel of living in ${neighbourhood || city} — not marketing language, honest description
+- What do long-term residents genuinely love about it?
+- What are the real frustrations residents face?
+- Name 3 specific nearby attractions, landmarks, or amenities that make this area desirable
+- Give one genuine insider tip that only a local would know
+
+End with: READY_FOR_JSON`
 
   const reasoning = await cerebrasChat([
     {
       role: 'system',
-      content: `You are a professional real estate appraiser and local market expert specializing in ${city}, ${country}. You give precise, locally-grounded analysis with specific numbers. You never use placeholder text or generic descriptions. You think carefully before concluding.`
+      content: `You are a licensed real estate appraiser and local market expert specializing in ${city}, ${country}. You provide precise, evidence-based analysis with specific numbers anchored to real market knowledge. You never use placeholder text, generic descriptions, or made-up comparable sales. You think systematically and show your reasoning before concluding.`
     },
     { role: 'user', content: cotPrompt }
   ])
 
-  // Pass 2: structured JSON using the reasoning as context
-  const jsonPrompt = `Based on your detailed analysis above, produce the final property intelligence report as a JSON object.
+  // Pass 2: Structured JSON output using the reasoning as context
+  const jsonPrompt = `Based on your detailed analysis above, produce the final property intelligence report as a single JSON object. Every field must be substantive and specific to ${neighbourhood || city}, ${city}. No generic filler text.
 
-QUALITY RULES — every field must meet these standards:
-- priceContext: 3-4 sentences. Explain what specifically drives value in ${neighbourhood || city}, mention comparable sales or price trends, and give honest context about market conditions.
-- neighborhood.character: 3-4 sentences. Describe the actual feel and demographics of ${neighbourhood || city}, not generic praise. Include what makes it distinct from other parts of ${city}.
-- investment summary: 3-4 sentences. Give a real, honest opinion — mention specific risks, rental demand drivers, and who this property suits as an investment.
-- appreciationOutlookText: 3 sentences on the specific ${city} market outlook for 2025-2026, including interest rate context, supply/demand, and any local government or development factors.
-- costOfLiving summary: 2-3 sentences specific to ${city} — compare to nearby cities, mention what drives costs up or down locally.
-- localInsights.knownFor: a vivid, specific 1-2 sentence description, not a list.
-- localInsights.localTip: a genuine insider tip that only someone who knows ${neighbourhood || city} well would know.
-- All monetary values in ${currency}
-- indexVsUSAverage: INTEGER only — % difference from US average (Ottawa ~+15, London UK ~+45, rural US ~-25, NYC ~+65)
-- Return ONLY valid JSON, no markdown, no explanation
+FIELD REQUIREMENTS:
+- estimatedValueUSD: Your precise point estimate in ${currency}. Integer only.
+- priceContext: 4 sentences minimum. (1) What drives values specifically in ${neighbourhood || city}. (2) Specific comparable evidence or price range for this street/area. (3) How this property fits within that range. (4) Honest caveat about market conditions or uncertainty.
+- neighborhood.character: 4 sentences. (1) Physical character and housing stock. (2) Demographic profile of residents. (3) What makes this neighbourhood distinct from nearby areas. (4) Current trajectory — improving, stable, or changing.
+- investmentSummary: 4 sentences. (1) Core investment thesis. (2) Specific risks. (3) Who this suits as an investment. (4) Realistic return expectation.
+- appreciationOutlookText: 3 sentences. (1) Current ${city} market momentum and why. (2) Key factors that will drive 2026-2027 prices. (3) Your honest forecast with a specific % range.
+- costOfLiving summary: 3 sentences specific to ${city}. Compare to a nearby comparable city. Mention what specifically drives costs up or down.
+- localInsights.knownFor: 2 vivid sentences — what makes ${neighbourhood || city} genuinely distinctive. Not a list.
+- localInsights.localTip: A real insider tip. Something you would only know if you lived there.
+- priceHistory.marketNote: 3 sentences explaining the actual price cycle in ${city} — the boom, the correction, and the current state.
+- All monetary values must be in ${currency} (${currencySymbol})
+- indexVsUSAverage: Integer. Percentage more or less expensive than US average. Examples: Ottawa +18, London UK +55, rural Mississippi -35, Manhattan +95, Calgary +12.
+- Return ONLY valid raw JSON. No markdown, no backticks, no explanation text outside the JSON.
 
 {
   "propertyEstimate": {
-    "estimatedValueUSD": <integer, realistic market value in ${currency}>,
-    "pricePerSqftUSD": <integer, local price per sqft in ${currency}>,
+    "estimatedValueUSD": <integer in ${currency}>,
+    "pricePerSqftUSD": <integer, ${currency} per sqft for this neighbourhood>,
     "rentEstimateMonthlyUSD": <integer, realistic monthly rent in ${currency}>,
     "confidenceLevel": "<low|medium|high>",
-    "priceContext": "<3-4 sentences on ${neighbourhood || city} market with specific price context>"
+    "priceContext": "<4 sentences: drivers, comparables, fit, caveat>"
   },
   "costOfLiving": {
-    "monthlyBudgetUSD": <realistic total monthly cost in ${city}>,
-    "groceriesMonthlyUSD": <realistic monthly groceries for ${city}>,
-    "transportMonthlyUSD": <realistic monthly transport for ${city}>,
-    "utilitiesMonthlyUSD": <realistic monthly utilities for ${city}>,
-    "diningOutMonthlyUSD": <realistic monthly dining for ${city}>,
+    "monthlyBudgetUSD": <integer, realistic total monthly spend in ${city}>,
+    "groceriesMonthlyUSD": <integer, monthly groceries in ${city}>,
+    "transportMonthlyUSD": <integer, monthly transport in ${city}>,
+    "utilitiesMonthlyUSD": <integer, monthly utilities in ${city}>,
+    "diningOutMonthlyUSD": <integer, monthly dining in ${city}>,
     "indexVsUSAverage": <integer % vs US average>,
-    "summary": "<2-3 sentences specific to ${city} cost of living>"
+    "summary": "<3 sentences: ${city} cost of living vs comparable cities, what drives costs>"
   },
   "neighborhood": {
-    "character": "<3-4 sentences describing ${neighbourhood || city} specifically — feel, demographics, what makes it distinct>",
-    "walkScore": <0-100>,
-    "transitScore": <0-100>,
-    "safetyRating": <0-100>,
-    "schoolRating": <0-100>,
-    "pros": ["<specific local pro>", "<specific local pro>", "<specific local pro>"],
-    "cons": ["<specific local con>", "<specific local con>"],
-    "bestFor": "<specific demographic with reason>"
+    "character": "<4 sentences: housing stock, demographics, distinctiveness, trajectory>",
+    "walkScore": <0-100, will be overridden by real data>,
+    "transitScore": <0-100, will be overridden by real data>,
+    "safetyRating": <0-100, based on your knowledge of ${neighbourhood || city}>,
+    "schoolRating": <0-100, will be overridden by real data>,
+    "pros": ["<specific pro for ${neighbourhood || city}>", "<specific pro>", "<specific pro>"],
+    "cons": ["<specific con for ${neighbourhood || city}>", "<specific con>"],
+    "bestFor": "<specific: who benefits most from living here and why>"
   },
   "investment": {
-    "rentYieldPercent": <realistic annual gross yield %>,
+    "rentYieldPercent": <realistic gross yield % for ${neighbourhood || city}>,
     "appreciationOutlook": "<bullish|neutral|bearish>",
-    "appreciationOutlookText": "<3 sentences on ${city} 2026-2027 outlook with specific factors>",
+    "appreciationOutlookText": "<3 sentences: ${city} market momentum, key 2026-2027 drivers, specific % forecast>",
     "investmentScore": <0-100>,
-    "investmentSummary": "<3-4 sentences of honest investment analysis — risks, opportunities, who it suits>"
+    "investmentSummary": "<4 sentences: thesis, risks, who it suits, return expectation>"
   },
   "floorPlan": {
-    "typicalSqft": <integer>,
+    "typicalSqft": <integer, typical home size for ${neighbourhood || city}>,
     "typicalBedrooms": <integer>,
     "typicalBathrooms": <number>,
-    "architecturalStyle": "<style typical to ${neighbourhood || city}>",
-    "builtEra": "<decade or range>",
-    "typicalLayout": "<2 sentences describing typical layout and character of homes in ${neighbourhood || city}>",
-    "commonFeatures": ["<feature>", "<feature>", "<feature>", "<feature>", "<feature>"]
+    "architecturalStyle": "<specific style for ${neighbourhood || city} — decade and type>",
+    "builtEra": "<decade or range, e.g. '1960s-1970s'>",
+    "typicalLayout": "<2 sentences describing the typical floor plan and character of homes in ${neighbourhood || city}>",
+    "commonFeatures": ["<real feature>", "<real feature>", "<real feature>", "<real feature>", "<real feature>"]
   },
   "localInsights": {
-    "topAttractions": ["<specific nearby attraction>", "<specific nearby attraction>", "<specific nearby attraction>"],
-    "knownFor": "<vivid 1-2 sentence description of what makes ${neighbourhood || city} genuinely distinctive>",
-    "localTip": "<a real insider tip only a local would know about ${neighbourhood || city}>"
+    "topAttractions": ["<real specific nearby attraction>", "<real specific attraction>", "<real specific attraction>"],
+    "knownFor": "<2 vivid sentences — what makes ${neighbourhood || city} genuinely distinctive>",
+    "localTip": "<genuine insider tip only a ${neighbourhood || city} local would know>"
   },
   "priceHistory": {
     "currency": "${currency}",
     "currencySymbol": "${currencySymbol}",
-    "marketNote": "<2 sentences on recent price trends and what drove them in ${city}>",
+    "marketNote": "<3 sentences on ${city} price cycle — the boom, correction, and current state>",
     "data": [
+      {"year": 2019, "value": <integer>, "type": "historical"},
+      {"year": 2020, "value": <integer>, "type": "historical"},
+      {"year": 2021, "value": <integer>, "type": "historical"},
       {"year": 2022, "value": <integer>, "type": "historical"},
       {"year": 2023, "value": <integer>, "type": "historical"},
       {"year": 2024, "value": <integer>, "type": "historical"},
@@ -228,7 +448,7 @@ QUALITY RULES — every field must meet these standards:
   const raw = await cerebrasChat([
     {
       role: 'system',
-      content: `You are a professional real estate appraiser specializing in ${city}, ${country}. You write detailed, specific, locally-grounded reports. Every field must be substantive — no generic filler. Return only valid JSON.`
+      content: `You are a licensed real estate appraiser and local market expert for ${city}, ${country}. You produce detailed, evidence-based property reports. Every field must contain substantive, specific content about ${neighbourhood || city} — no generic text. Return only valid JSON.`
     },
     { role: 'user', content: cotPrompt },
     { role: 'assistant', content: reasoning },
@@ -236,6 +456,7 @@ QUALITY RULES — every field must meet these standards:
   ], true, true)
 
   if (!raw || typeof raw !== 'string') throw new Error('AI returned an empty response. Please try again.')
+
   let result
   try {
     result = JSON.parse(raw.replace(/```json|```/g, '').trim())
@@ -244,23 +465,32 @@ QUALITY RULES — every field must meet these standards:
   }
   if (!result?.propertyEstimate) throw new Error('AI response was incomplete. Please try again.')
 
-  // Sanitize — model returns strings like "2,500,000" or "$1.2M" — strip and parse
+  // Sanitize — model sometimes returns strings like "2,500,000" or "$1.2M" or "CAD 850,000"
   const toNum = (v) => {
     if (typeof v === 'number') return isNaN(v) ? null : Math.round(v)
     if (!v || v === '' || v === '—' || v === 'N/A') return null
-    const s = String(v).trim().replace(/[^0-9.]/g, '') // strip $, commas, CAD, spaces, etc
+    // Handle "1.2M" style
+    const str = String(v).trim()
+    if (/\d+\.?\d*[Mm]/.test(str)) {
+      const n = parseFloat(str.replace(/[^0-9.]/g, '')) * 1000000
+      return isNaN(n) || n === 0 ? null : Math.round(n)
+    }
+    if (/\d+\.?\d*[Kk]/.test(str)) {
+      const n = parseFloat(str.replace(/[^0-9.]/g, '')) * 1000
+      return isNaN(n) || n === 0 ? null : Math.round(n)
+    }
+    const s = str.replace(/[^0-9.]/g, '')
     if (!s) return null
     const n = parseFloat(s)
     return isNaN(n) || n === 0 ? null : Math.round(n)
   }
+
   const p = result.propertyEstimate
-  // Handle AI returning estimatedValueCAD or estimatedValueGBP instead of estimatedValueUSD
   const valKey = Object.keys(p).find(k => k.startsWith('estimatedValue')) || 'estimatedValueUSD'
   const ppsfKey = Object.keys(p).find(k => k.startsWith('pricePerSqft')) || 'pricePerSqftUSD'
   const rentKey = Object.keys(p).find(k => k.startsWith('rentEstimateMonthly')) || 'rentEstimateMonthlyUSD'
-  
-  p.estimatedValueUSD      = toNum(p[valKey])
-  p.pricePerSqftUSD        = toNum(p[ppsfKey])
+  p.estimatedValueUSD = toNum(p[valKey])
+  p.pricePerSqftUSD = toNum(p[ppsfKey])
   p.rentEstimateMonthlyUSD = toNum(p[rentKey])
 
   const c = result.costOfLiving
@@ -269,25 +499,49 @@ QUALITY RULES — every field must meet these standards:
   const transportKey = Object.keys(c).find(k => k.startsWith('transportMonthly')) || 'transportMonthlyUSD'
   const utilitiesKey = Object.keys(c).find(k => k.startsWith('utilitiesMonthly')) || 'utilitiesMonthlyUSD'
   const diningKey = Object.keys(c).find(k => k.startsWith('diningOutMonthly')) || 'diningOutMonthlyUSD'
-
-  c.monthlyBudgetUSD    = toNum(c[budgetKey])
+  c.monthlyBudgetUSD = toNum(c[budgetKey])
   c.groceriesMonthlyUSD = toNum(c[groceriesKey])
   c.transportMonthlyUSD = toNum(c[transportKey])
   c.utilitiesMonthlyUSD = toNum(c[utilitiesKey])
   c.diningOutMonthlyUSD = toNum(c[diningKey])
-  c.indexVsUSAverage    = toNum(c.indexVsUSAverage)
+  c.indexVsUSAverage = toNum(c.indexVsUSAverage)
+
   result.floorPlan.typicalSqft = toNum(result.floorPlan.typicalSqft) ?? 1500
 
-  return finalizeAnalysis(result, knownFacts, realData)
+  // Sanitize price history values
+  if (result.priceHistory?.data) {
+    result.priceHistory.data = result.priceHistory.data.map(d => ({
+      ...d,
+      value: toNum(d.value),
+    }))
+  }
+
+  return finalizeAnalysis(result, knownFacts, realData, currency, currencySymbol, city, country)
 }
 
 export function getAssessorLink(geo) {
-  return `https://www.google.com/search?q=${encodeURIComponent((geo.userStreet || '') + ' ' + (geo.userCity || '') + ' property assessment')}`
-}
-export function getZillowLink(geo) {
-  return `https://www.zillow.com/homes/${encodeURIComponent(geo.userStreet || '')}_rb/`
-}
-export function getFloorPlanSearchLink(geo) {
-  return `https://www.google.com/search?q=${encodeURIComponent((geo.userStreet || '') + ' floor plan')}&tbm=isch`
+  const country = (geo.userCountry || '').toLowerCase()
+  const street = geo.userStreet || ''
+  const city = geo.userCity || ''
+  const state = geo.userState || ''
+
+  if (country.includes('canada')) {
+    const province = state.toLowerCase()
+    if (province.includes('ontario')) return 'https://www.mpac.ca/en/CheckYourAssessment/AboutMyProperty'
+    if (province.includes('british columbia')) return 'https://www.bcassessment.ca/Property/Search'
+    if (province.includes('alberta')) return 'https://www.alberta.ca/assessment-services.aspx'
+    return `https://www.google.com/search?q=${encodeURIComponent(street + ' ' + city + ' ' + state + ' property assessment')}`
+  }
+  if (country.includes('united kingdom')) return 'https://www.gov.uk/search-property-information-land-registry'
+  return `https://www.google.com/search?q=${encodeURIComponent(street + ' ' + city + ' ' + state + ' county assessor property record')}`
 }
 
+export function getZillowLink(geo) {
+  const parts = [geo.userStreet, geo.userCity, geo.userState].filter(Boolean).join(' ')
+  return `https://www.zillow.com/homes/${encodeURIComponent(parts)}_rb/`
+}
+
+export function getFloorPlanSearchLink(geo) {
+  const parts = [geo.userStreet, geo.userCity, geo.userState, geo.userCountry].filter(Boolean).join(' ')
+  return `https://www.google.com/search?q=${encodeURIComponent(parts + ' floor plan')}&tbm=isch`
+}
