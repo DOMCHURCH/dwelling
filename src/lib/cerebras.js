@@ -1,7 +1,7 @@
 import { supabase } from './supabase'
 
 const CEREBRAS_BASE = '/api/cerebras'
-const MODEL = 'llama-3.1-8b'
+const MODEL = 'llama-3.3-70b'
 
 async function getAuthToken() {
   const { data: { session } } = await supabase.auth.getSession()
@@ -235,19 +235,21 @@ QUALITY RULES — every field must meet these standards:
     { role: 'user', content: jsonPrompt }
   ], true, true)
 
-  const result = JSON.parse(raw.replace(/```json|```/g, '').trim())
+  if (!raw || typeof raw !== 'string') throw new Error('AI returned an empty response. Please try again.')
+  let result
+  try {
+    result = JSON.parse(raw.replace(/```json|```/g, '').trim())
+  } catch {
+    throw new Error('AI response could not be parsed. Please try again.')
+  }
+  if (!result?.propertyEstimate) throw new Error('AI response was incomplete. Please try again.')
 
-  // Sanitize — model returns strings like "2,500,000", "$1.2M", "850K CAD" — handle suffixes
+  // Sanitize — model returns strings like "2,500,000" or "$1.2M" — strip and parse
   const toNum = (v) => {
     if (typeof v === 'number') return Math.round(v)
     if (!v) return 0
-    const s = String(v).trim()
-    const mMatch = s.match(/([0-9,.]+)\s*[Mm]/)
-    if (mMatch) return Math.round(parseFloat(mMatch[1].replace(/,/g, '')) * 1_000_000)
-    const kMatch = s.match(/([0-9,.]+)\s*[Kk]/)
-    if (kMatch) return Math.round(parseFloat(kMatch[1].replace(/,/g, '')) * 1_000)
-    const clean = s.replace(/[^0-9.]/g, '')
-    const n = parseFloat(clean)
+    const s = String(v).replace(/[^0-9.]/g, '') // strip $, commas, CAD, spaces
+    const n = parseFloat(s)
     return isNaN(n) ? 0 : Math.round(n)
   }
   const p = result.propertyEstimate
