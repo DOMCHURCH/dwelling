@@ -1,5 +1,4 @@
 import { useState } from 'react'
-
 import { supabase } from '../lib/supabase'
 
 const TERMS = [
@@ -24,6 +23,7 @@ export default function AuthModal({ onAuth }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [showTerms, setShowTerms] = useState(false)
+  const [confirmEmail, setConfirmEmail] = useState(null)
 
   const submit = async () => {
     if (!email || !password) return setError('Please fill in all fields.')
@@ -34,8 +34,28 @@ export default function AuthModal({ onAuth }) {
       if (mode === 'signup') {
         const { data, error: e } = await supabase.auth.signUp({ email, password })
         if (e) throw e
-        await fetch('/api/register', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ userId:data.user.id, email:data.user.email }) })
-        onAuth(data.user)
+
+        // identities array is empty if email is already registered
+        if (data.user && data.user.identities && data.user.identities.length === 0) {
+          throw new Error('An account with this email already exists. Try signing in instead.')
+        }
+
+        // Try to create the user row — may fail silently if no session yet
+        try {
+          await fetch('/api/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: data.user.id, email: data.user.email }),
+          })
+        } catch { /* will retry on first sign in */ }
+
+        // If session exists, email confirmation is disabled in Supabase — proceed directly
+        if (data.session) {
+          onAuth(data.user)
+        } else {
+          // Email confirmation required — show the confirmation screen
+          setConfirmEmail(email)
+        }
       } else {
         const { data, error: e } = await supabase.auth.signInWithPassword({ email, password })
         if (e) throw e
@@ -49,6 +69,8 @@ export default function AuthModal({ onAuth }) {
         setError('An account with this email already exists. Try signing in instead.')
       } else if (msg.includes('Password should')) {
         setError('Password must be at least 6 characters.')
+      } else if (msg.includes('Email not confirmed') || msg.includes('email_not_confirmed')) {
+        setConfirmEmail(email)
       } else {
         setError(msg || 'Something went wrong. Please try again.')
       }
@@ -59,6 +81,55 @@ export default function AuthModal({ onAuth }) {
   const focus = e => { e.target.style.borderColor='rgba(255,255,255,0.3)'; e.target.style.background='rgba(255,255,255,0.08)' }
   const unfocus = e => { e.target.style.borderColor='rgba(255,255,255,0.1)'; e.target.style.background='rgba(255,255,255,0.05)' }
 
+  // ── Email confirmation screen ──────────────────────────────────────────────
+  if (confirmEmail) {
+    return (
+      <div style={{ position:'fixed', inset:0, zIndex:1000, background:'rgba(0,0,0,0.88)', backdropFilter:'blur(8px)', display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
+        <div className="liquid-glass-strong" style={{ borderRadius:24, maxWidth:440, width:'100%', padding:40, animation:'fadeUp 0.35s ease', textAlign:'center' }}>
+
+          {/* Envelope icon */}
+          <div style={{ width:72, height:72, borderRadius:'50%', background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 28px', fontSize:32 }}>
+            ✉️
+          </div>
+
+          <div style={{ fontFamily:"'Instrument Serif',serif", fontStyle:'italic', fontSize:26, color:'#fff', marginBottom:12 }}>
+            Check your inbox
+          </div>
+
+          <p style={{ fontFamily:"'Barlow',sans-serif", fontWeight:300, fontSize:14, color:'rgba(255,255,255,0.5)', lineHeight:1.7, marginBottom:6 }}>
+            We sent a confirmation link to
+          </p>
+          <p style={{ fontFamily:"'Barlow',sans-serif", fontWeight:500, fontSize:15, color:'#fff', marginBottom:28, wordBreak:'break-all' }}>
+            {confirmEmail}
+          </p>
+
+          <div className="liquid-glass" style={{ borderRadius:14, padding:'16px 20px', marginBottom:28, textAlign:'left' }}>
+            <p style={{ fontFamily:"'Barlow',sans-serif", fontWeight:300, fontSize:13, color:'rgba(255,255,255,0.6)', lineHeight:1.75, margin:0 }}>
+              Click the link in the email to activate your account, then return here and sign in.
+              <br /><br />
+              <span style={{ color:'rgba(255,255,255,0.35)' }}>Don't see it? Check your spam or junk folder.</span>
+            </p>
+          </div>
+
+          <button
+            onClick={() => { setConfirmEmail(null); setMode('signin'); setPassword('') }}
+            style={{ width:'100%', padding:'14px', background:'#fff', border:'none', borderRadius:40, color:'#000', fontFamily:"'Barlow',sans-serif", fontWeight:600, fontSize:14, cursor:'pointer', marginBottom:12, transition:'background 0.2s' }}
+          >
+            Go to Sign In →
+          </button>
+
+          <button
+            onClick={() => setConfirmEmail(null)}
+            style={{ background:'none', border:'none', color:'rgba(255,255,255,0.25)', fontFamily:"'Barlow',sans-serif", fontSize:12, cursor:'pointer', padding:'4px' }}
+          >
+            ← Back
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Normal auth form ───────────────────────────────────────────────────────
   return (
     <>
       <div style={{ position:'fixed', inset:0, zIndex:1000, background:'rgba(0,0,0,0.88)', backdropFilter:'blur(8px)', display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
