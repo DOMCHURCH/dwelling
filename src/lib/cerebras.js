@@ -11,7 +11,7 @@ async function getAuthToken() {
   return null
 }
 
-async function cerebrasChat(messages, json = false) {
+async function cerebrasChat(messages, json = false, skipCount = false) {
   const token = await getAuthToken()
   if (!token) throw new Error('Not authenticated. Please sign in again.')
 
@@ -20,6 +20,7 @@ async function cerebrasChat(messages, json = false) {
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
+      ...(skipCount && { 'X-Skip-Count': 'true' }),
     },
     body: JSON.stringify({
       model: MODEL,
@@ -232,9 +233,24 @@ QUALITY RULES — every field must meet these standards:
     { role: 'user', content: cotPrompt },
     { role: 'assistant', content: reasoning },
     { role: 'user', content: jsonPrompt }
-  ], true)
+  ], true, true)
 
   const result = JSON.parse(raw.replace(/```json|```/g, '').trim())
+
+  // Sanitize — model sometimes returns null or string for numeric fields
+  const p = result.propertyEstimate
+  p.estimatedValueUSD     = parseInt(p.estimatedValueUSD)     || 0
+  p.pricePerSqftUSD       = parseInt(p.pricePerSqftUSD)       || 0
+  p.rentEstimateMonthlyUSD= parseInt(p.rentEstimateMonthlyUSD)|| 0
+  const c = result.costOfLiving
+  c.monthlyBudgetUSD   = parseInt(c.monthlyBudgetUSD)   || 0
+  c.groceriesMonthlyUSD= parseInt(c.groceriesMonthlyUSD)|| 0
+  c.transportMonthlyUSD= parseInt(c.transportMonthlyUSD)|| 0
+  c.utilitiesMonthlyUSD= parseInt(c.utilitiesMonthlyUSD)|| 0
+  c.diningOutMonthlyUSD= parseInt(c.diningOutMonthlyUSD)|| 0
+  c.indexVsUSAverage   = parseInt(c.indexVsUSAverage)   || 0
+  result.floorPlan.typicalSqft = parseInt(result.floorPlan.typicalSqft) || 1500
+
   return finalizeAnalysis(result, knownFacts, realData)
 }
 
