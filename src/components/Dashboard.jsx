@@ -5,8 +5,8 @@ import ScoreRing from './ScoreRing'
 import PriceHistoryChart from './PriceHistoryChart'
 import { weatherCodeToDescription } from '../lib/weather'
 
-const fmt = (n) => (n != null && n !== 0) ? n.toLocaleString('en-US', { maximumFractionDigits: 0 }) : '—'
-const fmtUSD = (n) => (n != null && n !== 0) ? `$${n.toLocaleString('en-US', { maximumFractionDigits: 0 })}` : '—'
+const fmt = (n) => (n != null) ? n.toLocaleString('en-US', { maximumFractionDigits: 0 }) : '—'
+const fmtUSD = (n) => (n != null) ? `$${n.toLocaleString('en-US', { maximumFractionDigits: 0 })}` : '—'
 const pct = (n) => (n != null && n !== 0 && !isNaN(n)) ? `${Math.round(n)}%` : '—'
 
 function Tag({ children, color = 'default' }) {
