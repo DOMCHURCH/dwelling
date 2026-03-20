@@ -41,7 +41,18 @@ export default function AuthModal({ onAuth }) {
         if (e) throw e
         onAuth(data.user)
       }
-    } catch(e) { setError(e.message ?? 'Something went wrong.') }
+    } catch(e) {
+      const msg = e.message ?? ''
+      if (msg.includes('Invalid login') || msg.includes('invalid_credentials')) {
+        setError('Incorrect email or password.')
+      } else if (msg.includes('already registered') || msg.includes('already exists')) {
+        setError('An account with this email already exists. Try signing in instead.')
+      } else if (msg.includes('Password should')) {
+        setError('Password must be at least 6 characters.')
+      } else {
+        setError(msg || 'Something went wrong. Please try again.')
+      }
+    }
     finally { setLoading(false) }
   }
 
