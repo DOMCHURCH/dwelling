@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { motion } from 'framer-motion'
 import SectionCard from './SectionCard'
 import StatCard from './StatCard'
 import ScoreRing from './ScoreRing'
@@ -197,13 +196,12 @@ function CorrectionsPanel({ ai, knownFacts = {}, onRecalculate }) {
               </div>
             ))}
           </div>
-          <motion.button
-            onClick={handleRecalculate}
-            whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-            style={{ padding: "10px 24px", background: "#ffffff", border: "none", borderRadius: 40, color: "#000", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "'Barlow', sans-serif" }}
-          >
+          <button onClick={handleRecalculate}
+            style={{ padding: "10px 24px", background: "#ffffff", border: "none", borderRadius: 40, color: "#000", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "'Barlow', sans-serif", transition: "transform 0.15s" }}
+            onMouseEnter={e=>e.currentTarget.style.transform='scale(1.02)'}
+            onMouseLeave={e=>e.currentTarget.style.transform=''}>
             Recalculate with corrections
-          </motion.button>
+          </button>
         </div>
       )}
     </div>
@@ -223,13 +221,7 @@ export default function Dashboard({ data, onRecalculate }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
       {/* Address Banner */}
-      <motion.div
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
-        className="liquid-glass"
-        style={{ borderRadius: 20, padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 14 }}
-      >
+      <div className="liquid-glass" style={{ borderRadius: 20, padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 14 }}>
         <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M8 1C5.24 1 3 3.24 3 6c0 3.75 5 9 5 9s5-5.25 5-9c0-2.76-2.24-5-5-5zm0 6.75A1.75 1.75 0 1 1 8 4.25a1.75 1.75 0 0 1 0 3.5z" fill="rgba(255,255,255,0.7)" />
@@ -252,16 +244,10 @@ export default function Dashboard({ data, onRecalculate }) {
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', fontFamily: "'Barlow', sans-serif", fontWeight: 300 }}>{weatherDesc}</div>
           </div>
         )}
-      </motion.div>
+      </div>
 
       {/* Map */}
-      <motion.div
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.1, ease: [0.25, 0.1, 0.25, 1] }}
-        className="liquid-glass"
-        style={{ borderRadius: 20, overflow: 'hidden', height: 280 }}
-      >
+      <div className="liquid-glass" style={{ borderRadius: 20, overflow: 'hidden', height: 280 }}>
         <iframe
           title="Property Location"
           width="100%"
@@ -270,7 +256,7 @@ export default function Dashboard({ data, onRecalculate }) {
           loading="lazy"
           src={`https://www.openstreetmap.org/export/embed.html?bbox=${geo.lon - 0.005}%2C${geo.lat - 0.003}%2C${geo.lon + 0.005}%2C${geo.lat + 0.003}&layer=mapnik&marker=${geo.lat}%2C${geo.lon}`}
         />
-      </motion.div>
+      </div>
 
       {/* Share button */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: -8 }}>
