@@ -1,5 +1,7 @@
 # Dwelling — Property Intelligence App
 
+**Live site: [dwelling-three.vercel.app](https://dwelling-three.vercel.app)**
+
 Enter any address in the world and get a full property intelligence report including estimated value, cost of living, climate data, neighborhood scores, floor plan info, and investment analysis.
 
 ## APIs Used
@@ -9,77 +11,67 @@ Enter any address in the world and get a full property intelligence report inclu
 | [Nominatim](https://nominatim.openstreetmap.org) | No | Free forever |
 | [Open-Meteo](https://open-meteo.com) | No | Free forever |
 | [Countriesnow](https://countriesnow.space) | No | Free forever |
-| [Groq](https://console.groq.com) | Yes (free) | Free tier, no credit card |
+| [Overpass / OpenStreetMap](https://overpass-api.de) | No | Free forever |
+| [US Census Bureau](https://api.census.gov) | No | Free forever |
+| [HUD API](https://www.huduser.gov/portal/dataset/fmr-api.html) | No | Free forever |
+| [FEMA Flood Map](https://msc.fema.gov/arcgis/rest/services) | No | Free forever |
+| [Cerebras](https://cloud.cerebras.ai) | Yes (free) | Free tier |
+| [Supabase](https://supabase.com) | Yes (free) | Free tier |
 
-## Setup
+## Deploy (Vercel)
 
-### 1. Clone the repo
-```bash
-git clone https://github.com/YOUR_USERNAME/dwelling
-cd dwelling
-```
-
-### 2. Install dependencies
-```bash
-npm install
-```
-
-### 3. Add your Groq API key
-Create a `.env` file in the root (never commit this):
-```
-VITE_GROQ_API_KEY=your_groq_key_here
-```
-
-Get your free key at [console.groq.com](https://console.groq.com) — no credit card needed.
-
-### 4. Run locally
-```bash
-npm run dev
-```
-
-### 5. Build for production
-```bash
-npm run build
-```
-
-## Deploy
-
-### Netlify
-1. Push to GitHub
-2. Connect repo on [netlify.com](https://netlify.com)
-3. Set build command: `npm run build`
-4. Set publish directory: `dist`
-5. Add environment variable: `VITE_GROQ_API_KEY` in Site Settings → Environment Variables
-
-### Vercel
 1. Push to GitHub
 2. Import on [vercel.com](https://vercel.com)
-3. Add `VITE_GROQ_API_KEY` in Project Settings → Environment Variables
+3. Add all environment variables in Project Settings → Environment Variables
+4. Vercel auto-detects Vite — no build command changes needed
 
 ## Project Structure
 
 ```
 dwelling/
+├── api/
+│   ├── cerebras.js          # AI property analysis (serverless)
+│   ├── fema.js              # Flood zone lookup (serverless)
+│   └── register.js          # User registration (serverless)
 ├── src/
 │   ├── lib/
-│   │   ├── nominatim.js     # Address geocoding + autocomplete
+│   │   ├── nominatim.js     # Address geocoding
 │   │   ├── weather.js       # Climate + forecast data
-│   │   ├── countriesnow.js  # Country/city data
-│   │   └── groq.js          # AI property analysis
+│   │   ├── overpass.js      # Neighborhood scores from OSM
+│   │   ├── census.js        # US Census housing data
+│   │   ├── hud.js           # Fair market rents + flood zones
+│   │   ├── cerebras.js      # AI analysis client
+│   │   └── supabase.js      # Auth + database client
 │   ├── components/
 │   │   ├── AddressSearch.jsx
+│   │   ├── AuthModal.jsx
 │   │   ├── Dashboard.jsx
+│   │   ├── GlobalBackground.jsx
 │   │   ├── LoadingState.jsx
+│   │   ├── PaywallModal.jsx
+│   │   ├── PriceHistoryChart.jsx
 │   │   ├── ScoreRing.jsx
 │   │   ├── SectionCard.jsx
 │   │   └── StatCard.jsx
+│   ├── hooks/
+│   │   ├── useCountUp.js
+│   │   └── useInView.js
 │   ├── App.jsx
+│   ├── images.js
 │   ├── main.jsx
 │   └── index.css
-├── .env.example             # Safe to commit — shows required keys
-├── .gitignore               # .env is gitignored
+├── .env.example
+├── .gitignore
+├── vercel.json
 └── vite.config.js
 ```
+
+## Pricing
+
+| Plan | Price | Analyses |
+|------|-------|----------|
+| Free | $0/month | 10/month |
+| Pro | $9/month | Unlimited |
 
 ## Disclaimer
 
