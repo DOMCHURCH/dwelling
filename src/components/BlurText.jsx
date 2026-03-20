@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 
-// Pure CSS transitions triggered by IntersectionObserver.
-// Zero framer-motion — runs on compositor thread only.
 export default function BlurText({ text, className = '', style = {} }) {
   const ref = useRef(null)
   const [visible, setVisible] = useState(false)
@@ -9,6 +7,12 @@ export default function BlurText({ text, className = '', style = {} }) {
   useEffect(() => {
     const el = ref.current
     if (!el) return
+    // Check if already in viewport on mount — show immediately, no flash
+    const rect = el.getBoundingClientRect()
+    if (rect.top < window.innerHeight) {
+      setVisible(true)
+      return
+    }
     const obs = new IntersectionObserver(
       ([entry]) => { if (entry.isIntersecting) { setVisible(true); obs.unobserve(el) } },
       { threshold: 0.1 }
@@ -25,10 +29,10 @@ export default function BlurText({ text, className = '', style = {} }) {
           marginRight: '0.25em',
           opacity: visible ? 1 : 0,
           filter: visible ? 'blur(0px)' : 'blur(4px)',
-          transform: visible ? 'translateY(0)' : 'translateY(10px)',
-          // CSS transition — runs on GPU compositor, no JS per frame
-          transition: `opacity 0.4s ease ${i * 30}ms, filter 0.4s ease ${i * 30}ms, transform 0.4s ease ${i * 30}ms`,
-          willChange: visible ? 'auto' : 'opacity, filter, transform',
+          transform: visible ? 'translateY(0)' : 'translateY(8px)',
+          transition: visible
+            ? `opacity 0.4s ease ${i * 30}ms, filter 0.4s ease ${i * 30}ms, transform 0.4s ease ${i * 30}ms`
+            : 'none',
         }}>
           {word}
         </span>
