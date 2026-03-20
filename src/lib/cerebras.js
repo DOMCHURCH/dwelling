@@ -237,19 +237,26 @@ QUALITY RULES — every field must meet these standards:
 
   const result = JSON.parse(raw.replace(/```json|```/g, '').trim())
 
-  // Sanitize — model sometimes returns null or string for numeric fields
+  // Sanitize — model returns strings like "2,500,000" or "$1.2M" — strip and parse
+  const toNum = (v) => {
+    if (typeof v === 'number') return Math.round(v)
+    if (!v) return 0
+    const s = String(v).replace(/[^0-9.]/g, '') // strip $, commas, CAD, spaces
+    const n = parseFloat(s)
+    return isNaN(n) ? 0 : Math.round(n)
+  }
   const p = result.propertyEstimate
-  p.estimatedValueUSD     = parseInt(p.estimatedValueUSD)     || 0
-  p.pricePerSqftUSD       = parseInt(p.pricePerSqftUSD)       || 0
-  p.rentEstimateMonthlyUSD= parseInt(p.rentEstimateMonthlyUSD)|| 0
+  p.estimatedValueUSD      = toNum(p.estimatedValueUSD)
+  p.pricePerSqftUSD        = toNum(p.pricePerSqftUSD)
+  p.rentEstimateMonthlyUSD = toNum(p.rentEstimateMonthlyUSD)
   const c = result.costOfLiving
-  c.monthlyBudgetUSD   = parseInt(c.monthlyBudgetUSD)   || 0
-  c.groceriesMonthlyUSD= parseInt(c.groceriesMonthlyUSD)|| 0
-  c.transportMonthlyUSD= parseInt(c.transportMonthlyUSD)|| 0
-  c.utilitiesMonthlyUSD= parseInt(c.utilitiesMonthlyUSD)|| 0
-  c.diningOutMonthlyUSD= parseInt(c.diningOutMonthlyUSD)|| 0
-  c.indexVsUSAverage   = parseInt(c.indexVsUSAverage)   || 0
-  result.floorPlan.typicalSqft = parseInt(result.floorPlan.typicalSqft) || 1500
+  c.monthlyBudgetUSD    = toNum(c.monthlyBudgetUSD)
+  c.groceriesMonthlyUSD = toNum(c.groceriesMonthlyUSD)
+  c.transportMonthlyUSD = toNum(c.transportMonthlyUSD)
+  c.utilitiesMonthlyUSD = toNum(c.utilitiesMonthlyUSD)
+  c.diningOutMonthlyUSD = toNum(c.diningOutMonthlyUSD)
+  c.indexVsUSAverage    = toNum(c.indexVsUSAverage)
+  result.floorPlan.typicalSqft = toNum(result.floorPlan.typicalSqft) || 1500
 
   return finalizeAnalysis(result, knownFacts, realData)
 }
