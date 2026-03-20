@@ -1,7 +1,7 @@
 import { supabase } from './supabase'
 
 const CEREBRAS_BASE = '/api/cerebras'
-const MODEL = 'llama-3.3-70b'
+const MODEL = 'llama-3.1-8b'
 
 async function getAuthToken() {
   const { data: { session } } = await supabase.auth.getSession()
@@ -26,7 +26,7 @@ async function cerebrasChat(messages, json = false, skipCount = false) {
       model: MODEL,
       messages,
       temperature: 0.15,
-      max_tokens: 4096,
+      max_tokens: 8000,
       ...(json && { response_format: { type: 'json_object' } }),
     }),
   })
