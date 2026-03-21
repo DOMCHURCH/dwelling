@@ -9,29 +9,19 @@ import PriceHistoryChart from './PriceHistoryChart'
 // For best results with real street-level photos, add a Google Maps API key
 // to VITE_GOOGLE_MAPS_KEY in Vercel env vars — then Google Street View activates.
 function StreetViewImage({ lat, lon, address }) {
-  const [imgError, setImgError] = useState(false)
-  const [source, setSource] = useState('google')
-
   const googleKey = import.meta.env.VITE_GOOGLE_MAPS_KEY
-  
-  // Google Street View Static API — free up to 25,000/day with key
+
+  // Determine initial source — if no google key, go straight to mapillary
+  const [source, setSource] = useState(googleKey ? 'google' : 'mapillary')
+
   const googleUrl = googleKey
     ? `https://maps.googleapis.com/maps/api/streetview?size=800x400&location=${lat},${lon}&fov=90&pitch=0&key=${googleKey}`
     : null
 
-  // Mapillary embed — completely free, shows crowdsourced street photos
   const mapillaryUrl = `https://www.mapillary.com/embed?map_style=Mapillary%20dark&image_key=latest&style=classic&traffic_sign_layer=false&map_layer=false&lat=${lat}&lng=${lon}&z=17&menu=false`
 
-  // OSM static map as final fallback
-  const osmUrl = `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lon}&zoom=17&size=800x300&markers=${lat},${lon},red-pushpin`
-
-  if (imgError && source === 'google') {
-    setSource('mapillary')
-    setImgError(false)
-  }
-
   return (
-    <div style={{ marginBottom: 16, borderRadius: 16, overflow: 'hidden', position: 'relative' }}>
+    <div style={{ marginBottom: 16, borderRadius: 16, overflow: 'hidden', position: 'relative', background: 'rgba(255,255,255,0.03)' }}>
       <div style={{ position: 'absolute', top: 10, left: 12, zIndex: 2 }}>
         <span className="liquid-glass" style={{ borderRadius: 20, padding: '4px 10px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.06em' }}>
           📸 Street View
@@ -42,34 +32,34 @@ function StreetViewImage({ lat, lon, address }) {
         <img
           src={googleUrl}
           alt={`Street view of ${address}`}
-          onError={() => { setImgError(true); setSource('mapillary') }}
-          style={{ width: '100%', height: 220, objectFit: 'cover', display: 'block', filter: 'brightness(0.85)' }}
+          onError={() => setSource('mapillary')}
+          style={{ width: '100%', height: 240, objectFit: 'cover', display: 'block', filter: 'brightness(0.85)' }}
         />
       ) : source === 'mapillary' ? (
         <iframe
           src={mapillaryUrl}
-          style={{ width: '100%', height: 220, border: 'none', display: 'block' }}
+          style={{ width: '100%', height: 240, border: 'none', display: 'block' }}
           title="Street view"
           allowFullScreen
-          onError={() => setSource('osm')}
+          onLoad={() => {}}
+          onError={() => setSource('fallback')}
         />
       ) : (
-        <div style={{ width: '100%', height: 220, background: 'rgba(255,255,255,0.03)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-          <span style={{ fontSize: 28 }}>🏠</span>
-          <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 12, color: 'rgba(255,255,255,0.3)', fontWeight: 300 }}>Street view unavailable for this address</span>
+        <div style={{ width: '100%', height: 240, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+          <span style={{ fontSize: 32 }}>🏠</span>
+          <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 12, color: 'rgba(255,255,255,0.3)', fontWeight: 300 }}>Street view not available for this address</span>
           <a
             href={`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lon}`}
             target="_blank"
             rel="noopener noreferrer"
-            style={{ fontFamily: "'Barlow',sans-serif", fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}
+            style={{ fontFamily: "'Barlow',sans-serif", fontSize: 12, color: 'rgba(255,255,255,0.5)' }}
           >
-            View on Google Maps ↗
+            Open in Google Maps ↗
           </a>
         </div>
       )}
 
-      {/* Address overlay */}
-      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(transparent, rgba(0,0,0,0.7))', padding: '24px 14px 10px' }}>
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(transparent, rgba(0,0,0,0.75))', padding: '28px 14px 10px' }}>
         <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.7)', margin: 0 }}>{address}</p>
       </div>
     </div>
@@ -79,7 +69,7 @@ function StreetViewImage({ lat, lon, address }) {
 import { weatherCodeToDescription } from '../lib/weather'
 
 const fmt = (n) => (n != null && n !== 0) ? n.toLocaleString('en-US', { maximumFractionDigits: 0 }) : '—'
-const fmtUSD = (n) => (n != null && n !== 0) ? `$${n.toLocaleString('en-US', { maximumFractionDigits: 0 })}` : '—'
+const fmtUSD = (n, sym) => (n != null && n !== 0) ? `${sym || '$'}${n.toLocaleString('en-US', { maximumFractionDigits: 0 })}` : '—'
 const pct = (n) => (n != null && n !== 0 && !isNaN(n)) ? `${Math.round(n)}%` : '—'
 
 function Tag({ children, color = 'default' }) {
@@ -162,13 +152,13 @@ function IncomeSlider({ costOfLiving }) {
       <div style={{ marginBottom: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 8 }}>
           <span style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow', sans-serif", fontWeight: 300 }}>Your {mode} income</span>
-          <span style={{ fontFamily: "'Instrument Serif', serif", fontStyle: 'italic', fontSize: 20, color: '#ffffff' }}>{fmtUSD(income)}</span>
+          <span style={{ fontFamily: "'Instrument Serif', serif", fontStyle: 'italic', fontSize: 20, color: '#ffffff' }}>{fmtUSD(income, sym)}</span>
         </div>
         <input type="range" min={mode === 'monthly' ? 1000 : 12000} max={mode === 'monthly' ? 30000 : 360000} step={mode === 'monthly' ? 100 : 1000}
           value={income} onChange={e => setIncome(Number(e.target.value))} style={{ width: '100%', accentColor: 'rgba(255,255,255,0.7)' }} />
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 4 }}>
-          <span>{fmtUSD(mode === 'monthly' ? 1000 : 12000)}</span>
-          <span>{fmtUSD(mode === 'monthly' ? 30000 : 360000)}</span>
+          <span>{fmtUSD(mode === 'monthly' ? 1000 : 12000, sym)}</span>
+          <span>{fmtUSD(mode === 'monthly' ? 30000 : 360000, sym)}</span>
         </div>
       </div>
 
@@ -181,7 +171,7 @@ function IncomeSlider({ costOfLiving }) {
             Cost of living: <span style={{ color: totalPct > 80 ? '#f87171' : '#ffffff', fontWeight: 400 }}>{total > 0 ? `${totalPct}% of income` : '—'}</span>
           </span>
           <span style={{ color: remaining >= 0 ? '#4ade80' : '#f87171', fontFamily: "'Barlow', sans-serif", fontWeight: 400 }}>
-            {total > 0 ? (remaining >= 0 ? `${fmtUSD(remaining)} left` : `${fmtUSD(Math.abs(remaining))} over`) : '—'}
+            {total > 0 ? (remaining >= 0 ? `${fmtUSD(remaining, sym)} left` : `${fmtUSD(Math.abs(remaining), sym)} over`) : '—'}
           </span>
         </div>
       </div>
@@ -193,7 +183,7 @@ function IncomeSlider({ costOfLiving }) {
             <div key={label} style={{ padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 3 }}>
                 <span style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow', sans-serif", fontWeight: 300 }}>{label}</span>
-                <span style={{ color: '#ffffff', fontFamily: "'Barlow', sans-serif", fontWeight: 400 }}>{fmtUSD(value)}</span>
+                <span style={{ color: '#ffffff', fontFamily: "'Barlow', sans-serif", fontWeight: 400 }}>{fmtUSD(value, sym)}</span>
               </div>
               <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', fontFamily: "'Barlow', sans-serif" }}>{catPct != null ? `${catPct}% of ${mode} income` : '—'}</div>
             </div>
@@ -202,7 +192,7 @@ function IncomeSlider({ costOfLiving }) {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
-        <StatCard label="Monthly cost" value={fmtUSD(total)} sub="estimated total" />
+        <StatCard label="Monthly cost" value={fmtUSD(total, sym)} sub="estimated total" />
         <StatCard label="vs US Average" value={costOfLiving.indexVsUSAverage ? `${costOfLiving.indexVsUSAverage > 0 ? '+' : ''}${costOfLiving.indexVsUSAverage}%` : '—'}
           accent={costOfLiving.indexVsUSAverage > 15 ? '#f87171' : costOfLiving.indexVsUSAverage < -15 ? '#4ade80' : '#ffffff'} />
       </div>
@@ -284,6 +274,7 @@ function CorrectionsPanel({ ai, knownFacts = {}, onRecalculate }) {
 export default function Dashboard({ data, onRecalculate }) {
   const { geo, weather, climate, ai, knownFacts, realData } = data
   const { propertyEstimate, costOfLiving, neighborhood, investment, floorPlan, localInsights } = ai
+  const sym = ai.priceHistory?.currencySymbol || '$'
 
   const currentWeather = weather?.current
   const tempC = currentWeather?.temperature_2m
@@ -338,9 +329,9 @@ export default function Dashboard({ data, onRecalculate }) {
       {/* Property Estimate */}
       <SectionCard title="Property Estimate" icon="🏠" delay={50}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 16 }}>
-          <StatCard label="Est. Value" value={fmtUSD(propertyEstimate.estimatedValueUSD)} sub="market estimate" accent="#ffffff" animate />
-          <StatCard label="Price / sqft" value={fmtUSD(propertyEstimate.pricePerSqftUSD)} sub="avg for area" />
-          <StatCard label="Rent / month" value={fmtUSD(propertyEstimate.rentEstimateMonthlyUSD)} sub="typical rental" accent="#4ade80" animate />
+          <StatCard label="Est. Value" value={fmtUSD(propertyEstimate.estimatedValueUSD, sym)} sub="market estimate" accent="#ffffff" animate />
+          <StatCard label="Price / sqft" value={fmtUSD(propertyEstimate.pricePerSqftUSD, sym)} sub="avg for area" />
+          <StatCard label="Rent / month" value={fmtUSD(propertyEstimate.rentEstimateMonthlyUSD, sym)} sub="typical rental" accent="#4ade80" animate />
         </div>
         {realData?.censusData && (
           <div className="liquid-glass" style={{ borderRadius: 12, marginBottom: 12, padding: '10px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow', sans-serif", fontWeight: 300 }}>
