@@ -27,17 +27,22 @@ export default function AddressSearch({ onSearch, loading, compact }) {
 
   const submit = (e) => {
     e.preventDefault()
-    if (!street.trim() || !city.trim() || !country.trim()) return
+    if (!city.trim() || !country.trim()) return
     onSearch({ street: street.trim(), city: city.trim(), state: state.trim(), country: country.trim(), knownFacts: {} })
   }
-  const valid = street.trim() && city.trim() && country.trim()
+  const valid = city.trim() && country.trim()
   const focus = e => { e.target.style.borderColor = 'rgba(255,255,255,0.3)'; e.target.style.background = 'rgba(255,255,255,0.08)' }
   const blur  = e => { e.target.style.borderColor = 'rgba(255,255,255,0.1)';  e.target.style.background = 'rgba(255,255,255,0.05)' }
 
   if (compact) return (
     <form onSubmit={submit}>
       <div className="liquid-glass" style={{ borderRadius: 16, padding: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        {[{v:street,s:setStreet,p:'Street address',f:2},{v:city,s:setCity,p:'City',f:1},{v:state,s:setState,p:'State/Province',f:1},{v:country,s:setCountry,p:'Country',f:1}].map(({v,s,p,f}) => (
+        {[
+          {v:street, s:setStreet, p:'Street (optional)', f:2},
+          {v:city,   s:setCity,   p:'City / Neighbourhood *', f:1},
+          {v:state,  s:setState,  p:'State/Province', f:1},
+          {v:country,s:setCountry,p:'Country *', f:1},
+        ].map(({v,s,p,f}) => (
           <input key={p} value={v} onChange={e=>s(e.target.value)} placeholder={p} disabled={loading}
             style={{...inputStyle,flex:f,minWidth:100,fontSize:13,padding:'10px 12px'}} onFocus={focus} onBlur={blur} />
         ))}
@@ -53,13 +58,15 @@ export default function AddressSearch({ onSearch, loading, compact }) {
     <form onSubmit={submit}>
       <div className="liquid-glass-strong" style={{ borderRadius: 20, padding: 24 }}>
         <div style={{ marginBottom: 12 }}>
-          <label style={{ display:'block', fontSize:11, color:'rgba(255,255,255,0.4)', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:6, fontFamily:"'Barlow',sans-serif" }}>Street address</label>
-          <input value={street} onChange={e=>setStreet(e.target.value)} placeholder="e.g. 123 Maple Street" disabled={loading} style={inputStyle} onFocus={focus} onBlur={blur} />
+          <label style={{ display:'block', fontSize:11, color:'rgba(255,255,255,0.4)', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:6, fontFamily:"'Barlow',sans-serif" }}>
+            Street address <span style={{opacity:0.5}}>(optional)</span>
+          </label>
+          <input value={street} onChange={e=>setStreet(e.target.value)} placeholder="e.g. 123 Maple Street — leave blank for area analysis" disabled={loading} style={inputStyle} onFocus={focus} onBlur={blur} />
         </div>
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:12 }}>
           <div>
-            <label style={{ display:'block', fontSize:11, color:'rgba(255,255,255,0.4)', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:6, fontFamily:"'Barlow',sans-serif" }}>City</label>
-            <input value={city} onChange={e=>setCity(e.target.value)} placeholder="e.g. Austin" disabled={loading} style={inputStyle} onFocus={focus} onBlur={blur} />
+            <label style={{ display:'block', fontSize:11, color:'rgba(255,255,255,0.4)', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:6, fontFamily:"'Barlow',sans-serif" }}>City / Neighbourhood *</label>
+            <input value={city} onChange={e=>setCity(e.target.value)} placeholder="e.g. Austin or Playfair Park, Ottawa" disabled={loading} style={inputStyle} onFocus={focus} onBlur={blur} />
           </div>
           <div>
             <label style={{ display:'block', fontSize:11, color:'rgba(255,255,255,0.4)', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:6, fontFamily:"'Barlow',sans-serif" }}>State / Province <span style={{opacity:0.5}}>(optional)</span></label>
@@ -67,12 +74,12 @@ export default function AddressSearch({ onSearch, loading, compact }) {
           </div>
         </div>
         <div style={{ marginBottom: 20 }}>
-          <label style={{ display:'block', fontSize:11, color:'rgba(255,255,255,0.4)', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:6, fontFamily:"'Barlow',sans-serif" }}>Country</label>
+          <label style={{ display:'block', fontSize:11, color:'rgba(255,255,255,0.4)', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:6, fontFamily:"'Barlow',sans-serif" }}>Country *</label>
           <input value={country} onChange={e=>setCountry(e.target.value)} placeholder="e.g. United States" disabled={loading} style={inputStyle} onFocus={focus} onBlur={blur} />
         </div>
         <button type="submit" disabled={loading||!valid} style={{...btn(valid,loading),width:'100%',padding:'14px',fontSize:15}}
           onMouseEnter={hover} onMouseLeave={unhover}>
-          {loading ? '⟳ Analyzing...' : '→ Analyze Property'}
+          {loading ? '⟳ Analyzing...' : street.trim() ? '→ Analyze Property' : '→ Analyze Area'}
         </button>
       </div>
     </form>
