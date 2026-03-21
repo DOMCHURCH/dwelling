@@ -4,67 +4,7 @@ import StatCard from './StatCard'
 import ScoreRing from './ScoreRing'
 import PriceHistoryChart from './PriceHistoryChart'
 
-// ─── STREET VIEW IMAGE ────────────────────────────────────────────────────────
-// Uses Mapillary (free, no key needed for embed) + fallback to OSM static map
-// For best results with real street-level photos, add a Google Maps API key
-// to VITE_GOOGLE_MAPS_KEY in Vercel env vars — then Google Street View activates.
-function StreetViewImage({ lat, lon, address }) {
-  const googleKey = import.meta.env.VITE_GOOGLE_MAPS_KEY
 
-  // Determine initial source — if no google key, go straight to mapillary
-  const [source, setSource] = useState(googleKey ? 'google' : 'mapillary')
-
-  const googleUrl = googleKey
-    ? `https://maps.googleapis.com/maps/api/streetview?size=800x400&location=${lat},${lon}&fov=90&pitch=0&key=${googleKey}`
-    : null
-
-  const mapillaryUrl = `https://www.mapillary.com/embed?map_style=Mapillary%20dark&image_key=latest&style=classic&traffic_sign_layer=false&map_layer=false&lat=${lat}&lng=${lon}&z=17&menu=false`
-
-  return (
-    <div style={{ marginBottom: 16, borderRadius: 16, overflow: 'hidden', position: 'relative', background: 'rgba(255,255,255,0.03)' }}>
-      <div style={{ position: 'absolute', top: 10, left: 12, zIndex: 2 }}>
-        <span className="liquid-glass" style={{ borderRadius: 20, padding: '4px 10px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.06em' }}>
-          📸 Street View
-        </span>
-      </div>
-
-      {source === 'google' && googleUrl ? (
-        <img
-          src={googleUrl}
-          alt={`Street view of ${address}`}
-          onError={() => setSource('mapillary')}
-          style={{ width: '100%', height: 240, objectFit: 'cover', display: 'block', filter: 'brightness(0.85)' }}
-        />
-      ) : source === 'mapillary' ? (
-        <iframe
-          src={mapillaryUrl}
-          style={{ width: '100%', height: 240, border: 'none', display: 'block' }}
-          title="Street view"
-          allowFullScreen
-          onLoad={() => {}}
-          onError={() => setSource('fallback')}
-        />
-      ) : (
-        <div style={{ width: '100%', height: 240, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-          <span style={{ fontSize: 32 }}>🏠</span>
-          <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 12, color: 'rgba(255,255,255,0.3)', fontWeight: 300 }}>Street view not available for this address</span>
-          <a
-            href={`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lon}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ fontFamily: "'Barlow',sans-serif", fontSize: 12, color: 'rgba(255,255,255,0.5)' }}
-          >
-            Open in Google Maps ↗
-          </a>
-        </div>
-      )}
-
-      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(transparent, rgba(0,0,0,0.75))', padding: '28px 14px 10px' }}>
-        <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.7)', margin: 0 }}>{address}</p>
-      </div>
-    </div>
-  )
-}
 
 import { weatherCodeToDescription } from '../lib/weather'
 import { getCurrencySymbol, getCurrencyName, fetchExchangeRates, convertCurrency, getCurrencyFromCountry } from '../lib/currency'
@@ -202,75 +142,7 @@ function IncomeSlider({ costOfLiving, sym }) {
   )
 }
 
-function CorrectionsPanel({ ai, knownFacts = {}, onRecalculate }) {
-  const [beds, setBeds] = useState(knownFacts.beds ?? ai.floorPlan.typicalBedrooms ?? "")
-  const [baths, setBaths] = useState(knownFacts.baths ?? ai.floorPlan.typicalBathrooms ?? "")
-  const [sqft, setSqft] = useState(knownFacts.sqft ?? ai.floorPlan.typicalSqft ?? "")
-  const [yearBuilt, setYearBuilt] = useState(knownFacts.yearBuilt ?? "")
-  const [purchasePrice, setPurchasePrice] = useState(knownFacts.purchasePrice ?? "")
-  const [open, setOpen] = useState(false)
 
-  const handleRecalculate = () => {
-    onRecalculate({
-      beds: beds ? parseInt(beds) : null,
-      baths: baths ? parseFloat(baths) : null,
-      sqft: sqft ? parseInt(sqft) : null,
-      yearBuilt: yearBuilt ? parseInt(yearBuilt) : null,
-      purchasePrice: purchasePrice ? parseInt(String(purchasePrice).replace(/,/g, "")) : null,
-    })
-    setOpen(false)
-  }
-
-  const iStyle = {
-    width: "100%", padding: "10px 14px",
-    background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
-    borderRadius: 10, color: "#ffffff", fontSize: 13, outline: "none",
-    fontFamily: "'Barlow', sans-serif", fontWeight: 300,
-    transition: "border-color 0.2s",
-  }
-
-  return (
-    <div className="liquid-glass" style={{ borderRadius: 16, padding: "16px 20px", marginBottom: 16 }}>
-      <button onClick={() => setOpen(!open)} style={{
-        background: "none", border: "none", color: "rgba(255,255,255,0.6)",
-        fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, padding: 0,
-        fontFamily: "'Barlow', sans-serif", fontWeight: 300,
-      }}>
-        <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.3)' }}>{open ? "−" : "+"}</span>
-        Correct AI estimates to improve accuracy
-      </button>
-      {open && (
-        <div style={{ marginTop: 16 }}>
-          <p style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginBottom: 14, fontFamily: "'Barlow', sans-serif", fontWeight: 300 }}>
-            Enter the actual values you know. These override AI guesses and trigger a recalculation.
-          </p>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10, marginBottom: 14 }}>
-            {[
-              { label: "Bedrooms", value: beds, set: setBeds },
-              { label: "Bathrooms", value: baths, set: setBaths },
-              { label: "Sqft", value: sqft, set: setSqft },
-              { label: "Year built", value: yearBuilt, set: setYearBuilt },
-              { label: "Purchase price ($)", value: purchasePrice, set: setPurchasePrice },
-            ].map(({ label, value, set }) => (
-              <div key={label}>
-                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6, fontFamily: "'Barlow', sans-serif" }}>{label}</div>
-                <input value={value} onChange={e => set(e.target.value)} style={iStyle}
-                  onFocus={e => e.target.style.borderColor = "rgba(255,255,255,0.3)"}
-                  onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.1)"} />
-              </div>
-            ))}
-          </div>
-          <button onClick={handleRecalculate}
-            style={{ padding: "10px 24px", background: "#ffffff", border: "none", borderRadius: 40, color: "#000", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "'Barlow', sans-serif", transition: "transform 0.15s" }}
-            onMouseEnter={e=>e.currentTarget.style.transform='scale(1.02)'}
-            onMouseLeave={e=>e.currentTarget.style.transform=''}>
-            Recalculate with corrections
-          </button>
-        </div>
-      )}
-    </div>
-  )
-}
 
 // Popular currencies for the converter
 const DISPLAY_CURRENCIES = [
@@ -287,7 +159,8 @@ const DISPLAY_CURRENCIES = [
 export default function Dashboard({ data, onRecalculate }) {
   const { geo, weather, climate, ai, knownFacts, realData, isAreaMode } = data
   const { areaMetrics, areaRiskScore, marketTemperature, newsData } = realData || {}
-  const { propertyEstimate, costOfLiving, neighborhood, investment, floorPlan, localInsights, areaIntelligence } = ai
+  const { propertyEstimate, costOfLiving, neighborhood, investment, localInsights, areaIntelligence, riskData: aiRiskData } = ai
+  const risk = realData.riskData || aiRiskData
   // Currency converter
   const nativeCurrency = ai.priceHistory?.currency || getCurrencyFromCountry(geo.userCountry || '') || 'USD'
   const [displayCurrency, setDisplayCurrency] = useState(nativeCurrency)
@@ -320,7 +193,7 @@ export default function Dashboard({ data, onRecalculate }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-      {/* Address Banner */}
+      {/* Area Banner */}
       <div className="liquid-glass" style={{ borderRadius: 20, padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 14 }}>
         <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -348,8 +221,8 @@ export default function Dashboard({ data, onRecalculate }) {
 
       {/* Map */}
       <div className="liquid-glass" style={{ borderRadius: 20, overflow: 'hidden', height: 280 }}>
-        <iframe
-          title="Property Location"
+          <iframe
+            title="Area Location"
           width="100%"
           height="100%"
           style={{ border: 0, display: 'block', filter: 'invert(90%) hue-rotate(180deg)' }}
@@ -358,8 +231,7 @@ export default function Dashboard({ data, onRecalculate }) {
         />
       </div>
 
-      {/* Street View Image */}
-      <StreetViewImage lat={geo.lat} lon={geo.lon} address={[geo.userStreet, geo.userCity, geo.userState, geo.userCountry].filter(Boolean).join(', ')} />
+
 
       {/* Currency Converter */}
       <div className="liquid-glass" style={{ borderRadius: 16, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
@@ -525,11 +397,11 @@ export default function Dashboard({ data, onRecalculate }) {
         </SectionCard>
       )}
 
-      <SectionCard title="Property Estimate" icon="🏠" delay={50}>
+      <SectionCard title="Area Market Estimate" icon="🏠" delay={50}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 16 }}>
-          <StatCard label="Est. Value" value={fmtUSD(convert(propertyEstimate.estimatedValueUSD), sym)} sub="market estimate" accent="#ffffff" animate />
-          <StatCard label="Price / sqft" value={fmtUSD(convert(propertyEstimate.pricePerSqftUSD), sym)} sub="avg for area" />
-          <StatCard label="Rent / month" value={fmtUSD(convert(propertyEstimate.rentEstimateMonthlyUSD), sym)} sub="typical rental" accent="#4ade80" animate />
+          <StatCard label="Median Value" value={fmtUSD(convert(propertyEstimate.estimatedValueUSD), sym)} sub="area average" accent="#ffffff" animate />
+          <StatCard label="Price / sqft" value={fmtUSD(convert(propertyEstimate.pricePerSqftUSD), sym)} sub="area average" />
+          <StatCard label="Rent / month" value={fmtUSD(convert(propertyEstimate.rentEstimateMonthlyUSD), sym)} sub="area average" accent="#4ade80" animate />
         </div>
         {realData?.censusData && (
           <div className="liquid-glass" style={{ borderRadius: 12, marginBottom: 12, padding: '10px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow', sans-serif", fontWeight: 300 }}>
@@ -612,25 +484,7 @@ export default function Dashboard({ data, onRecalculate }) {
         </SectionCard>
       </div>
 
-      {/* Floor Plan */}
-      <SectionCard title="Floor Plan & Architecture" icon="📐" delay={250}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12, marginBottom: 16 }}>
-          <StatCard label="Typical Size" value={`${fmt(floorPlan.typicalSqft)} sqft`} />
-          <StatCard label="Bedrooms" value={floorPlan.typicalBedrooms} />
-          <StatCard label="Bathrooms" value={floorPlan.typicalBathrooms} />
-          <StatCard label="Built Era" value={floorPlan.builtEra} />
-        </div>
-        <div style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 6, fontFamily: "'Barlow', sans-serif", fontWeight: 300 }}>Architectural style</div>
-          <div style={{ fontFamily: "'Instrument Serif', serif", fontStyle: 'italic', fontSize: 22, color: '#ffffff' }}>{floorPlan.architecturalStyle}</div>
-        </div>
-        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginBottom: 16, fontFamily: "'Barlow', sans-serif", fontWeight: 300, lineHeight: 1.7 }}>{floorPlan.typicalLayout}</p>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 20 }}>
-          {floorPlan.commonFeatures.map((f, i) => (
-            <span key={i} className="liquid-glass" style={{ padding: '4px 14px', borderRadius: 40, fontSize: 12, color: 'rgba(255,255,255,0.6)', fontFamily: "'Barlow', sans-serif", fontWeight: 300 }}>{f}</span>
-          ))}
-        </div>
-      </SectionCard>
+
 
       {/* Price History */}
       {ai.priceHistory && (
@@ -662,6 +516,47 @@ export default function Dashboard({ data, onRecalculate }) {
               <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 6, fontFamily: "'Barlow', sans-serif" }}>Source: FEMA National Flood Hazard Layer</div>
             </div>
           </div>
+        </SectionCard>
+      )}
+
+      {/* Environmental Risk */}
+      {risk && (risk.nationalRiskIndex || risk.epaHazards || risk.seismicRisk) && (
+        <SectionCard title="Environmental Risk" icon="🛡" delay={290}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginBottom: 16 }}>
+            {risk.nationalRiskIndex && (
+              <div className="liquid-glass" style={{ borderRadius: 14, padding: '14px 16px' }}>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6, fontFamily: "'Barlow', sans-serif" }}>Community Risk</div>
+                <div style={{ fontSize: 18, color: '#ffffff', fontFamily: "'Instrument Serif', serif", fontStyle: 'italic' }}>{risk.nationalRiskIndex.overallRiskRating}</div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 4, fontFamily: "'Barlow', sans-serif" }}>FEMA National Risk Index</div>
+              </div>
+            )}
+            {risk.epaHazards && (
+              <div className="liquid-glass" style={{ borderRadius: 14, padding: '14px 16px' }}>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6, fontFamily: "'Barlow', sans-serif" }}>Air Quality</div>
+                <div style={{ fontSize: 18, color: '#ffffff', fontFamily: "'Instrument Serif', serif", fontStyle: 'italic' }}>{risk.epaHazards.airQualityRating || 'Moderate'}</div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 4, fontFamily: "'Barlow', sans-serif" }}>EPA EJScreen Percentile: {risk.epaHazards.airQualityPM25Percentile || 50}th</div>
+              </div>
+            )}
+            {risk.seismicRisk && (
+              <div className="liquid-glass" style={{ borderRadius: 14, padding: '14px 16px' }}>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6, fontFamily: "'Barlow', sans-serif" }}>Seismic Risk</div>
+                <div style={{ fontSize: 18, color: '#ffffff', fontFamily: "'Instrument Serif', serif", fontStyle: 'italic' }}>{risk.seismicRisk.seismicRating}</div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 4, fontFamily: "'Barlow', sans-serif" }}>USGS Seismic Hazard</div>
+              </div>
+            )}
+          </div>
+          {risk.nationalRiskIndex?.topRisks?.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {risk.nationalRiskIndex.topRisks.map((r, i) => (
+                <Tag key={i} color="red">⚠️ {r.name}</Tag>
+              ))}
+            </div>
+          )}
+          {!risk.isUS && (
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 12, fontFamily: "'Barlow', sans-serif", fontStyle: 'italic' }}>
+              Note: FEMA and EPA data are currently limited to US locations. Seismic risk is global.
+            </div>
+          )}
         </SectionCard>
       )}
 
