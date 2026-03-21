@@ -207,7 +207,7 @@ function Hero({ onSearch, loading, onScrollTo }) {
         <div style={{}}>
           <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 16px', marginBottom: 28 }}>
             <span style={{ background: '#fff', color: '#000', fontSize: 11, fontFamily: "'Barlow',sans-serif", fontWeight: 600, borderRadius: 20, padding: '2px 8px' }}>AI Powered</span>
-            <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>Know what any home is worth — instantly.</span>
+            <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>Know any area's market value — instantly.</span>
           </div>
         </div>
 
@@ -216,7 +216,7 @@ function Hero({ onSearch, loading, onScrollTo }) {
         </h1>
 
         <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 16, fontFamily: "'Barlow',sans-serif", fontWeight: 300, maxWidth: 540, lineHeight: 1.7, marginBottom: 40 }}>
-          Enter any address in the world. Get real market data, neighborhood scores, climate analysis, and AI-powered investment insights — instantly.
+          Enter any city or neighborhood in the world. Get real market data, area scores, climate analysis, and AI-powered investment insights — instantly.
         </p>
 
         <div style={{ width: '100%', maxWidth: 600 }}>
@@ -224,7 +224,7 @@ function Hero({ onSearch, loading, onScrollTo }) {
         </div>
 
         <div style={{ display: 'flex', gap: 10, marginTop: 20, flexWrap: 'wrap', justifyContent: 'center' }}>
-          {[['140M+','US Properties'],['50+','Countries'],['10','Free / Month'],['<30s','Analysis time']].map(([val, lbl]) => (
+          {[['100k+','Cities'],['50+','Countries'],['10','Free / Month'],['<30s','Analysis time']].map(([val, lbl]) => (
             <div key={lbl} className="liquid-glass" style={{ borderRadius: 40, padding: '7px 16px', display: 'flex', alignItems: 'center', gap: 7 }}>
               <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 17, color: '#fff' }}>{val}</span>
               <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>{lbl}</span>
@@ -595,9 +595,9 @@ export default function App() {
 
       const bulkListings = bulkCompsRes.status === 'fulfilled' ? bulkCompsRes.value?.listings || [] : []
       const newsData = newsRes.status === 'fulfilled' ? newsRes.value : null
-      const areaMetrics = aggregateListings(bulkListings)
-      const areaRiskScore = computeRiskScore(areaMetrics, null)
-      const marketTemperature = getMarketTemperature(areaMetrics)
+      const areaMetrics = aggregateListings(bulkListings) || null
+      const areaRiskScore = computeRiskScore(areaMetrics, null) || null
+      const marketTemperature = getMarketTemperature(areaMetrics) || null
 
       const realData = { neighborhoodScores, censusData, fmr, floodZone, riskData, areaMetrics, areaRiskScore, marketTemperature, newsData, isAreaMode }
       const ai = await analyzeProperty(geo, weather, climate, knownFacts ?? {}, realData); setLoadStep(4)
