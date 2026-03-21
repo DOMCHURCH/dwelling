@@ -10,10 +10,12 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  const { street, city, state, country, lat, lon, postcode } = req.body
+  const { street, city, state, country, lat, lon, postcode, mode } = req.body
   if (!city || !country) return res.status(400).json({ error: 'Missing required fields' })
 
   const isCanada = country.toLowerCase().includes('canada')
+  // Area mode: fetch bulk listings for aggregation (no street needed)
+  const isAreaMode = mode === 'area' || !street
 
   try {
     if (isCanada) {
@@ -278,5 +280,149 @@ async function fetchRealtorCaComps({ city, state, lat, lon }) {
     comps: comps.filter(c => c.price > 0),
     source: 'realtor_ca',
     count: comps.length,
+  }
+}
+
+// ─── BULK AREA LISTING FETCH ─────────────────────────────────────────────────
+
+async function fetchRedfinBulk(city, state) {
+  try {
+    // Step 1: resolve region_id from city name
+    const autoUrl = `https://www.redfin.com/stingray/do/location-autocomplete?location=${encodeURIComponent([city, state].filter(Boolean).join(', '))}&v=2`
+    const autoRes = await fetch(autoUrl, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 'Accept': 'application/json' }
+    })
+    if (!autoRes.ok) throw new Error('Autocomplete failed')
+    const autoText = await autoRes.text()
+    const autoData = JSON.parse(autoText.replace('{}&&', ''))
+    const region = autoData?.payload?.sections?.[0]?.rows?.[0]
+    if (!region) throw new Error('Region not found')
+
+    const regionId = region.id?.tableId
+    const regionType = region.id?.type || 6 // 6 = city
+
+    // Step 2: fetch up to 350 active listings as CSV
+    const csvUrl = `https://www.redfin.com/stingray/api/gis-csv?` +
+      `region_id=${regionId}&region_type=${regionType}&status=1&` +
+      `uipt=1,2,3&num_homes=200&ord=days-on-market-asc&` +
+      `sf=1,2,3,5,6,7&v=8`
+
+    const csvRes = await fetch(csvUrl, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 'Accept': 'text/csv,*/*' }
+    })
+    if (!csvRes.ok) throw new Error(`CSV fetch failed: ${csvRes.status}`)
+    const csvText = await csvRes.text()
+
+    const listings = parseRedfinCSV(csvText)
+    return { listings, source: 'redfin_bulk', city, count: listings.length }
+  } catch (err) {
+    console.warn('[comps bulk] Redfin failed:', err.message)
+    return { listings: [], source: 'redfin_bulk_failed', error: err.message }
+  }
+}
+
+function parseRedfinCSV(csv) {
+  const lines = csv.trim().split('\n')
+  if (lines.length < 2) return []
+  const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim().toLowerCase())
+
+  const idx = {
+    price: headers.findIndex(h => h.includes('price') && !h.includes('per')),
+    ppsf: headers.findIndex(h => h.includes('$/sq') || h.includes('price/sq')),
+    dom: headers.findIndex(h => h.includes('days on market') || h === 'dom'),
+    beds: headers.findIndex(h => h === 'beds' || h === 'bedrooms'),
+    baths: headers.findIndex(h => h === 'baths' || h === 'bathrooms'),
+    sqft: headers.findIndex(h => h.includes('sq.ft') || h === 'sqft' || h === 'sq ft'),
+    address: headers.findIndex(h => h === 'address' || h.includes('street')),
+    city: headers.findIndex(h => h === 'city'),
+    zip: headers.findIndex(h => h === 'zip' || h === 'zip/postal code'),
+    status: headers.findIndex(h => h === 'status'),
+  }
+
+  const listings = []
+  for (let i = 1; i < lines.length; i++) {
+    const cols = parseCSVLine(lines[i])
+    if (cols.length < 3) continue
+    const price = parseInt(cols[idx.price]?.replace(/[^0-9]/g, '') || '0')
+    if (!price || price < 10000) continue
+    listings.push({
+      price,
+      pricePerSqft: idx.ppsf >= 0 ? parseInt(cols[idx.ppsf]?.replace(/[^0-9]/g, '') || '0') || null : null,
+      daysOnMarket: idx.dom >= 0 ? parseInt(cols[idx.dom]) || null : null,
+      beds: idx.beds >= 0 ? parseInt(cols[idx.beds]) || null : null,
+      baths: idx.baths >= 0 ? parseFloat(cols[idx.baths]) || null : null,
+      sqft: idx.sqft >= 0 ? parseInt(cols[idx.sqft]?.replace(/[^0-9]/g, '') || '0') || null : null,
+      address: idx.address >= 0 ? cols[idx.address]?.replace(/"/g, '') : '',
+      city: idx.city >= 0 ? cols[idx.city]?.replace(/"/g, '') : '',
+      status: idx.status >= 0 ? cols[idx.status]?.replace(/"/g, '') : 'active',
+    })
+  }
+  return listings
+}
+
+function parseCSVLine(line) {
+  const result = []
+  let current = ''
+  let inQuotes = false
+  for (const ch of line) {
+    if (ch === '"') { inQuotes = !inQuotes }
+    else if (ch === ',' && !inQuotes) { result.push(current); current = '' }
+    else { current += ch }
+  }
+  result.push(current)
+  return result
+}
+
+async function fetchRealtorCaBulk(city, state) {
+  try {
+    const province = state || ''
+    const body = new URLSearchParams({
+      ZoomLevel: '10',
+      LatitudeMax: '90', LatitudeMin: '-90',
+      LongitudeMax: '180', LongitudeMin: '-180',
+      Sort: '6-D',
+      PropertyTypeGroupID: '1',
+      TransactionTypeId: '2',
+      RecordsPerPage: '200',
+      CurrentPage: '1',
+      CultureId: '1',
+      ApplicationId: '37',
+      PropertySearchTypeId: '0',
+      Keywords: `${city}${province ? ' ' + province : ''}`,
+    })
+
+    const res = await fetch('https://api2.realtor.ca/Listing.svc/PropertySearch_Post', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Origin': 'https://www.realtor.ca',
+        'Referer': 'https://www.realtor.ca/',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      },
+      body: body.toString(),
+    })
+
+    if (!res.ok) throw new Error(`Realtor.ca returned ${res.status}`)
+    const data = await res.json()
+
+    const listings = (data.Results || []).map(r => {
+      const price = parseInt(r.Property?.Price?.replace(/[^0-9]/g, '') || '0')
+      return {
+        price,
+        pricePerSqft: null,
+        daysOnMarket: null, // Realtor.ca doesn't expose DOM
+        beds: parseInt(r.Building?.Bedrooms) || null,
+        baths: parseInt(r.Building?.BathroomTotal) || null,
+        sqft: parseInt(r.Building?.SizeInterior?.replace(/[^0-9]/g, '') || '0') || null,
+        address: `${r.Property?.Address?.AddressText || ''}`,
+        city,
+        status: 'active',
+      }
+    }).filter(l => l.price > 10000)
+
+    return { listings, source: 'realtorca_bulk', city, count: listings.length }
+  } catch (err) {
+    console.warn('[comps bulk] Realtor.ca failed:', err.message)
+    return { listings: [], source: 'realtorca_bulk_failed', error: err.message }
   }
 }
