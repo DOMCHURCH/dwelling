@@ -42,7 +42,7 @@ const CANADA = {
   kingston:         { detached: 620000,  condo: 380000,  rent: 1800, ppsf: 400,  yoy: 1.5,   currency: 'CAD' },
   barrie:           { detached: 720000,  condo: 420000,  rent: 1900, ppsf: 440,  yoy: -1.0,  currency: 'CAD' },
   sudbury:          { detached: 420000,  condo: 240000,  rent: 1500, ppsf: 260,  yoy: 3.0,   currency: 'CAD' },
-  thunder bay:      { detached: 340000,  condo: 200000,  rent: 1300, ppsf: 230,  yoy: 4.0,   currency: 'CAD' },
+  'thunder bay':      { detached: 340000,  condo: 200000,  rent: 1300, ppsf: 230,  yoy: 4.0,   currency: 'CAD' },
   oshawa:           { detached: 780000,  condo: 440000,  rent: 1900, ppsf: 470,  yoy: -2.0,  currency: 'CAD' },
   'st. catharines': { detached: 650000,  condo: 380000,  rent: 1750, ppsf: 400,  yoy: -1.0,  currency: 'CAD' },
   // Quebec
@@ -118,7 +118,7 @@ const US = {
   austin:            { detached: 530000,  condo: 350000,  rent: 1800, ppsf: 310,  yoy: -5.0,  currency: 'USD' },
   'san antonio':     { detached: 280000,  condo: 190000,  rent: 1300, ppsf: 170,  yoy: -1.0,  currency: 'USD' },
   'fort worth':      { detached: 320000,  condo: 210000,  rent: 1500, ppsf: 190,  yoy: 0.5,   currency: 'USD' },
-  el paso:           { detached: 230000,  condo: 155000,  rent: 1100, ppsf: 150,  yoy: 3.0,   currency: 'USD' },
+  'el paso':           { detached: 230000,  condo: 155000,  rent: 1100, ppsf: 150,  yoy: 3.0,   currency: 'USD' },
   arlington:         { detached: 310000,  condo: 200000,  rent: 1500, ppsf: 185,  yoy: 0.5,   currency: 'USD' },
   plano:             { detached: 490000,  condo: 310000,  rent: 1900, ppsf: 270,  yoy: 0.5,   currency: 'USD' },
   // Florida
