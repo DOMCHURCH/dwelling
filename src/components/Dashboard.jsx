@@ -673,7 +673,7 @@ export default function Dashboard({ data, onRecalculate }) {
           <div className="liquid-glass" style={{ borderRadius: 14, padding: '16px' }}>
             <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10, fontFamily: "'Barlow', sans-serif" }}>Outlook</div>
             <Tag color={investment.appreciationOutlook === 'bullish' ? 'green' : investment.appreciationOutlook === 'bearish' ? 'red' : 'default'}>
-              {investment.appreciationOutlook.toUpperCase()}
+              {(investment.appreciationOutlook || 'neutral').toUpperCase()}
             </Tag>
           </div>
         </div>
