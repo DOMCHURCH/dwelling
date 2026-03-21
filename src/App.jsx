@@ -251,7 +251,7 @@ function HowItWorks() {
     { num: '03', icon: '🧠', title: 'AI builds your report', desc: 'Cerebras Llama synthesizes everything into a full property intelligence report in under 30 seconds.' },
   ]
   return (
-    <section id="how-it-works" className="gsap-section" style={{ padding: '96px 0', position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
+    <section id="how-it-works" style={{ padding: '96px 0', position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
       <SectionBg src={IMG.neighborhood} opacity={0.2} />
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px', position: 'relative', zIndex: 2 }}>
         <Reveal>
@@ -292,7 +292,7 @@ function FeatureRows({ onScrollTo }) {
     { title: 'Investment analysis you can act on.', desc: 'Rent yield, appreciation outlook, investment score — synthesized from price history, neighborhood trends, and market context. Clear. Honest. Actionable.', img: IMG.priceChart, reverse: false, shimmer: true },
   ]
   return (
-    <section id="features" className="gsap-section" style={{ padding: '64px 0', position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
+    <section id="features" style={{ padding: '64px 0', position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
       <SectionBg src={IMG.texture} opacity={0.05} />
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px', position: 'relative', zIndex: 2 }}>
         <Reveal>
