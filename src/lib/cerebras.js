@@ -55,7 +55,7 @@ CANADIAN MARKET CONTEXT (2025):
 - Bank of Canada policy rate: 2.75% (as of early 2025, down from peak of 5% in 2023)
 - Canadian housing market peaked in early 2022, corrected 15-20% by mid-2023, partially recovered in late 2023-2024
 - Ottawa specifically: more stable than Toronto/Vancouver, government employment base provides price floor
-- National average home price ~$700,000 CAD (2025), Ottawa average ~$680,000 CAD
+- National average home price ~$700,000 CAD (2025), Ottawa average detached home ~$750,000-$900,000 CAD, condos ~$400,000-$550,000 CAD
 - Mortgage stress test at ~4.75% effective qualifying rate
 - Foreign buyer ban extended through 2026 — limits demand from investors
 - Capital gains tax changes in 2024 reduced investor appetite
@@ -174,6 +174,24 @@ function buildRiskContext(realData) {
 }
 
 function finalizeAnalysis(est, known, realData, currency, currencySymbol, city, country) {
+  // Use market database as a sanity check on the AI estimate
+  const marketDb = getMarketData(city, country)
+  if (marketDb && !known.purchasePrice && !realData._avmResult?.estimatedValue) {
+    const aiVal = est.propertyEstimate.estimatedValueUSD
+    const dbDetached = marketDb.detached
+    const dbCondo = marketDb.condo
+    // If AI estimate is more than 30% below the market median, pull it up
+    if (aiVal && dbDetached && aiVal < dbDetached * 0.7) {
+      est.propertyEstimate.estimatedValueUSD = Math.round(dbDetached * 0.85) // conservative
+      est.propertyEstimate.confidenceLevel = 'medium'
+    }
+    // If AI estimate is more than 50% above market median, pull it down
+    if (aiVal && dbDetached && aiVal > dbDetached * 1.5) {
+      est.propertyEstimate.estimatedValueUSD = Math.round(dbDetached * 1.1)
+      est.propertyEstimate.confidenceLevel = 'medium'
+    }
+  }
+
   // Apply bounded AI adjustment if AVM result exists
   const avmResult = realData._avmResult
   if (avmResult && avmResult.estimatedValue && !known.purchasePrice) {
@@ -365,6 +383,7 @@ OPENSTREETMAP REAL DATA:
     propertyType: knownFacts.propertyType || null,
   }
   const compsContext = buildCompsContext(realData, currency, avmSubject)
+  const marketContext2 = formatMarketDataForPrompt(city, country, currency)
   const riskContext = buildRiskContext(realData)
 
   // Pass 1: Deep chain-of-thought reasoning
@@ -380,6 +399,7 @@ ${knownLines || 'No confirmed facts provided — estimate based on location and 
 ${osmnData}
 ${floodInfo}
 ${compsContext}
+${marketContext2}
 ${riskContext}
 ${marketContext}
 
@@ -403,6 +423,13 @@ Describe the typical residential stock at this specific address:
 - What renovations or features typically differentiate higher-value vs lower-value homes on this street?
 
 STEP 3 — CURRENT VALUATION — SHOW YOUR MATH
+CRITICAL PRICE ANCHORS FOR CANADA (do not go below these without strong justification):
+- Ottawa detached homes: $650,000-$1,100,000 CAD depending on neighbourhood
+- Ottawa semi-detached: $550,000-$800,000 CAD
+- Ottawa condos: $350,000-$600,000 CAD
+- Toronto detached: $1,000,000-$2,500,000 CAD
+- Vancouver detached: $1,500,000-$3,500,000 CAD
+- Calgary detached: $500,000-$900,000 CAD
 Using the sales comparison approach:
 - What is the current price per square foot (in ${currency}) for this specific neighbourhood?
 - What is the typical home size for this address?
