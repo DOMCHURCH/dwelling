@@ -11,20 +11,24 @@ import PriceHistoryChart from './PriceHistoryChart'
 function StreetViewImage({ lat, lon, address }) {
   const googleKey = import.meta.env.VITE_GOOGLE_MAPS_KEY
 
-  // Determine initial source — if no google key, go straight to mapillary
+  // If no google key, we default to mapillary or static map
   const [source, setSource] = useState(googleKey ? 'google' : 'mapillary')
 
   const googleUrl = googleKey
     ? `https://maps.googleapis.com/maps/api/streetview?size=800x400&location=${lat},${lon}&fov=90&pitch=0&key=${googleKey}`
     : null
 
-  const mapillaryUrl = `https://www.mapillary.com/embed?map_style=Mapillary%20dark&image_key=latest&style=classic&traffic_sign_layer=false&map_layer=false&lat=${lat}&lng=${lon}&z=17&menu=false`
+  // Improved Mapillary URL with specific zoom and dark theme
+  const mapillaryUrl = `https://www.mapillary.com/embed?map_style=Mapillary%20dark&image_key=latest&style=classic&traffic_sign_layer=false&map_layer=true&lat=${lat}&lng=${lon}&z=18&menu=false`
+  
+  // OpenStreetMap static fallback (rendered via an image if street view fails)
+  const osmStaticUrl = `https://static-maps.yandex.ru/1.x/?ll=${lon},${lat}&z=17&l=map&size=650,300&lang=en_US`
 
   return (
-    <div style={{ marginBottom: 16, borderRadius: 16, overflow: 'hidden', position: 'relative', background: 'rgba(255,255,255,0.03)' }}>
+    <div style={{ marginBottom: 16, borderRadius: 16, overflow: 'hidden', position: 'relative', background: 'rgba(255,255,255,0.03)', minHeight: 240 }}>
       <div style={{ position: 'absolute', top: 10, left: 12, zIndex: 2 }}>
-        <span className="liquid-glass" style={{ borderRadius: 20, padding: '4px 10px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.06em' }}>
-          📸 Street View
+        <span className="liquid-glass" style={{ borderRadius: 20, padding: '4px 10px', fontSize: 11, color: 'rgba(255,255,255,0.8)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.06em', background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)' }}>
+          📸 {source === 'google' ? 'Google Street View' : source === 'mapillary' ? 'Mapillary Street View' : 'Location Map'}
         </span>
       </div>
 
@@ -33,29 +37,39 @@ function StreetViewImage({ lat, lon, address }) {
           src={googleUrl}
           alt={`Street view of ${address}`}
           onError={() => setSource('mapillary')}
-          style={{ width: '100%', height: 240, objectFit: 'cover', display: 'block', filter: 'brightness(0.85)' }}
+          style={{ width: '100%', height: 240, objectFit: 'cover', display: 'block', filter: 'brightness(0.9)' }}
         />
       ) : source === 'mapillary' ? (
-        <iframe
-          src={mapillaryUrl}
-          style={{ width: '100%', height: 240, border: 'none', display: 'block' }}
-          title="Street view"
-          allowFullScreen
-          onLoad={() => {}}
-          onError={() => setSource('fallback')}
-        />
+        <div style={{ width: '100%', height: 240, background: '#000' }}>
+          <iframe
+            src={mapillaryUrl}
+            style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
+            title="Street view"
+            allowFullScreen
+            onError={() => setSource('fallback')}
+          />
+        </div>
       ) : (
-        <div style={{ width: '100%', height: 240, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-          <span style={{ fontSize: 32 }}>🏠</span>
-          <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 12, color: 'rgba(255,255,255,0.3)', fontWeight: 300 }}>Street view not available for this address</span>
-          <a
-            href={`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lon}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ fontFamily: "'Barlow',sans-serif", fontSize: 12, color: 'rgba(255,255,255,0.5)' }}
-          >
-            Open in Google Maps ↗
-          </a>
+        <div style={{ width: '100%', height: 240, position: 'relative', overflow: 'hidden' }}>
+          <img 
+            src={osmStaticUrl} 
+            alt="Location Map" 
+            style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'grayscale(1) invert(0.9) brightness(0.8)' }} 
+          />
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.2)', gap: 10 }}>
+            <span style={{ fontSize: 32 }}>🏠</span>
+            <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 12, color: '#fff', fontWeight: 300, textAlign: 'center', padding: '0 20px' }}>
+              Street view photo not available for this address
+            </span>
+            <a
+              href={`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lon}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.7)', textDecoration: 'underline' }}
+            >
+              Try external Google Maps view ↗
+            </a>
+          </div>
         </div>
       )}
 
