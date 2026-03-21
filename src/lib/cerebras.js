@@ -436,13 +436,13 @@ Be specific, honest, and evidence-based. End with: READY_FOR_JSON`
     "risks": ["<specific risk 1>", "<specific risk 2>", "<specific risk 3>"],
     "upsides": ["<specific upside 1>", "<specific upside 2>", "<specific upside 3>"]
   },
-  "propertyEstimate": {
-    "estimatedValueUSD": ${areaMetrics?.medianPrice || 0},
-    "pricePerSqftUSD": ${areaMetrics?.medianPPSF || 0},
-    "rentEstimateMonthlyUSD": ${areaMetrics?.medianPrice ? Math.round(areaMetrics.medianPrice * 0.004) : 0},
-    "confidenceLevel": "medium",
-    "priceContext": "<4 sentences about area pricing based on the aggregated data>"
-  },
+    "propertyEstimate": {
+      "estimatedValueUSD": ${realData.areaMetrics?.medianPrice || 0},
+      "pricePerSqftUSD": ${realData.areaMetrics?.medianPPSF || 0},
+      "rentEstimateMonthlyUSD": ${realData.areaMetrics?.medianPrice ? Math.round(realData.areaMetrics.medianPrice * 0.004) : 0},
+      "confidenceLevel": "medium",
+      "priceContext": "<4 sentences about area pricing based on the aggregated data>"
+    },
   "neighborhood": {
     "character": "<3 sentences about the area character>",
     "walkScore": ${realData.neighborhoodScores?.walkScore || 50},
