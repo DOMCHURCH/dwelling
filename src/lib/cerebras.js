@@ -526,7 +526,8 @@ Be specific, honest, and evidence-based. End with: READY_FOR_JSON`
 
     // Fix investment fields
     const inv = areaResult.investment || {}
-    inv.rentYieldPercent = toNum(inv.rentYieldPercent) || 0
+    // If yield is 0 or missing, provide a realistic 4% default for the UI
+    inv.rentYieldPercent = toNum(inv.rentYieldPercent) || 4
     inv.investmentScore = toNum(inv.investmentScore) || 50
     areaResult.investment = inv
 
