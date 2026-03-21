@@ -1,3 +1,8 @@
+// In-memory cache — persists for the browser session
+// Prevents hammering Overpass on re-renders or recalculations
+const _cache = new Map()
+const CACHE_TTL = 1000 * 60 * 60 * 24 // 24 hours
+
 const BASES = [
   'https://overpass-api.de/api/interpreter',
   'https://z.overpass-api.de/api/interpreter',
@@ -39,6 +44,13 @@ async function fetchOverpass(query, retries = 1) {
 }
 
 export async function getNeighborhoodScores(lat, lon) {
+  // Round to 3 decimal places (~111m precision) for cache key
+  const key = `${Math.round(lat * 1000) / 1000},${Math.round(lon * 1000) / 1000}`
+  const cached = _cache.get(key)
+  if (cached && Date.now() - cached.ts < CACHE_TTL) {
+    return cached.data
+  }
+
   try {
     // Une requête groupée pour tout récupérer
     const query = `
@@ -94,7 +106,7 @@ export async function getNeighborhoodScores(lat, lon) {
       transit.length > 0 ? 10 : 0,
     ]
     
-    return {
+    const result = {
       walkScore: Math.min(95, Math.max(15, walkCategories.reduce((a, b) => a + b, 0))),
       transitScore: Math.min(95, Math.max(10, transit.length * 8 + (transit.length > 0 ? 20 : 0))),
       schoolScore: Math.min(95, Math.max(35, 40 + schools.length * 15)),
@@ -106,6 +118,8 @@ export async function getNeighborhoodScores(lat, lon) {
       buildingType,
       dataSource: 'OpenStreetMap Overpass API',
     }
+    _cache.set(key, { data: result, ts: Date.now() })
+    return result
   } catch (err) {
     return { walkScore: 50, transitScore: 40, schoolScore: 50, amenityCount500m: 0, nearbySchools: [], nearbyParks: [], nearbyTransit: [], nearbyGrocery: [], dataSource: 'OSM' }
   }
