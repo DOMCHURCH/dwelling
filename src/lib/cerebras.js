@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { runAVM, applyBoundedAIAdjustment, formatAVMForPrompt } from './avm'
 
 const CEREBRAS_BASE = '/api/cerebras'
 const MODEL = 'llama-3.1-8b'
@@ -104,55 +105,35 @@ US MARKET CONTEXT (2025):
 
 
 // Format real comparable properties for AI context
-function buildCompsContext(realData, currency) {
+function buildCompsContext(realData, currency, subject) {
   const comps = realData.comps?.comps
   const priceIndex = realData.priceIndex
-
   const lines = []
 
+  // Run the AVM engine if we have comps
+  let avmResult = null
   if (comps?.length) {
-    const source = realData.comps.source === 'redfin' ? 'Redfin' : 'Realtor.ca'
-    lines.push(`\nREAL COMPARABLE PROPERTIES (from ${source} — use these as primary price anchors):`)
-    comps.slice(0, 5).forEach((c, i) => {
-      const parts = [
-        `${i + 1}. ${c.address}`,
-        c.price ? `${currency} ${c.price.toLocaleString()}` : '',
-        c.beds ? `${c.beds}bd` : '',
-        c.baths ? `${c.baths}ba` : '',
-        c.sqft ? `${c.sqft.toLocaleString()} sqft` : '',
-        c.pricePerSqft ? `${currency} ${c.pricePerSqft}/sqft` : '',
-        c.soldDate ? `sold ${c.soldDate}` : c.type === 'active_listing' ? 'active listing' : '',
-      ].filter(Boolean)
-      lines.push(parts.join(' | '))
-    })
-
-    const prices = comps.map(c => c.price).filter(Boolean)
-    if (prices.length >= 2) {
-      const avg = Math.round(prices.reduce((a, b) => a + b, 0) / prices.length)
-      const min = Math.min(...prices)
-      const max = Math.max(...prices)
-      lines.push(`Comparable price range: ${currency} ${min.toLocaleString()} – ${currency} ${max.toLocaleString()} (avg: ${currency} ${avg.toLocaleString()})`)
-      lines.push(`INSTRUCTION: Your estimatedValue MUST fall within or close to this range. Do not deviate more than 20% without explicit justification.`)
-    }
+    avmResult = runAVM(comps, subject || {}, priceIndex, realData.censusData)
+    realData._avmResult = avmResult // store for use in finalizeAnalysis
+    lines.push(formatAVMForPrompt(avmResult, currency))
   }
 
-  if (priceIndex?.multipliers) {
-    const src = priceIndex.source || 'price index'
-    lines.push(`\nPRICE INDEX DATA (${src}):`)
-    if (priceIndex.marketNote) lines.push(priceIndex.marketNote)
-    const m = priceIndex.multipliers
+  // Add price index context
+  const multipliers = priceIndex?.multipliers || priceIndex?.nhpi?.multipliers
+  if (multipliers) {
+    const src = priceIndex.source || priceIndex.nhpi?.source || 'price index'
+    lines.push(`\nPRICE INDEX (${src}) — use for historical data calibration:`)
+    const m = multipliers
     const years = Object.keys(m).sort()
-    lines.push(`Historical appreciation multipliers (relative to 2025=1.0): ${years.map(y => `${y}: ${m[y]}`).join(', ')}`)
-    lines.push(`INSTRUCTION: Use these multipliers to calibrate your price history data points. They reflect actual market cycles for this region.`)
+    lines.push(`Year multipliers (relative to 2025=1.0): ${years.map(y => `${y}: ${m[y]}`).join(', ')}`)
   }
 
   if (priceIndex?.assessment?.avgAssessment) {
-    lines.push(`\nMUNICIPAL ASSESSMENT DATA: Nearby properties average assessed value: ${currency} ${priceIndex.assessment.avgAssessment.toLocaleString()}`)
-    lines.push(`Note: Assessment values are typically 5-15% below market value in this region.`)
+    lines.push(`\nMunicipal assessment — nearby avg: ${currency} ${priceIndex.assessment.avgAssessment.toLocaleString()} (market value typically 5-15% above assessed)`)
   }
 
   if (priceIndex?.nhpi?.marketNote) {
-    lines.push(`\nSTATISTICS CANADA NHPI: ${priceIndex.nhpi.marketNote}`)
+    lines.push(`\nStatistics Canada NHPI: ${priceIndex.nhpi.marketNote}`)
   }
 
   return lines.join('\n')
@@ -193,6 +174,21 @@ function buildRiskContext(realData) {
 }
 
 function finalizeAnalysis(est, known, realData, currency, currencySymbol, city, country) {
+  // Apply bounded AI adjustment if AVM result exists
+  const avmResult = realData._avmResult
+  if (avmResult && avmResult.estimatedValue && !known.purchasePrice) {
+    const aiValue = est.propertyEstimate.estimatedValueUSD
+    const bounded = applyBoundedAIAdjustment(avmResult.estimatedValue, aiValue, avmResult.confidenceLevel)
+    est.propertyEstimate.estimatedValueUSD = bounded
+    // Override confidence level with real AVM confidence
+    est.propertyEstimate.confidenceLevel = avmResult.confidenceLevel
+    est.propertyEstimate.confidenceScore = avmResult.confidenceScore
+    est.propertyEstimate.avmValue = avmResult.estimatedValue
+    est.propertyEstimate.priceRange = avmResult.priceRange
+    est.propertyEstimate.compsUsed = avmResult.compsUsed
+    est.propertyEstimate.avmMethodology = avmResult.methodology
+  }
+
   if (known.sqft) est.floorPlan.typicalSqft = known.sqft
   if (known.beds) est.floorPlan.typicalBedrooms = known.beds
   if (known.baths) est.floorPlan.typicalBathrooms = known.baths
@@ -359,7 +355,16 @@ OPENSTREETMAP REAL DATA:
     ? `\nFEMA FLOOD ZONE: ${realData.floodZone.zone} — ${realData.floodZone.inSpecialFloodHazardArea ? 'HIGH RISK — mention this in analysis' : 'Low risk'}`
     : ''
 
-  const compsContext = buildCompsContext(realData, currency)
+  // Build subject profile for AVM
+  const avmSubject = {
+    lat: geoData.lat,
+    lon: geoData.lon,
+    beds: knownFacts.beds || null,
+    baths: knownFacts.baths || null,
+    sqft: knownFacts.sqft || null,
+    propertyType: knownFacts.propertyType || null,
+  }
+  const compsContext = buildCompsContext(realData, currency, avmSubject)
   const riskContext = buildRiskContext(realData)
 
   // Pass 1: Deep chain-of-thought reasoning
