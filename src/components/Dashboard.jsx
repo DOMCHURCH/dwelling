@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import SectionCard from './SectionCard'
 import StatCard from './StatCard'
 import ScoreRing from './ScoreRing'
@@ -67,6 +67,7 @@ function StreetViewImage({ lat, lon, address }) {
 }
 
 import { weatherCodeToDescription } from '../lib/weather'
+import { getCurrencySymbol, getCurrencyName, fetchExchangeRates, convertCurrency, getCurrencyFromCountry } from '../lib/currency'
 
 const fmt = (n) => (n != null && n !== 0) ? n.toLocaleString('en-US', { maximumFractionDigits: 0 }) : '—'
 const fmtUSD = (n, sym) => (n != null && n !== 0) ? `${sym || '$'}${n.toLocaleString('en-US', { maximumFractionDigits: 0 })}` : '—'
@@ -274,7 +275,29 @@ function CorrectionsPanel({ ai, knownFacts = {}, onRecalculate }) {
 export default function Dashboard({ data, onRecalculate }) {
   const { geo, weather, climate, ai, knownFacts, realData } = data
   const { propertyEstimate, costOfLiving, neighborhood, investment, floorPlan, localInsights } = ai
-  const sym = ai.priceHistory?.currencySymbol || '$'
+  // Currency converter
+  const nativeCurrency = ai.priceHistory?.currency || getCurrencyFromCountry(geo.userCountry || '') || 'USD'
+  const [displayCurrency, setDisplayCurrency] = useState(nativeCurrency)
+  const [exchangeRates, setExchangeRates] = useState(null)
+  const [ratesLoading, setRatesLoading] = useState(false)
+
+  useEffect(() => {
+    setRatesLoading(true)
+    fetchExchangeRates('USD').then(rates => {
+      setExchangeRates(rates)
+      setRatesLoading(false)
+    }).catch(() => setRatesLoading(false))
+  }, [])
+
+  const convert = (amount) => {
+    if (!amount || !exchangeRates) return amount
+    if (nativeCurrency === displayCurrency) return amount
+    const nativeToUSD = 1 / (exchangeRates[nativeCurrency] || 1)
+    const usdToDisplay = exchangeRates[displayCurrency] || 1
+    return Math.round(amount * nativeToUSD * usdToDisplay)
+  }
+
+  const sym = getCurrencySymbol(displayCurrency)
 
   const currentWeather = weather?.current
   const tempC = currentWeather?.temperature_2m
@@ -322,8 +345,43 @@ export default function Dashboard({ data, onRecalculate }) {
         />
       </div>
 
+// Popular currencies for the converter
+const DISPLAY_CURRENCIES = [
+  { code: 'USD', label: 'US Dollar' }, { code: 'CAD', label: 'Canadian Dollar' },
+  { code: 'GBP', label: 'British Pound' }, { code: 'EUR', label: 'Euro' },
+  { code: 'AUD', label: 'Australian Dollar' }, { code: 'JPY', label: 'Japanese Yen' },
+  { code: 'CHF', label: 'Swiss Franc' }, { code: 'INR', label: 'Indian Rupee' },
+  { code: 'MXN', label: 'Mexican Peso' }, { code: 'BRL', label: 'Brazilian Real' },
+  { code: 'KRW', label: 'South Korean Won' }, { code: 'CNY', label: 'Chinese Yuan' },
+  { code: 'SGD', label: 'Singapore Dollar' }, { code: 'NZD', label: 'New Zealand Dollar' },
+  { code: 'ZAR', label: 'South African Rand' }, { code: 'AED', label: 'UAE Dirham' },
+]
+
       {/* Street View Image */}
       <StreetViewImage lat={geo.lat} lon={geo.lon} address={[geo.userStreet, geo.userCity, geo.userState, geo.userCountry].filter(Boolean).join(', ')} />
+
+      {/* Currency Converter */}
+      <div className="liquid-glass" style={{ borderRadius: 16, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.5)', whiteSpace: 'nowrap' }}>💱 Display prices in</span>
+        <select value={displayCurrency} onChange={e => setDisplayCurrency(e.target.value)}
+          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#fff', fontFamily: "'Barlow',sans-serif", fontSize: 13, padding: '6px 10px', cursor: 'pointer', outline: 'none', flex: 1, minWidth: 160, maxWidth: 220 }}>
+          {DISPLAY_CURRENCIES.map(c => (
+            <option key={c.code} value={c.code} style={{ background: '#111' }}>
+              {getCurrencySymbol(c.code)} {c.code} — {c.label}
+            </option>
+          ))}
+        </select>
+        {displayCurrency !== nativeCurrency && !ratesLoading && exchangeRates && (
+          <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap' }}>
+            1 {nativeCurrency} = {getCurrencySymbol(displayCurrency)}{((exchangeRates[displayCurrency] || 1) / (exchangeRates[nativeCurrency] || 1)).toFixed(4)} {displayCurrency}
+          </span>
+        )}
+        {displayCurrency !== nativeCurrency && (
+          <button onClick={() => setDisplayCurrency(nativeCurrency)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', fontSize: 11, fontFamily: "'Barlow',sans-serif", cursor: 'pointer', padding: 0 }}>
+            Reset to {nativeCurrency}
+          </button>
+        )}
+      </div>
 
 
       {/* Property Estimate */}
