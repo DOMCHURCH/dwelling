@@ -1,5 +1,4 @@
 import { supabase } from './supabase'
-import { getCurrencyFromCountry, getCurrencySymbol } from './currency'
 
 const CEREBRAS_BASE = '/api/cerebras'
 const MODEL = 'llama-3.1-8b'
@@ -93,18 +92,104 @@ US MARKET CONTEXT (2025):
 - 2026-2027 outlook: 2-4% annual appreciation as rates ease and supply remains constrained`
   }
 
-  // Approximate exchange rates for prompt context (USD to X)
-  const rates = { CAD: 1.38, GBP: 0.79, EUR: 0.92, AUD: 1.55, NZD: 1.68, JPY: 150, CHF: 0.89, CNY: 7.2, INR: 83 }
-  const rate = rates[currency] || 1.0
-
   const censusSnippet = realData.censusData?.medianHomeValueUSD
-    ? `\nLocal census median home value (converted to ${currency}): ${currency} ${Math.round(realData.censusData.medianHomeValueUSD * rate).toLocaleString()}`
+    ? `\nLocal census median home value: ${currency} ${Math.round(realData.censusData.medianHomeValueUSD * (isCanada ? 1.35 : 1)).toLocaleString()}`
     : ''
   const rentSnippet = realData.fmr?.twoBed
-    ? `\nHUD Fair Market Rent (2BR, converted to ${currency}): ${currency} ${Math.round(realData.fmr.twoBed * rate)}/month`
+    ? `\nHUD Fair Market Rent (2BR): ${currency} ${realData.fmr.twoBed}/month`
     : ''
 
   return macroContext + censusSnippet + rentSnippet
+}
+
+
+// Format real comparable properties for AI context
+function buildCompsContext(realData, currency) {
+  const comps = realData.comps?.comps
+  const priceIndex = realData.priceIndex
+
+  const lines = []
+
+  if (comps?.length) {
+    const source = realData.comps.source === 'redfin' ? 'Redfin' : 'Realtor.ca'
+    lines.push(`\nREAL COMPARABLE PROPERTIES (from ${source} — use these as primary price anchors):`)
+    comps.slice(0, 5).forEach((c, i) => {
+      const parts = [
+        `${i + 1}. ${c.address}`,
+        c.price ? `${currency} ${c.price.toLocaleString()}` : '',
+        c.beds ? `${c.beds}bd` : '',
+        c.baths ? `${c.baths}ba` : '',
+        c.sqft ? `${c.sqft.toLocaleString()} sqft` : '',
+        c.pricePerSqft ? `${currency} ${c.pricePerSqft}/sqft` : '',
+        c.soldDate ? `sold ${c.soldDate}` : c.type === 'active_listing' ? 'active listing' : '',
+      ].filter(Boolean)
+      lines.push(parts.join(' | '))
+    })
+
+    const prices = comps.map(c => c.price).filter(Boolean)
+    if (prices.length >= 2) {
+      const avg = Math.round(prices.reduce((a, b) => a + b, 0) / prices.length)
+      const min = Math.min(...prices)
+      const max = Math.max(...prices)
+      lines.push(`Comparable price range: ${currency} ${min.toLocaleString()} – ${currency} ${max.toLocaleString()} (avg: ${currency} ${avg.toLocaleString()})`)
+      lines.push(`INSTRUCTION: Your estimatedValue MUST fall within or close to this range. Do not deviate more than 20% without explicit justification.`)
+    }
+  }
+
+  if (priceIndex?.multipliers) {
+    const src = priceIndex.source || 'price index'
+    lines.push(`\nPRICE INDEX DATA (${src}):`)
+    if (priceIndex.marketNote) lines.push(priceIndex.marketNote)
+    const m = priceIndex.multipliers
+    const years = Object.keys(m).sort()
+    lines.push(`Historical appreciation multipliers (relative to 2025=1.0): ${years.map(y => `${y}: ${m[y]}`).join(', ')}`)
+    lines.push(`INSTRUCTION: Use these multipliers to calibrate your price history data points. They reflect actual market cycles for this region.`)
+  }
+
+  if (priceIndex?.assessment?.avgAssessment) {
+    lines.push(`\nMUNICIPAL ASSESSMENT DATA: Nearby properties average assessed value: ${currency} ${priceIndex.assessment.avgAssessment.toLocaleString()}`)
+    lines.push(`Note: Assessment values are typically 5-15% below market value in this region.`)
+  }
+
+  if (priceIndex?.nhpi?.marketNote) {
+    lines.push(`\nSTATISTICS CANADA NHPI: ${priceIndex.nhpi.marketNote}`)
+  }
+
+  return lines.join('\n')
+}
+
+
+function buildRiskContext(realData) {
+  const risk = realData.riskData
+  if (!risk) return ''
+
+  const lines = ['\nENVIRONMENTAL RISK DATA (FEMA/EPA/USGS):']
+
+  if (risk.nationalRiskIndex) {
+    const nri = risk.nationalRiskIndex
+    lines.push(`Overall community risk rating: ${nri.overallRiskRating}`)
+    if (nri.topRisks?.length) {
+      lines.push(`Top natural hazards: ${nri.topRisks.map(h => `${h.name} (${h.rating})`).join(', ')}`)
+    }
+    if (nri.expectedAnnualLossRating) {
+      lines.push(`Expected annual loss rating: ${nri.expectedAnnualLossRating}`)
+    }
+  }
+
+  if (risk.seismicRisk) {
+    const s = risk.seismicRisk
+    lines.push(`Seismic risk: ${s.seismicRating}${s.isHighSeismicRisk ? ' — MENTION in investment analysis' : ''}`)
+  }
+
+  if (risk.epaHazards) {
+    const e = risk.epaHazards
+    if (e.hasSignificantConcerns) lines.push(`EPA environmental concerns detected — mention in neighborhood analysis`)
+    if (e.airQualityPM25Percentile != null) lines.push(`Air quality PM2.5 percentile: ${e.airQualityPM25Percentile}th`)
+    if (e.superfundSitesNearby > 0) lines.push(`Superfund/toxic sites within 1.5 miles: ${e.superfundSitesNearby}`)
+  }
+
+  if (lines.length > 1) lines.push('Incorporate relevant risk factors into investment analysis and neighborhood assessment.')
+  return lines.length > 1 ? lines.join('\n') : ''
 }
 
 function finalizeAnalysis(est, known, realData, currency, currencySymbol, city, country) {
@@ -159,12 +244,11 @@ function finalizeAnalysis(est, known, realData, currency, currencySymbol, city, 
     est.propertyEstimate.pricePerSqftUSD = Math.round(val / sqft)
   }
 
-  // Sanity check rent — must be between 2% and 10% annual yield (wider range for global markets)
+  // Sanity check rent — must be between 2.5% and 7% annual yield
   const annualRent = (est.propertyEstimate.rentEstimateMonthlyUSD || 0) * 12
   const yieldPct = val != null && val > 0 ? (annualRent / val) * 100 : 0
-  if (yieldPct < 2 || yieldPct > 10) {
-    // If yield is unrealistic, fallback to a more common 4.5% yield
-    est.propertyEstimate.rentEstimateMonthlyUSD = val != null && val > 0 ? Math.round((val * 0.045) / 12) : null
+  if (yieldPct < 2.5 || yieldPct > 7) {
+    est.propertyEstimate.rentEstimateMonthlyUSD = val != null && val > 0 ? Math.round((val * 0.04) / 12) : null
   }
 
   // Lock neighborhood scores to real Overpass data
@@ -175,36 +259,45 @@ function finalizeAnalysis(est, known, realData, currency, currencySymbol, city, 
   }
 
   // Build a city-aware price history using the final estimated value as anchor
-  // Only override if the AI didn't provide its own valid price history
-  if (val != null && val > 0 && (!est.priceHistory || !est.priceHistory.data || est.priceHistory.data.length < 5)) {
+  if (val != null && val > 0) {
     const isCanada = country.toLowerCase().includes('canada')
     const isUK = country.toLowerCase().includes('united kingdom')
     const cityLower = city.toLowerCase()
 
     // City-specific historical multipliers (relative to 2025 = 1.0)
+    // These reflect actual market cycles for major cities
     let multipliers
 
     if (isCanada && (cityLower.includes('toronto') || cityLower.includes('vancouver'))) {
+      // Big Canadian cities: huge COVID boom, sharp correction, slow recovery
       multipliers = { 2019: 0.68, 2020: 0.72, 2021: 0.88, 2022: 0.98, 2023: 0.87, 2024: 0.94, 2025: 1.0, 2026: 1.03, 2027: 1.06 }
     } else if (isCanada && cityLower.includes('ottawa')) {
+      // Ottawa: more stable, less volatile
       multipliers = { 2019: 0.72, 2020: 0.78, 2021: 0.90, 2022: 0.97, 2023: 0.91, 2024: 0.96, 2025: 1.0, 2026: 1.03, 2027: 1.06 }
     } else if (isCanada && cityLower.includes('calgary')) {
+      // Calgary: energy sector driven, different cycle
       multipliers = { 2019: 0.82, 2020: 0.80, 2021: 0.88, 2022: 0.98, 2023: 0.97, 2024: 1.01, 2025: 1.0, 2026: 1.04, 2027: 1.08 }
     } else if (isCanada) {
+      // Generic Canada
       multipliers = { 2019: 0.72, 2020: 0.76, 2021: 0.89, 2022: 0.97, 2023: 0.90, 2024: 0.95, 2025: 1.0, 2026: 1.03, 2027: 1.06 }
     } else if (isUK && cityLower.includes('london')) {
       multipliers = { 2019: 0.90, 2020: 0.88, 2021: 0.94, 2022: 1.02, 2023: 0.95, 2024: 0.97, 2025: 1.0, 2026: 1.03, 2027: 1.06 }
     } else if (isUK) {
       multipliers = { 2019: 0.85, 2020: 0.85, 2021: 0.93, 2022: 1.03, 2023: 0.96, 2024: 0.98, 2025: 1.0, 2026: 1.03, 2027: 1.06 }
     } else if (cityLower.includes('austin') || cityLower.includes('phoenix') || cityLower.includes('tampa')) {
+      // Sun Belt: huge boom, significant correction
       multipliers = { 2019: 0.58, 2020: 0.64, 2021: 0.82, 2022: 1.05, 2023: 0.93, 2024: 0.96, 2025: 1.0, 2026: 1.04, 2027: 1.07 }
     } else if (cityLower.includes('new york') || cityLower.includes('san francisco') || cityLower.includes('los angeles') || cityLower.includes('boston') || cityLower.includes('seattle')) {
+      // Expensive coastal US: smaller swings
       multipliers = { 2019: 0.82, 2020: 0.83, 2021: 0.93, 2022: 1.02, 2023: 0.95, 2024: 0.98, 2025: 1.0, 2026: 1.03, 2027: 1.06 }
     } else if (cityLower.includes('miami') || cityLower.includes('fort lauderdale') || cityLower.includes('naples')) {
+      // Florida: strong demand, less correction
       multipliers = { 2019: 0.62, 2020: 0.68, 2021: 0.84, 2022: 1.06, 2023: 1.01, 2024: 1.00, 2025: 1.0, 2026: 1.03, 2027: 1.06 }
     } else if (cityLower.includes('sydney') || cityLower.includes('melbourne') || cityLower.includes('brisbane')) {
+      // Australia: strong recovery
       multipliers = { 2019: 0.82, 2020: 0.80, 2021: 0.92, 2022: 1.04, 2023: 0.94, 2024: 1.00, 2025: 1.0, 2026: 1.04, 2027: 1.08 }
     } else {
+      // Generic US/international: moderate cycle
       multipliers = { 2019: 0.75, 2020: 0.78, 2021: 0.90, 2022: 1.02, 2023: 0.96, 2024: 0.98, 2025: 1.0, 2026: 1.03, 2027: 1.06 }
     }
 
@@ -218,18 +311,6 @@ function finalizeAnalysis(est, known, realData, currency, currencySymbol, city, 
         type: parseInt(year) >= 2025 ? 'projected' : 'historical',
       })),
     }
-  } else if (est.priceHistory && est.priceHistory.data) {
-    // If we use the AI's price history, ensure the current value (2025) matches our point estimate
-    const entry2025 = est.priceHistory.data.find(d => d.year === 2025)
-    if (entry2025 && entry2025.value !== val) {
-      const ratio = val / entry2025.value
-      est.priceHistory.data = est.priceHistory.data.map(d => ({
-        ...d,
-        value: Math.round(d.value * ratio)
-      }))
-    }
-    est.priceHistory.currency = currency
-    est.priceHistory.currencySymbol = currencySymbol
   }
 
   // Strip any placeholder text the AI might have returned
@@ -253,9 +334,8 @@ export async function analyzeProperty(geoData, weatherData, climateData, knownFa
 
   const isCanada = country.toLowerCase().includes('canada')
   const isUK = country.toLowerCase().includes('united kingdom') || country.toLowerCase().includes('england')
-  const isAustralia = country.toLowerCase().includes('australia')
-  const currency = getCurrencyFromCountry(country)
-  const currencySymbol = getCurrencySymbol(currency)
+  const currency = isCanada ? 'CAD' : isUK ? 'GBP' : 'USD'
+  const currencySymbol = isUK ? '£' : '$'
 
   const marketContext = buildMarketContext(city, country, currency, realData)
 
@@ -279,6 +359,9 @@ OPENSTREETMAP REAL DATA:
     ? `\nFEMA FLOOD ZONE: ${realData.floodZone.zone} — ${realData.floodZone.inSpecialFloodHazardArea ? 'HIGH RISK — mention this in analysis' : 'Low risk'}`
     : ''
 
+  const compsContext = buildCompsContext(realData, currency)
+  const riskContext = buildRiskContext(realData)
+
   // Pass 1: Deep chain-of-thought reasoning
   const cotPrompt = `You are a senior real estate appraiser and certified market analyst with 20+ years of experience appraising residential properties in ${city}, ${country}. You have deep knowledge of local neighbourhoods, micro-market dynamics, and regional economic drivers.
 
@@ -291,6 +374,8 @@ CONFIRMED PROPERTY FACTS:
 ${knownLines || 'No confirmed facts provided — estimate based on location and neighbourhood type.'}
 ${osmnData}
 ${floodInfo}
+${compsContext}
+${riskContext}
 ${marketContext}
 
 You must reason through this property carefully and systematically. Think like a licensed appraiser doing a full market analysis. Work through every step below:
@@ -376,12 +461,7 @@ End with: READY_FOR_JSON`
   const jsonPrompt = `Based on your detailed analysis above, produce the final property intelligence report as a single JSON object. Every field must be substantive and specific to ${neighbourhood || city}, ${city}. No generic filler text.
 
 FIELD REQUIREMENTS:
-- estimatedValueUSD: Your precise point estimate in ${currency}. Integer only. IMPORTANT: Use the actual value in ${currency}, NOT USD unless the currency IS USD.
-- monthlyBudgetUSD: Total monthly cost of living in ${currency}. IMPORTANT: Use the actual value in ${currency}.
-- groceriesMonthlyUSD: Monthly groceries in ${currency}.
-- transportMonthlyUSD: Monthly transport in ${currency}.
-- utilitiesMonthlyUSD: Monthly utilities in ${currency}.
-- diningOutMonthlyUSD: Monthly dining in ${currency}.
+- estimatedValueUSD: Your precise point estimate in ${currency}. Integer only.
 - priceContext: 4 sentences minimum. (1) What drives values specifically in ${neighbourhood || city}. (2) Specific comparable evidence or price range for this street/area. (3) How this property fits within that range. (4) Honest caveat about market conditions or uncertainty.
 - neighborhood.character: 4 sentences. (1) Physical character and housing stock. (2) Demographic profile of residents. (3) What makes this neighbourhood distinct from nearby areas. (4) Current trajectory — improving, stable, or changing.
 - investmentSummary: 4 sentences. (1) Core investment thesis. (2) Specific risks. (3) Who this suits as an investment. (4) Realistic return expectation.
@@ -390,7 +470,7 @@ FIELD REQUIREMENTS:
 - localInsights.knownFor: 2 vivid sentences — what makes ${neighbourhood || city} genuinely distinctive. Not a list.
 - localInsights.localTip: A real insider tip. Something you would only know if you lived there.
 - priceHistory.marketNote: 3 sentences explaining the actual price cycle in ${city} — the boom, the correction, and the current state.
-- All monetary values (including fields ending in USD) MUST be in ${currency} (${currencySymbol}). Do NOT convert to USD.
+- All monetary values must be in ${currency} (${currencySymbol})
 - indexVsUSAverage: Integer. Percentage more or less expensive than US average. Examples: Ottawa +18, London UK +55, rural Mississippi -35, Manhattan +95, Calgary +12.
 - Return ONLY valid raw JSON. No markdown, no backticks, no explanation text outside the JSON.
 
