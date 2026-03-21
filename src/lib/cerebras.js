@@ -210,9 +210,7 @@ function finalizeAnalysis(est, known, realData, currency, currencySymbol, city, 
     est.propertyEstimate.avmMethodology = avmResult.methodology
   }
 
-  if (known.sqft) est.floorPlan.typicalSqft = known.sqft
-  if (known.beds) est.floorPlan.typicalBedrooms = known.beds
-  if (known.baths) est.floorPlan.typicalBathrooms = known.baths
+  // Floor plan logic removed for area-only mode
 
   // If purchase price is known, use appreciation model anchored to it
   if (known.purchasePrice && known.purchasePrice > 0) {
@@ -488,18 +486,9 @@ Be specific, honest, and evidence-based. End with: READY_FOR_JSON`
     "knownFor": "<2 sentences about what makes this area distinctive>",
     "localTip": "<one genuine insider tip>",
     "topAttractions": ["<attraction 1>", "<attraction 2>", "<attraction 3>"]
-  },
-  "floorPlan": {
-    "typicalSizeSqft": <integer typical home size>,
-    "bedrooms": <integer typical beds>,
-    "bathrooms": <integer typical baths>,
-    "builtEra": "<decade range>",
-    "architecturalStyle": "<style>",
-    "description": "<2 sentences about typical housing stock>",
-    "commonFeatures": ["<feature 1>", "<feature 2>", "<feature 3>"]
   }
-}`
-
+}
+`
     const areaRaw = await cerebrasChat([
       { role: 'system', content: `You are a licensed real estate analyst. Return only valid JSON.` },
       { role: 'user', content: areaCot },
@@ -698,15 +687,6 @@ FIELD REQUIREMENTS:
     "appreciationOutlookText": "<3 sentences: ${city} market momentum, key 2026-2027 drivers, specific % forecast>",
     "investmentScore": <0-100>,
     "investmentSummary": "<4 sentences: thesis, risks, who it suits, return expectation>"
-  },
-  "floorPlan": {
-    "typicalSqft": <integer, typical home size for ${neighbourhood || city}>,
-    "typicalBedrooms": <integer>,
-    "typicalBathrooms": <number>,
-    "architecturalStyle": "<specific style for ${neighbourhood || city} — decade and type>",
-    "builtEra": "<decade or range, e.g. '1960s-1970s'>",
-    "typicalLayout": "<2 sentences describing the typical floor plan and character of homes in ${neighbourhood || city}>",
-    "commonFeatures": ["<real feature>", "<real feature>", "<real feature>", "<real feature>", "<real feature>"]
   },
   "localInsights": {
     "topAttractions": ["<real specific nearby attraction>", "<real specific attraction>", "<real specific attraction>"],
