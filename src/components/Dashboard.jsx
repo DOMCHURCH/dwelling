@@ -272,6 +272,18 @@ function CorrectionsPanel({ ai, knownFacts = {}, onRecalculate }) {
   )
 }
 
+// Popular currencies for the converter
+const DISPLAY_CURRENCIES = [
+  { code: 'USD', label: 'US Dollar' }, { code: 'CAD', label: 'Canadian Dollar' },
+  { code: 'GBP', label: 'British Pound' }, { code: 'EUR', label: 'Euro' },
+  { code: 'AUD', label: 'Australian Dollar' }, { code: 'JPY', label: 'Japanese Yen' },
+  { code: 'CHF', label: 'Swiss Franc' }, { code: 'INR', label: 'Indian Rupee' },
+  { code: 'MXN', label: 'Mexican Peso' }, { code: 'BRL', label: 'Brazilian Real' },
+  { code: 'KRW', label: 'South Korean Won' }, { code: 'CNY', label: 'Chinese Yuan' },
+  { code: 'SGD', label: 'Singapore Dollar' }, { code: 'NZD', label: 'New Zealand Dollar' },
+  { code: 'ZAR', label: 'South African Rand' }, { code: 'AED', label: 'UAE Dirham' },
+]
+
 export default function Dashboard({ data, onRecalculate }) {
   const { geo, weather, climate, ai, knownFacts, realData } = data
   const { propertyEstimate, costOfLiving, neighborhood, investment, floorPlan, localInsights } = ai
@@ -344,18 +356,6 @@ export default function Dashboard({ data, onRecalculate }) {
           src={`https://www.openstreetmap.org/export/embed.html?bbox=${geo.lon - 0.005}%2C${geo.lat - 0.003}%2C${geo.lon + 0.005}%2C${geo.lat + 0.003}&layer=mapnik&marker=${geo.lat}%2C${geo.lon}`}
         />
       </div>
-
-// Popular currencies for the converter
-const DISPLAY_CURRENCIES = [
-  { code: 'USD', label: 'US Dollar' }, { code: 'CAD', label: 'Canadian Dollar' },
-  { code: 'GBP', label: 'British Pound' }, { code: 'EUR', label: 'Euro' },
-  { code: 'AUD', label: 'Australian Dollar' }, { code: 'JPY', label: 'Japanese Yen' },
-  { code: 'CHF', label: 'Swiss Franc' }, { code: 'INR', label: 'Indian Rupee' },
-  { code: 'MXN', label: 'Mexican Peso' }, { code: 'BRL', label: 'Brazilian Real' },
-  { code: 'KRW', label: 'South Korean Won' }, { code: 'CNY', label: 'Chinese Yuan' },
-  { code: 'SGD', label: 'Singapore Dollar' }, { code: 'NZD', label: 'New Zealand Dollar' },
-  { code: 'ZAR', label: 'South African Rand' }, { code: 'AED', label: 'UAE Dirham' },
-]
 
       {/* Street View Image */}
       <StreetViewImage lat={geo.lat} lon={geo.lon} address={[geo.userStreet, geo.userCity, geo.userState, geo.userCountry].filter(Boolean).join(', ')} />
