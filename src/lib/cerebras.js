@@ -1,5 +1,7 @@
 import { supabase } from './supabase'
+import { getCurrencyFromCountry, getCurrencySymbol } from './currency'
 import { runAVM, applyBoundedAIAdjustment, formatAVMForPrompt } from './avm'
+import { formatMarketDataForPrompt, getMarketData } from './marketPrices'
 
 const CEREBRAS_BASE = '/api/cerebras'
 const MODEL = 'llama-3.1-8b'
