@@ -398,6 +398,151 @@ OPENSTREETMAP REAL DATA:
     : ''
   const isAreaMode = realData.isAreaMode || false
 
+  // ── AREA MODE: simplified prompt + schema ──────────────────────────────────
+  if (isAreaMode) {
+    const areaCot = `You are a senior real estate market analyst with deep knowledge of ${city}, ${country}.
+
+AREA INTELLIGENCE REPORT FOR: ${city}${state ? ', ' + state : ''}, ${country}
+${areaContext}
+${marketContext2}
+${riskContext}
+
+Analyze this area across 6 dimensions:
+1. MARKET CONDITIONS: What do the listing data signals mean? Is supply rising or falling? Who has negotiating power?
+2. PRICE TRENDS: Where are prices now, where were they 2 years ago, where are they heading in 2026-2027?
+3. INVESTMENT OUTLOOK: Gross rental yield, net yield, landlord vs tenant market, realistic horizon for positive return.
+4. LIVEABILITY: Cost of living, commute, schools, walkability, safety, community character.
+5. WHO SHOULD MOVE HERE: Families, young professionals, retirees, investors? Who does this area suit best?
+6. RISKS & UPSIDES: 3 specific downside risks, 3 specific upside catalysts.
+
+Be specific, honest, and evidence-based. End with: READY_FOR_JSON`
+
+    const areaReasoning = await cerebrasChat([
+      { role: 'system', content: `You are a licensed real estate analyst specializing in ${city}, ${country}. Provide precise, evidence-based area intelligence.` },
+      { role: 'user', content: areaCot }
+    ])
+
+    const areaJsonPrompt = `Based on your analysis, produce a JSON area intelligence report. Return ONLY valid raw JSON, no markdown.
+
+{
+  "areaIntelligence": {
+    "verdict": "<one of: Excellent, Good, Neutral, Caution, Avoid>",
+    "verdictReason": "<2 sentences explaining the verdict>",
+    "marketConditions": "<3 sentences: supply/demand dynamics, who has negotiating power, market velocity>",
+    "priceTrend": "<3 sentences: current prices, recent history, 2026-2027 forecast with specific % range>",
+    "investmentOutlook": "<3 sentences: gross yield, net yield, investment horizon>",
+    "liveability": "<3 sentences: cost of living, community feel, who thrives here>",
+    "bestFor": "<one sentence: who this area suits best>",
+    "risks": ["<specific risk 1>", "<specific risk 2>", "<specific risk 3>"],
+    "upsides": ["<specific upside 1>", "<specific upside 2>", "<specific upside 3>"]
+  },
+  "propertyEstimate": {
+    "estimatedValueUSD": ${areaMetrics?.medianPrice || 0},
+    "pricePerSqftUSD": ${areaMetrics?.medianPPSF || 0},
+    "rentEstimateMonthlyUSD": ${areaMetrics?.medianPrice ? Math.round(areaMetrics.medianPrice * 0.004) : 0},
+    "confidenceLevel": "medium",
+    "priceContext": "<4 sentences about area pricing based on the aggregated data>"
+  },
+  "neighborhood": {
+    "character": "<3 sentences about the area character>",
+    "walkScore": ${realData.neighborhoodScores?.walkScore || 50},
+    "transitScore": ${realData.neighborhoodScores?.transitScore || 40},
+    "safetyScore": 75,
+    "schoolScore": ${realData.neighborhoodScores?.schoolScore || 60},
+    "pros": ["<pro 1>", "<pro 2>", "<pro 3>"],
+    "cons": ["<con 1>", "<con 2>"],
+    "bestFor": "<who this neighbourhood suits>"
+  },
+  "investment": {
+    "rentYield": "<e.g. 4.5%>",
+    "investmentScore": <integer 0-100>,
+    "outlook": "<Positive|Neutral|Negative>",
+    "investmentSummary": "<3 sentences: thesis, risks, return expectation>"
+  },
+  "costOfLiving": {
+    "monthlyBudgetUSD": <integer monthly total>,
+    "groceriesMonthlyUSD": <integer>,
+    "transportMonthlyUSD": <integer>,
+    "utilitiesMonthlyUSD": <integer>,
+    "diningOutMonthlyUSD": <integer>,
+    "indexVsUSAverage": <integer, % vs US average>,
+    "summary": "<2 sentences about cost of living>"
+  },
+  "priceHistory": {
+    "currency": "${currency}",
+    "currencySymbol": "${currencySymbol}",
+    "data": [
+      {"year": 2019, "value": <integer>, "type": "historical"},
+      {"year": 2020, "value": <integer>, "type": "historical"},
+      {"year": 2021, "value": <integer>, "type": "historical"},
+      {"year": 2022, "value": <integer>, "type": "historical"},
+      {"year": 2023, "value": <integer>, "type": "historical"},
+      {"year": 2024, "value": <integer>, "type": "historical"},
+      {"year": 2025, "value": <integer>, "type": "historical"},
+      {"year": 2026, "value": <integer>, "type": "projected"},
+      {"year": 2027, "value": <integer>, "type": "projected"}
+    ],
+    "marketNote": "<3 sentences: boom, correction, current state>"
+  },
+  "localInsights": {
+    "knownFor": "<2 sentences about what makes this area distinctive>",
+    "localTip": "<one genuine insider tip>",
+    "topAttractions": ["<attraction 1>", "<attraction 2>", "<attraction 3>"]
+  },
+  "floorPlan": {
+    "typicalSizeSqft": <integer typical home size>,
+    "bedrooms": <integer typical beds>,
+    "bathrooms": <integer typical baths>,
+    "builtEra": "<decade range>",
+    "architecturalStyle": "<style>",
+    "description": "<2 sentences about typical housing stock>",
+    "commonFeatures": ["<feature 1>", "<feature 2>", "<feature 3>"]
+  }
+}`
+
+    const areaRaw = await cerebrasChat([
+      { role: 'system', content: `You are a licensed real estate analyst. Return only valid JSON.` },
+      { role: 'user', content: areaCot },
+      { role: 'assistant', content: areaReasoning },
+      { role: 'user', content: areaJsonPrompt }
+    ], true, true)
+
+    if (!areaRaw || typeof areaRaw !== 'string') throw new Error('AI returned empty response. Please try again.')
+    let areaResult
+    try {
+      areaResult = JSON.parse(areaRaw.replace(/```json|```/g, '').trim())
+    } catch {
+      throw new Error('AI response could not be parsed. Please try again.')
+    }
+    if (!areaResult?.propertyEstimate) throw new Error('AI response was incomplete. Please try again.')
+
+    // Normalize numbers
+    const toNum = (v) => {
+      if (typeof v === 'number') return isNaN(v) ? null : Math.round(v)
+      if (!v) return null
+      const s = String(v).replace(/[^0-9.]/g, '')
+      const n = parseFloat(s)
+      return isNaN(n) ? null : Math.round(n)
+    }
+    const p = areaResult.propertyEstimate
+    p.estimatedValueUSD = toNum(p.estimatedValueUSD)
+    p.pricePerSqftUSD = toNum(p.pricePerSqftUSD)
+    p.rentEstimateMonthlyUSD = toNum(p.rentEstimateMonthlyUSD)
+    const c = areaResult.costOfLiving || {}
+    c.monthlyBudgetUSD = toNum(c.monthlyBudgetUSD)
+    c.groceriesMonthlyUSD = toNum(c.groceriesMonthlyUSD)
+    c.transportMonthlyUSD = toNum(c.transportMonthlyUSD)
+    c.utilitiesMonthlyUSD = toNum(c.utilitiesMonthlyUSD)
+    c.diningOutMonthlyUSD = toNum(c.diningOutMonthlyUSD)
+
+    areaResult.priceHistory = areaResult.priceHistory || {}
+    areaResult.priceHistory.currencySymbol = currencySymbol
+    areaResult.priceHistory.currency = currency
+
+    return areaResult
+  }
+  // ── END AREA MODE ────────────────────────────────────────────────────────────
+
   // Pass 1: Deep chain-of-thought reasoning
   const cotPrompt = `You are a senior real estate appraiser and certified market analyst with 20+ years of experience appraising residential properties in ${city}, ${country}. You have deep knowledge of local neighbourhoods, micro-market dynamics, and regional economic drivers.
 
