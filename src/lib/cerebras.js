@@ -2,6 +2,7 @@ import { supabase } from './supabase'
 import { getCurrencyFromCountry, getCurrencySymbol } from './currency'
 import { runAVM, applyBoundedAIAdjustment, formatAVMForPrompt } from './avm'
 import { formatMarketDataForPrompt, getMarketData, getLiveMarketData } from './marketPrices'
+import { formatAreaContextForPrompt } from './areaAnalysis'
 
 const CEREBRAS_BASE = '/api/cerebras'
 const MODEL = 'llama-3.1-8b'
@@ -392,6 +393,10 @@ OPENSTREETMAP REAL DATA:
     ? formatMarketDataForPrompt(city, country, currency, _liveMarket)
     : formatMarketDataForPrompt(city, country, currency)
   const riskContext = buildRiskContext(realData)
+  const areaContext = realData.areaMetrics
+    ? formatAreaContextForPrompt(realData.areaMetrics, realData.areaRiskScore, realData.marketTemperature, city, country)
+    : ''
+  const isAreaMode = realData.isAreaMode || false
 
   // Pass 1: Deep chain-of-thought reasoning
   const cotPrompt = `You are a senior real estate appraiser and certified market analyst with 20+ years of experience appraising residential properties in ${city}, ${country}. You have deep knowledge of local neighbourhoods, micro-market dynamics, and regional economic drivers.
@@ -407,6 +412,7 @@ ${osmnData}
 ${floodInfo}
 ${compsContext}
 ${marketContext2}
+${areaContext}
 ${riskContext}
 ${marketContext}
 
@@ -429,7 +435,12 @@ Describe the typical residential stock at this specific address:
 - Name 2-3 specific comparable sales on nearby streets that would anchor a valuation for this property. What were the approximate prices and when?
 - What renovations or features typically differentiate higher-value vs lower-value homes on this street?
 
-STEP 3 — CURRENT VALUATION — SHOW YOUR MATH
+${isAreaMode ? `STEP 3 — AREA MARKET ANALYSIS (no property address provided)
+Instead of valuing a single property, analyze the AREA MARKET DATA above. Assess:
+- Is this a good time to buy in this area? Why or why not?
+- What is driving current prices — supply, demand, economic factors?
+- Who should consider moving here (families, investors, renters)?
+- What are the risks and upsides of this market right now?` : 'STEP 3 — CURRENT VALUATION — SHOW YOUR MATH'}
 CRITICAL PRICE ANCHORS FOR CANADA (do not go below these without strong justification):
 - Ottawa detached homes: $650,000-$1,100,000 CAD depending on neighbourhood
 - Ottawa semi-detached: $550,000-$800,000 CAD
