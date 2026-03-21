@@ -521,7 +521,7 @@ export default function Dashboard({ data, onRecalculate }) {
 
       {/* Environmental Risk */}
       {risk && (
-        <SectionCard title="Environmental Risk" icon="🛡" delay={290}>
+        <SectionCard title="Environmental Risk" icon="🛡" delay={290} className="gsap-reveal-risk">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 16 }}>
             {[
               { label: 'Flood', value: risk.detailedRisk?.floodRisk || 'Low', icon: '🌊' },
