@@ -507,11 +507,11 @@ Be specific, honest, and evidence-based. End with: READY_FOR_JSON`
 
     // Normalize numbers
     const toNum = (v) => {
-      if (typeof v === 'number') return isNaN(v) ? null : Math.round(v)
-      if (!v) return null
+      if (typeof v === 'number') return isNaN(v) ? 0 : Math.round(v)
+      if (!v) return 0
       const s = String(v).replace(/[^0-9.]/g, '')
       const n = parseFloat(s)
-      return isNaN(n) ? null : Math.round(n)
+      return isNaN(n) ? 0 : Math.round(n)
     }
     const p = areaResult.propertyEstimate
     p.estimatedValueUSD = toNum(p.estimatedValueUSD)
@@ -523,6 +523,17 @@ Be specific, honest, and evidence-based. End with: READY_FOR_JSON`
     c.transportMonthlyUSD = toNum(c.transportMonthlyUSD)
     c.utilitiesMonthlyUSD = toNum(c.utilitiesMonthlyUSD)
     c.diningOutMonthlyUSD = toNum(c.diningOutMonthlyUSD)
+
+    // Fix investment fields
+    const inv = areaResult.investment || {}
+    inv.rentYieldPercent = toNum(inv.rentYieldPercent) || 0
+    inv.investmentScore = toNum(inv.investmentScore) || 50
+    areaResult.investment = inv
+
+    // Fix neighborhood fields
+    const n = areaResult.neighborhood || {}
+    n.safetyRating = toNum(n.safetyRating) || 50
+    areaResult.neighborhood = n
 
     areaResult.priceHistory = areaResult.priceHistory || {}
     areaResult.priceHistory.currencySymbol = currencySymbol
