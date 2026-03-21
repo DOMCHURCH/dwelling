@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import SectionCard from './SectionCard'
 import StatCard from './StatCard'
 import ScoreRing from './ScoreRing'
@@ -67,6 +67,7 @@ function StreetViewImage({ lat, lon, address }) {
 }
 
 import { weatherCodeToDescription } from '../lib/weather'
+import { getCurrencySymbol, getCurrencyName, fetchExchangeRates, convertCurrency, getCurrencyFromCountry } from '../lib/currency'
 
 const fmt = (n) => (n != null && n !== 0) ? n.toLocaleString('en-US', { maximumFractionDigits: 0 }) : '—'
 const fmtUSD = (n, sym) => (n != null && n !== 0) ? `${sym || '$'}${n.toLocaleString('en-US', { maximumFractionDigits: 0 })}` : '—'
@@ -115,7 +116,7 @@ function LinkButton({ href, label, icon }) {
   )
 }
 
-function IncomeSlider({ costOfLiving }) {
+function IncomeSlider({ costOfLiving, sym }) {
   const [mode, setMode] = useState('monthly')
   const [income, setIncome] = useState(mode === 'monthly' ? 5000 : 60000)
 
@@ -192,7 +193,7 @@ function IncomeSlider({ costOfLiving }) {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
-        <StatCard label="Monthly cost" value={fmtUSD(total, sym)} sub="estimated total" />
+        <StatCard label="Monthly cost" value={fmtUSD(convert(total), sym)} sub="estimated total" />
         <StatCard label="vs US Average" value={costOfLiving.indexVsUSAverage ? `${costOfLiving.indexVsUSAverage > 0 ? '+' : ''}${costOfLiving.indexVsUSAverage}%` : '—'}
           accent={costOfLiving.indexVsUSAverage > 15 ? '#f87171' : costOfLiving.indexVsUSAverage < -15 ? '#4ade80' : '#ffffff'} />
       </div>
@@ -271,10 +272,55 @@ function CorrectionsPanel({ ai, knownFacts = {}, onRecalculate }) {
   )
 }
 
+// Popular currencies for the converter
+const DISPLAY_CURRENCIES = [
+  { code: 'USD', label: 'US Dollar' },
+  { code: 'CAD', label: 'Canadian Dollar' },
+  { code: 'GBP', label: 'British Pound' },
+  { code: 'EUR', label: 'Euro' },
+  { code: 'AUD', label: 'Australian Dollar' },
+  { code: 'JPY', label: 'Japanese Yen' },
+  { code: 'CHF', label: 'Swiss Franc' },
+  { code: 'INR', label: 'Indian Rupee' },
+  { code: 'MXN', label: 'Mexican Peso' },
+  { code: 'BRL', label: 'Brazilian Real' },
+  { code: 'KRW', label: 'South Korean Won' },
+  { code: 'CNY', label: 'Chinese Yuan' },
+  { code: 'SGD', label: 'Singapore Dollar' },
+  { code: 'NZD', label: 'New Zealand Dollar' },
+  { code: 'ZAR', label: 'South African Rand' },
+  { code: 'AED', label: 'UAE Dirham' },
+]
+
 export default function Dashboard({ data, onRecalculate }) {
   const { geo, weather, climate, ai, knownFacts, realData } = data
   const { propertyEstimate, costOfLiving, neighborhood, investment, floorPlan, localInsights } = ai
-  const sym = ai.priceHistory?.currencySymbol || '$'
+
+  // Currency converter
+  const nativeCurrency = ai.priceHistory?.currency || getCurrencyFromCountry(geo.userCountry || '') || 'USD'
+  const [displayCurrency, setDisplayCurrency] = useState(nativeCurrency)
+  const [exchangeRates, setExchangeRates] = useState(null)
+  const [ratesLoading, setRatesLoading] = useState(false)
+
+  useEffect(() => {
+    setRatesLoading(true)
+    fetchExchangeRates('USD').then(rates => {
+      setExchangeRates(rates)
+      setRatesLoading(false)
+    }).catch(() => setRatesLoading(false))
+  }, [])
+
+  // Convert a value from native currency to display currency
+  const convert = (amount) => {
+    if (!amount || !exchangeRates) return amount
+    if (nativeCurrency === displayCurrency) return amount
+    // Convert: native → USD → display
+    const nativeToUSD = 1 / (exchangeRates[nativeCurrency] || 1)
+    const usdToDisplay = exchangeRates[displayCurrency] || 1
+    return Math.round(amount * nativeToUSD * usdToDisplay)
+  }
+
+  const sym = getCurrencySymbol(displayCurrency)
 
   const currentWeather = weather?.current
   const tempC = currentWeather?.temperature_2m
@@ -325,13 +371,44 @@ export default function Dashboard({ data, onRecalculate }) {
       {/* Street View Image */}
       <StreetViewImage lat={geo.lat} lon={geo.lon} address={[geo.userStreet, geo.userCity, geo.userState, geo.userCountry].filter(Boolean).join(', ')} />
 
+      {/* Currency Converter */}
+      <div className="liquid-glass" style={{ borderRadius: 16, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.5)', whiteSpace: 'nowrap' }}>
+          💱 Display prices in
+        </span>
+        <select
+          value={displayCurrency}
+          onChange={e => setDisplayCurrency(e.target.value)}
+          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#fff', fontFamily: "'Barlow',sans-serif", fontSize: 13, padding: '6px 10px', cursor: 'pointer', outline: 'none', flex: 1, minWidth: 160, maxWidth: 220 }}
+        >
+          {DISPLAY_CURRENCIES.map(c => (
+            <option key={c.code} value={c.code} style={{ background: '#111' }}>
+              {getCurrencySymbol(c.code)} {c.code} — {c.label}
+            </option>
+          ))}
+        </select>
+        {displayCurrency !== nativeCurrency && !ratesLoading && exchangeRates && (
+          <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap' }}>
+            1 {nativeCurrency} = {getCurrencySymbol(displayCurrency)}{((exchangeRates[displayCurrency] || 1) / (exchangeRates[nativeCurrency] || 1)).toFixed(4)} {displayCurrency}
+          </span>
+        )}
+        {ratesLoading && (
+          <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Loading rates...</span>
+        )}
+        {displayCurrency !== nativeCurrency && (
+          <button onClick={() => setDisplayCurrency(nativeCurrency)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', fontSize: 11, fontFamily: "'Barlow',sans-serif", cursor: 'pointer', padding: 0 }}>
+            Reset to {nativeCurrency}
+          </button>
+        )}
+      </div>
+
 
       {/* Property Estimate */}
       <SectionCard title="Property Estimate" icon="🏠" delay={50}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 16 }}>
-          <StatCard label="Est. Value" value={fmtUSD(propertyEstimate.estimatedValueUSD, sym)} sub="market estimate" accent="#ffffff" animate />
-          <StatCard label="Price / sqft" value={fmtUSD(propertyEstimate.pricePerSqftUSD, sym)} sub="avg for area" />
-          <StatCard label="Rent / month" value={fmtUSD(propertyEstimate.rentEstimateMonthlyUSD, sym)} sub="typical rental" accent="#4ade80" animate />
+          <StatCard label="Est. Value" value={fmtUSD(convert(propertyEstimate.estimatedValueUSD), sym)} sub="market estimate" accent="#ffffff" animate />
+          <StatCard label="Price / sqft" value={fmtUSD(convert(propertyEstimate.pricePerSqftUSD), sym)} sub="avg for area" />
+          <StatCard label="Rent / month" value={fmtUSD(convert(propertyEstimate.rentEstimateMonthlyUSD), sym)} sub="typical rental" accent="#4ade80" animate />
         </div>
         {realData?.censusData && (
           <div className="liquid-glass" style={{ borderRadius: 12, marginBottom: 12, padding: '10px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow', sans-serif", fontWeight: 300 }}>
@@ -348,7 +425,7 @@ export default function Dashboard({ data, onRecalculate }) {
 
       {/* Cost of Living */}
       <SectionCard title="Cost of Living" icon="💰" delay={100}>
-        <IncomeSlider costOfLiving={costOfLiving} />
+        <IncomeSlider costOfLiving={costOfLiving} sym={sym} />
       </SectionCard>
 
       {/* Neighborhood + Climate */}
