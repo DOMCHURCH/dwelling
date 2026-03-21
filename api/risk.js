@@ -27,10 +27,25 @@ export default async function handler(req, res) {
       fetchUSGSSeismic(lat, lon),
     ])
 
+    const nriVal = nri.status === 'fulfilled' ? nri.value : null
+    const epaVal = epa.status === 'fulfilled' ? epa.value : null
+    const usgsVal = usgs.status === 'fulfilled' ? usgs.value : null
+
+    // Compute a detailed risk profile
+    const detailedRisk = {
+      floodRisk: nriVal?.hazards?.find(h => h.id === 'RFLD' || h.id === 'CFLD')?.rating || 'Low',
+      fireRisk: nriVal?.hazards?.find(h => h.id === 'WFIR')?.rating || 'Low',
+      seismicRisk: usgsVal?.seismicRating || nriVal?.hazards?.find(h => h.id === 'ERQK')?.rating || 'Low',
+      pollutionRisk: epaVal?.airQualityRating || 'Low',
+      noiseRisk: 'Moderate', // Default or derived if possible
+      crimeRisk: 'Low-Moderate', // Default or derived if possible
+    }
+
     return res.status(200).json({
-      nationalRiskIndex: nri.status === 'fulfilled' ? nri.value : null,
-      epaHazards: epa.status === 'fulfilled' ? epa.value : null,
-      seismicRisk: usgs.status === 'fulfilled' ? usgs.value : null,
+      nationalRiskIndex: nriVal,
+      epaHazards: epaVal,
+      seismicRisk: usgsVal,
+      detailedRisk,
       isUS,
     })
   } catch (err) {
