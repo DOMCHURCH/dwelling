@@ -435,12 +435,8 @@ Describe the typical residential stock at this specific address:
 - Name 2-3 specific comparable sales on nearby streets that would anchor a valuation for this property. What were the approximate prices and when?
 - What renovations or features typically differentiate higher-value vs lower-value homes on this street?
 
-${isAreaMode ? `STEP 3 — AREA MARKET ANALYSIS (no property address provided)
-Instead of valuing a single property, analyze the AREA MARKET DATA above. Assess:
-- Is this a good time to buy in this area? Why or why not?
-- What is driving current prices — supply, demand, economic factors?
-- Who should consider moving here (families, investors, renters)?
-- What are the risks and upsides of this market right now?` : 'STEP 3 — CURRENT VALUATION — SHOW YOUR MATH'}
+STEP 3 — ${isAreaMode ? 'AREA MARKET ANALYSIS' : 'CURRENT VALUATION — SHOW YOUR MATH'}
+${isAreaMode ? 'Instead of valuing a single property, analyze the AREA MARKET DATA above. Assess whether this is a good time to buy, what is driving current prices, who should consider moving here, and what the risks and upsides are.' : ''}
 CRITICAL PRICE ANCHORS FOR CANADA (do not go below these without strong justification):
 - Ottawa detached homes: $650,000-$1,100,000 CAD depending on neighbourhood
 - Ottawa semi-detached: $550,000-$800,000 CAD
