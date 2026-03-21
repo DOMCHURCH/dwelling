@@ -170,7 +170,7 @@ export default function PriceHistoryChart({ priceHistory }) {
       <div style={{ display: 'flex', gap: 20, marginBottom: 16, flexWrap: 'wrap' }}>
         {current && (
           <div>
-            <div style={{ fontSize: 10, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 3 }}>Current est.</div>
+            <div style={{ fontSize: 10, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 3 }}>Area Average</div>
             <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "'Instrument Serif', serif", fontStyle: 'italic', letterSpacing: '-0.03em', color: 'var(--text)' }}>{fmtUSD(current.value)}</div>
           </div>
         )}
