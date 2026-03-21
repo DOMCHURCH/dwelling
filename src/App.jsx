@@ -12,6 +12,7 @@ import { useInView } from './hooks/useInView'
 import { geocodeStructured } from './lib/nominatim'
 import { getCurrentWeather, getClimateNormals } from './lib/weather'
 import { analyzeProperty } from './lib/cerebras'
+import { aggregateListings, computeRiskScore, getMarketTemperature } from './lib/areaAnalysis'
 import { getNeighborhoodScores } from './lib/overpass'
 import { getCensusData } from './lib/census'
 import { getFairMarketRent, getFloodZone } from './lib/hud'
@@ -569,16 +570,38 @@ export default function App() {
   const handleSearch = async ({ street, city, state, country, knownFacts }) => {
     if (loading) return
     setLoading(true); setError(null); setResult(null); setLoadStep(0)
+    const isAreaMode = !street.trim()
     try {
-      const geo = await geocodeStructured({ street, city, state, country }); setLoadStep(1)
+      const geocodeInput = isAreaMode ? { street: '', city, state, country } : { street, city, state, country }
+      const geo = await geocodeStructured(geocodeInput); setLoadStep(1)
       const postcode = geo.address?.postcode ?? ''
       const [weather, climate, neighborhoodScores] = await Promise.all([getCurrentWeather(geo.lat, geo.lon), getClimateNormals(geo.lat, geo.lon), getNeighborhoodScores(geo.lat, geo.lon)]); setLoadStep(2)
       const [censusData, fmr, floodZone] = await Promise.all([getCensusData(street, city, state, country), getFairMarketRent(postcode), getFloodZone(geo.lat, geo.lon)]); setLoadStep(3)
       const riskData = await getRiskData({ lat: geo.lat, lon: geo.lon, county: geo.address?.county, state, country }).catch(() => null)
-      const realData = { neighborhoodScores, censusData, fmr, floodZone, riskData }
+
+      // Area intelligence: fetch bulk listings + local news in parallel
+      const [bulkCompsRes, newsRes] = await Promise.allSettled([
+        fetch('/api/comps', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ city, state, country, mode: 'area' }),
+        }).then(r => r.json()).catch(() => null),
+        fetch('/api/news', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ city, state, country }),
+        }).then(r => r.json()).catch(() => null),
+      ])
+
+      const bulkListings = bulkCompsRes.status === 'fulfilled' ? bulkCompsRes.value?.listings || [] : []
+      const newsData = newsRes.status === 'fulfilled' ? newsRes.value : null
+      const areaMetrics = aggregateListings(bulkListings)
+      const areaRiskScore = computeRiskScore(areaMetrics, null)
+      const marketTemperature = getMarketTemperature(areaMetrics)
+
+      const realData = { neighborhoodScores, censusData, fmr, floodZone, riskData, areaMetrics, areaRiskScore, marketTemperature, newsData, isAreaMode }
       const ai = await analyzeProperty(geo, weather, climate, knownFacts ?? {}, realData); setLoadStep(4)
-      console.log('AI RESULT:', JSON.stringify(ai, null, 2))
-      setResult({ geo, weather, climate, ai, knownFacts: knownFacts ?? {}, realData })
+      setResult({ geo, weather, climate, ai, knownFacts: knownFacts ?? {}, realData, isAreaMode })
     } catch (err) {
       console.error(err)
       if (err.message?.includes('context invalidated')) return
