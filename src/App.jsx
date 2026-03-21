@@ -553,6 +553,19 @@ export default function App() {
     if (realtimeRef.current) supabase.removeChannel(realtimeRef.current)
   }
 
+
+  const getRiskData = async ({ lat, lon, county, state, country }) => {
+    try {
+      const res = await fetch('/api/risk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lat, lon, county, state, country }),
+      })
+      if (!res.ok) return null
+      return await res.json()
+    } catch { return null }
+  }
+
   const handleSearch = async ({ street, city, state, country, knownFacts }) => {
     if (loading) return
     setLoading(true); setError(null); setResult(null); setLoadStep(0)
@@ -561,7 +574,8 @@ export default function App() {
       const postcode = geo.address?.postcode ?? ''
       const [weather, climate, neighborhoodScores] = await Promise.all([getCurrentWeather(geo.lat, geo.lon), getClimateNormals(geo.lat, geo.lon), getNeighborhoodScores(geo.lat, geo.lon)]); setLoadStep(2)
       const [censusData, fmr, floodZone] = await Promise.all([getCensusData(street, city, state, country), getFairMarketRent(postcode), getFloodZone(geo.lat, geo.lon)]); setLoadStep(3)
-      const realData = { neighborhoodScores, censusData, fmr, floodZone }
+      const riskData = await getRiskData({ lat: geo.lat, lon: geo.lon, county: geo.address?.county, state, country }).catch(() => null)
+      const realData = { neighborhoodScores, censusData, fmr, floodZone, riskData }
       const ai = await analyzeProperty(geo, weather, climate, knownFacts ?? {}, realData); setLoadStep(4)
       console.log('AI RESULT:', JSON.stringify(ai, null, 2))
       setResult({ geo, weather, climate, ai, knownFacts: knownFacts ?? {}, realData })
