@@ -1,7 +1,7 @@
 import { supabase } from './supabase'
 import { getCurrencyFromCountry, getCurrencySymbol } from './currency'
 import { runAVM, applyBoundedAIAdjustment, formatAVMForPrompt } from './avm'
-import { formatMarketDataForPrompt, getMarketData } from './marketPrices'
+import { formatMarketDataForPrompt, getMarketData, getLiveMarketData } from './marketPrices'
 
 const CEREBRAS_BASE = '/api/cerebras'
 const MODEL = 'llama-3.1-8b'
@@ -385,7 +385,12 @@ OPENSTREETMAP REAL DATA:
     propertyType: knownFacts.propertyType || null,
   }
   const compsContext = buildCompsContext(realData, currency, avmSubject)
-  const marketContext2 = formatMarketDataForPrompt(city, country, currency)
+  // Try live market data first, fall back to hardcoded
+  let _liveMarket = null
+  try { _liveMarket = await getLiveMarketData(city, country) } catch {}
+  const marketContext2 = _liveMarket
+    ? formatMarketDataForPrompt(city, country, currency, _liveMarket)
+    : formatMarketDataForPrompt(city, country, currency)
   const riskContext = buildRiskContext(realData)
 
   // Pass 1: Deep chain-of-thought reasoning
