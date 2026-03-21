@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import SectionCard from './SectionCard'
 import StatCard from './StatCard'
 import ScoreRing from './ScoreRing'
@@ -11,24 +11,20 @@ import PriceHistoryChart from './PriceHistoryChart'
 function StreetViewImage({ lat, lon, address }) {
   const googleKey = import.meta.env.VITE_GOOGLE_MAPS_KEY
 
-  // If no google key, we default to mapillary or static map
+  // Determine initial source — if no google key, go straight to mapillary
   const [source, setSource] = useState(googleKey ? 'google' : 'mapillary')
 
   const googleUrl = googleKey
     ? `https://maps.googleapis.com/maps/api/streetview?size=800x400&location=${lat},${lon}&fov=90&pitch=0&key=${googleKey}`
     : null
 
-  // Improved Mapillary URL with specific zoom and dark theme
-  const mapillaryUrl = `https://www.mapillary.com/embed?map_style=Mapillary%20dark&image_key=latest&style=classic&traffic_sign_layer=false&map_layer=true&lat=${lat}&lng=${lon}&z=18&menu=false`
-  
-  // OpenStreetMap static fallback (rendered via an image if street view fails)
-  const osmStaticUrl = `https://static-maps.yandex.ru/1.x/?ll=${lon},${lat}&z=17&l=map&size=650,300&lang=en_US`
+  const mapillaryUrl = `https://www.mapillary.com/embed?map_style=Mapillary%20dark&image_key=latest&style=classic&traffic_sign_layer=false&map_layer=false&lat=${lat}&lng=${lon}&z=17&menu=false`
 
   return (
-    <div style={{ marginBottom: 16, borderRadius: 16, overflow: 'hidden', position: 'relative', background: 'rgba(255,255,255,0.03)', minHeight: 240 }}>
+    <div style={{ marginBottom: 16, borderRadius: 16, overflow: 'hidden', position: 'relative', background: 'rgba(255,255,255,0.03)' }}>
       <div style={{ position: 'absolute', top: 10, left: 12, zIndex: 2 }}>
-        <span className="liquid-glass" style={{ borderRadius: 20, padding: '4px 10px', fontSize: 11, color: 'rgba(255,255,255,0.8)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.06em', background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)' }}>
-          📸 {source === 'google' ? 'Google Street View' : source === 'mapillary' ? 'Mapillary Street View' : 'Location Map'}
+        <span className="liquid-glass" style={{ borderRadius: 20, padding: '4px 10px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.06em' }}>
+          📸 Street View
         </span>
       </div>
 
@@ -37,39 +33,29 @@ function StreetViewImage({ lat, lon, address }) {
           src={googleUrl}
           alt={`Street view of ${address}`}
           onError={() => setSource('mapillary')}
-          style={{ width: '100%', height: 240, objectFit: 'cover', display: 'block', filter: 'brightness(0.9)' }}
+          style={{ width: '100%', height: 240, objectFit: 'cover', display: 'block', filter: 'brightness(0.85)' }}
         />
       ) : source === 'mapillary' ? (
-        <div style={{ width: '100%', height: 240, background: '#000' }}>
-          <iframe
-            src={mapillaryUrl}
-            style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
-            title="Street view"
-            allowFullScreen
-            onError={() => setSource('fallback')}
-          />
-        </div>
+        <iframe
+          src={mapillaryUrl}
+          style={{ width: '100%', height: 240, border: 'none', display: 'block' }}
+          title="Street view"
+          allowFullScreen
+          onLoad={() => {}}
+          onError={() => setSource('fallback')}
+        />
       ) : (
-        <div style={{ width: '100%', height: 240, position: 'relative', overflow: 'hidden' }}>
-          <img 
-            src={osmStaticUrl} 
-            alt="Location Map" 
-            style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'grayscale(1) invert(0.9) brightness(0.8)' }} 
-          />
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.2)', gap: 10 }}>
-            <span style={{ fontSize: 32 }}>🏠</span>
-            <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 12, color: '#fff', fontWeight: 300, textAlign: 'center', padding: '0 20px' }}>
-              Street view photo not available for this address
-            </span>
-            <a
-              href={`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lon}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.7)', textDecoration: 'underline' }}
-            >
-              Try external Google Maps view ↗
-            </a>
-          </div>
+        <div style={{ width: '100%', height: 240, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+          <span style={{ fontSize: 32 }}>🏠</span>
+          <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 12, color: 'rgba(255,255,255,0.3)', fontWeight: 300 }}>Street view not available for this address</span>
+          <a
+            href={`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lon}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ fontFamily: "'Barlow',sans-serif", fontSize: 12, color: 'rgba(255,255,255,0.5)' }}
+          >
+            Open in Google Maps ↗
+          </a>
         </div>
       )}
 
@@ -81,7 +67,6 @@ function StreetViewImage({ lat, lon, address }) {
 }
 
 import { weatherCodeToDescription } from '../lib/weather'
-import { getCurrencySymbol, getCurrencyName, fetchExchangeRates, convertCurrency, getCurrencyFromCountry } from '../lib/currency'
 
 const fmt = (n) => (n != null && n !== 0) ? n.toLocaleString('en-US', { maximumFractionDigits: 0 }) : '—'
 const fmtUSD = (n, sym) => (n != null && n !== 0) ? `${sym || '$'}${n.toLocaleString('en-US', { maximumFractionDigits: 0 })}` : '—'
@@ -130,7 +115,7 @@ function LinkButton({ href, label, icon }) {
   )
 }
 
-function IncomeSlider({ costOfLiving, sym, convert }) {
+function IncomeSlider({ costOfLiving, sym }) {
   const [mode, setMode] = useState('monthly')
   const [income, setIncome] = useState(mode === 'monthly' ? 5000 : 60000)
 
@@ -207,7 +192,7 @@ function IncomeSlider({ costOfLiving, sym, convert }) {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
-        <StatCard label="Monthly cost" value={fmtUSD(convert(total), sym)} sub="estimated total" />
+        <StatCard label="Monthly cost" value={fmtUSD(total, sym)} sub="estimated total" />
         <StatCard label="vs US Average" value={costOfLiving.indexVsUSAverage ? `${costOfLiving.indexVsUSAverage > 0 ? '+' : ''}${costOfLiving.indexVsUSAverage}%` : '—'}
           accent={costOfLiving.indexVsUSAverage > 15 ? '#f87171' : costOfLiving.indexVsUSAverage < -15 ? '#4ade80' : '#ffffff'} />
       </div>
@@ -286,55 +271,10 @@ function CorrectionsPanel({ ai, knownFacts = {}, onRecalculate }) {
   )
 }
 
-// Popular currencies for the converter
-const DISPLAY_CURRENCIES = [
-  { code: 'USD', label: 'US Dollar' },
-  { code: 'CAD', label: 'Canadian Dollar' },
-  { code: 'GBP', label: 'British Pound' },
-  { code: 'EUR', label: 'Euro' },
-  { code: 'AUD', label: 'Australian Dollar' },
-  { code: 'JPY', label: 'Japanese Yen' },
-  { code: 'CHF', label: 'Swiss Franc' },
-  { code: 'INR', label: 'Indian Rupee' },
-  { code: 'MXN', label: 'Mexican Peso' },
-  { code: 'BRL', label: 'Brazilian Real' },
-  { code: 'KRW', label: 'South Korean Won' },
-  { code: 'CNY', label: 'Chinese Yuan' },
-  { code: 'SGD', label: 'Singapore Dollar' },
-  { code: 'NZD', label: 'New Zealand Dollar' },
-  { code: 'ZAR', label: 'South African Rand' },
-  { code: 'AED', label: 'UAE Dirham' },
-]
-
 export default function Dashboard({ data, onRecalculate }) {
   const { geo, weather, climate, ai, knownFacts, realData } = data
   const { propertyEstimate, costOfLiving, neighborhood, investment, floorPlan, localInsights } = ai
-
-  // Currency converter
-  const nativeCurrency = ai.priceHistory?.currency || getCurrencyFromCountry(geo.userCountry || '') || 'USD'
-  const [displayCurrency, setDisplayCurrency] = useState(nativeCurrency)
-  const [exchangeRates, setExchangeRates] = useState(null)
-  const [ratesLoading, setRatesLoading] = useState(false)
-
-  useEffect(() => {
-    setRatesLoading(true)
-    fetchExchangeRates('USD').then(rates => {
-      setExchangeRates(rates)
-      setRatesLoading(false)
-    }).catch(() => setRatesLoading(false))
-  }, [])
-
-  // Convert a value from native currency to display currency
-  const convert = (amount) => {
-    if (!amount || !exchangeRates) return amount
-    if (nativeCurrency === displayCurrency) return amount
-    // Convert: native → USD → display
-    const nativeToUSD = 1 / (exchangeRates[nativeCurrency] || 1)
-    const usdToDisplay = exchangeRates[displayCurrency] || 1
-    return Math.round(amount * nativeToUSD * usdToDisplay)
-  }
-
-  const sym = getCurrencySymbol(displayCurrency)
+  const sym = ai.priceHistory?.currencySymbol || '$'
 
   const currentWeather = weather?.current
   const tempC = currentWeather?.temperature_2m
@@ -385,37 +325,6 @@ export default function Dashboard({ data, onRecalculate }) {
       {/* Street View Image */}
       <StreetViewImage lat={geo.lat} lon={geo.lon} address={[geo.userStreet, geo.userCity, geo.userState, geo.userCountry].filter(Boolean).join(', ')} />
 
-      {/* Currency Converter */}
-      <div className="liquid-glass" style={{ borderRadius: 16, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-        <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.5)', whiteSpace: 'nowrap' }}>
-          💱 Display prices in
-        </span>
-        <select
-          value={displayCurrency}
-          onChange={e => setDisplayCurrency(e.target.value)}
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#fff', fontFamily: "'Barlow',sans-serif", fontSize: 13, padding: '6px 10px', cursor: 'pointer', outline: 'none', flex: 1, minWidth: 160, maxWidth: 220 }}
-        >
-          {DISPLAY_CURRENCIES.map(c => (
-            <option key={c.code} value={c.code} style={{ background: '#111' }}>
-              {getCurrencySymbol(c.code)} {c.code} — {c.label}
-            </option>
-          ))}
-        </select>
-        {displayCurrency !== nativeCurrency && !ratesLoading && exchangeRates && (
-          <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap' }}>
-            1 {nativeCurrency} = {getCurrencySymbol(displayCurrency)}{((exchangeRates[displayCurrency] || 1) / (exchangeRates[nativeCurrency] || 1)).toFixed(4)} {displayCurrency}
-          </span>
-        )}
-        {ratesLoading && (
-          <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Loading rates...</span>
-        )}
-        {displayCurrency !== nativeCurrency && (
-          <button onClick={() => setDisplayCurrency(nativeCurrency)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', fontSize: 11, fontFamily: "'Barlow',sans-serif", cursor: 'pointer', padding: 0 }}>
-            Reset to {nativeCurrency}
-          </button>
-        )}
-      </div>
-
 
       {/* Property Estimate */}
       <SectionCard title="Property Estimate" icon="🏠" delay={50}>
@@ -431,15 +340,23 @@ export default function Dashboard({ data, onRecalculate }) {
             <span style={{ color: 'rgba(255,255,255,0.3)', marginLeft: 8 }}>· US Census ACS 2022</span>
           </div>
         )}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <Tag>Confidence: {propertyEstimate.confidenceLevel}</Tag>
-          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', flex: 1, minWidth: 200, fontFamily: "'Barlow', sans-serif", fontWeight: 300 }}>{propertyEstimate.priceContext}</p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+          <Tag color={propertyEstimate.confidenceLevel === 'high' ? 'green' : propertyEstimate.confidenceLevel === 'low' ? 'red' : 'default'}>
+            {propertyEstimate.confidenceScore != null ? `${propertyEstimate.confidenceScore}/100 confidence` : `Confidence: ${propertyEstimate.confidenceLevel}`}
+          </Tag>
+          {propertyEstimate.compsUsed > 0 && (
+            <Tag>📊 {propertyEstimate.compsUsed} comp{propertyEstimate.compsUsed === 1 ? '' : 's'} analyzed</Tag>
+          )}
+          {propertyEstimate.priceRange && (
+            <Tag>Range: {fmtUSD(convert(propertyEstimate.priceRange.low), sym)} – {fmtUSD(convert(propertyEstimate.priceRange.high), sym)}</Tag>
+          )}
         </div>
+        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow', sans-serif", fontWeight: 300, lineHeight: 1.7 }}>{propertyEstimate.priceContext}</p>
       </SectionCard>
 
       {/* Cost of Living */}
       <SectionCard title="Cost of Living" icon="💰" delay={100}>
-        <IncomeSlider costOfLiving={costOfLiving} sym={sym} convert={convert} />
+        <IncomeSlider costOfLiving={costOfLiving} sym={sym} />
       </SectionCard>
 
       {/* Neighborhood + Climate */}
