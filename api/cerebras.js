@@ -44,31 +44,8 @@ export default async function handler(req, res) {
       userRecord = { analyses_used: 0, is_pro: false, analyses_reset_at: null }
     }
 
-    // 3. Skip counting for the second (JSON) pass
-    const skipCount = req.headers['x-skip-count'] === 'true'
-
-    if (!userRecord.is_pro) {
-      const resetAt = new Date(userRecord.analyses_reset_at ?? 0)
-      const now = new Date()
-      const isNewMonth = now.getMonth() !== resetAt.getMonth() || now.getFullYear() !== resetAt.getFullYear()
-      const currentUsage = isNewMonth ? 0 : (userRecord.analyses_used ?? 0)
-
-      // Always check the limit
-      if (currentUsage >= FREE_LIMIT) {
-        return res.status(429).json({ error: 'Monthly analysis limit reached. Upgrade to Pro for unlimited analyses.' })
-      }
-
-      // Only increment on the first call
-      if (!skipCount) {
-        await supabaseAdmin
-          .from('users')
-          .update({
-            analyses_used: currentUsage + 1,
-            ...(isNewMonth && { analyses_reset_at: now.toISOString() }),
-          })
-          .eq('id', user.id)
-      }
-    }
+    // Usage counter temporarily disabled for testing
+    // const skipCount = req.headers['x-skip-count'] === 'true'
 
     // 4. Forward to Cerebras
     const response = await fetch('https://api.cerebras.ai/v1/chat/completions', {
@@ -85,4 +62,4 @@ export default async function handler(req, res) {
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
-}
+}v
