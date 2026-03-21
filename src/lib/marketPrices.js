@@ -234,7 +234,7 @@ const US = {
 // ─── LOOKUP FUNCTION ─────────────────────────────────────────────────────────
 
 /**
- * Get market data for a city
+ * Get market data for a city — checks local hardcoded data first
  * Returns { detached, condo, rent, ppsf, yoy, currency } or null
  */
 export function getMarketData(city, country) {
@@ -242,29 +242,56 @@ export function getMarketData(city, country) {
 
   const cityLower = city.toLowerCase().trim()
   const isCanada = country?.toLowerCase().includes('canada')
-
   const dataset = isCanada ? CANADA : US
 
   // Direct match
   if (dataset[cityLower]) return dataset[cityLower]
 
-  // Partial match — city name might include neighbourhood or "Greater X"
+  // Partial match
   for (const [key, data] of Object.entries(dataset)) {
     if (cityLower.includes(key) || key.includes(cityLower)) {
       return data
     }
   }
 
-  // For Canadian cities, also try the US dataset (some cities share names)
-  // For unknown cities return null — AI will estimate
   return null
+}
+
+/**
+ * Fetch live market data from api/marketdata (Redfin for US, hardcoded for CA)
+ * Falls back to getMarketData() if API unavailable
+ */
+export async function getLiveMarketData(city, country) {
+  // Try local first — instant, no network call
+  const local = getMarketData(city, country)
+
+  try {
+    const params = new URLSearchParams({ city, country: country || '' })
+    const res = await fetch(`/api/marketdata?${params}`, {
+      signal: AbortSignal.timeout(5000),
+    })
+    if (!res.ok) return local
+    const data = await res.json()
+    // Merge live price with local yoy/ppsf if live source doesn't have them
+    return {
+      detached: data.detached,
+      condo: data.condo,
+      rent: data.rent,
+      ppsf: data.ppsf || local?.ppsf,
+      yoy: data.yoy || local?.yoy,
+      currency: data.currency,
+      source: data.source,
+    }
+  } catch {
+    return local // fallback silently
+  }
 }
 
 /**
  * Format market data as a string for injection into AI prompt
  */
-export function formatMarketDataForPrompt(city, country, currency) {
-  const data = getMarketData(city, country)
+export function formatMarketDataForPrompt(city, country, currency, overrideData) {
+  const data = overrideData || getMarketData(city, country)
   if (!data) return ''
 
   const sym = currency === 'GBP' ? '£' : currency === 'CAD' ? 'CA$' : '$'
