@@ -38,8 +38,10 @@
 }
 
 html {
-  scroll-behavior: smooth;
+  /* Lenis handles smooth scrolling now */
+  scroll-behavior: auto !important;
   background: #000;
+  overflow-x: hidden;
 }
 
 body {
@@ -170,13 +172,20 @@ input[type="range"] {
 
 
 
-/* ─── SCROLL-REVEAL (replaces framer whileInView) ─── */
-.reveal { opacity: 1; transform: none; }
-.reveal.in-view { opacity: 1; transform: none; }
-.reveal-left { opacity: 1; transform: none; }
-.reveal-left.in-view { opacity: 1; transform: none; }
-.reveal-right { opacity: 1; transform: none; }
-.reveal-right.in-view { opacity: 1; transform: none; }
+/* ─── SCROLL-REVEAL (Handled by GSAP now) ─── */
+.reveal, .reveal-left, .reveal-right { 
+  opacity: 0; 
+  transform: translateY(30px);
+  transition: opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1), transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal.in-view, .reveal-left.in-view, .reveal-right.in-view { 
+  opacity: 1; 
+  transform: translate(0, 0); 
+}
+
+.reveal-left { transform: translateX(-30px); }
+.reveal-right { transform: translateX(30px); }
 
 /* stagger delays */
 .reveal-d1 { transition-delay: 0.08s; }
