@@ -1,6 +1,7 @@
 const BASES = [
-  'https://z.overpass-api.de/api/interpreter',
   'https://overpass-api.de/api/interpreter',
+  'https://z.overpass-api.de/api/interpreter',
+  'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
 ]
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms))
@@ -13,7 +14,7 @@ async function fetchOverpass(query, retries = 1) {
         if (attempt > 0) await sleep(2000)
         
         const controller = new AbortController()
-        const timeout = setTimeout(() => controller.abort(), 40000)
+        const timeout = setTimeout(() => controller.abort(), 12000)
         
         const res = await fetch(base, {
           method: 'POST',
