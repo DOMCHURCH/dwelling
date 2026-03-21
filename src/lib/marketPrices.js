@@ -305,7 +305,7 @@ MARKET DATABASE (verified 2025-2026 data for ${city}):
 - Typical monthly rent: ${fmt(data.rent)} ${data.currency}
 - Median price per sqft: ${fmt(data.ppsf)} ${data.currency}/sqft
 - Year-over-year price change: ${yoyStr}
-CRITICAL INSTRUCTION: Your estimated value MUST be within 15% of the median detached price (${fmt(data.detached)}) or median condo price (${fmt(data.condo)}) depending on the property type. Do not deviate without explicit justification based on the specific property's neighbourhood tier or condition.`
+CRITICAL INSTRUCTION: You are analyzing the AREA MARKET, not a single property. Use these median prices as the primary anchors for your area valuation. Your "estimatedValueUSD" in the JSON should represent the median home price for the area.`
 }
 
 // Export raw datasets for other uses
