@@ -1,0 +1,111 @@
+/* 
+  CREATIVE STYLES - DWELLING HIGH-END EXPERIENCE
+  Esthétique sombre, organique et texturée.
+*/
+
+:root {
+  --cursor-size: 12px;
+  --cursor-blend: difference;
+  --grain-opacity: 0.04;
+}
+
+/* 1. Grain Cinématographique Animé */
+.film-grain {
+  position: fixed;
+  top: -100%;
+  left: -100%;
+  width: 300%;
+  height: 300%;
+  background-image: url("https://grainy-gradients.vercel.app/noise.svg");
+  pointer-events: none;
+  z-index: 9999;
+  opacity: var(--grain-opacity);
+  animation: grain 8s steps(10) infinite;
+  will-change: transform;
+}
+
+@keyframes grain {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-5%, -10%); }
+  20% { transform: translate(-15%, 5%); }
+  30% { transform: translate(7%, -25%); }
+  40% { transform: translate(-5%, 25%); }
+  50% { transform: translate(-15%, 10%); }
+  60% { transform: translate(15%, 0%); }
+  70% { transform: translate(0%, 15%); }
+  80% { transform: translate(3%, 35%); }
+  90% { transform: translate(-10%, 10%); }
+}
+
+/* 2. Custom Cursor Follower (Masqué sur mobile) */
+.custom-cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: var(--cursor-size);
+  height: var(--cursor-size);
+  background: #fff;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 10000;
+  mix-blend-mode: var(--cursor-blend);
+  transform: translate(-50%, -50%);
+  transition: width 0.3s ease, height 0.3s ease, opacity 0.3s ease;
+}
+
+@media (pointer: coarse) {
+  .custom-cursor { display: none; }
+}
+
+/* 3. Typography Reveal Masks */
+.reveal-text-mask {
+  overflow: hidden;
+  display: block;
+  clip-path: inset(0 0 100% 0);
+  will-change: clip-path;
+}
+
+/* 4. Image Curtain Reveal */
+.curtain-reveal-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.curtain-reveal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #000;
+  z-index: 2;
+  will-change: transform;
+}
+
+/* 5. Smooth Scroll Layout Fix */
+html.lenis {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+/* 6. High-End Overrides */
+::selection {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+/* Empêcher le flash au chargement */
+.gsap-reveal {
+  opacity: 0;
+}
