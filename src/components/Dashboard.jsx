@@ -520,8 +520,27 @@ export default function Dashboard({ data, onRecalculate }) {
       )}
 
       {/* Environmental Risk */}
-      {risk && (risk.nationalRiskIndex || risk.epaHazards || risk.seismicRisk) && (
+      {risk && (
         <SectionCard title="Environmental Risk" icon="🛡" delay={290}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 16 }}>
+            {[
+              { label: 'Flood', value: risk.detailedRisk?.floodRisk || 'Low', icon: '🌊' },
+              { label: 'Fire', value: risk.detailedRisk?.fireRisk || 'Low', icon: '🔥' },
+              { label: 'Seismic', value: risk.detailedRisk?.seismicRisk || 'Low', icon: '🌍' },
+              { label: 'Pollution', value: risk.detailedRisk?.pollutionRisk || 'Low', icon: '💨' },
+              { label: 'Noise', value: risk.detailedRisk?.noiseRisk || 'Moderate', icon: '🔊' },
+              { label: 'Crime', value: risk.detailedRisk?.crimeRisk || 'Low-Moderate', icon: '👮' },
+            ].map((r, i) => (
+              <div key={i} className="liquid-glass" style={{ borderRadius: 14, padding: '12px 14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                  <span style={{ fontSize: 12 }}>{r.icon}</span>
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: "'Barlow', sans-serif" }}>{r.label}</div>
+                </div>
+                <div style={{ fontSize: 15, color: '#ffffff', fontFamily: "'Instrument Serif', serif", fontStyle: 'italic' }}>{r.value}</div>
+              </div>
+            ))}
+          </div>
+          
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginBottom: 16 }}>
             {risk.nationalRiskIndex && (
               <div className="liquid-glass" style={{ borderRadius: 14, padding: '14px 16px' }}>
@@ -537,14 +556,8 @@ export default function Dashboard({ data, onRecalculate }) {
                 <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 4, fontFamily: "'Barlow', sans-serif" }}>EPA EJScreen Percentile: {risk.epaHazards.airQualityPM25Percentile || 50}th</div>
               </div>
             )}
-            {risk.seismicRisk && (
-              <div className="liquid-glass" style={{ borderRadius: 14, padding: '14px 16px' }}>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6, fontFamily: "'Barlow', sans-serif" }}>Seismic Risk</div>
-                <div style={{ fontSize: 18, color: '#ffffff', fontFamily: "'Instrument Serif', serif", fontStyle: 'italic' }}>{risk.seismicRisk.seismicRating}</div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 4, fontFamily: "'Barlow', sans-serif" }}>USGS Seismic Hazard</div>
-              </div>
-            )}
           </div>
+          
           {risk.nationalRiskIndex?.topRisks?.length > 0 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {risk.nationalRiskIndex.topRisks.map((r, i) => (
