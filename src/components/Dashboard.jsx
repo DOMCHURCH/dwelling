@@ -116,7 +116,7 @@ function LinkButton({ href, label, icon }) {
   )
 }
 
-function IncomeSlider({ costOfLiving, sym }) {
+function IncomeSlider({ costOfLiving, sym, convert }) {
   const [mode, setMode] = useState('monthly')
   const [income, setIncome] = useState(mode === 'monthly' ? 5000 : 60000)
 
@@ -425,7 +425,7 @@ export default function Dashboard({ data, onRecalculate }) {
 
       {/* Cost of Living */}
       <SectionCard title="Cost of Living" icon="💰" delay={100}>
-        <IncomeSlider costOfLiving={costOfLiving} sym={sym} />
+        <IncomeSlider costOfLiving={costOfLiving} sym={sym} convert={convert} />
       </SectionCard>
 
       {/* Neighborhood + Climate */}
