@@ -1,5 +1,6 @@
 export default function ScoreRing({ score, max = 100, label, color = 'rgba(255,255,255,0.8)', size = 72 }) {
-  const clamped = Math.min(Math.max(score, 0), max)
+  const safeScore = (score == null || isNaN(score)) ? 0 : score
+  const clamped = Math.min(Math.max(safeScore, 0), max)
   const radius = (size - 8) / 2
   const circ = 2 * Math.PI * radius
   const pct = clamped / max
