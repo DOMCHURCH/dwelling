@@ -216,7 +216,7 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Cache-Control', 'public, s-maxage=3600')
 
-  const { city, country } = req.query
+  const { city, country } = req.method === 'POST' ? req.body : req.query
   if (!city) return res.status(400).json({ error: 'city param required' })
 
   const isCanada = country?.toLowerCase().includes('canada')
