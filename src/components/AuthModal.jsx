@@ -28,7 +28,7 @@ export default function AuthModal({ onAuth }) {
   const submit = async () => {
     if (!email || !password) return setError('Please fill in all fields.')
     if (mode === 'signup' && !terms) return setError('You must accept the Terms & Conditions.')
-    if (password.length < 6) return setError('Password must be at least 6 characters.')
+    if (password.length < 8) return setError('Password must be at least 8 characters.')
     setLoading(true); setError(null)
     try {
       if (mode === 'signup') {
@@ -68,7 +68,7 @@ export default function AuthModal({ onAuth }) {
       } else if (msg.includes('already registered') || msg.includes('already exists')) {
         setError('An account with this email already exists. Try signing in instead.')
       } else if (msg.includes('Password should')) {
-        setError('Password must be at least 6 characters.')
+        setError('Password must be at least 8 characters.')
       } else if (msg.includes('Email not confirmed') || msg.includes('email_not_confirmed')) {
         setConfirmEmail(email)
       } else {
@@ -151,7 +151,7 @@ export default function AuthModal({ onAuth }) {
           </div>
           <div style={{ marginBottom:mode==='signup'?16:20 }}>
             <label style={{ display:'block', fontSize:11, color:'rgba(255,255,255,0.4)', marginBottom:6, fontFamily:"'Barlow',sans-serif", letterSpacing:'0.08em', textTransform:'uppercase' }}>Password</label>
-            <input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Min. 6 characters" style={inp} onFocus={focus} onBlur={unfocus} onKeyDown={e=>e.key==='Enter'&&submit()} />
+            <input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Min. 8 characters" style={inp} onFocus={focus} onBlur={unfocus} onKeyDown={e=>e.key==='Enter'&&submit()} />
           </div>
           {mode==='signup'&&(
             <div className="liquid-glass" style={{ borderRadius:12, padding:16, marginBottom:16 }}>
