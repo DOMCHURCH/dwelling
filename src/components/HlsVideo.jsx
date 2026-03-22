@@ -1,11 +1,15 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 export default function HlsVideo({ src, className = '', style = {}, poster }) {
   const videoRef = useRef(null)
+  const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
     const video = videoRef.current
     if (!video) return
+
+    const onCanPlay = () => setLoaded(true)
+    video.addEventListener('canplay', onCanPlay)
 
     if (src.endsWith('.m3u8')) {
       import('hls.js').then(({ default: Hls }) => {
@@ -17,20 +21,28 @@ export default function HlsVideo({ src, className = '', style = {}, poster }) {
           return () => hls.destroy()
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
           video.src = src
-          video.addEventListener('loadedmetadata', () => { video.play().catch(() => {}) })
+          video.play().catch(() => {})
         }
       })
     } else {
+      // MP4 or WebM — play directly
       video.src = src
+      video.load()
       video.play().catch(() => {})
     }
+
+    return () => video.removeEventListener('canplay', onCanPlay)
   }, [src])
 
   return (
     <video
       ref={videoRef}
       className={className}
-      style={style}
+      style={{
+        ...style,
+        opacity: loaded ? (style.opacity ?? 1) : 0,
+        transition: 'opacity 1s ease',
+      }}
       autoPlay
       loop
       muted
