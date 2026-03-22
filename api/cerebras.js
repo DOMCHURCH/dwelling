@@ -33,21 +33,39 @@ export default async function handler(req, res) {
       .maybeSingle()
 
     if (!userRecord) {
-      // Row doesn't exist yet — create it now
       await supabaseAdmin.from('users').upsert({
         id: user.id,
         email: user.email,
         analyses_used: 0,
         is_pro: false,
         terms_accepted_at: new Date().toISOString(),
+        analyses_reset_at: new Date().toISOString(),
       }, { onConflict: 'id' })
-      userRecord = { analyses_used: 0, is_pro: false, analyses_reset_at: null }
+      userRecord = { analyses_used: 0, is_pro: false, analyses_reset_at: new Date().toISOString() }
     }
 
-    // Usage counter temporarily disabled for testing
-    // const skipCount = req.headers['x-skip-count'] === 'true'
+    // 3. Monthly reset — if 30 days have passed since last reset, zero the counter
+    const resetAt = userRecord.analyses_reset_at ? new Date(userRecord.analyses_reset_at) : new Date(0)
+    const daysSinceReset = (Date.now() - resetAt.getTime()) / (1000 * 60 * 60 * 24)
 
-    // 4. Forward to Cerebras
+    if (daysSinceReset >= 30) {
+      await supabaseAdmin
+        .from('users')
+        .update({ analyses_used: 0, analyses_reset_at: new Date().toISOString() })
+        .eq('id', user.id)
+      userRecord.analyses_used = 0
+    }
+
+    // 4. Enforce usage limit for free users
+    const skipCount = req.headers['x-skip-count'] === 'true'
+
+    if (!userRecord.is_pro && !skipCount) {
+      if (userRecord.analyses_used >= FREE_LIMIT) {
+        return res.status(429).json({ error: 'limit reached' })
+      }
+    }
+
+    // 5. Forward to Cerebras
     const response = await fetch('https://api.cerebras.ai/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -57,6 +75,15 @@ export default async function handler(req, res) {
       body: JSON.stringify(req.body),
     })
     const data = await response.json()
+
+    // 6. Increment counter only on success, for free users
+    if (response.ok && !userRecord.is_pro && !skipCount) {
+      await supabaseAdmin
+        .from('users')
+        .update({ analyses_used: userRecord.analyses_used + 1 })
+        .eq('id', user.id)
+    }
+
     res.status(response.status).json(data)
 
   } catch (err) {
