@@ -23,10 +23,10 @@ import { supabase } from './lib/supabase'
 const FREE_LIMIT = 10
 
 // ─── VIDEO URLS ──────────────────────────────────────────────────────────────
-const HERO_VIDEO = '/motion2Fast_Slow_cinematic_montage_of_people_and_nature_in_har_0.mp4'
-const HOW_IT_WORKS_VIDEO = '/motion2Fast_Slow_cinematic_montage_of_people_and_nature_in_har_0.mp4'
-const STATS_VIDEO = '/motion2Fast_Slow_cinematic_montage_of_people_and_nature_in_har_0.mp4'
-const CTA_VIDEO = '/motion2Fast_Slow_cinematic_montage_of_people_and_nature_in_har_0.mp4'
+const HERO_VIDEO = '/video.webm'
+const HOW_IT_WORKS_VIDEO = '/video.webm'
+const STATS_VIDEO = '/video.webm'
+const CTA_VIDEO = '/video.webm'
 const HERO_POSTER = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663463031725/5FNF4QVCkxSRz6ba3cCadG/hero-poster-ZHdSBZKm8ENZMaTu9N2eqV.webp'
 const LOGO = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663463031725/5FNF4QVCkxSRz6ba3cCadG/dwelling-logo-3AJU9MMgr8YxSGXWKetVFA.webp'
 const FEATURE_VALUATION = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663463031725/5FNF4QVCkxSRz6ba3cCadG/feature-valuation-6WBABoG6LMJhpCDnAn9n88.webp'
