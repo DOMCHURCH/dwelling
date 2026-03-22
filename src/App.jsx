@@ -93,7 +93,7 @@ const FAQ_ITEMS = [
 const FAQ = memo(function FAQ() {
   const [open, setOpen] = useState(null)
   return (
-    <section id="faq" style={{ padding: '96px 24px', maxWidth: 780, margin: '0 auto' }}>
+    <section id="faq" style={{ padding: 'clamp(56px, 8vw, 96px) 20px', maxWidth: 780, margin: '0 auto' }}>
       <Reveal>
         <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>Support</div>
       </Reveal>
@@ -144,7 +144,7 @@ function Navbar({ user, userRecord, analysesLeft, onSignOut, onHome }) {
           <img src={LOGO} alt="Dwelling" style={{ width: 36, height: 36, borderRadius: 8 }} />
           <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 20, color: '#fff' }}>Dwelling</span>
         </button>
-        <div className="liquid-glass" style={{ borderRadius: 40, padding: '6px 8px', display: 'flex', alignItems: 'center', gap: 4 }}>
+        <div className="liquid-glass nav-links-desktop" style={{ borderRadius: 40, padding: '6px 8px', display: 'flex', alignItems: 'center', gap: 4 }}>
           {links.map(link => (
             <button key={link.id} onClick={() => scrollTo(link.id)}
               style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 400, fontSize: 13, color: 'rgba(255,255,255,0.8)', padding: '6px 14px', borderRadius: 40, transition: 'background 0.15s' }}
@@ -180,9 +180,9 @@ function Navbar({ user, userRecord, analysesLeft, onSignOut, onHome }) {
 // ─── HERO ────────────────────────────────────────────────────────────────────
 function Hero({ onSearch, loading, onShowDemo }) {
   return (
-    <section id="hero" style={{ position: 'relative', overflow: 'hidden', background: 'transparent', height: 1000 }}>
+    <section id="hero" style={{ position: 'relative', overflow: 'hidden', background: 'transparent', minHeight: 'min(1000px, 100svh)', height: 'auto' }}>
       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 350, background: 'linear-gradient(to top, #000 40%, transparent)', zIndex: 2 }} />
-      <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', maxWidth: 900, margin: '0 auto', padding: '150px 24px 96px' }}>
+      <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', maxWidth: 900, margin: '0 auto', padding: 'clamp(100px, 20vw, 150px) 20px 80px' }}>
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }}>
           <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 16px', marginBottom: 28 }}>
             <span style={{ background: '#fff', color: '#000', fontSize: 11, fontFamily: "'Barlow',sans-serif", fontWeight: 600, borderRadius: 20, padding: '2px 8px' }}>New</span>
@@ -252,7 +252,7 @@ const HowItWorks = memo(function HowItWorks() {
     { num: '03', icon: '🧠', title: 'AI builds your area report', desc: 'Cerebras AI synthesizes everything into a stability score, market verdict, price trends, and investment outlook in under 30 seconds.' },
   ]
   return (
-    <Section style={{ minHeight: 700, padding: '128px 24px' }}>
+    <Section style={{ minHeight: 'auto', padding: 'clamp(60px, 10vw, 128px) 20px' }}>
       <div style={{ maxWidth: 900, margin: '0 auto', textAlign: 'center' }} id="how-it-works">
         <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>How It Works</div>
         <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2rem,5vw,3.5rem)', color: '#fff', marginBottom: 12, lineHeight: 0.9, letterSpacing: '-0.02em' }}>
@@ -294,7 +294,7 @@ const FeaturesChess = memo(function FeaturesChess() {
           <BlurText text="Unrivaled insights. Simplified." />
         </h2>
         {rows.map((row, i) => (
-          <div key={i} style={{ display: 'flex', flexDirection: row.reverse ? 'row-reverse' : 'row', gap: 56, alignItems: 'center', paddingBottom: 56, paddingTop: i > 0 ? 56 : 0, borderBottom: i < rows.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none', flexWrap: 'wrap' }}>
+          <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 32, alignItems: 'stretch', paddingBottom: 48, paddingTop: i > 0 ? 48 : 0, borderBottom: i < rows.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
             <div style={{ flex: '1 1 260px' }}>
               <h3 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(1.4rem,3vw,1.9rem)', color: '#fff', marginBottom: 14, lineHeight: 1.1 }}>{row.title}</h3>
               <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 14, color: 'rgba(255,255,255,0.5)', lineHeight: 1.8, marginBottom: 22 }}>{row.desc}</p>
@@ -351,7 +351,7 @@ const FeaturesGrid = memo(function FeaturesGrid() {
 // ─── STATS ───────────────────────────────────────────────────────────────────
 const Stats = memo(function Stats() {
   return (
-    <Section style={{ padding: '128px 24px' }}>
+    <Section style={{ padding: 'clamp(60px, 10vw, 128px) 20px' }}>
       <div style={{ maxWidth: 1000, margin: '0 auto' }}>
         <div className="liquid-glass" style={{ borderRadius: 26, padding: '44px 28px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 28, textAlign: 'center' }}>
@@ -414,7 +414,7 @@ const Pricing = memo(function Pricing({ onUpgrade }) {
 
 
   return (
-    <section id="pricing" style={{ padding: '80px 24px', maxWidth: 880, margin: '0 auto' }}>
+    <section id="pricing" style={{ padding: 'clamp(56px, 8vw, 80px) 20px', maxWidth: 880, margin: '0 auto' }}>
       <Reveal>
         <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>Pricing</div>
       </Reveal>
@@ -454,7 +454,7 @@ const Pricing = memo(function Pricing({ onUpgrade }) {
 function CTAFooter({ onTermsClick, onScrollToTop, onUpgrade }) {
   return (
     <Section>
-      <div style={{ maxWidth: 860, margin: '0 auto', textAlign: 'center', padding: '128px 24px 80px' }}>
+      <div style={{ maxWidth: 860, margin: '0 auto', textAlign: 'center', padding: 'clamp(60px, 10vw, 128px) 20px 60px' }}>
         <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2.2rem,6vw,4.5rem)', color: '#fff', lineHeight: 0.9, letterSpacing: '-0.03em', marginBottom: 20 }}>
           <BlurText text="Your next area decision starts here." />
         </h2>
@@ -532,12 +532,12 @@ const DEMO_RESULT = {
     areaIntelligence: {
       verdict: 'Good',
       stabilityScore: 68,
-      marketConditions: 'Ottawa is a balanced market as of early 2025. The government employment base provides a meaningful price floor — federal job stability insulates the market from the volatility seen in Toronto or Vancouver. Median days on market sits at 22, and 31% of listings move within 14 days, signalling genuine buyer demand without the frenzy of a seller's market.',
+      marketConditions: 'Ottawa is a balanced market as of early 2025. The government employment base provides a meaningful price floor — federal job stability insulates the market from the volatility seen in Toronto or Vancouver. Median days on market sits at 22, and 31% of listings move within 14 days, signalling genuine buyer demand without the frenzy of a seller\'s market.',
       priceTrend: 'Prices are flat to modestly down (-2 to -4%) from their 2022 peak, partially recovered through 2024. The $649,000 median reflects a market that corrected without collapsing. Condos have softened more than detached homes, where supply remains tight.',
       investmentOutlook: 'Moderate long-term upside. Immigration-driven population growth and persistent new construction shortfall (~5,000 units/year behind demand) support prices over a 3–5 year horizon. Yield-focused investors should note that HUD-equivalent fair market rent for a 2BR sits around $1,820/month, giving cap rates of approximately 3.2–3.8% on median-priced condos.',
-      risks: 'Federal public sector employment is Ottawa's single largest risk factor — any significant government restructuring or remote-work policy shift could reduce housing demand meaningfully. Interest rate sensitivity remains elevated with many mortgages renewing at higher rates through 2025–2026.',
+      risks: 'Federal public sector employment is Ottawa\'s single largest risk factor — any significant government restructuring or remote-work policy shift could reduce housing demand meaningfully. Interest rate sensitivity remains elevated with many mortgages renewing at higher rates through 2025–2026.',
       upsides: 'Stable, recession-resistant employment base. Strong school ratings. Lower price volatility than other major Canadian cities. Growing tech sector (Shopify, Ciena) diversifying the economic base beyond government.',
-      liveability: 'High. Walkability scores of 72 in central neighbourhoods, strong parks and greenspace, and consistently ranked among Canada's most liveable cities. Winters are genuinely cold (-15°C average January), which is the most common reason people leave.',
+      liveability: 'High. Walkability scores of 72 in central neighbourhoods, strong parks and greenspace, and consistently ranked among Canada\'s most liveable cities. Winters are genuinely cold (-15°C average January), which is the most common reason people leave.',
       bestFor: 'Government employees, families prioritising school quality, risk-averse investors, and anyone priced out of Toronto or Vancouver seeking a major Canadian city with career infrastructure.',
     },
     propertyEstimate: { estimatedValue: null, confidenceScore: null, confidenceLevel: 'Area mode — no property estimate' },
@@ -546,7 +546,7 @@ const DEMO_RESULT = {
       utilitiesMonthlyUSD: 220, diningOutMonthlyUSD: 340,
     },
     neighborhood: {
-      summary: 'Ottawa's central neighbourhoods offer strong urban amenities — walkable to the ByWard Market, Rideau Canal, and Parliament Hill. The Glebe and Westboro are the most sought-after residential areas, with Lower Town and Vanier offering more affordable entry points.',
+      summary: 'Ottawa\'s central neighbourhoods offer strong urban amenities — walkable to the ByWard Market, Rideau Canal, and Parliament Hill. The Glebe and Westboro are the most sought-after residential areas, with Lower Town and Vanier offering more affordable entry points.',
       highlights: ['Rideau Canal skating and cycling', 'Strong French-English bilingual services', 'Major tech employers: Shopify, Ciena, Nokia'],
     },
     investment: {
@@ -715,7 +715,7 @@ export default function App() {
   if (showDemo) return (
     <div style={{ minHeight: '100vh', background: '#000', display: 'flex', flexDirection: 'column' }}>
       <GlobalBackground />
-      <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50, padding: '14px 24px', background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50, padding: '12px 16px', background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <img src={LOGO} alt="Dwelling" style={{ width: 36, height: 36, borderRadius: 8 }} />
@@ -732,7 +732,7 @@ export default function App() {
           </button>
         </div>
       </nav>
-      <div style={{ maxWidth: 960, margin: '0 auto', padding: '100px 24px 80px', width: '100%', position: 'relative', zIndex: 1 }}>
+      <div style={{ maxWidth: 960, margin: '0 auto', padding: 'clamp(80px, 12vw, 100px) 16px 60px', width: '100%', position: 'relative', zIndex: 1 }}>
         <div className="liquid-glass" style={{ borderRadius: 12, padding: '10px 18px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 14 }}>👆</span>
           <p style={{ fontFamily: "'Barlow',sans-serif", fontSize: 13, color: 'rgba(255,255,255,0.6)', fontWeight: 300 }}>This is a real sample report for Ottawa, Ontario. <button onClick={() => setShowDemo(false)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontSize: 13, textDecoration: 'underline', padding: 0 }}>Sign up free</button> to run your own.</p>
@@ -754,7 +754,7 @@ export default function App() {
         onScrollTo={scrollTo} />
 
       {(result || loading) ? (
-        <div style={{ maxWidth: 960, margin: '0 auto', padding: '100px 24px 80px', width: '100%', position: 'relative', zIndex: 1 }}>
+        <div style={{ maxWidth: 960, margin: '0 auto', padding: 'clamp(80px, 12vw, 100px) 16px 60px', width: '100%', position: 'relative', zIndex: 1 }}>
           {!loading && result && (
             <div style={{ marginBottom: 22 }}>
               <button onClick={() => setResult(null)}
