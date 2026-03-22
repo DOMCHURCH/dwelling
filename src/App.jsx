@@ -544,8 +544,8 @@ function CTAFooter({ onTermsClick, onScrollToTop, onUpgrade }) {
         </p>
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 28 }}>
           {[
-            { quote: 'Avoided a flood zone I never knew existed.', name: 'Marcus T.', detail: 'First-time buyer, Austin TX' },
-            { quote: 'Compared 4 cities in an afternoon. Worth every cent.', name: 'Priya M.', detail: 'Relocating to Canada' },
+            { quote: 'I was about to buy in a neighborhood that looked perfect on Zillow. Dwelling showed me the flood zone risk I completely missed. Saved me from a potential disaster.', name: 'Marcus T.', detail: 'First-time buyer, Austin TX' },
+            { quote: 'I had 2 weeks to decide between Toronto, Vancouver, and Calgary. Dwelling let me run full analysis on each in one afternoon. The market intel alone justified the upgrade.', name: 'Priya M.', detail: 'Relocating to Canada' },
           ].map(t => (
             <div key={t.name} className="liquid-glass" style={{ borderRadius: 14, padding: '14px 18px', maxWidth: 260, textAlign: 'left' }}>
               <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.7)', fontStyle: 'italic', lineHeight: 1.5, marginBottom: 8 }}>"{t.quote}"</p>
