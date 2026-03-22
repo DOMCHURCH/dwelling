@@ -68,10 +68,20 @@ export default async function handler(req, res) {
       userRecord.analyses_used = 0
     }
 
-    // 4. Enforce usage limit for free users
+    // 4. Check 7-day trial — treat trial users as pro
+    const trialStarted = userRecord.trial_started_at ? new Date(userRecord.trial_started_at) : null
+    const trialDaysUsed = trialStarted ? (Date.now() - trialStarted.getTime()) / (1000 * 60 * 60 * 24) : null
+    const isInTrial = trialDaysUsed !== null && trialDaysUsed < 7
+
+    // Start trial on first analysis if not already started
+    if (!trialStarted && !userRecord.is_pro) {
+      await supabaseAdmin.from('users').update({ trial_started_at: new Date().toISOString() }).eq('id', user.id)
+    }
+
+    // 5. Enforce usage limit — skip for trial and pro users
     const skipCount = req.headers['x-skip-count'] === 'true'
 
-    if (!userRecord.is_pro && !skipCount) {
+    if (!userRecord.is_pro && !isInTrial && !skipCount) {
       if (userRecord.analyses_used >= FREE_LIMIT) {
         return res.status(429).json({ error: 'limit reached' })
       }
