@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 
 const FREE_LIMIT = 10
+const ADMIN_EMAILS = ['01dominque.c@gmail.com']
 
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL,
@@ -24,6 +25,17 @@ export default async function handler(req, res) {
     const token = authHeader.replace('Bearer ', '')
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
     if (authError || !user) return res.status(401).json({ error: 'Invalid session' })
+
+    // Admin bypass — skip all usage counting
+    if (ADMIN_EMAILS.includes(user.email)) {
+      const response = await fetch('https://api.cerebras.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.CEREBRAS_API_KEY}` },
+        body: JSON.stringify(req.body),
+      })
+      const data = await response.json()
+      return res.status(response.status).json(data)
+    }
 
     // 2. Load user record — auto-create if missing (handles new signups)
     let { data: userRecord } = await supabaseAdmin
