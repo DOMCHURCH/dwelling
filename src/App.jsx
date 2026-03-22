@@ -8,7 +8,6 @@ import PaywallModal from './components/PaywallModal'
 import GlobalBackground from './components/GlobalBackground'
 import BlurText from './components/BlurText'
 import CountUp from './components/CountUp'
-import HlsVideo from './components/HlsVideo'
 import { useInView } from './hooks/useInView'
 import { geocodeStructured } from './lib/nominatim'
 import { getCurrentWeather, getClimateNormals } from './lib/weather'
@@ -22,11 +21,6 @@ import { supabase } from './lib/supabase'
 
 const FREE_LIMIT = 10
 
-// ─── VIDEO URLS ──────────────────────────────────────────────────────────────
-const HERO_VIDEO = '/video.webm'
-const HOW_IT_WORKS_VIDEO = '/video.webm'
-const STATS_VIDEO = '/video.webm'
-const CTA_VIDEO = '/video.webm'
 const HERO_POSTER = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663463031725/5FNF4QVCkxSRz6ba3cCadG/hero-poster-ZHdSBZKm8ENZMaTu9N2eqV.webp'
 const LOGO = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663463031725/5FNF4QVCkxSRz6ba3cCadG/dwelling-logo-3AJU9MMgr8YxSGXWKetVFA.webp'
 const FEATURE_VALUATION = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663463031725/5FNF4QVCkxSRz6ba3cCadG/feature-valuation-6WBABoG6LMJhpCDnAn9n88.webp'
@@ -38,21 +32,12 @@ function scrollTo(id) {
   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
-const SectionBg = memo(function SectionBg({ src, opacity = 0.22 }) {
-  return (
-    <>
-      <div style={{ position: 'absolute', inset: 0, zIndex: 0, backgroundImage: `url(${src})`, backgroundSize: 'cover', backgroundPosition: 'center', opacity, transform: 'translateZ(0)' }} />
-      <div style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none', background: 'linear-gradient(to bottom,#000 0%,transparent 14%,transparent 86%,#000 100%)' }} />
-    </>
-  )
-})
-
 function Reveal({ children, delay = '', style = {} }) {
   const [ref, inView] = useInView()
   return <div ref={ref} className={`reveal ${delay} ${inView ? 'in-view' : ''}`} style={style}>{children}</div>
 }
 
-function VideoSection({ src, children, style = {} }) {
+function Section({ children, style = {} }) {
   return (
     <section style={{ position: 'relative', overflow: 'hidden', background: '#000', ...style }}>
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'rgba(255,255,255,0.04)' }} />
@@ -104,11 +89,6 @@ const FAQ_ITEMS = [
   { q: 'Does Dwelling store my address searches?', a: 'No. Searches are processed in real time and discarded immediately.' },
   { q: 'What is the "Correct AI Estimates" feature?', a: "Enter known facts — beds, baths, sqft, year built, purchase price — to override AI guesses and trigger a recalculation." },
 ]
-
-
-
-// ─── FAQ ─────────────────────────────────────────────────────────────────────
-
 
 function FAQ() {
   const [open, setOpen] = useState(null)
@@ -200,14 +180,7 @@ function Navbar({ user, userRecord, analysesLeft, onSignOut, onHome }) {
 // ─── HERO ────────────────────────────────────────────────────────────────────
 function Hero({ onSearch, loading }) {
   return (
-    <section id="hero" style={{ position: 'relative', overflow: 'hidden', background: '#000', height: 1000 }}>
-      <HlsVideo
-        src={HERO_VIDEO}
-        poster={HERO_POSTER}
-        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', zIndex: 0 }}
-      />
-      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.25)', zIndex: 1 }} />
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 180, background: 'linear-gradient(to bottom, rgba(0,0,0,0.6), transparent)', zIndex: 2 }} />
+    <section id="hero" style={{ position: 'relative', overflow: 'hidden', background: 'transparent', height: 1000 }}>
       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 350, background: 'linear-gradient(to top, #000 40%, transparent)', zIndex: 2 }} />
       <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', maxWidth: 900, margin: '0 auto', padding: '150px 24px 96px' }}>
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }}>
@@ -272,7 +245,7 @@ function HowItWorks() {
     { num: '03', icon: '🧠', title: 'AI builds your area report', desc: 'Cerebras AI synthesizes everything into a stability score, market verdict, price trends, and investment outlook in under 30 seconds.' },
   ]
   return (
-    <VideoSection src={HOW_IT_WORKS_VIDEO} style={{ minHeight: 700, padding: '128px 24px' }}>
+    <Section style={{ minHeight: 700, padding: '128px 24px' }}>
       <div style={{ maxWidth: 900, margin: '0 auto', textAlign: 'center' }} id="how-it-works">
         <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>How It Works</div>
         <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2rem,5vw,3.5rem)', color: '#fff', marginBottom: 12, lineHeight: 0.9, letterSpacing: '-0.02em' }}>
@@ -294,7 +267,7 @@ function HowItWorks() {
           ))}
         </div>
       </div>
-    </VideoSection>
+    </Section>
   )
 }
 
@@ -371,7 +344,7 @@ function FeaturesGrid() {
 // ─── STATS ───────────────────────────────────────────────────────────────────
 function Stats() {
   return (
-    <VideoSection src={STATS_VIDEO} style={{ padding: '128px 24px' }}>
+    <Section style={{ padding: '128px 24px' }}>
       <div style={{ maxWidth: 1000, margin: '0 auto' }}>
         <div className="liquid-glass" style={{ borderRadius: 26, padding: '44px 28px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 28, textAlign: 'center' }}>
@@ -391,7 +364,7 @@ function Stats() {
           </div>
         </div>
       </div>
-    </VideoSection>
+    </Section>
   )
 }
 
@@ -473,7 +446,7 @@ function Pricing({ onUpgrade }) {
 // ─── CTA + FOOTER ────────────────────────────────────────────────────────────
 function CTAFooter({ onTermsClick, onScrollToTop, onUpgrade }) {
   return (
-    <VideoSection src={CTA_VIDEO} style={{}}>
+    <Section>
       <div style={{ maxWidth: 860, margin: '0 auto', textAlign: 'center', padding: '128px 24px 80px' }}>
         <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2.2rem,6vw,4.5rem)', color: '#fff', lineHeight: 0.9, letterSpacing: '-0.03em', marginBottom: 20 }}>
           <BlurText text="Your next area decision starts here." />
@@ -502,7 +475,7 @@ function CTAFooter({ onTermsClick, onScrollToTop, onUpgrade }) {
           </div>
         </div>
       </footer>
-    </VideoSection>
+    </Section>
   )
 }
 
@@ -572,7 +545,6 @@ export default function App() {
     if (realtimeRef.current) supabase.removeChannel(realtimeRef.current)
   }
 
-
   const getRiskData = async ({ lat, lon, county, state, country }) => {
     try {
       const res = await fetch('/api/risk', {
@@ -597,7 +569,6 @@ export default function App() {
       const [censusData, fmr, floodZone] = await Promise.all([getCensusData(street, city, state, country), getFairMarketRent(postcode), getFloodZone(geo.lat, geo.lon)]); setLoadStep(3)
       const riskData = await getRiskData({ lat: geo.lat, lon: geo.lon, county: geo.address?.county, state, country }).catch(() => null)
 
-      // Area intelligence: fetch bulk listings + local news in parallel
       const [bulkCompsRes, newsRes] = await Promise.allSettled([
         fetch('/api/comps', {
           method: 'POST',
@@ -621,7 +592,6 @@ export default function App() {
       const ai = await analyzeProperty(geo, weather, climate, knownFacts ?? {}, realData); setLoadStep(4)
       setResult({ geo, weather, climate, ai, knownFacts: knownFacts ?? {}, realData, isAreaMode })
     } catch (err) {
-      console.error(err)
       if (err.message?.includes('context invalidated')) return
       if (err.message?.includes('limit reached') || err.message?.includes('429')) setShowPaywall(true)
       else setError(err.message ?? 'Something went wrong.')
