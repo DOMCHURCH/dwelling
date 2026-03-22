@@ -683,7 +683,7 @@ export default function App() {
           <Hero onSearch={handleSearch} loading={loading} />
           <Partners />
           <HowItWorks />
-          <FeatureRows onScrollTo={scrollTo} />
+          <FeaturesChess />
           <FeaturesGrid />
           <Stats />
           <Pricing onUpgrade={() => setShowPaywall(true)} />
