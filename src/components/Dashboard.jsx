@@ -592,18 +592,31 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro' }) 
 
       {/* Investment */}
       <SectionCard title="Investment Analysis" icon="📈" delay={300}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 16 }}>
-          <StatCard label="Rent Yield" value={`${investment.rentYieldPercent}%`} sub="annual gross" accent="#4ade80" />
-          <StatCard label="Investment Score" value={`${investment.investmentScore}/100`} />
-          <div className="liquid-glass" style={{ borderRadius: 14, padding: '16px' }}>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10, fontFamily: "'Barlow', sans-serif" }}>Outlook</div>
-            <Tag color={investment.appreciationOutlook === 'bullish' ? 'green' : investment.appreciationOutlook === 'bearish' ? 'red' : 'default'}>
-              {(investment.appreciationOutlook || 'neutral').toUpperCase()}
-            </Tag>
+        <div style={{ position: 'relative' }}>
+          <div style={{ filter: isLocked('investment') ? 'blur(6px)' : 'none', userSelect: isLocked('investment') ? 'none' : 'auto', pointerEvents: isLocked('investment') ? 'none' : 'auto' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 16 }}>
+              <StatCard label="Rent Yield" value={`${investment.rentYieldPercent}%`} sub="annual gross" accent="#4ade80" />
+              <StatCard label="Investment Score" value={`${investment.investmentScore}/100`} />
+              <div className="liquid-glass" style={{ borderRadius: 14, padding: '16px' }}>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10, fontFamily: "'Barlow', sans-serif" }}>Outlook</div>
+                <Tag color={investment.appreciationOutlook === 'bullish' ? 'green' : investment.appreciationOutlook === 'bearish' ? 'red' : 'default'}>
+                  {(investment.appreciationOutlook || 'neutral').toUpperCase()}
+                </Tag>
+              </div>
+            </div>
+            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginBottom: 8, fontFamily: "'Barlow', sans-serif", fontWeight: 300, lineHeight: 1.7 }}>{investment.appreciationOutlookText}</p>
+            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow', sans-serif", fontWeight: 300, lineHeight: 1.7 }}>{investment.investmentSummary}</p>
           </div>
+          {isLocked('investment') && (
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', borderRadius: 12, gap: 10 }}>
+              <span style={{ fontSize: 24 }}>🔒</span>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 15, color: '#fff', marginBottom: 4 }}>Investment Analysis</div>
+                <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 10 }}>Upgrade to Pro to see rent yield, investment score & outlook</div>
+              </div>
+            </div>
+          )}
         </div>
-        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginBottom: 8, fontFamily: "'Barlow', sans-serif", fontWeight: 300, lineHeight: 1.7 }}>{investment.appreciationOutlookText}</p>
-        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow', sans-serif", fontWeight: 300, lineHeight: 1.7 }}>{investment.investmentSummary}</p>
       </SectionCard>
 
       {/* Investment — hidden on free plan */}
