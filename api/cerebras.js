@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 
 const FREE_LIMIT = 10
-const ADMIN_EMAILS = ['01dominque.c@gmail.com']
+const ADMIN_EMAILS = ['01dominique.c@gmail.com']
 
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL,
