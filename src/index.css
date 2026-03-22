@@ -198,3 +198,112 @@ nav {
 section {
   contain: layout;
 }
+
+/* ─── MOBILE RESPONSIVE ─── */
+@media (max-width: 768px) {
+
+  /* Hide nav links on mobile */
+  .nav-links-desktop {
+    display: none !important;
+  }
+
+  /* Tighter section padding */
+  section {
+    contain: layout;
+  }
+
+  /* Features chess: always column on mobile */
+  .features-row {
+    flex-direction: column !important;
+  }
+
+  /* Pricing grid: single column on mobile */
+  #pricing > div {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Partners: smaller font */
+  .partners-name {
+    font-size: 20px !important;
+  }
+
+  /* Hero h1: tighter on very small screens */
+  #hero h1 {
+    font-size: clamp(2.2rem, 10vw, 4rem) !important;
+    line-height: 1 !important;
+  }
+
+  /* Dashboard result wrapper */
+  .result-wrapper {
+    padding: 80px 12px 48px !important;
+  }
+
+  /* AuthModal: full width on small screens */
+  .liquid-glass-strong {
+    padding: 24px 20px !important;
+  }
+
+  /* Stat pills: wrap more aggressively */
+  .hero-pills {
+    gap: 8px !important;
+  }
+
+  /* How it works grid: single column */
+  .how-it-works-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Features grid: 1 col on mobile */
+  .features-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* CTA buttons: full width on mobile */
+  .cta-buttons {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  .cta-buttons button {
+    width: 100% !important;
+  }
+
+  /* Demo banner text: smaller */
+  .demo-banner p {
+    font-size: 12px !important;
+  }
+
+  /* Stats grid: 2x2 on mobile */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Testimonial/founder card: less padding */
+  .founder-card {
+    padding: 28px 24px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Very small screens */
+  nav {
+    padding: 10px 14px !important;
+  }
+
+  nav img {
+    width: 30px !important;
+    height: 30px !important;
+  }
+
+  nav span[style*="Instrument Serif"] {
+    font-size: 17px !important;
+  }
+
+  .liquid-glass-strong {
+    padding: 20px 16px !important;
+  }
+
+  #pricing {
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+  }
+}
