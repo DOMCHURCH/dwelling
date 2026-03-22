@@ -203,15 +203,15 @@ function Navbar({ user, userRecord, analysesLeft, onSignOut, onHome }) {
 // ─── HERO ────────────────────────────────────────────────────────────────────
 function Hero({ onSearch, loading }) {
   return (
-    <section id="hero" style={{ position: 'relative', overflow: 'hidden', background: `#000 url(${HERO_POSTER}) center/cover no-repeat`, height: 1000 }}>
+    <section id="hero" style={{ position: 'relative', overflow: 'hidden', background: '#000', height: 1000 }}>
       <HlsVideo
         src={HERO_VIDEO}
         poster={HERO_POSTER}
-        className="absolute w-full h-auto object-contain z-0"
-        style={{ position: 'absolute', width: '100%', height: 'auto', objectFit: 'contain', zIndex: 0, top: '20%' }}
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', zIndex: 0 }}
       />
-      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.1)', zIndex: 1 }} />
-      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 300, background: 'linear-gradient(to bottom, transparent, black)', zIndex: 2 }} />
+      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.25)', zIndex: 1 }} />
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 180, background: 'linear-gradient(to bottom, rgba(0,0,0,0.6), transparent)', zIndex: 2 }} />
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 350, background: 'linear-gradient(to top, #000 40%, transparent)', zIndex: 2 }} />
       <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', maxWidth: 900, margin: '0 auto', padding: '150px 24px 96px' }}>
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }}>
           <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 16px', marginBottom: 28 }}>
