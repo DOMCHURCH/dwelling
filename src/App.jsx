@@ -54,11 +54,8 @@ function Reveal({ children, delay = '', style = {} }) {
 
 function VideoSection({ src, children, style = {} }) {
   return (
-    <section style={{ position: 'relative', overflow: 'hidden', ...style }}>
-      <HlsVideo src={src} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0, opacity: 0.85 }} />
-      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 1, pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 200, background: 'linear-gradient(to bottom, black, transparent)', zIndex: 2, pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 200, background: 'linear-gradient(to top, black, transparent)', zIndex: 2, pointerEvents: 'none' }} />
+    <section style={{ position: 'relative', overflow: 'hidden', background: '#000', ...style }}>
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'rgba(255,255,255,0.04)' }} />
       <div style={{ position: 'relative', zIndex: 10 }}>{children}</div>
     </section>
   )
