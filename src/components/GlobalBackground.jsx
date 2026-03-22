@@ -27,8 +27,10 @@ export default function GlobalBackground() {
     const scene = new THREE.Scene()
     const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, -1)
 
+    // FIX 10: 1.0 pixel ratio on mobile, 1.5 cap on desktop
+    const isMobile = navigator.maxTouchPoints > 0
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true })
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5))
+    renderer.setPixelRatio(isMobile ? 1.0 : Math.min(window.devicePixelRatio, 1.5))
     renderer.setSize(container.offsetWidth, container.offsetHeight)
     renderer.setClearColor(0x000000, 0)
     container.appendChild(renderer.domElement)
@@ -61,18 +63,13 @@ export default function GlobalBackground() {
 
       void main() {
         vec2 p = (gl_FragCoord.xy * 2.0 - resolution) / min(resolution.x, resolution.y);
-
         float d = length(p) * distortion;
-
         float rx = p.x * (1.0 + d);
         float gx = p.x;
         float bx = p.x * (1.0 - d);
-
         float r = 0.05 / abs(p.y + sin((rx + time) * xScale) * yScale);
         float g = 0.05 / abs(p.y + sin((gx + time) * xScale) * yScale);
         float b = 0.05 / abs(p.y + sin((bx + time) * xScale) * yScale);
-
-        // Darken so it doesn't overpower the text
         gl_FragColor = vec4(r * 0.6, g * 0.6, b * 0.6, 1.0);
       }
     `
@@ -100,10 +97,13 @@ export default function GlobalBackground() {
     scene.add(mesh)
 
     let animationId = null
+    let paused = false
 
     const animate = () => {
       animationId = requestAnimationFrame(animate)
       if (sceneRef.current) sceneRef.current._animId = animationId
+      // FIX 1 & 2: skip GPU work entirely when paused
+      if (paused) return
       uniforms.time.value += 0.01
       renderer.render(scene, camera)
     }
@@ -117,12 +117,20 @@ export default function GlobalBackground() {
     }
     window.addEventListener('resize', handleResize)
 
+    // FIX 2: pause when tab loses focus
+    const handleVisibility = () => { paused = document.hidden }
+    document.addEventListener('visibilitychange', handleVisibility)
+
+    // FIX 1: pause when hero is scrolled out of view
+    const observer = new IntersectionObserver(
+      ([entry]) => { paused = !entry.isIntersecting || document.hidden },
+      { threshold: 0 }
+    )
+    observer.observe(container)
+
     sceneRef.current = {
-      scene,
-      renderer,
-      geometry,
-      material,
-      handleResize,
+      scene, renderer, geometry, material,
+      handleResize, handleVisibility, observer,
       _animId: animationId,
       _script: sceneRef.current?._script,
     }
@@ -133,6 +141,8 @@ export default function GlobalBackground() {
     if (!s) return
     if (s._animId) cancelAnimationFrame(s._animId)
     if (s.handleResize) window.removeEventListener('resize', s.handleResize)
+    if (s.handleVisibility) document.removeEventListener('visibilitychange', s.handleVisibility)
+    if (s.observer) s.observer.disconnect()
     if (s.geometry) s.geometry.dispose()
     if (s.material) s.material.dispose()
     if (s.renderer) s.renderer.dispose()
