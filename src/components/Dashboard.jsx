@@ -156,7 +156,7 @@ const DISPLAY_CURRENCIES = [
   { code: 'ZAR', label: 'South African Rand' }, { code: 'AED', label: 'UAE Dirham' },
 ]
 
-export default function Dashboard({ data, onRecalculate }) {
+export default function Dashboard({ data, onRecalculate, previewPlan = 'pro' }) {
   const { geo, weather, climate, ai, knownFacts, realData, isAreaMode } = data
   const { areaMetrics, areaRiskScore, marketTemperature, newsData } = realData || {}
   const { propertyEstimate, costOfLiving, neighborhood, investment, localInsights, areaIntelligence, riskData: aiRiskData } = ai
@@ -190,8 +190,25 @@ export default function Dashboard({ data, onRecalculate }) {
   const tempF = tempC != null ? Math.round(tempC * 9 / 5 + 32) : null
   const weatherDesc = currentWeather ? weatherCodeToDescription(currentWeather.weather_code) : null
 
+  // Plan-based visibility helper
+  const isLocked = (feature) => {
+    if (previewPlan === 'pro' || previewPlan === 'mover') return false
+    // Free plan hides investment, risk details, price history
+    const freeHidden = ['investment', 'risk', 'pricehistory', 'costoflivingdetail']
+    return freeHidden.includes(feature)
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Plan preview banner — only shown when admin is previewing free */}
+      {previewPlan === 'free' && (
+        <div style={{ borderRadius: 14, padding: '12px 18px', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 14 }}>⚠️</span>
+          <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(251,191,36,0.9)' }}>
+            Previewing <strong>Free plan</strong> — investment analysis, risk details, and price history are hidden for free users.
+          </span>
+        </div>
+      )}
 
       {/* Area Banner */}
       <div className="liquid-glass" style={{ borderRadius: 20, padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -588,6 +605,17 @@ export default function Dashboard({ data, onRecalculate }) {
         <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginBottom: 8, fontFamily: "'Barlow', sans-serif", fontWeight: 300, lineHeight: 1.7 }}>{investment.appreciationOutlookText}</p>
         <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow', sans-serif", fontWeight: 300, lineHeight: 1.7 }}>{investment.investmentSummary}</p>
       </SectionCard>
+
+      {/* Investment — hidden on free plan */}
+      {isLocked('investment') && (
+        <div className="liquid-glass" style={{ borderRadius: 18, padding: 28, border: '1px solid rgba(251,191,36,0.15)', display: 'flex', alignItems: 'center', gap: 16 }}>
+          <span style={{ fontSize: 24 }}>🔒</span>
+          <div>
+            <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 16, color: '#fff', marginBottom: 4 }}>Investment Analysis</div>
+            <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>Upgrade to Pro for rent yield, investment score, appreciation outlook and full AI analysis.</div>
+          </div>
+        </div>
+      )}
 
       {/* Local Insights */}
       <SectionCard title="Local Insights" icon="🗺" delay={350}>
