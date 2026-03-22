@@ -15,7 +15,7 @@ export default function PaywallModal({ onClose, onUpgrade }) {
     {
       id: 'monthly',
       label: 'Pro Monthly',
-      price: '$9',
+      price: '$5',
       period: '/mo',
       badge: 'Most Popular',
       subheading: 'Make smarter location decisions',
@@ -27,23 +27,7 @@ export default function PaywallModal({ onClose, onUpgrade }) {
         { text: 'Side-by-side area comparison', highlight: false },
         { text: 'Cancel anytime · No commitment', highlight: false },
       ],
-      cta: 'Upgrade to Pro — $9/month →',
-    },
-    {
-      id: 'onetime',
-      label: 'Mover Pass',
-      price: '$27',
-      period: 'one time',
-      badge: 'For one-time movers',
-      subheading: 'Full access, no subscription',
-      features: [
-        { text: 'Unlimited analyses for 30 days', highlight: false },
-        { text: 'Full investment-grade AI analysis', highlight: true },
-        { text: 'Hidden risk & hazard detection', highlight: true },
-        { text: 'Side-by-side area comparison', highlight: false },
-        { text: 'No subscription — pay once', highlight: false },
-      ],
-      cta: 'Get Mover Pass — $27 →',
+      cta: 'Upgrade to Pro — $5/month →',
     },
   ]
 
@@ -67,15 +51,7 @@ export default function PaywallModal({ onClose, onUpgrade }) {
           ))}
         </div>
 
-        {/* Tab switcher */}
-        <div className="liquid-glass" style={{ borderRadius: 40, padding: 4, display: 'flex', marginBottom: 14 }}>
-          {plans.map(p => (
-            <button key={p.id} onClick={() => setSelected(p.id)}
-              style={{ flex: 1, padding: '8px 4px', borderRadius: 36, border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontSize: 12, fontWeight: 500, transition: 'background 0.2s, color 0.2s', background: selected === p.id ? '#fff' : 'transparent', color: selected === p.id ? '#000' : 'rgba(255,255,255,0.4)' }}>
-              {p.label}
-            </button>
-          ))}
-        </div>
+
 
         {/* Active plan */}
         {activePlan && (
