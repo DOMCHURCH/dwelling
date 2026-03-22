@@ -54,8 +54,9 @@ export default function PaywallModal({ onClose, onUpgrade }) {
       <div className="liquid-glass-strong" style={{ borderRadius: 24, maxWidth: 480, width: '100%', padding: 32, animation: 'fadeUp 0.3s ease', maxHeight: '90vh', overflowY: 'auto' }}>
 
         <div style={{ textAlign: 'center', marginBottom: 20 }}>
-          <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 24, color: '#fff', marginBottom: 6 }}>You've used your 10 free analyses</div>
-          <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>Upgrade to keep going.</p>
+          <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 24, color: '#fff', marginBottom: 6 }}>Your free analyses are used up</div>
+          <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Upgrade to keep going — or make a mistake worth far more.</p>
+          <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Pro costs less than 0.002% of the average home purchase.</p>
         </div>
 
         {/* Free plan reminder */}
@@ -100,8 +101,13 @@ export default function PaywallModal({ onClose, onUpgrade }) {
           {activePlan?.cta}
         </button>
 
-        <div style={{ textAlign: 'center', marginTop: 8, marginBottom: 4 }}>
-          <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>
+        <div style={{ textAlign: 'center', marginTop: 10, marginBottom: 4 }}>
+          <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 12, color: 'rgba(74,222,128,0.6)', fontWeight: 300 }}>
+            ✓ Full refund if not satisfied · Cancel anytime
+          </span>
+        </div>
+        <div style={{ textAlign: 'center', marginTop: 4, marginBottom: 4 }}>
+          <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.15)' }}>
             Stripe integration coming soon
           </span>
         </div>
