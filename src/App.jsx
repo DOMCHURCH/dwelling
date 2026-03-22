@@ -8,6 +8,7 @@ import PaywallModal from './components/PaywallModal'
 import GlobalBackground from './components/GlobalBackground'
 import BlurText from './components/BlurText'
 import CountUp from './components/CountUp'
+import HlsVideo from './components/HlsVideo'
 import { useInView } from './hooks/useInView'
 import { geocodeStructured } from './lib/nominatim'
 import { getCurrentWeather, getClimateNormals } from './lib/weather'
@@ -21,57 +22,44 @@ import { IMG } from './images'
 
 const FREE_LIMIT = 10
 
-// Image paths — served as static files from /public, browser handles
-// lazy loading, caching, and async decoding natively.
-// IMG imported from images.js
+// ─── VIDEO URLS ──────────────────────────────────────────────────────────────
+const HERO_VIDEO = 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260307_083826_e938b29f-a43a-41ec-a153-3d4730578ab8.mp4'
+const HOW_IT_WORKS_VIDEO = 'https://stream.mux.com/9JXDljEVWYwWu01PUkAemafDugK89o01BR6zqJ3aS9u00A.m3u8'
+const STATS_VIDEO = 'https://stream.mux.com/NcU3HlHeF7CUL86azTTzpy3Tlb00d6iF3BmCdFslMJYM.m3u8'
+const CTA_VIDEO = 'https://stream.mux.com/8wrHPCX2dC3msyYU9ObwqNdm00u3ViXvOSHUMRYSEe5Q.m3u8'
+const HERO_POSTER = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663463031725/5FNF4QVCkxSRz6ba3cCadG/hero-poster-ZHdSBZKm8ENZMaTu9N2eqV.webp'
+const LOGO = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663463031725/5FNF4QVCkxSRz6ba3cCadG/dwelling-logo-3AJU9MMgr8YxSGXWKetVFA.webp'
+const FEATURE_VALUATION = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663463031725/5FNF4QVCkxSRz6ba3cCadG/feature-valuation-6WBABoG6LMJhpCDnAn9n88.webp'
+const FEATURE_NEIGHBORHOOD = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663463031725/5FNF4QVCkxSRz6ba3cCadG/feature-neighborhood-3qp5DELyzSPBFnzNqvRpCf.webp'
 
-// ─── SECTION BACKGROUND ──────────────────────────────────────────────────────
-// Static positioned background — no JS, no repaints on scroll.
-// translateZ(0) promotes to GPU compositor layer once, stays there.
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function scrollTo(id) {
+  const el = document.getElementById(id)
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
 const SectionBg = memo(function SectionBg({ src, opacity = 0.22 }) {
   return (
     <>
-      <div style={{
-        position: 'absolute', inset: 0, zIndex: 0,
-        backgroundImage: `url(${src})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        opacity,
-        transform: 'translateZ(0)',
-        WebkitTransform: 'translateZ(0)',
-      }} />
-      <div style={{
-        position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none',
-        background: 'linear-gradient(to bottom,#000 0%,transparent 14%,transparent 86%,#000 100%)',
-      }} />
+      <div style={{ position: 'absolute', inset: 0, zIndex: 0, backgroundImage: `url(${src})`, backgroundSize: 'cover', backgroundPosition: 'center', opacity, transform: 'translateZ(0)' }} />
+      <div style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none', background: 'linear-gradient(to bottom,#000 0%,transparent 14%,transparent 86%,#000 100%)' }} />
     </>
   )
 })
 
-// ─── REVEAL ──────────────────────────────────────────────────────────────────
-// CSS class toggle via IntersectionObserver. Zero per-frame JS.
-function Reveal({ children, className = '', delay = '', style = {} }) {
+function Reveal({ children, delay = '', style = {} }) {
   const [ref, inView] = useInView()
-  return (
-    <div ref={ref} className={`reveal ${delay} ${inView ? 'in-view' : ''} ${className}`} style={style}>
-      {children}
-    </div>
-  )
+  return <div ref={ref} className={`reveal ${delay} ${inView ? 'in-view' : ''}`} style={style}>{children}</div>
 }
-function RevealLeft({ children, delay = '', style = {} }) {
-  const [ref, inView] = useInView()
+
+function VideoSection({ src, children, style = {} }) {
   return (
-    <div ref={ref} className={`reveal-left ${delay} ${inView ? 'in-view' : ''}`} style={style}>
-      {children}
-    </div>
-  )
-}
-function RevealRight({ children, delay = '', style = {} }) {
-  const [ref, inView] = useInView()
-  return (
-    <div ref={ref} className={`reveal-right ${delay} ${inView ? 'in-view' : ''}`} style={style}>
-      {children}
-    </div>
+    <section style={{ position: 'relative', overflow: 'hidden', ...style }}>
+      <HlsVideo src={src} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }} />
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 200, background: 'linear-gradient(to bottom, black, transparent)', zIndex: 1, pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 200, background: 'linear-gradient(to top, black, transparent)', zIndex: 1, pointerEvents: 'none' }} />
+      <div style={{ position: 'relative', zIndex: 10 }}>{children}</div>
+    </section>
   )
 }
 
@@ -119,67 +107,97 @@ const FAQ_ITEMS = [
   { q: 'What is the "Correct AI Estimates" feature?', a: "Enter known facts — beds, baths, sqft, year built, purchase price — to override AI guesses and trigger a recalculation." },
 ]
 
+
+
+// ─── FAQ ─────────────────────────────────────────────────────────────────────
+const FAQ_ITEMS = [
+  { q: 'How accurate are the area intelligence reports?', a: 'Reports are based on aggregated real listing data (Redfin/Realtor.ca), census demographics, FEMA risk data, and AI analysis. Market scores are computed from real metrics — days on market, price volatility, and inventory levels.' },
+  { q: 'Where does the data come from?', a: 'OpenStreetMap (walkability/amenities), Open-Meteo (weather/climate), US Census Bureau, HUD (fair market rents), FEMA (flood + hazard risk), Redfin/Realtor.ca (listings), and Cerebras AI.' },
+  { q: 'Is Dwelling free to use?', a: 'Free users get 10 analyses per month. Upgrade to Pro for $9/month for unlimited analyses.' },
+  { q: 'Does Dwelling work outside the United States?', a: 'Yes — global city support. Some sources (Census, FEMA) are US-only, so Canadian and international analyses use Realtor.ca, StatCan, and AI estimation.' },
+  { q: 'Can I use the results to make a real estate decision?', a: 'No. All outputs are informational only and do not constitute financial, legal, or real estate advice.' },
+]
+
 function FAQ() {
   const [open, setOpen] = useState(null)
   return (
-    <section id="faq" style={{ padding: '96px 24px', maxWidth: 780, margin: '0 auto', position: 'relative', zIndex: 1 }}>
+    <section id="faq" style={{ padding: '96px 24px', maxWidth: 780, margin: '0 auto' }}>
       <Reveal>
-        <span className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '6px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>Support</span>
+        <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>Support</div>
       </Reveal>
       <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2rem,5vw,3.5rem)', color: '#fff', marginBottom: 40, lineHeight: 0.9, letterSpacing: '-0.02em' }}>
         <BlurText text="Questions, answered." />
       </h2>
-      {FAQ_ITEMS.map((item, i) => (
-        <Reveal key={i} delay={`reveal-d${Math.min(i % 3 + 1, 3)}`}>
-          <div className="liquid-glass" style={{ borderRadius: 16, marginBottom: 8, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {FAQ_ITEMS.map((item, i) => (
+          <div key={i} className="liquid-glass" style={{ borderRadius: 18, overflow: 'hidden' }}>
             <button onClick={() => setOpen(open === i ? null : i)}
-              style={{ width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 22px', background: 'transparent', border: 'none', cursor: 'pointer', gap: 16 }}
-              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-              <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 500, fontSize: 14, color: '#fff', flex: 1 }}>{item.q}</span>
-              <span style={{ fontSize: 20, color: 'rgba(255,255,255,0.3)', flexShrink: 0, transition: 'transform 0.15s', transform: open === i ? 'rotate(45deg)' : 'none' }}>+</span>
+              style={{ width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 22px', background: 'transparent', border: 'none', cursor: 'pointer' }}>
+              <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 400, fontSize: 14, color: '#fff', flex: 1, paddingRight: 16 }}>{item.q}</span>
+              <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 18, transition: 'transform 0.2s', transform: open === i ? 'rotate(180deg)' : 'none', flexShrink: 0 }}>⌄</span>
             </button>
             <AnimatePresence>
               {open === i && (
-                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.18 }}>
-                  <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 14, color: 'rgba(255,255,255,0.6)', lineHeight: 1.8, padding: '0 22px 18px' }}>{item.a}</p>
+                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }}>
+                  <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.55)', lineHeight: 1.7, padding: '0 22px 18px' }}>{item.a}</p>
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
-        </Reveal>
-      ))}
+        ))}
+      </div>
     </section>
   )
 }
 
 // ─── NAVBAR ──────────────────────────────────────────────────────────────────
-function Navbar({ user, userRecord, analysesLeft, onSignOut, onHome, onScrollTo }) {
+function Navbar({ user, userRecord, analysesLeft, onSignOut, onHome }) {
   const [scrolled, setScrolled] = useState(false)
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 50)
     window.addEventListener('scroll', h, { passive: true })
     return () => window.removeEventListener('scroll', h)
   }, [])
+  const links = [
+    { label: 'Features', id: 'features' },
+    { label: 'How It Works', id: 'how-it-works' },
+    { label: 'Pricing', id: 'pricing' },
+    { label: 'FAQ', id: 'faq' },
+  ]
   const low = typeof analysesLeft === 'number' && analysesLeft <= 3
   return (
-    <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50, padding: '14px 24px', background: scrolled ? 'rgba(0,0,0,0.8)' : 'transparent', backdropFilter: scrolled ? 'blur(16px)' : 'none', WebkitBackdropFilter: scrolled ? 'blur(16px)' : 'none', borderBottom: scrolled ? '1px solid rgba(255,255,255,0.06)' : '1px solid transparent', transition: 'background 0.25s, border-color 0.25s' }}>
+    <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50, padding: '14px 24px', background: scrolled ? 'rgba(0,0,0,0.85)' : 'transparent', backdropFilter: scrolled ? 'blur(16px)' : 'none', WebkitBackdropFilter: scrolled ? 'blur(16px)' : 'none', borderBottom: scrolled ? '1px solid rgba(255,255,255,0.06)' : '1px solid transparent', transition: 'background 0.3s, border-color 0.3s' }}>
       <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-        <button onClick={onHome} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 22, color: '#fff', padding: 0 }}>
-          DW<span style={{ opacity: 0.4 }}>.</span>ELLING
+        <button onClick={onHome} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <img src={LOGO} alt="Dwelling" style={{ width: 36, height: 36, borderRadius: 8 }} />
+          <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 20, color: '#fff' }}>Dwelling</span>
         </button>
+        <div className="liquid-glass" style={{ borderRadius: 40, padding: '6px 8px', display: 'flex', alignItems: 'center', gap: 4 }}>
+          {links.map(link => (
+            <button key={link.id} onClick={() => scrollTo(link.id)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 400, fontSize: 13, color: 'rgba(255,255,255,0.8)', padding: '6px 14px', borderRadius: 40, transition: 'background 0.15s' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.07)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+              {link.label}
+            </button>
+          ))}
+        </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          {user && (
+          {user ? (
             <>
               <span className="liquid-glass" style={{ borderRadius: 40, padding: '5px 12px', fontSize: 12, fontFamily: "'Barlow',sans-serif", color: userRecord?.is_pro ? '#fbbf24' : low ? '#f87171' : 'rgba(255,255,255,0.5)' }}>
                 {userRecord?.is_pro ? '★ Pro' : `${analysesLeft} / ${FREE_LIMIT} left`}
               </span>
-              <button onClick={onSignOut} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.3)', padding: '5px 8px', transition: 'color 0.2s' }}
+              <button onClick={onSignOut} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.35)', padding: '5px 8px', transition: 'color 0.2s' }}
                 onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.7)'}
-                onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.3)'}>
-                Sign out
-              </button>
+                onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.35)'}>Sign out</button>
             </>
+          ) : (
+            <button onClick={onHome} style={{ background: '#fff', color: '#000', border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13, borderRadius: 40, padding: '8px 18px', display: 'flex', alignItems: 'center', gap: 6, transition: 'transform 0.15s' }}
+              onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.03)'}
+              onMouseLeave={e => e.currentTarget.style.transform = ''}>
+              Get Started ↗
+            </button>
           )}
         </div>
       </div>
@@ -188,42 +206,30 @@ function Navbar({ user, userRecord, analysesLeft, onSignOut, onHome, onScrollTo 
 }
 
 // ─── HERO ────────────────────────────────────────────────────────────────────
-function Hero({ onSearch, loading, onScrollTo }) {
+function Hero({ onSearch, loading }) {
   return (
-    <section style={{ minHeight: '100vh', position: 'relative', overflow: 'hidden', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      {/* Single GPU layer for hero bg. Loading eager — above fold. */}
-      <div style={{ position: 'absolute', inset: 0, zIndex: 0, transform: 'translateZ(0)', WebkitTransform: 'translateZ(0)' }}>
-        <img src={IMG.hero} alt="" width="1920" height="1080"
-          style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.42, display: 'block' }}
-          loading="eager" decoding="async" fetchPriority="high"
-        />
-      </div>
-      <div style={{ position: 'absolute', inset: 0, zIndex: 1, backgroundImage: 'repeating-linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px),repeating-linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px)', backgroundSize: '60px 60px' }} />
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 220, background: 'linear-gradient(to bottom,#000,transparent)', zIndex: 2 }} />
-      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 300, background: 'linear-gradient(to top,#000,transparent)', zIndex: 2 }} />
-
-      <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', maxWidth: 900, margin: '0 auto', padding: '128px 24px 96px' }}>
-        {/* Simple CSS fade-in on mount — no framer hooks */}
-        <div style={{}}>
+    <section id="hero" style={{ position: 'relative', overflow: 'hidden', background: '#000', height: 1000 }}>
+      <HlsVideo src={HERO_VIDEO} poster={HERO_POSTER} style={{ position: 'absolute', width: '100%', height: 'auto', objectFit: 'contain', zIndex: 0, top: '20%' }} />
+      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.05)', zIndex: 0 }} />
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 300, background: 'linear-gradient(to bottom, transparent, black)', zIndex: 1 }} />
+      <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', maxWidth: 900, margin: '0 auto', padding: '150px 24px 96px' }}>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }}>
           <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 16px', marginBottom: 28 }}>
-            <span style={{ background: '#fff', color: '#000', fontSize: 11, fontFamily: "'Barlow',sans-serif", fontWeight: 600, borderRadius: 20, padding: '2px 8px' }}>AI Powered</span>
-            <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>Know any area's market value — instantly.</span>
+            <span style={{ background: '#fff', color: '#000', fontSize: 11, fontFamily: "'Barlow',sans-serif", fontWeight: 600, borderRadius: 20, padding: '2px 8px' }}>New</span>
+            <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>Introducing AI-powered area intelligence.</span>
           </div>
-        </div>
-
+        </motion.div>
         <h1 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(3rem,9vw,6rem)', color: '#fff', lineHeight: 0.88, letterSpacing: '-0.03em', marginBottom: 28 }}>
-          <BlurText text="Property Intelligence. Reimagined." />
+          <BlurText text="Know Any Area Before You Move." delay={0.3} />
         </h1>
-
-        <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 16, fontFamily: "'Barlow',sans-serif", fontWeight: 300, maxWidth: 540, lineHeight: 1.7, marginBottom: 40 }}>
-          Enter any city or neighborhood in the world. Get real market data, area scores, climate analysis, and AI-powered investment insights — instantly.
-        </p>
-
-        <div style={{ width: '100%', maxWidth: 600 }}>
+        <motion.p initial={{ opacity: 0, filter: 'blur(8px)' }} animate={{ opacity: 1, filter: 'blur(0px)' }} transition={{ duration: 0.6, delay: 0.8 }}
+          style={{ color: 'rgba(255,255,255,0.5)', fontSize: 16, fontFamily: "'Barlow',sans-serif", fontWeight: 300, maxWidth: 540, lineHeight: 1.7, marginBottom: 40 }}>
+          Type any city or neighbourhood. Get a stability score, market temperature, AI verdict, and local news — all in seconds.
+        </motion.p>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 1.3 }} style={{ width: '100%', maxWidth: 600 }}>
           <AddressSearch onSearch={onSearch} loading={loading} />
-        </div>
-
-        <div style={{ display: 'flex', gap: 10, marginTop: 20, flexWrap: 'wrap', justifyContent: 'center' }}>
+        </motion.div>
+        <div style={{ display: 'flex', gap: 10, marginTop: 24, flexWrap: 'wrap', justifyContent: 'center' }}>
           {[['100k+','Cities'],['50+','Countries'],['10','Free / Month'],['<30s','Analysis time']].map(([val, lbl]) => (
             <div key={lbl} className="liquid-glass" style={{ borderRadius: 40, padding: '7px 16px', display: 'flex', alignItems: 'center', gap: 7 }}>
               <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 17, color: '#fff' }}>{val}</span>
@@ -231,12 +237,30 @@ function Hero({ onSearch, loading, onScrollTo }) {
             </div>
           ))}
         </div>
-
-        <div style={{ position: 'absolute', bottom: 28, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, cursor: 'pointer' }} onClick={() => onScrollTo('how-it-works')}>
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style={{ opacity: 0.3 }}>
-            <path d="M8 3v10M3 9l5 5 5-5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+        <div style={{ position: 'absolute', bottom: 28, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, cursor: 'pointer', opacity: 0.4 }} onClick={() => scrollTo('how-it-works')}>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 9l5 5 5-5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
           <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.12em', textTransform: 'uppercase' }}>Scroll</span>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ─── PARTNERS ────────────────────────────────────────────────────────────────
+function Partners() {
+  const partners = ['Redfin', 'Open-Meteo', 'US Census', 'HUD', 'FEMA', 'Cerebras']
+  return (
+    <section style={{ padding: '64px 24px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div className="liquid-glass" style={{ borderRadius: 40, padding: '4px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 28 }}>
+          Powered by leading data sources
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 32 }}>
+          {partners.map(name => (
+            <span key={name} style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 26, color: 'rgba(255,255,255,0.7)', transition: 'color 0.2s', cursor: 'default' }}
+              onMouseEnter={e => e.currentTarget.style.color = '#fff'}
+              onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.7)'}>{name}</span>
+          ))}
         </div>
       </div>
     </section>
@@ -246,35 +270,98 @@ function Hero({ onSearch, loading, onScrollTo }) {
 // ─── HOW IT WORKS ────────────────────────────────────────────────────────────
 function HowItWorks() {
   const steps = [
-    { num: '01', icon: '📍', title: 'Enter an address', desc: 'Any address in the world. Street, city, country — that is all you need.' },
-    { num: '02', icon: '⚡', title: 'We fetch real data', desc: 'Census data, HUD rent estimates, FEMA flood zones, OpenStreetMap scores, live weather — all in real time.' },
-    { num: '03', icon: '🧠', title: 'AI builds your report', desc: 'Cerebras Llama synthesizes everything into a full property intelligence report in under 30 seconds.' },
+    { num: '01', icon: '📍', title: 'Enter a city or neighbourhood', desc: 'Any location in the world. No street address needed — just the area you want to understand.' },
+    { num: '02', icon: '⚡', title: 'We pull real market data', desc: 'Active listings, days on market, inventory levels, census demographics, FEMA risk, walkability — all in real time.' },
+    { num: '03', icon: '🧠', title: 'AI builds your area report', desc: 'Cerebras AI synthesizes everything into a stability score, market verdict, price trends, and investment outlook in under 30 seconds.' },
   ]
   return (
-    <section id="how-it-works" style={{ padding: '96px 0', position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
-      <SectionBg src={IMG.neighborhood} opacity={0.2} />
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px', position: 'relative', zIndex: 2 }}>
-        <Reveal>
-          <span className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '6px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>How it works</span>
-        </Reveal>
+    <VideoSection src={HOW_IT_WORKS_VIDEO} style={{ minHeight: 700, padding: '128px 24px' }}>
+      <div style={{ maxWidth: 900, margin: '0 auto', textAlign: 'center' }} id="how-it-works">
+        <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>How It Works</div>
         <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2rem,5vw,3.5rem)', color: '#fff', marginBottom: 12, lineHeight: 0.9, letterSpacing: '-0.02em' }}>
-          <BlurText text="Enter an address. Get everything." />
+          <BlurText text="Analyze. Understand. Decide." />
         </h2>
-        <Reveal>
-          <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 15, fontFamily: "'Barlow',sans-serif", fontWeight: 300, maxWidth: 460, lineHeight: 1.7, marginBottom: 56 }}>
-            Just enter an address and get a full property intelligence report in seconds.
-          </p>
-        </Reveal>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(250px,1fr))', gap: 14 }}>
+        <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 15, fontFamily: "'Barlow',sans-serif", fontWeight: 300, maxWidth: 500, lineHeight: 1.7, marginBottom: 56, margin: '0 auto 56px' }}>
+          Enter any city or neighbourhood. Our AI instantly processes listing data, demographics, risk scores, and market trends.
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 14, textAlign: 'left' }}>
           {steps.map((s, i) => (
-            <Reveal key={i} delay={`reveal-d${i + 1}`}>
-              <div className="liquid-glass" style={{ borderRadius: 20, padding: 28, transition: 'transform 0.2s, box-shadow 0.2s', cursor: 'default' }}
+            <div key={i} className="liquid-glass" style={{ borderRadius: 20, padding: 28, transition: 'transform 0.2s', cursor: 'default' }}
+              onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02) translateY(-3px)'}
+              onMouseLeave={e => e.currentTarget.style.transform = ''}>
+              <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 52, color: 'rgba(255,255,255,0.06)', lineHeight: 1, marginBottom: 14 }}>{s.num}</div>
+              <div className="liquid-glass-strong" style={{ borderRadius: '50%', width: 42, height: 42, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14, fontSize: 17 }}>{s.icon}</div>
+              <h3 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 19, color: '#fff', marginBottom: 10 }}>{s.title}</h3>
+              <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>{s.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </VideoSection>
+  )
+}
+
+// ─── FEATURES ────────────────────────────────────────────────────────────────
+function FeaturesChess() {
+  const rows = [
+    { title: 'Market stability scored. Not guessed.', desc: 'We aggregate 200+ real listings per area and compute a stability score from price volatility, days on market, and inventory trends. Concrete data, not estimations.', img: FEATURE_VALUATION, reverse: false },
+    { title: 'Neighbourhood intelligence that's actually real.', desc: 'Walkability, transit, schools, flood risk, air quality, seismic risk — all derived from OpenStreetMap, FEMA, EPA, and USGS data within a 2km radius.', img: FEATURE_NEIGHBORHOOD, reverse: true },
+  ]
+  return (
+    <section id="features" style={{ padding: '96px 24px' }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+        <Reveal>
+          <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>Capabilities</div>
+        </Reveal>
+        <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2rem,5vw,3.5rem)', color: '#fff', marginBottom: 56, lineHeight: 0.9, letterSpacing: '-0.02em' }}>
+          <BlurText text="Unrivaled insights. Simplified." />
+        </h2>
+        {rows.map((row, i) => (
+          <div key={i} style={{ display: 'flex', flexDirection: row.reverse ? 'row-reverse' : 'row', gap: 56, alignItems: 'center', paddingBottom: 56, paddingTop: i > 0 ? 56 : 0, borderBottom: i < rows.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none', flexWrap: 'wrap' }}>
+            <div style={{ flex: '1 1 260px' }}>
+              <h3 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(1.4rem,3vw,1.9rem)', color: '#fff', marginBottom: 14, lineHeight: 1.1 }}>{row.title}</h3>
+              <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 14, color: 'rgba(255,255,255,0.5)', lineHeight: 1.8, marginBottom: 22 }}>{row.desc}</p>
+              <button onClick={() => scrollTo('pricing')} style={{ borderRadius: 40, padding: '10px 20px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: '#fff', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', transition: 'transform 0.15s' }}
+                onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.04)'}
+                onMouseLeave={e => e.currentTarget.style.transform = ''}>Get started →</button>
+            </div>
+            <div style={{ flex: '1 1 260px' }}>
+              <div className="liquid-glass" style={{ borderRadius: 18, overflow: 'hidden' }}>
+                <img src={row.img} alt={row.title} loading="lazy" style={{ width: '100%', height: 'auto', objectFit: 'cover', display: 'block' }} />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function FeaturesGrid() {
+  const cards = [
+    { icon: '🌍', title: 'Global Coverage', desc: 'Any city or neighbourhood in the world. 50+ countries. Real data wherever you search.' },
+    { icon: '📊', title: 'Real Data Sources', desc: 'Census Bureau, HUD, FEMA, Redfin, OpenStreetMap, Open-Meteo. No made-up numbers.' },
+    { icon: '⚡', title: 'Instant Analysis', desc: 'Full area intelligence report in under 30 seconds.' },
+    { icon: '🔒', title: 'Secure & Private', desc: 'Your searches are never stored. Bank-grade auth with Supabase.' },
+  ]
+  return (
+    <section style={{ padding: '80px 24px' }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+        <Reveal>
+          <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>Why Dwelling</div>
+        </Reveal>
+        <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2rem,5vw,3.5rem)', color: '#fff', marginBottom: 40, lineHeight: 0.9, letterSpacing: '-0.02em' }}>
+          <BlurText text="The difference is intelligence." />
+        </h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 14 }}>
+          {cards.map((card, i) => (
+            <Reveal key={i} delay={`reveal-d${i % 3 + 1}`}>
+              <div className="liquid-glass" style={{ borderRadius: 18, padding: 24, transition: 'transform 0.2s', cursor: 'default' }}
                 onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02) translateY(-3px)'}
                 onMouseLeave={e => e.currentTarget.style.transform = ''}>
-                <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 56, color: 'rgba(255,255,255,0.06)', lineHeight: 1, marginBottom: 14 }}>{s.num}</div>
-                <div className="liquid-glass-strong" style={{ borderRadius: '50%', width: 42, height: 42, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14, fontSize: 17 }}>{s.icon}</div>
-                <h3 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 19, color: '#fff', marginBottom: 10 }}>{s.title}</h3>
-                <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>{s.desc}</p>
+                <div className="liquid-glass-strong" style={{ borderRadius: '50%', width: 42, height: 42, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18, fontSize: 17 }}>{card.icon}</div>
+                <h3 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 17, color: '#fff', marginBottom: 7 }}>{card.title}</h3>
+                <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>{card.desc}</p>
               </div>
             </Reveal>
           ))}
@@ -284,93 +371,15 @@ function HowItWorks() {
   )
 }
 
-// ─── FEATURE ROWS ────────────────────────────────────────────────────────────
-function FeatureRows({ onScrollTo }) {
-  const rows = [
-    { title: 'Know what a home is really worth.', desc: 'AI-powered estimates grounded in census tract data, HUD fair market rents, and real neighborhood context. Not just a number — full price context with confidence levels.', img: IMG.house, reverse: false },
-    { title: "Neighborhood intelligence that's actually real.", desc: 'Walk scores, transit scores, school ratings — all derived from real OpenStreetMap data within a 2km radius. Not estimated. Actually counted.', img: IMG.mapPins, reverse: true, glow: true },
-    { title: 'Investment analysis you can act on.', desc: 'Rent yield, appreciation outlook, investment score — synthesized from price history, neighborhood trends, and market context. Clear. Honest. Actionable.', img: IMG.priceChart, reverse: false, shimmer: true },
-  ]
-  return (
-    <section id="features" style={{ padding: '64px 0', position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
-      <SectionBg src={IMG.texture} opacity={0.05} />
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px', position: 'relative', zIndex: 2 }}>
-        <Reveal>
-          <span className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '6px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>Features</span>
-        </Reveal>
-        <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2rem,5vw,3.5rem)', color: '#fff', marginBottom: 56, lineHeight: 0.9, letterSpacing: '-0.02em' }}>
-          <BlurText text="Intelligence at every layer." />
-        </h2>
-        {rows.map((row, i) => (
-          <div key={i} style={{ display: 'flex', flexDirection: row.reverse ? 'row-reverse' : 'row', gap: 56, alignItems: 'center', paddingBottom: 56, paddingTop: i > 0 ? 56 : 0, borderBottom: i < rows.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none', flexWrap: 'wrap' }}>
-            <RevealLeft style={{ flex: '1 1 260px' }}>
-              <h3 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(1.4rem,3vw,1.9rem)', color: '#fff', marginBottom: 14, lineHeight: 1.1 }}>{row.title}</h3>
-              <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 14, color: 'rgba(255,255,255,0.5)', lineHeight: 1.8, marginBottom: 22 }}>{row.desc}</p>
-              <button onClick={() => onScrollTo('pricing')}
-                style={{ borderRadius: 40, padding: '10px 20px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: '#fff', border: 'none', cursor: 'pointer', transition: 'transform 0.15s, opacity 0.15s', background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)' }}
-                onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.04)'}
-                onMouseLeave={e => e.currentTarget.style.transform = ''}>
-                Get started →
-              </button>
-            </RevealLeft>
-            <RevealRight style={{ flex: '1 1 260px' }}>
-              <div className="liquid-glass" style={{ borderRadius: 18, overflow: 'hidden', aspectRatio: '4/3', position: 'relative' }}>
-                <img src={row.img} alt="" loading="lazy" decoding="async"
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                
-                
-              </div>
-            </RevealRight>
-          </div>
-        ))}
-      </div>
-    </section>
-  )
-}
-
-// ─── FEATURES GRID ───────────────────────────────────────────────────────────
-function FeaturesGrid() {
-  const cards = [
-    { icon: '🌍', title: 'Global Coverage', desc: 'Any address in the world. 50+ countries. Real data wherever you search.' },
-    { icon: '📊', title: 'Real Data Sources', desc: 'Census Bureau, HUD, FEMA, OpenStreetMap, Open-Meteo. No made-up numbers.' },
-    { icon: '⚡', title: 'Instant Analysis', desc: 'Full property intelligence report in under 30 seconds.' },
-    { icon: '🔒', title: 'Secure & Private', desc: 'Your searches are never stored. Bank-grade auth with Supabase.' },
-  ]
-  return (
-    <section style={{ padding: '80px 24px', maxWidth: 1100, margin: '0 auto', position: 'relative', zIndex: 1 }}>
-      <Reveal>
-        <span className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '6px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>Built different</span>
-      </Reveal>
-      <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2rem,5vw,3.5rem)', color: '#fff', marginBottom: 40, lineHeight: 0.9, letterSpacing: '-0.02em' }}>
-        <BlurText text="Why Dwelling works." />
-      </h2>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 14 }}>
-        {cards.map((card, i) => (
-          <Reveal key={i} delay={`reveal-d${i % 3 + 1}`}>
-            <div className="liquid-glass" style={{ borderRadius: 18, padding: 22, transition: 'transform 0.2s', cursor: 'default' }}
-              onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02) translateY(-3px)'}
-              onMouseLeave={e => e.currentTarget.style.transform = ''}>
-              <div className="liquid-glass-strong" style={{ borderRadius: '50%', width: 42, height: 42, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18, fontSize: 17 }}>{card.icon}</div>
-              <h3 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 17, color: '#fff', marginBottom: 7 }}>{card.title}</h3>
-              <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>{card.desc}</p>
-            </div>
-          </Reveal>
-        ))}
-      </div>
-    </section>
-  )
-}
-
 // ─── STATS ───────────────────────────────────────────────────────────────────
 function Stats() {
   return (
-    <section style={{ padding: '80px 24px', maxWidth: 940, margin: '0 auto', position: 'relative', zIndex: 1 }}>
-      <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 560, height: 560, borderRadius: '50%', background: 'radial-gradient(circle,rgba(99,102,241,0.07) 0%,transparent 65%)', pointerEvents: 'none' }} />
-      <Reveal>
-        <div className="liquid-glass-strong" style={{ borderRadius: 26, padding: '44px 28px', position: 'relative', zIndex: 1 }}>
+    <VideoSection src={STATS_VIDEO} style={{ padding: '128px 24px' }}>
+      <div style={{ maxWidth: 1000, margin: '0 auto' }}>
+        <div className="liquid-glass" style={{ borderRadius: 26, padding: '44px 28px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 28, textAlign: 'center' }}>
             {[
-              { target: 140, suffix: 'M+', label: 'US Properties' },
+              { target: 200, suffix: '+', label: 'Reports Generated' },
               { target: 50, suffix: '+', label: 'Countries' },
               { target: 10, suffix: '', label: 'Free / Month' },
               { target: 30, prefix: '<', suffix: 's', label: 'Avg analysis time' },
@@ -384,58 +393,81 @@ function Stats() {
             ))}
           </div>
         </div>
-      </Reveal>
+      </div>
+    </VideoSection>
+  )
+}
+
+// ─── TESTIMONIALS ────────────────────────────────────────────────────────────
+function Testimonials() {
+  const testimonials = [
+    { quote: "Dwelling told me Austin was cooling before I signed a lease. Saved me from overpaying by months.", name: 'Jordan T.', role: 'First-time buyer' },
+    { quote: "I use it to screen neighbourhoods before visiting. The stability score is genuinely useful.", name: 'Priya M.', role: 'Real estate investor' },
+    { quote: "The area verdict is what I wished Zillow had. Clear, honest, backed by real data.", name: 'Marcus W.', role: 'Property manager' },
+  ]
+  return (
+    <section style={{ padding: '96px 24px' }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+        <Reveal>
+          <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>What users say</div>
+        </Reveal>
+        <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2rem,5vw,3.5rem)', color: '#fff', marginBottom: 40, lineHeight: 0.9, letterSpacing: '-0.02em' }}>
+          <BlurText text="Don't just take our word for it." />
+        </h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 14 }}>
+          {testimonials.map((t, i) => (
+            <Reveal key={i} delay={`reveal-d${i + 1}`}>
+              <div className="liquid-glass" style={{ borderRadius: 18, padding: 28, transition: 'transform 0.2s' }}
+                onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.01)'}
+                onMouseLeave={e => e.currentTarget.style.transform = ''}>
+                <p style={{ color: 'rgba(255,255,255,0.75)', fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 14, fontStyle: 'italic', lineHeight: 1.7, marginBottom: 20 }}>"{t.quote}"</p>
+                <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 400, fontSize: 13, color: '#fff' }}>{t.name}</div>
+                <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{t.role}</div>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      </div>
     </section>
   )
 }
 
 // ─── PRICING ─────────────────────────────────────────────────────────────────
 function Pricing({ onUpgrade }) {
-  const free = ['10 analyses/month','All data sources','AI property analysis','Neighborhood scores','Climate & weather']
-  const pro = ['Unlimited analyses','All data sources','AI property analysis','Neighborhood scores','Climate & weather','Priority support','Early feature access']
-  const btnBase = { borderRadius: 40, border: 'none', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13, cursor: 'pointer', transition: 'transform 0.15s, opacity 0.15s' }
+  const free = ['10 analyses/month','All data sources','Area intelligence reports','Neighbourhood scores','Climate & weather']
+  const pro = ['Unlimited analyses','All data sources','Area intelligence reports','Neighbourhood scores','Climate & weather','Priority support','Early feature access']
   return (
-    <section id="pricing" style={{ padding: '80px 24px', maxWidth: 880, margin: '0 auto', position: 'relative', zIndex: 1 }}>
+    <section id="pricing" style={{ padding: '80px 24px', maxWidth: 880, margin: '0 auto' }}>
       <Reveal>
-        <span className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '6px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>Pricing</span>
+        <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>Pricing</div>
       </Reveal>
       <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2rem,5vw,3.5rem)', color: '#fff', marginBottom: 40, lineHeight: 0.9, letterSpacing: '-0.02em' }}>
         <BlurText text="Simple. Transparent. Fair." />
       </h2>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(270px,1fr))', gap: 14 }}>
-        <RevealLeft>
-          <div className="liquid-glass" style={{ borderRadius: 18, padding: 28 }}>
-            <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 21, color: '#fff', marginBottom: 14 }}>Free</div>
-            <div style={{ marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-              <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 44, color: '#fff' }}>$0</span>
-              <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 15, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>/month</span>
-            </div>
-            <div style={{ marginBottom: 24 }}>{free.map(f => <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}><span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>✓</span><span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{f}</span></div>)}</div>
-            <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-              style={{ ...btnBase, width: '100%', padding: '12px', background: 'rgba(255,255,255,0.08)', color: '#fff', backdropFilter: 'blur(12px)' }}
-              onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
-              onMouseLeave={e => e.currentTarget.style.transform = ''}>
-              Start for free
-            </button>
+        <div className="liquid-glass" style={{ borderRadius: 18, padding: 28 }}>
+          <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 21, color: '#fff', marginBottom: 14 }}>Free</div>
+          <div style={{ marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+            <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 44, color: '#fff' }}>$0</span>
+            <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 15, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>/month</span>
           </div>
-        </RevealLeft>
-        <RevealRight>
-          <div className="liquid-glass-strong" style={{ borderRadius: 18, padding: 28, border: '1px solid rgba(255,255,255,0.2)' }}>
-            <div style={{ display: 'inline-block', background: '#fff', color: '#000', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 10, borderRadius: 20, padding: '3px 10px', marginBottom: 10 }}>Most Popular</div>
-            <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 21, color: '#fff', marginBottom: 14 }}>Pro</div>
-            <div style={{ marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-              <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 44, color: '#fff' }}>$9</span>
-              <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 15, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>/month</span>
-            </div>
-            <div style={{ marginBottom: 24 }}>{pro.map(f => <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}><span style={{ color: '#fff', fontSize: 12 }}>✓</span><span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: '#fff' }}>{f}</span></div>)}</div>
-            <button onClick={onUpgrade}
-              style={{ ...btnBase, width: '100%', padding: '12px', background: '#fff', color: '#000' }}
-              onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
-              onMouseLeave={e => e.currentTarget.style.transform = ''}>
-              Upgrade to Pro →
-            </button>
+          <div style={{ marginBottom: 24 }}>{free.map(f => <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}><span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>✓</span><span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{f}</span></div>)}</div>
+          <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} style={{ width: '100%', borderRadius: 40, padding: '12px', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13, background: 'rgba(255,255,255,0.08)', color: '#fff', border: 'none', cursor: 'pointer', transition: 'transform 0.15s' }}
+            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
+            onMouseLeave={e => e.currentTarget.style.transform = ''}>Start for free</button>
+        </div>
+        <div className="liquid-glass-strong" style={{ borderRadius: 18, padding: 28, border: '1px solid rgba(255,255,255,0.2)' }}>
+          <div style={{ display: 'inline-block', background: '#fff', color: '#000', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 10, borderRadius: 20, padding: '3px 10px', marginBottom: 10 }}>Most Popular</div>
+          <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 21, color: '#fff', marginBottom: 14 }}>Pro</div>
+          <div style={{ marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+            <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 44, color: '#fff' }}>$9</span>
+            <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 15, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>/month</span>
           </div>
-        </RevealRight>
+          <div style={{ marginBottom: 24 }}>{pro.map(f => <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}><span style={{ color: '#fff', fontSize: 12 }}>✓</span><span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: '#fff' }}>{f}</span></div>)}</div>
+          <button onClick={onUpgrade} style={{ width: '100%', borderRadius: 40, padding: '12px', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13, background: '#fff', color: '#000', border: 'none', cursor: 'pointer', transition: 'transform 0.15s' }}
+            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
+            onMouseLeave={e => e.currentTarget.style.transform = ''}>Upgrade to Pro →</button>
+        </div>
       </div>
     </section>
   )
@@ -444,37 +476,27 @@ function Pricing({ onUpgrade }) {
 // ─── CTA + FOOTER ────────────────────────────────────────────────────────────
 function CTAFooter({ onTermsClick, onScrollToTop, onUpgrade }) {
   return (
-    <section style={{ padding: '96px 0 0', position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
-      <SectionBg src={IMG.city} opacity={0.28} />
-      <div style={{ maxWidth: 860, margin: '0 auto', textAlign: 'center', padding: '0 24px 80px', position: 'relative', zIndex: 2 }}>
-        <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: 600, height: 400, borderRadius: '50%', background: 'radial-gradient(circle,rgba(168,85,247,0.07) 0%,transparent 65%)', pointerEvents: 'none' }} />
-        <Reveal>
-          <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2.2rem,6vw,4.5rem)', color: '#fff', lineHeight: 0.9, letterSpacing: '-0.03em', marginBottom: 20 }}>
-            <BlurText text="Your next property search starts here." />
-          </h2>
-          <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 16, color: 'rgba(255,255,255,0.5)', marginBottom: 36, lineHeight: 1.7 }}>
-            Free to start. Instant results. No credit card required.
-          </p>
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button onClick={onScrollToTop}
-              style={{ borderRadius: 40, padding: '13px 28px', fontFamily: "'Barlow',sans-serif", fontSize: 14, color: '#fff', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', transition: 'transform 0.15s' }}
-              onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.04)'}
-              onMouseLeave={e => e.currentTarget.style.transform = ''}>
-              Start for free →
-            </button>
-            <button onClick={onUpgrade}
-              style={{ borderRadius: 40, padding: '13px 28px', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 14, background: '#fff', color: '#000', border: 'none', cursor: 'pointer', transition: 'transform 0.15s' }}
-              onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.04)'}
-              onMouseLeave={e => e.currentTarget.style.transform = ''}>
-              Upgrade to Pro
-            </button>
-          </div>
-        </Reveal>
+    <VideoSection src={CTA_VIDEO} style={{}}>
+      <div style={{ maxWidth: 860, margin: '0 auto', textAlign: 'center', padding: '128px 24px 80px' }}>
+        <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2.2rem,6vw,4.5rem)', color: '#fff', lineHeight: 0.9, letterSpacing: '-0.03em', marginBottom: 20 }}>
+          <BlurText text="Your next area decision starts here." />
+        </h2>
+        <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 16, color: 'rgba(255,255,255,0.5)', marginBottom: 36, lineHeight: 1.7 }}>
+          Free to start. Instant results. No credit card required.
+        </p>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <button onClick={onScrollToTop} style={{ borderRadius: 40, padding: '13px 28px', fontFamily: "'Barlow',sans-serif", fontSize: 14, color: '#fff', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', transition: 'transform 0.15s' }}
+            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.04)'}
+            onMouseLeave={e => e.currentTarget.style.transform = ''}>Start for free →</button>
+          <button onClick={onUpgrade} style={{ borderRadius: 40, padding: '13px 28px', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 14, background: '#fff', color: '#000', border: 'none', cursor: 'pointer', transition: 'transform 0.15s' }}
+            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.04)'}
+            onMouseLeave={e => e.currentTarget.style.transform = ''}>Upgrade to Pro</button>
+        </div>
       </div>
       <footer style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '24px', position: 'relative', zIndex: 2 }}>
         <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 14 }}>
-          <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 17, color: 'rgba(255,255,255,0.4)' }}>DW<span style={{ opacity: 0.4 }}>.</span>ELLING</div>
-          <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>© 2025 Dwelling. All rights reserved.</span>
+          <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 17, color: 'rgba(255,255,255,0.4)' }}>Dwelling</div>
+          <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>© 2026 Dwelling. All rights reserved.</span>
           <div style={{ display: 'flex', gap: 18 }}>
             <button onClick={onTermsClick} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.3)', textDecoration: 'underline', padding: 0, transition: 'color 0.2s' }}
               onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.6)'}
@@ -483,11 +505,10 @@ function CTAFooter({ onTermsClick, onScrollToTop, onUpgrade }) {
           </div>
         </div>
       </footer>
-    </section>
+    </VideoSection>
   )
 }
 
-// ─── APP ─────────────────────────────────────────────────────────────────────
 export default function App() {
   const [loading, setLoading] = useState(false)
   const [loadStep, setLoadStep] = useState(0)
@@ -665,7 +686,8 @@ export default function App() {
         </div>
       ) : (
         <div style={{ position: 'relative', zIndex: 1 }}>
-          <Hero onSearch={handleSearch} loading={loading} onScrollTo={scrollTo} />
+          <Hero onSearch={handleSearch} loading={loading} />
+          <Partners />
           <HowItWorks />
           <FeatureRows onScrollTo={scrollTo} />
           <FeaturesGrid />
