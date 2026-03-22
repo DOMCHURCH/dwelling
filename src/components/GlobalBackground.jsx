@@ -39,6 +39,11 @@ export default function GlobalBackground() {
     renderer.setClearColor(0x000000, 0)
     container.appendChild(renderer.domElement)
 
+    // Make the canvas fill the container
+    renderer.domElement.style.width = '100%'
+    renderer.domElement.style.height = '100%'
+    renderer.domElement.style.display = 'block'
+
     const positions = []
     const colors = []
 
@@ -96,6 +101,7 @@ export default function GlobalBackground() {
     animate()
 
     const handleResize = () => {
+      if (!container) return
       camera.aspect = container.offsetWidth / container.offsetHeight
       camera.updateProjectionMatrix()
       renderer.setSize(container.offsetWidth, container.offsetHeight)
@@ -128,15 +134,14 @@ export default function GlobalBackground() {
     <div
       ref={containerRef}
       style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        height: '100vh',
+        // absolute inside the hero section — moves with scroll, stays behind hero text only
+        position: 'absolute',
+        inset: 0,
         zIndex: 0,
         pointerEvents: 'none',
-        WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 50%, transparent 90%)',
-        maskImage: 'linear-gradient(to bottom, black 0%, black 50%, transparent 90%)',
+        // fade out at the bottom so it blends into the black below
+        WebkitMaskImage: 'linear-gradient(to bottom, black 40%, transparent 100%)',
+        maskImage: 'linear-gradient(to bottom, black 40%, transparent 100%)',
       }}
     />
   )
