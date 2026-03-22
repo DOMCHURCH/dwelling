@@ -410,42 +410,60 @@ const Testimonials = memo(function Testimonials() {
 
 // ─── PRICING ─────────────────────────────────────────────────────────────────
 const PRICING_FREE = ['10 analyses/month','All data sources','Area intelligence reports','Neighbourhood scores','Climate & weather']
+const PRICING_PASS = ['Unlimited analyses for 30 days','All data sources','AI analysis','No subscription needed','Best for one-time moves']
 const PRICING_PRO = ['Unlimited analyses','All data sources','Area intelligence reports','Neighbourhood scores','Climate & weather','Priority support','Early feature access']
 const Pricing = memo(function Pricing({ onUpgrade }) {
-
-
   return (
-    <section id="pricing" style={{ padding: 'clamp(56px, 8vw, 80px) 20px', maxWidth: 880, margin: '0 auto' }}>
+    <section id="pricing" style={{ padding: 'clamp(56px, 8vw, 80px) 20px', maxWidth: 1200, margin: '0 auto' }}>
       <Reveal>
         <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>Pricing</div>
       </Reveal>
       <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2rem,5vw,3.5rem)', color: '#fff', marginBottom: 40, lineHeight: 0.9, letterSpacing: '-0.02em' }}>
         <BlurText text="Simple. Transparent. Fair." />
       </h2>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(270px,1fr))', gap: 14 }}>
-        <div className="liquid-glass" style={{ borderRadius: 18, padding: 28 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 14 }}>
+
+        {/* Free */}
+        <div className="liquid-glass" style={{ borderRadius: 18, padding: 28, display: 'flex', flexDirection: 'column' }}>
           <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 21, color: '#fff', marginBottom: 14 }}>Free</div>
           <div style={{ marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
             <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 44, color: '#fff' }}>$0</span>
             <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 15, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>/month</span>
           </div>
-          <div style={{ marginBottom: 24 }}>{PRICING_FREE.map(f => <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}><span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>✓</span><span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{f}</span></div>)}</div>
+          <div style={{ flex: 1, marginBottom: 24 }}>{PRICING_FREE.map(f => <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}><span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>✓</span><span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{f}</span></div>)}</div>
           <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} style={{ width: '100%', borderRadius: 40, padding: '12px', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13, background: 'rgba(255,255,255,0.08)', color: '#fff', border: 'none', cursor: 'pointer', transition: 'transform 0.15s' }}
             onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
             onMouseLeave={e => e.currentTarget.style.transform = ''}>Start for free</button>
         </div>
-        <div className="liquid-glass-strong" style={{ borderRadius: 18, padding: 28, border: '1px solid rgba(255,255,255,0.2)' }}>
+
+        {/* Pro Monthly */}
+        <div className="liquid-glass-strong" style={{ borderRadius: 18, padding: 28, border: '1px solid rgba(255,255,255,0.2)', display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'inline-block', background: '#fff', color: '#000', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 10, borderRadius: 20, padding: '3px 10px', marginBottom: 10 }}>Most Popular</div>
           <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 21, color: '#fff', marginBottom: 14 }}>Pro</div>
           <div style={{ marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
             <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 44, color: '#fff' }}>$9</span>
             <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 15, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>/month</span>
           </div>
-          <div style={{ marginBottom: 24 }}>{PRICING_PRO.map(f => <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}><span style={{ color: '#fff', fontSize: 12 }}>✓</span><span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: '#fff' }}>{f}</span></div>)}</div>
+          <div style={{ flex: 1, marginBottom: 24 }}>{PRICING_PRO.map(f => <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}><span style={{ color: '#fff', fontSize: 12 }}>✓</span><span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: '#fff' }}>{f}</span></div>)}</div>
           <button onClick={onUpgrade} style={{ width: '100%', borderRadius: 40, padding: '12px', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13, background: '#fff', color: '#000', border: 'none', cursor: 'pointer', transition: 'transform 0.15s' }}
             onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
             onMouseLeave={e => e.currentTarget.style.transform = ''}>Upgrade to Pro →</button>
         </div>
+
+        {/* 30-Day Pass */}
+        <div className="liquid-glass" style={{ borderRadius: 18, padding: 28, border: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 10, borderRadius: 20, padding: '3px 10px', marginBottom: 10, border: '1px solid rgba(255,255,255,0.12)' }}>Best for relocating</div>
+          <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 21, color: '#fff', marginBottom: 14 }}>30-Day Pass</div>
+          <div style={{ marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+            <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 44, color: '#fff' }}>$18</span>
+            <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 15, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}> one time</span>
+          </div>
+          <div style={{ flex: 1, marginBottom: 24 }}>{PRICING_PASS.map(f => <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}><span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>✓</span><span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.75)' }}>{f}</span></div>)}</div>
+          <button onClick={onUpgrade} style={{ width: '100%', borderRadius: 40, padding: '12px', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13, background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', cursor: 'pointer', transition: 'transform 0.15s' }}
+            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
+            onMouseLeave={e => e.currentTarget.style.transform = ''}>Get 30-Day Access →</button>
+        </div>
+
       </div>
     </section>
   )
@@ -536,8 +554,8 @@ const DEMO_RESULT = {
       marketConditions: 'Ottawa is a balanced market as of early 2025. The government employment base provides a meaningful price floor — federal job stability insulates the market from the volatility seen in Toronto or Vancouver. Median days on market sits at 22, and 31% of listings move within 14 days, signalling genuine buyer demand without the frenzy of a seller\'s market.',
       priceTrend: 'Prices are flat to modestly down (-2 to -4%) from their 2022 peak, partially recovered through 2024. The $649,000 median reflects a market that corrected without collapsing. Condos have softened more than detached homes, where supply remains tight.',
       investmentOutlook: 'Moderate long-term upside. Immigration-driven population growth and persistent new construction shortfall (~5,000 units/year behind demand) support prices over a 3–5 year horizon. Yield-focused investors should note that HUD-equivalent fair market rent for a 2BR sits around $1,820/month, giving cap rates of approximately 3.2–3.8% on median-priced condos.',
-      risks: 'Federal public sector employment is Ottawa\'s single largest risk factor — any significant government restructuring or remote-work policy shift could reduce housing demand meaningfully. Interest rate sensitivity remains elevated with many mortgages renewing at higher rates through 2025–2026.',
-      upsides: 'Stable, recession-resistant employment base. Strong school ratings. Lower price volatility than other major Canadian cities. Growing tech sector (Shopify, Ciena) diversifying the economic base beyond government.',
+      risks: ['Federal public sector dependency — government restructuring could reduce demand', 'Mortgage renewals at higher rates through 2025–2026', 'Condo market softer than detached homes'],
+      upsides: ['Stable government employment base provides price floor', 'Strong school ratings across central neighbourhoods', 'Lower volatility than Toronto or Vancouver', 'Growing tech sector diversifying beyond government'],
       liveability: 'High. Walkability scores of 72 in central neighbourhoods, strong parks and greenspace, and consistently ranked among Canada\'s most liveable cities. Winters are genuinely cold (-15°C average January), which is the most common reason people leave.',
       bestFor: 'Government employees, families prioritising school quality, risk-averse investors, and anyone priced out of Toronto or Vancouver seeking a major Canadian city with career infrastructure.',
     },
@@ -547,17 +565,27 @@ const DEMO_RESULT = {
       utilitiesMonthlyUSD: 220, diningOutMonthlyUSD: 340,
     },
     neighborhood: {
-      summary: 'Ottawa\'s central neighbourhoods offer strong urban amenities — walkable to the ByWard Market, Rideau Canal, and Parliament Hill. The Glebe and Westboro are the most sought-after residential areas, with Lower Town and Vanier offering more affordable entry points.',
-      highlights: ['Rideau Canal skating and cycling', 'Strong French-English bilingual services', 'Major tech employers: Shopify, Ciena, Nokia'],
+      walkScore: 72,
+      transitScore: 65,
+      safetyRating: 74,
+      schoolRating: 81,
+      character: 'A stable, bilingual capital city with a strong government employment base and growing tech sector. Central neighbourhoods are walkable and family-friendly, with the Glebe and Westboro being the most sought-after.',
+      pros: ['Strong schools', 'Safe neighbourhoods', 'Rideau Canal'],
+      cons: ['Cold winters', 'Government-dependent economy'],
+      bestFor: 'Families, government employees, risk-averse buyers',
     },
     investment: {
-      outlook: 'Moderate',
-      rentalYield: '3.4%',
-      priceGrowth5yr: '+12–18% projected',
-      summary: 'Solid long-term hold. Not a high-growth market, but one of the most stable in Canada.',
+      rentYieldPercent: 3.4,
+      investmentScore: 64,
+      appreciationOutlook: 'neutral',
+      appreciationOutlookText: 'Moderate long-term appreciation expected as rates stabilise and supply remains constrained.',
+      investmentSummary: 'Solid long-term hold. Not a high-growth market but one of the most stable in Canada. Best for buy-and-hold rather than flipping.',
     },
     localInsights: {
-      summary: 'A federal government town with a growing private sector. Best suited to long-term residents rather than short-term flippers.',
+      knownFor: 'A federal government town with a growing private sector and genuinely liveable neighbourhoods.',
+      topAttractions: ['Rideau Canal (skating in winter, cycling in summer)', 'ByWard Market', 'Parliament Hill', 'Gatineau Park'],
+      localTip: 'The Glebe and Westboro command premium prices but hold value well. Vanier and Hintonburg offer better entry prices with improving amenities.',
+      languageNote: 'Bilingual city — French services widely available, especially in Gatineau across the river.',
     },
     priceHistory: {
       currency: 'CAD',
