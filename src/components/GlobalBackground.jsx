@@ -2,27 +2,19 @@ import { useEffect, useRef } from 'react'
 
 export default function GlobalBackground() {
   const containerRef = useRef(null)
-  const sceneRef = useRef({
-    camera: null,
-    scene: null,
-    renderer: null,
-    uniforms: null,
-    animationId: null,
-    onResize: null,
-  })
+  const sceneRef = useRef(null)
 
   useEffect(() => {
-    // Avoid loading Three.js twice if it's already on the page
     if (window.THREE) {
       init()
       return cleanup
     }
 
     const script = document.createElement('script')
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/89/three.min.js'
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'
     script.onload = () => { if (containerRef.current) init() }
     document.head.appendChild(script)
-    sceneRef.current._script = script
+    sceneRef.current = { _script: script }
 
     return cleanup
   }, [])
@@ -32,98 +24,104 @@ export default function GlobalBackground() {
     const container = containerRef.current
     if (!container || !THREE) return
 
-    container.innerHTML = ''
-
-    const camera = new THREE.Camera()
-    camera.position.z = 1
+    const SEPARATION = 150
+    const AMOUNTX = 40
+    const AMOUNTY = 60
 
     const scene = new THREE.Scene()
-    const geometry = new THREE.PlaneBufferGeometry(2, 2)
 
-    const uniforms = {
-      time:       { type: 'f',  value: 1.0 },
-      resolution: { type: 'v2', value: new THREE.Vector2() },
-    }
+    const camera = new THREE.PerspectiveCamera(60, container.offsetWidth / container.offsetHeight, 1, 10000)
+    camera.position.set(0, 355, 1220)
 
-    const material = new THREE.ShaderMaterial({
-      uniforms,
-      vertexShader: `
-        void main() {
-          gl_Position = vec4(position, 1.0);
-        }
-      `,
-      fragmentShader: `
-        #define TWO_PI 6.2831853072
-        #define PI 3.14159265359
-
-        precision highp float;
-        uniform vec2 resolution;
-        uniform float time;
-
-        float random(in float x) {
-          return fract(sin(x) * 1e4);
-        }
-        float random(vec2 st) {
-          return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
-        }
-
-        void main(void) {
-          vec2 uv = (gl_FragCoord.xy * 2.0 - resolution.xy) / min(resolution.x, resolution.y);
-
-          vec2 fMosaicScal = vec2(4.0, 2.0);
-          vec2 vScreenSize = vec2(256.0, 256.0);
-          uv.x = floor(uv.x * vScreenSize.x / fMosaicScal.x) / (vScreenSize.x / fMosaicScal.x);
-          uv.y = floor(uv.y * vScreenSize.y / fMosaicScal.y) / (vScreenSize.y / fMosaicScal.y);
-
-          float t = time * 0.06 + random(uv.x) * 0.4;
-          float lineWidth = 0.0008;
-
-          vec3 color = vec3(0.0);
-          for (int j = 0; j < 3; j++) {
-            for (int i = 0; i < 5; i++) {
-              color[j] += lineWidth * float(i * i) / abs(fract(t - 0.01 * float(j) + float(i) * 0.01) * 1.0 - length(uv));
-            }
-          }
-
-          // Darken significantly so Dwelling's content stays readable
-          vec3 darkened = color * 0.55;
-          gl_FragColor = vec4(darkened[2], darkened[1], darkened[0], 1.0);
-        }
-      `,
-    })
-
-    const mesh = new THREE.Mesh(geometry, material)
-    scene.add(mesh)
-
-    const renderer = new THREE.WebGLRenderer()
+    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true })
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5))
+    renderer.setSize(container.offsetWidth, container.offsetHeight)
+    renderer.setClearColor(0x000000, 0)
     container.appendChild(renderer.domElement)
 
-    const onResize = () => {
-      const rect = container.getBoundingClientRect()
-      renderer.setSize(rect.width, rect.height)
-      uniforms.resolution.value.x = renderer.domElement.width
-      uniforms.resolution.value.y = renderer.domElement.height
+    const positions = []
+    const colors = []
+
+    for (let ix = 0; ix < AMOUNTX; ix++) {
+      for (let iy = 0; iy < AMOUNTY; iy++) {
+        positions.push(
+          ix * SEPARATION - (AMOUNTX * SEPARATION) / 2,
+          0,
+          iy * SEPARATION - (AMOUNTY * SEPARATION) / 2
+        )
+        colors.push(1, 1, 1)
+      }
     }
-    onResize()
-    window.addEventListener('resize', onResize)
+
+    const geometry = new THREE.BufferGeometry()
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
+    geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3))
+
+    const material = new THREE.PointsMaterial({
+      size: 6,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.25,
+      sizeAttenuation: true,
+    })
+
+    const points = new THREE.Points(geometry, material)
+    scene.add(points)
+
+    let count = 0
+    let animationId = null
 
     const animate = () => {
-      sceneRef.current.animationId = requestAnimationFrame(animate)
-      uniforms.time.value += 0.05
+      animationId = requestAnimationFrame(animate)
+      if (sceneRef.current) sceneRef.current._animId = animationId
+
+      const posAttr = geometry.attributes.position
+      const pos = posAttr.array
+
+      let i = 0
+      for (let ix = 0; ix < AMOUNTX; ix++) {
+        for (let iy = 0; iy < AMOUNTY; iy++) {
+          pos[i * 3 + 1] =
+            Math.sin((ix + count) * 0.3) * 50 +
+            Math.sin((iy + count) * 0.5) * 50
+          i++
+        }
+      }
+
+      posAttr.needsUpdate = true
       renderer.render(scene, camera)
+      count += 0.07
     }
+
     animate()
 
-    sceneRef.current = { camera, scene, renderer, uniforms, animationId: null, onResize, _script: sceneRef.current._script }
+    const handleResize = () => {
+      camera.aspect = container.offsetWidth / container.offsetHeight
+      camera.updateProjectionMatrix()
+      renderer.setSize(container.offsetWidth, container.offsetHeight)
+    }
+    window.addEventListener('resize', handleResize)
+
+    sceneRef.current = {
+      scene,
+      renderer,
+      geometry,
+      material,
+      handleResize,
+      _animId: animationId,
+      _script: sceneRef.current?._script,
+    }
   }
 
   function cleanup() {
-    const { animationId, renderer, onResize, _script } = sceneRef.current
-    if (animationId) cancelAnimationFrame(animationId)
-    if (renderer) renderer.dispose()
-    if (onResize) window.removeEventListener('resize', onResize)
-    if (_script && document.head.contains(_script)) document.head.removeChild(_script)
+    const s = sceneRef.current
+    if (!s) return
+    if (s._animId) cancelAnimationFrame(s._animId)
+    if (s.handleResize) window.removeEventListener('resize', s.handleResize)
+    if (s.geometry) s.geometry.dispose()
+    if (s.material) s.material.dispose()
+    if (s.renderer) s.renderer.dispose()
+    if (s._script && document.head.contains(s._script)) document.head.removeChild(s._script)
   }
 
   return (
@@ -131,12 +129,14 @@ export default function GlobalBackground() {
       ref={containerRef}
       style={{
         position: 'fixed',
-        inset: 0,
+        top: 0,
+        left: 0,
+        right: 0,
+        height: '100vh',
         zIndex: 0,
         pointerEvents: 'none',
-        // Fade to black at bottom so Dashboard content isn't affected
-        WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 55%, transparent 85%)',
-        maskImage: 'linear-gradient(to bottom, black 0%, black 55%, transparent 85%)',
+        WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 50%, transparent 90%)',
+        maskImage: 'linear-gradient(to bottom, black 0%, black 50%, transparent 90%)',
       }}
     />
   )
