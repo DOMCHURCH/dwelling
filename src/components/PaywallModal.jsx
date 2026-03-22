@@ -18,17 +18,32 @@ export default function PaywallModal({ onClose, onUpgrade }) {
       price: '$9',
       period: '/mo',
       badge: 'Most Popular',
-      features: ['Unlimited analyses', 'All data sources', 'AI analysis', 'Priority support'],
+      subheading: 'Make smarter location decisions',
+      features: [
+        { text: 'Unlimited analyses', highlight: false },
+        { text: 'Full investment-grade AI analysis', highlight: true },
+        { text: 'Hidden risk & hazard detection', highlight: true },
+        { text: 'Price trend & market predictions', highlight: true },
+        { text: 'Side-by-side area comparison', highlight: false },
+        { text: 'Cancel anytime · No commitment', highlight: false },
+      ],
       cta: 'Upgrade to Pro — $9/month →',
     },
     {
       id: 'onetime',
-      label: '30-Day Pass',
-      price: '$18',
+      label: 'Mover Pass',
+      price: '$27',
       period: 'one time',
-      badge: 'Best for relocating',
-      features: ['Unlimited analyses for 30 days', 'All data sources', 'AI analysis', 'No subscription needed'],
-      cta: 'Get 30-Day Access — $18 →',
+      badge: 'For one-time movers',
+      subheading: 'Full access, no subscription',
+      features: [
+        { text: 'Unlimited analyses for 30 days', highlight: false },
+        { text: 'Full investment-grade AI analysis', highlight: true },
+        { text: 'Hidden risk & hazard detection', highlight: true },
+        { text: 'Side-by-side area comparison', highlight: false },
+        { text: 'No subscription — pay once', highlight: false },
+      ],
+      cta: 'Get Mover Pass — $27 →',
     },
   ]
 
@@ -36,21 +51,23 @@ export default function PaywallModal({ onClose, onUpgrade }) {
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-      <div className="liquid-glass-strong" style={{ borderRadius: 24, maxWidth: 480, width: '100%', padding: 32, animation: 'fadeUp 0.3s ease' }}>
+      <div className="liquid-glass-strong" style={{ borderRadius: 24, maxWidth: 480, width: '100%', padding: 32, animation: 'fadeUp 0.3s ease', maxHeight: '90vh', overflowY: 'auto' }}>
 
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 26, color: '#fff', marginBottom: 8 }}>You have used your 10 free analyses</div>
-          <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>Choose how you want to continue.</p>
+        <div style={{ textAlign: 'center', marginBottom: 20 }}>
+          <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 24, color: '#fff', marginBottom: 6 }}>You've used your 10 free analyses</div>
+          <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>Upgrade to keep going.</p>
         </div>
 
-        <div className="liquid-glass" style={{ borderRadius: 14, padding: '14px 16px', marginBottom: 16 }}>
+        {/* Free plan reminder */}
+        <div className="liquid-glass" style={{ borderRadius: 12, padding: '12px 16px', marginBottom: 16 }}>
           <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Free — $0/mo</div>
-          {['10 analyses/month', 'All data sources', 'AI analysis'].map(f => (
-            <div key={f} style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>✓ {f}</div>
+          {['10 analyses/month', 'Area intelligence reports', 'Neighbourhood scores'].map(f => (
+            <div key={f} style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.35)', marginBottom: 3 }}>✓ {f}</div>
           ))}
         </div>
 
-        <div className="liquid-glass" style={{ borderRadius: 40, padding: 4, display: 'flex', marginBottom: 16 }}>
+        {/* Tab switcher */}
+        <div className="liquid-glass" style={{ borderRadius: 40, padding: 4, display: 'flex', marginBottom: 14 }}>
           {plans.map(p => (
             <button key={p.id} onClick={() => setSelected(p.id)}
               style={{ flex: 1, padding: '8px 4px', borderRadius: 36, border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontSize: 12, fontWeight: 500, transition: 'background 0.2s, color 0.2s', background: selected === p.id ? '#fff' : 'transparent', color: selected === p.id ? '#000' : 'rgba(255,255,255,0.4)' }}>
@@ -59,15 +76,20 @@ export default function PaywallModal({ onClose, onUpgrade }) {
           ))}
         </div>
 
+        {/* Active plan */}
         {activePlan && (
-          <div className="liquid-glass-strong" style={{ borderRadius: 16, padding: 20, border: '1px solid rgba(255,255,255,0.2)', marginBottom: 16 }}>
-            <div style={{ display: 'inline-block', background: '#fff', color: '#000', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 10, borderRadius: 20, padding: '2px 10px', marginBottom: 10 }}>{activePlan.badge}</div>
+          <div className="liquid-glass-strong" style={{ borderRadius: 16, padding: 20, border: '1px solid rgba(255,255,255,0.2)', marginBottom: 14 }}>
+            <div style={{ display: 'inline-block', background: '#fff', color: '#000', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 10, borderRadius: 20, padding: '2px 10px', marginBottom: 8 }}>{activePlan.badge}</div>
+            <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 8 }}>{activePlan.subheading}</div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 14 }}>
-              <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 36, color: '#fff' }}>{activePlan.price}</span>
+              <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 34, color: '#fff' }}>{activePlan.price}</span>
               <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>{activePlan.period}</span>
             </div>
             {activePlan.features.map(f => (
-              <div key={f} style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: '#fff', marginBottom: 6 }}>✓ {f}</div>
+              <div key={f.text} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 7 }}>
+                <span style={{ fontSize: 11, color: f.highlight ? '#4ade80' : 'rgba(255,255,255,0.5)' }}>✓</span>
+                <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: f.highlight ? 400 : 300, fontSize: 12, color: f.highlight ? '#fff' : 'rgba(255,255,255,0.65)' }}>{f.text}</span>
+              </div>
             ))}
           </div>
         )}
@@ -78,13 +100,13 @@ export default function PaywallModal({ onClose, onUpgrade }) {
           {activePlan?.cta}
         </button>
 
-        <div style={{ textAlign: 'center', marginTop: 10 }}>
-          <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>
+        <div style={{ textAlign: 'center', marginTop: 8, marginBottom: 4 }}>
+          <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>
             Stripe integration coming soon
           </span>
         </div>
 
-        <button onClick={onClose} style={{ ...btn(false), marginTop: 8 }}
+        <button onClick={onClose} style={{ ...btn(false), marginTop: 4 }}
           onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.7)'}
           onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}>
           Maybe later
