@@ -72,8 +72,8 @@ button, input, select, textarea {
 /* ─── LIQUID GLASS ─── */
 .liquid-glass {
   background: rgba(255,255,255,0.03);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   border: 1px solid rgba(255,255,255,0.08);
   box-shadow: inset 0 1px 1px rgba(255,255,255,0.1), 0 4px 24px rgba(0,0,0,0.4);
   position: relative;
@@ -188,4 +188,13 @@ input[type="range"] {
 @media (prefers-reduced-motion: reduce) {
   .reveal, .reveal-left, .reveal-right { opacity: 1; transform: none; transition: none; }
   * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+/* ─── PERFORMANCE ─── */
+nav {
+  will-change: transform;
+  contain: layout style;
+}
+section {
+  contain: layout;
 }
