@@ -305,8 +305,11 @@ const FeaturesChess = memo(function FeaturesChess() {
                 onMouseLeave={e => e.currentTarget.style.transform = ''}>Get started →</button>
             </div>
             <div style={{ flex: '1 1 260px' }}>
-              <div className="liquid-glass" style={{ borderRadius: 18, overflow: 'hidden' }}>
-                <img src={row.img} alt={row.title} loading="lazy" style={{ width: '100%', height: 'auto', objectFit: 'cover', display: 'block' }} />
+              <div className="liquid-glass" style={{ borderRadius: 18, overflow: 'hidden', height: 300, background: 'linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.06) 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontFamily: "'Barlow',sans-serif", fontSize: 13 }}>
+                  <div style={{ fontSize: 32, marginBottom: 8 }}>{i === 0 ? '📊' : '🗺️'}</div>
+                  <div style={{ fontWeight: 300 }}>{i === 0 ? 'Real Market Data' : 'Neighborhood Scores'}</div>
+                </div>
               </div>
             </div>
           </div>
