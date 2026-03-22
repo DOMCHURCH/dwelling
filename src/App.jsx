@@ -125,7 +125,7 @@ const FAQ = memo(function FAQ() {
 })
 
 // ─── NAVBAR ──────────────────────────────────────────────────────────────────
-function Navbar({ user, userRecord, analysesLeft, onSignOut, onHome }) {
+function Navbar({ user, userRecord, analysesLeft, isInTrial, trialDaysLeft, onSignOut, onHome }) {
   const [scrolled, setScrolled] = useState(false)
   useEffect(() => {
     const h = () => { const s = window.scrollY > 50; setScrolled(prev => prev === s ? prev : s) }
@@ -160,7 +160,7 @@ function Navbar({ user, userRecord, analysesLeft, onSignOut, onHome }) {
           {user ? (
             <>
               <span className="liquid-glass" style={{ borderRadius: 40, padding: '5px 12px', fontSize: 12, fontFamily: "'Barlow',sans-serif", color: userRecord?.is_pro ? '#fbbf24' : low ? '#f87171' : 'rgba(255,255,255,0.5)' }}>
-                {userRecord?.is_pro ? '★ Pro' : isInTrial ? `⚡ Trial · ${trialDaysLeft}d left` : `${analysesLeft} / ${FREE_LIMIT} left`}
+                {userRecord?.is_pro ? '★ Pro' : isInTrial ? `⚡ Trial · ${trialDaysLeft}d left` : `${analysesLeft} / 10 left`}
               </span>
               <button onClick={onSignOut} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.35)', padding: '5px 8px', transition: 'color 0.2s' }}
                 onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.7)'}
@@ -939,7 +939,7 @@ export default function App() {
       <GlobalBackground />
       {showTerms && <TermsModal onClose={() => setShowTerms(false)} />}
       {showPaywall && <PaywallModal onClose={() => setShowPaywall(false)} onUpgrade={() => alert('Stripe coming soon! Full refund guaranteed if not satisfied.')} />}
-      <Navbar user={user} userRecord={userRecord} analysesLeft={analysesLeft} onSignOut={handleSignOut}
+      <Navbar user={user} userRecord={userRecord} analysesLeft={analysesLeft} isInTrial={isInTrial} trialDaysLeft={trialDaysLeft} onSignOut={handleSignOut}
         onHome={() => { setResult(null); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
         onScrollTo={scrollTo} />
 
