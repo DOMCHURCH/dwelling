@@ -192,9 +192,9 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro' }) 
 
   // Plan-based visibility helper
   const isLocked = (feature) => {
-    if (previewPlan === 'pro' || previewPlan === 'mover') return false
-    // Free plan hides investment, risk details, price history
-    const freeHidden = ['investment', 'risk', 'pricehistory', 'costoflivingdetail']
+    if (previewPlan === 'pro') return false
+    // Free plan hides investment, neighborhood, risk details, price history
+    const freeHidden = ['investment', 'neighborhood', 'risk', 'pricehistory', 'costoflivingdetail']
     return freeHidden.includes(feature)
   }
 
@@ -205,7 +205,7 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro' }) 
         <div style={{ borderRadius: 14, padding: '12px 18px', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 14 }}>⚠️</span>
           <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(251,191,36,0.9)' }}>
-            Previewing <strong>Free plan</strong> — investment analysis, risk details, and price history are hidden for free users.
+            Previewing <strong>Free plan</strong> — neighborhood, investment analysis, risk details, and price history are hidden for free users.
           </span>
         </div>
       )}
@@ -449,25 +449,38 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro' }) 
       {/* Neighborhood + Climate */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: 16 }}>
         <SectionCard title="Neighborhood" icon="🏘" delay={150}>
-          <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: 14 }}>
-            <ScoreRing score={realData?.neighborhoodScores?.walkScore ?? neighborhood.walkScore} label="Walk" color="rgba(255,255,255,0.9)" />
-            <ScoreRing score={realData?.neighborhoodScores?.transitScore ?? neighborhood.transitScore} label="Transit" color="rgba(255,255,255,0.65)" />
-            <ScoreRing score={neighborhood.safetyRating} label="Safety" color="#4ade80" />
-            <ScoreRing score={realData?.neighborhoodScores?.schoolScore ?? neighborhood.schoolRating} label="Schools" color="rgba(196,181,253,0.9)" />
-          </div>
-          {realData?.neighborhoodScores && (
-            <div style={{ textAlign: 'center', fontSize: 10, color: 'rgba(255,255,255,0.3)', marginBottom: 14, letterSpacing: '0.06em', fontFamily: "'Barlow', sans-serif" }}>
-              WALK · TRANSIT · SCHOOL SCORES FROM OPENSTREETMAP REAL DATA
+          <div style={{ position: 'relative' }}>
+            <div style={{ filter: isLocked('neighborhood') ? 'blur(6px)' : 'none', userSelect: isLocked('neighborhood') ? 'none' : 'auto', pointerEvents: isLocked('neighborhood') ? 'none' : 'auto' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: 14 }}>
+                <ScoreRing score={realData?.neighborhoodScores?.walkScore ?? neighborhood.walkScore} label="Walk" color="rgba(255,255,255,0.9)" />
+                <ScoreRing score={realData?.neighborhoodScores?.transitScore ?? neighborhood.transitScore} label="Transit" color="rgba(255,255,255,0.65)" />
+                <ScoreRing score={neighborhood.safetyRating} label="Safety" color="#4ade80" />
+                <ScoreRing score={realData?.neighborhoodScores?.schoolScore ?? neighborhood.schoolRating} label="Schools" color="rgba(196,181,253,0.9)" />
+              </div>
+              {realData?.neighborhoodScores && (
+                <div style={{ textAlign: 'center', fontSize: 10, color: 'rgba(255,255,255,0.3)', marginBottom: 14, letterSpacing: '0.06em', fontFamily: "'Barlow', sans-serif" }}>
+                  WALK · TRANSIT · SCHOOL SCORES FROM OPENSTREETMAP REAL DATA
+                </div>
+              )}
+              <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginBottom: 14, fontFamily: "'Barlow', sans-serif", fontWeight: 300, lineHeight: 1.7 }}>{neighborhood.character}</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+                {neighborhood.pros.map((p, i) => <Tag key={i} color="green">+ {p}</Tag>)}
+                {neighborhood.cons.map((c, i) => <Tag key={i} color="red">− {c}</Tag>)}
+              </div>
+              <div style={{ fontSize: 13, fontFamily: "'Barlow', sans-serif", fontWeight: 300 }}>
+                <span style={{ color: 'rgba(255,255,255,0.4)' }}>Best for: </span>
+                <span style={{ color: '#ffffff', fontWeight: 400 }}>{neighborhood.bestFor}</span>
+              </div>
             </div>
-          )}
-          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginBottom: 14, fontFamily: "'Barlow', sans-serif", fontWeight: 300, lineHeight: 1.7 }}>{neighborhood.character}</p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
-            {neighborhood.pros.map((p, i) => <Tag key={i} color="green">+ {p}</Tag>)}
-            {neighborhood.cons.map((c, i) => <Tag key={i} color="red">− {c}</Tag>)}
-          </div>
-          <div style={{ fontSize: 13, fontFamily: "'Barlow', sans-serif", fontWeight: 300 }}>
-            <span style={{ color: 'rgba(255,255,255,0.4)' }}>Best for: </span>
-            <span style={{ color: '#ffffff', fontWeight: 400 }}>{neighborhood.bestFor}</span>
+            {isLocked('neighborhood') && (
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', borderRadius: 12, gap: 10 }}>
+                <span style={{ fontSize: 24 }}>🔒</span>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 15, color: '#fff', marginBottom: 4 }}>Neighborhood Analysis</div>
+                  <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 10 }}>Upgrade to Pro to see walkability, transit, schools & safety scores</div>
+                </div>
+              </div>
+            )}
           </div>
         </SectionCard>
 
