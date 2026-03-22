@@ -15,7 +15,7 @@ const inp = {
   fontFamily:"'Barlow',sans-serif", fontWeight:300, transition:'border-color 0.15s, background 0.15s',
 }
 
-export default function AuthModal({ onAuth }) {
+export default function AuthModal({ onAuth, onDemo }) {
   const [mode, setMode] = useState('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -173,6 +173,15 @@ export default function AuthModal({ onAuth }) {
           <button onClick={submit} disabled={loading} style={{ width:'100%', padding:'14px', background:loading?'rgba(255,255,255,0.06)':'#fff', border:'none', borderRadius:40, color:loading?'rgba(255,255,255,0.3)':'#000', fontFamily:"'Barlow',sans-serif", fontWeight:600, fontSize:14, cursor:loading?'not-allowed':'pointer', transition:'background 0.2s' }}>
             {loading?'Please wait...':(mode==='signup'?'Create Account →':'Sign In →')}
           </button>
+          {onDemo && (
+            <div style={{ textAlign:'center', marginTop:16 }}>
+              <button onClick={onDemo} style={{ background:'none', border:'none', cursor:'pointer', fontFamily:"'Barlow',sans-serif", fontWeight:300, fontSize:13, color:'rgba(255,255,255,0.35)', textDecoration:'underline', textUnderlineOffset:3, padding:'4px 8px', transition:'color 0.2s' }}
+                onMouseEnter={e=>e.currentTarget.style.color='rgba(255,255,255,0.65)'}
+                onMouseLeave={e=>e.currentTarget.style.color='rgba(255,255,255,0.35)'}>
+                Just want to see how it works? View a sample report →
+              </button>
+            </div>
+          )}
         </div>
       </div>
       {showTerms&&(
