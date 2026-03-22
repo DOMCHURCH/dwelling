@@ -110,13 +110,7 @@ const FAQ_ITEMS = [
 
 
 // ─── FAQ ─────────────────────────────────────────────────────────────────────
-const FAQ_ITEMS = [
-  { q: 'How accurate are the area intelligence reports?', a: 'Reports are based on aggregated real listing data (Redfin/Realtor.ca), census demographics, FEMA risk data, and AI analysis. Market scores are computed from real metrics — days on market, price volatility, and inventory levels.' },
-  { q: 'Where does the data come from?', a: 'OpenStreetMap (walkability/amenities), Open-Meteo (weather/climate), US Census Bureau, HUD (fair market rents), FEMA (flood + hazard risk), Redfin/Realtor.ca (listings), and Cerebras AI.' },
-  { q: 'Is Dwelling free to use?', a: 'Free users get 10 analyses per month. Upgrade to Pro for $9/month for unlimited analyses.' },
-  { q: 'Does Dwelling work outside the United States?', a: 'Yes — global city support. Some sources (Census, FEMA) are US-only, so Canadian and international analyses use Realtor.ca, StatCan, and AI estimation.' },
-  { q: 'Can I use the results to make a real estate decision?', a: 'No. All outputs are informational only and do not constitute financial, legal, or real estate advice.' },
-]
+
 
 function FAQ() {
   const [open, setOpen] = useState(null)
@@ -305,7 +299,7 @@ function HowItWorks() {
 function FeaturesChess() {
   const rows = [
     { title: 'Market stability scored. Not guessed.', desc: 'We aggregate 200+ real listings per area and compute a stability score from price volatility, days on market, and inventory trends. Concrete data, not estimations.', img: FEATURE_VALUATION, reverse: false },
-    { title: 'Neighbourhood intelligence that's actually real.', desc: 'Walkability, transit, schools, flood risk, air quality, seismic risk — all derived from OpenStreetMap, FEMA, EPA, and USGS data within a 2km radius.', img: FEATURE_NEIGHBORHOOD, reverse: true },
+    { title: "Neighbourhood intelligence — actually real.", desc: "Walkability, transit, schools, flood risk, air quality, seismic risk — all derived from OpenStreetMap, FEMA, EPA, and USGS within 2km.", img: FEATURE_NEIGHBORHOOD, reverse: true },
   ]
   return (
     <section id="features" style={{ padding: '96px 24px' }}>
