@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef, memo } from 'react'
+import { useState, useEffect, useRef, memo, lazy, Suspense } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import AddressSearch from './components/AddressSearch'
 import LoadingState from './components/LoadingState'
-import Dashboard from './components/Dashboard'
+const Dashboard = lazy(() => import('./components/Dashboard'))
 import AuthModal from './components/AuthModal'
 import PaywallModal from './components/PaywallModal'
 import GlobalBackground from './components/GlobalBackground'
@@ -39,7 +39,7 @@ function Reveal({ children, delay = '', style = {} }) {
 
 function Section({ children, style = {} }) {
   return (
-    <section style={{ position: 'relative', overflow: 'hidden', background: '#000', ...style }}>
+    <section style={{ position: 'relative', overflow: 'hidden', background: '#000', contain: 'layout', ...style }}>
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'rgba(255,255,255,0.04)' }} />
       <div style={{ position: 'relative', zIndex: 10 }}>{children}</div>
     </section>
@@ -90,7 +90,7 @@ const FAQ_ITEMS = [
   { q: 'What is the "Correct AI Estimates" feature?', a: "Enter known facts — beds, baths, sqft, year built, purchase price — to override AI guesses and trigger a recalculation." },
 ]
 
-function FAQ() {
+const FAQ = memo(function FAQ() {
   const [open, setOpen] = useState(null)
   return (
     <section id="faq" style={{ padding: '96px 24px', maxWidth: 780, margin: '0 auto' }}>
@@ -126,7 +126,7 @@ function FAQ() {
 function Navbar({ user, userRecord, analysesLeft, onSignOut, onHome }) {
   const [scrolled, setScrolled] = useState(false)
   useEffect(() => {
-    const h = () => setScrolled(window.scrollY > 50)
+    const h = () => { const s = window.scrollY > 50; setScrolled(prev => prev === s ? prev : s) }
     window.addEventListener('scroll', h, { passive: true })
     return () => window.removeEventListener('scroll', h)
   }, [])
@@ -192,7 +192,7 @@ function Hero({ onSearch, loading }) {
         <h1 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(3rem,9vw,6rem)', color: '#fff', lineHeight: 0.88, letterSpacing: '-0.03em', marginBottom: 28 }}>
           <BlurText text="Know Any Area Before You Move." delay={0.3} />
         </h1>
-        <motion.p initial={{ opacity: 0, filter: 'blur(8px)' }} animate={{ opacity: 1, filter: 'blur(0px)' }} transition={{ duration: 0.6, delay: 0.8 }}
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, delay: 0.8 }}
           style={{ color: 'rgba(255,255,255,0.5)', fontSize: 16, fontFamily: "'Barlow',sans-serif", fontWeight: 300, maxWidth: 540, lineHeight: 1.7, marginBottom: 40 }}>
           Type any city or neighbourhood. Get a stability score, market temperature, AI verdict, and local news — all in seconds.
         </motion.p>
@@ -217,7 +217,7 @@ function Hero({ onSearch, loading }) {
 }
 
 // ─── PARTNERS ────────────────────────────────────────────────────────────────
-function Partners() {
+const Partners = memo(function Partners() {
   const partners = ['Redfin', 'Open-Meteo', 'US Census', 'HUD', 'FEMA', 'Cerebras']
   return (
     <section style={{ padding: '64px 24px' }}>
@@ -235,10 +235,10 @@ function Partners() {
       </div>
     </section>
   )
-}
+})
 
 // ─── HOW IT WORKS ────────────────────────────────────────────────────────────
-function HowItWorks() {
+const HowItWorks = memo(function HowItWorks() {
   const steps = [
     { num: '01', icon: '📍', title: 'Enter a city or neighbourhood', desc: 'Any location in the world. No street address needed — just the area you want to understand.' },
     { num: '02', icon: '⚡', title: 'We pull real market data', desc: 'Active listings, days on market, inventory levels, census demographics, FEMA risk, walkability — all in real time.' },
@@ -272,7 +272,7 @@ function HowItWorks() {
 }
 
 // ─── FEATURES ────────────────────────────────────────────────────────────────
-function FeaturesChess() {
+const FeaturesChess = memo(function FeaturesChess() {
   const rows = [
     { title: 'Market stability scored. Not guessed.', desc: 'We aggregate 200+ real listings per area and compute a stability score from price volatility, days on market, and inventory trends. Concrete data, not estimations.', img: FEATURE_VALUATION, reverse: false },
     { title: "Neighbourhood intelligence — actually real.", desc: "Walkability, transit, schools, flood risk, air quality, seismic risk — all derived from OpenStreetMap, FEMA, EPA, and USGS within 2km.", img: FEATURE_NEIGHBORHOOD, reverse: true },
@@ -307,7 +307,7 @@ function FeaturesChess() {
   )
 }
 
-function FeaturesGrid() {
+const FeaturesGrid = memo(function FeaturesGrid() {
   const cards = [
     { icon: '🌍', title: 'Global Coverage', desc: 'Any city or neighbourhood in the world. 50+ countries. Real data wherever you search.' },
     { icon: '📊', title: 'Real Data Sources', desc: 'Census Bureau, HUD, FEMA, Redfin, OpenStreetMap, Open-Meteo. No made-up numbers.' },
@@ -342,7 +342,7 @@ function FeaturesGrid() {
 }
 
 // ─── STATS ───────────────────────────────────────────────────────────────────
-function Stats() {
+const Stats = memo(function Stats() {
   return (
     <Section style={{ padding: '128px 24px' }}>
       <div style={{ maxWidth: 1000, margin: '0 auto' }}>
@@ -369,7 +369,7 @@ function Stats() {
 }
 
 // ─── TESTIMONIALS ────────────────────────────────────────────────────────────
-function Testimonials() {
+const Testimonials = memo(function Testimonials() {
   const testimonials = [
     { quote: "Dwelling told me Austin was cooling before I signed a lease. Saved me from overpaying by months.", name: 'Jordan T.', role: 'First-time buyer' },
     { quote: "I use it to screen neighbourhoods before visiting. The stability score is genuinely useful.", name: 'Priya M.', role: 'Real estate investor' },
@@ -403,9 +403,11 @@ function Testimonials() {
 }
 
 // ─── PRICING ─────────────────────────────────────────────────────────────────
-function Pricing({ onUpgrade }) {
-  const free = ['10 analyses/month','All data sources','Area intelligence reports','Neighbourhood scores','Climate & weather']
-  const pro = ['Unlimited analyses','All data sources','Area intelligence reports','Neighbourhood scores','Climate & weather','Priority support','Early feature access']
+const PRICING_FREE = ['10 analyses/month','All data sources','Area intelligence reports','Neighbourhood scores','Climate & weather']
+const PRICING_PRO = ['Unlimited analyses','All data sources','Area intelligence reports','Neighbourhood scores','Climate & weather','Priority support','Early feature access']
+const Pricing = memo(function Pricing({ onUpgrade }) {
+
+
   return (
     <section id="pricing" style={{ padding: '80px 24px', maxWidth: 880, margin: '0 auto' }}>
       <Reveal>
@@ -421,7 +423,7 @@ function Pricing({ onUpgrade }) {
             <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 44, color: '#fff' }}>$0</span>
             <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 15, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>/month</span>
           </div>
-          <div style={{ marginBottom: 24 }}>{free.map(f => <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}><span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>✓</span><span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{f}</span></div>)}</div>
+          <div style={{ marginBottom: 24 }}>{PRICING_FREE.map(f => <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}><span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>✓</span><span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{f}</span></div>)}</div>
           <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} style={{ width: '100%', borderRadius: 40, padding: '12px', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13, background: 'rgba(255,255,255,0.08)', color: '#fff', border: 'none', cursor: 'pointer', transition: 'transform 0.15s' }}
             onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
             onMouseLeave={e => e.currentTarget.style.transform = ''}>Start for free</button>
@@ -433,7 +435,7 @@ function Pricing({ onUpgrade }) {
             <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 44, color: '#fff' }}>$9</span>
             <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 15, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>/month</span>
           </div>
-          <div style={{ marginBottom: 24 }}>{pro.map(f => <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}><span style={{ color: '#fff', fontSize: 12 }}>✓</span><span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: '#fff' }}>{f}</span></div>)}</div>
+          <div style={{ marginBottom: 24 }}>{PRICING_PRO.map(f => <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}><span style={{ color: '#fff', fontSize: 12 }}>✓</span><span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: '#fff' }}>{f}</span></div>)}</div>
           <button onClick={onUpgrade} style={{ width: '100%', borderRadius: 40, padding: '12px', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13, background: '#fff', color: '#000', border: 'none', cursor: 'pointer', transition: 'transform 0.15s' }}
             onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
             onMouseLeave={e => e.currentTarget.style.transform = ''}>Upgrade to Pro →</button>
@@ -649,7 +651,7 @@ export default function App() {
               <p style={{ fontFamily: "'Barlow',sans-serif", fontSize: 13, color: '#f87171' }}>⚠ {error}</p>
             </div>
           )}
-          {result && !loading && <Dashboard data={result} onRecalculate={handleRecalculate} />}
+          {result && !loading && <Suspense fallback={<LoadingState step={0} />}><Dashboard data={result} onRecalculate={handleRecalculate} /></Suspense>}
         </div>
       ) : (
         <div style={{ position: 'relative', zIndex: 1 }}>
