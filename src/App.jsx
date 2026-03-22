@@ -85,7 +85,7 @@ function TermsModal({ onClose }) {
 const FAQ_ITEMS = [
   { q: 'How accurate are the property estimates?', a: 'Estimates are AI-generated using real neighborhood data, census figures, and market trends. Always verify with a licensed appraiser before financial decisions.' },
   { q: 'Where does the data come from?', a: 'OpenStreetMap (neighborhood scores), Open-Meteo (weather/climate), US Census Bureau, HUD (fair market rents), FEMA (flood zones), and Cerebras AI.' },
-  { q: 'Is Dwelling free to use?', a: 'Free users get 10 analyses per month. Upgrade to Pro for $9/month for unlimited analyses.' },
+  { q: 'Is Dwelling free to use?', a: 'Free users get 10 analyses per month. Upgrade to Pro for $5/month for unlimited analyses.' },
   { q: 'Does Dwelling work outside the United States?', a: 'Yes — globally supported. Some sources (Census, HUD, FEMA) are US-only, so international analyses rely more on AI estimation and OpenStreetMap.' },
   { q: 'Can I use the results to make a real estate decision?', a: 'No. All outputs are informational only and do not constitute financial, legal, or real estate advice.' },
   { q: 'Does Dwelling store my address searches?', a: 'No. Searches are processed in real time and discarded immediately.' },
@@ -426,13 +426,7 @@ const PRICING_PRO = [
   { text: 'All neighbourhood data', highlight: false },
   { text: 'Priority support', highlight: false },
 ]
-const PRICING_PASS = [
-  { text: 'Unlimited analyses for 30 days', highlight: false },
-  { text: 'Full investment-grade AI analysis', highlight: true },
-  { text: 'Hidden risk & hazard detection', highlight: true },
-  { text: 'Side-by-side area comparison', highlight: false },
-  { text: 'No subscription — pay once', highlight: false },
-]
+
 const Pricing = memo(function Pricing({ onUpgrade }) {
   return (
     <section id="pricing" style={{ padding: 'clamp(56px, 8vw, 80px) 20px', maxWidth: 1200, margin: '0 auto' }}>
@@ -479,7 +473,7 @@ const Pricing = memo(function Pricing({ onUpgrade }) {
           <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 21, color: '#fff', marginBottom: 4 }}>Pro</div>
           <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 14 }}>Full intelligence for every location decision</div>
           <div style={{ marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-            <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 44, color: '#fff' }}>$9</span>
+            <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 44, color: '#fff' }}>$5</span>
             <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 15, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>/month</span>
           </div>
           <div style={{ flex: 1, marginBottom: 16 }}>
@@ -495,36 +489,13 @@ const Pricing = memo(function Pricing({ onUpgrade }) {
           </div>
           <button onClick={onUpgrade} style={{ width: '100%', borderRadius: 40, padding: '13px', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13, background: '#fff', color: '#000', border: 'none', cursor: 'pointer', transition: 'transform 0.15s' }}
             onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
-            onMouseLeave={e => e.currentTarget.style.transform = ''}>Upgrade to Pro — $9/month →</button>
+            onMouseLeave={e => e.currentTarget.style.transform = ''}>Upgrade to Pro — $5/month →</button>
           <div style={{ textAlign: 'center', marginTop: 8 }}>
             <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.25)', fontWeight: 300 }}>Cancel anytime · Full refund if not satisfied</span>
           </div>
         </div>
 
-        {/* 30-Day Pass */}
-        <div className="liquid-glass" style={{ borderRadius: 18, padding: 28, border: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.6)', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 10, borderRadius: 20, padding: '3px 10px', marginBottom: 4, border: '1px solid rgba(255,255,255,0.1)' }}>For one-time movers</div>
-          <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 21, color: '#fff', marginBottom: 4 }}>Mover Pass</div>
-          <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.35)', marginBottom: 14 }}>For a one-time move — no subscription</div>
-          <div style={{ marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-            <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 44, color: '#fff' }}>$27</span>
-            <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 15, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}> one time</span>
-          </div>
-          <div style={{ flex: 1, marginBottom: 16 }}>
-            {PRICING_PASS.map(f => (
-              <div key={f.text} style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}>
-                <span style={{ fontSize: 12, color: f.highlight ? '#4ade80' : 'rgba(255,255,255,0.5)' }}>✓</span>
-                <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: f.highlight ? 400 : 300, fontSize: 13, color: f.highlight ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.65)' }}>{f.text}</span>
-              </div>
-            ))}
-          </div>
-          <div style={{ marginBottom: 16, padding: '10px 14px', background: 'rgba(255,255,255,0.03)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)' }}>
-            <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.35)', fontWeight: 300 }}>$27 once vs. making a 6-figure decision blind</span>
-          </div>
-          <button onClick={onUpgrade} style={{ width: '100%', borderRadius: 40, padding: '12px', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13, background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', cursor: 'pointer', transition: 'transform 0.15s' }}
-            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
-            onMouseLeave={e => e.currentTarget.style.transform = ''}>Get Mover Pass — $27 →</button>
-        </div>
+
 
       </div>
     </section>
@@ -734,7 +705,7 @@ export default function App() {
   const [teaserCity, setTeaserCity] = useState(null)
   const [compareResult, setCompareResult] = useState(null)
   const [comparingMode, setComparingMode] = useState(false)
-  const [previewPlan, setPreviewPlan] = useState('pro') // 'free' | 'pro' | 'mover'
+  const [previewPlan, setPreviewPlan] = useState('pro') // 'free' | 'pro'
   const realtimeRef = useRef(null)
 
   const scrollTo = (id) => {
@@ -965,7 +936,7 @@ export default function App() {
               {user?.email === '01dominique.c@gmail.com' && (
                 <div className="liquid-glass" style={{ borderRadius: 14, padding: '10px 14px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                   <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>👁 Preview as:</span>
-                  {[['free', 'Free'], ['pro', 'Pro'], ['mover', 'Mover Pass']].map(([val, label]) => (
+                  {[['free', 'Free'], ['pro', 'Pro']].map(([val, label]) => (
                     <button key={val} onClick={() => setPreviewPlan(val)}
                       style={{ borderRadius: 40, padding: '5px 14px', fontSize: 12, fontFamily: "'Barlow',sans-serif", fontWeight: previewPlan === val ? 600 : 300, border: 'none', cursor: 'pointer', background: previewPlan === val ? '#fff' : 'rgba(255,255,255,0.06)', color: previewPlan === val ? '#000' : 'rgba(255,255,255,0.5)', transition: 'all 0.15s' }}>
                       {label}
