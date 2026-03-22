@@ -6,6 +6,7 @@ const Dashboard = lazy(() => import('./components/Dashboard'))
 import AuthModal from './components/AuthModal'
 import PaywallModal from './components/PaywallModal'
 import GlobalBackground from './components/GlobalBackground'
+import CompareView from './components/CompareView'
 import BlurText from './components/BlurText'
 import CountUp from './components/CountUp'
 import { useInView } from './hooks/useInView'
@@ -579,6 +580,8 @@ export default function App() {
   const [userRecord, setUserRecord] = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
   const [showDemo, setShowDemo] = useState(false)
+  const [compareResult, setCompareResult] = useState(null)
+  const [comparingMode, setComparingMode] = useState(false)
   const realtimeRef = useRef(null)
 
   const scrollTo = (id) => {
@@ -699,6 +702,36 @@ export default function App() {
     finally { setLoading(false) }
   }
 
+  const handleCompareSearch = async ({ street, city, state, country }) => {
+    if (loading) return
+    setLoading(true); setError(null); setLoadStep(0)
+    const isAreaMode = !street.trim()
+    try {
+      const geocodeInput = isAreaMode ? { street: '', city, state, country } : { street, city, state, country }
+      const geo = await geocodeStructured(geocodeInput); setLoadStep(1)
+      const postcode = geo.address?.postcode ?? ''
+      const [weather, climate, neighborhoodScores] = await Promise.all([getCurrentWeather(geo.lat, geo.lon), getClimateNormals(geo.lat, geo.lon), getNeighborhoodScores(geo.lat, geo.lon)]); setLoadStep(2)
+      const [censusData, fmr, floodZone] = await Promise.all([getCensusData(street, city, state, country), getFairMarketRent(postcode), getFloodZone(geo.lat, geo.lon)]); setLoadStep(3)
+      const riskData = await fetch('/api/risk', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lat: geo.lat, lon: geo.lon, county: geo.address?.county, state, country }) }).then(r => r.ok ? r.json() : null).catch(() => null)
+      const [bulkCompsRes, newsRes] = await Promise.allSettled([
+        fetch('/api/comps', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ city, state, country, mode: 'area' }) }).then(r => r.json()).catch(() => null),
+        fetch('/api/news', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ city, state, country }) }).then(r => r.json()).catch(() => null),
+      ])
+      const bulkListings = bulkCompsRes.status === 'fulfilled' ? bulkCompsRes.value?.listings || [] : []
+      const newsData = newsRes.status === 'fulfilled' ? newsRes.value : null
+      const areaMetrics = aggregateListings(bulkListings) || null
+      const areaRiskScore = computeRiskScore(areaMetrics, null) || null
+      const marketTemperature = getMarketTemperature(areaMetrics) || null
+      const realData = { neighborhoodScores, censusData, fmr, floodZone, riskData, areaMetrics, areaRiskScore, marketTemperature, newsData, isAreaMode }
+      const ai = await analyzeProperty(geo, weather, climate, {}, realData); setLoadStep(4)
+      setCompareResult({ geo, weather, climate, ai, knownFacts: {}, realData, isAreaMode })
+      setComparingMode(false)
+    } catch (err) {
+      if (err.message?.includes('limit reached') || err.message?.includes('429')) setShowPaywall(true)
+      else setError(err.message ?? 'Something went wrong.')
+    } finally { setLoading(false) }
+  }
+
   const analysesLeft = userRecord ? (userRecord.is_pro ? '∞' : Math.max(0, FREE_LIMIT - (userRecord.analyses_used ?? 0))) : '...'
 
   if (authLoading) return (
@@ -754,16 +787,36 @@ export default function App() {
         onScrollTo={scrollTo} />
 
       {(result || loading) ? (
-        <div style={{ maxWidth: 960, margin: '0 auto', padding: 'clamp(80px, 12vw, 100px) 16px 60px', width: '100%', position: 'relative', zIndex: 1 }}>
-          {!loading && result && (
+        <div style={{ maxWidth: compareResult ? 1200 : 960, margin: '0 auto', padding: 'clamp(80px, 12vw, 100px) 16px 60px', width: '100%', position: 'relative', zIndex: 1 }}>
+          {!loading && result && !compareResult && !comparingMode && (
             <div style={{ marginBottom: 22 }}>
-              <button onClick={() => setResult(null)}
-                style={{ borderRadius: 40, padding: '8px 16px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: 'rgba(255,255,255,0.6)', border: 'none', cursor: 'pointer', marginBottom: 14, background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)', transition: 'transform 0.15s' }}
-                onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.04)'}
-                onMouseLeave={e => e.currentTarget.style.transform = ''}>
-                ← New search
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
+                <button onClick={() => { setResult(null); setCompareResult(null); setComparingMode(false) }}
+                  style={{ borderRadius: 40, padding: '8px 16px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: 'rgba(255,255,255,0.6)', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)', transition: 'transform 0.15s' }}
+                  onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.04)'}
+                  onMouseLeave={e => e.currentTarget.style.transform = ''}>
+                  ← New search
+                </button>
+                <button onClick={() => setComparingMode(true)}
+                  style={{ borderRadius: 40, padding: '8px 16px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: '#fff', border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer', background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(12px)', transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 6 }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.09)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)' }}>
+                  ⚖️ Compare with another area
+                </button>
+              </div>
               <AddressSearch onSearch={handleSearch} loading={loading} compact />
+            </div>
+          )}
+          {!loading && comparingMode && (
+            <div style={{ marginBottom: 22 }}>
+              <div className="liquid-glass" style={{ borderRadius: 14, padding: '14px 18px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 16 }}>⚖️</span>
+                <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>
+                  Search a second area to compare against <span style={{ color: '#fff' }}>{result?.geo?.displayName?.split(',')[0]}</span>
+                </span>
+                <button onClick={() => setComparingMode(false)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>×</button>
+              </div>
+              <AddressSearch onSearch={handleCompareSearch} loading={loading} compact />
             </div>
           )}
           {loading && <LoadingState step={loadStep} />}
@@ -772,7 +825,15 @@ export default function App() {
               <p style={{ fontFamily: "'Barlow',sans-serif", fontSize: 13, color: '#f87171' }}>⚠ {error}</p>
             </div>
           )}
-          {result && !loading && <Suspense fallback={<LoadingState step={0} />}><Dashboard data={result} onRecalculate={handleRecalculate} /></Suspense>}
+          {result && !loading && compareResult && (
+            <CompareView
+              resultA={result}
+              resultB={compareResult}
+              onBack={() => setCompareResult(null)}
+              onClearB={() => { setCompareResult(null); setComparingMode(true) }}
+            />
+          )}
+          {result && !loading && !compareResult && <Suspense fallback={<LoadingState step={0} />}><Dashboard data={result} onRecalculate={handleRecalculate} /></Suspense>}
         </div>
       ) : (
         <div style={{ position: 'relative', zIndex: 1 }}>
