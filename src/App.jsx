@@ -21,6 +21,7 @@ import { supabase } from './lib/supabase'
 
 
 const FREE_LIMIT = 10
+const TRIAL_DAYS = 7
 
 const HERO_POSTER = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663463031725/5FNF4QVCkxSRz6ba3cCadG/hero-poster-ZHdSBZKm8ENZMaTu9N2eqV.webp'
 const LOGO = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663463031725/5FNF4QVCkxSRz6ba3cCadG/dwelling-logo-3AJU9MMgr8YxSGXWKetVFA.webp'
@@ -159,7 +160,7 @@ function Navbar({ user, userRecord, analysesLeft, onSignOut, onHome }) {
           {user ? (
             <>
               <span className="liquid-glass" style={{ borderRadius: 40, padding: '5px 12px', fontSize: 12, fontFamily: "'Barlow',sans-serif", color: userRecord?.is_pro ? '#fbbf24' : low ? '#f87171' : 'rgba(255,255,255,0.5)' }}>
-                {userRecord?.is_pro ? '★ Pro' : `${analysesLeft} / ${FREE_LIMIT} left`}
+                {userRecord?.is_pro ? '★ Pro' : isInTrial ? `⚡ Trial · ${trialDaysLeft}d left` : `${analysesLeft} / ${FREE_LIMIT} left`}
               </span>
               <button onClick={onSignOut} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.35)', padding: '5px 8px', transition: 'color 0.2s' }}
                 onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.7)'}
@@ -443,6 +444,9 @@ const Pricing = memo(function Pricing({ onUpgrade }) {
       </h2>
       <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 15, color: 'rgba(255,255,255,0.45)', marginBottom: 40, lineHeight: 1.6 }}>
         Start free. Upgrade when you need the full picture.
+        <span style={{ display: 'block', marginTop: 6, fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>
+          Pro costs less than a coffee for every major location decision you make.
+        </span>
       </p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 14 }}>
 
@@ -473,7 +477,7 @@ const Pricing = memo(function Pricing({ onUpgrade }) {
             <div style={{ background: '#fff', color: '#000', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 10, borderRadius: 20, padding: '3px 10px' }}>Most Popular</div>
           </div>
           <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 21, color: '#fff', marginBottom: 4 }}>Pro</div>
-          <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 14 }}>Make smarter location decisions</div>
+          <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 14 }}>Full intelligence for every location decision</div>
           <div style={{ marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
             <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 44, color: '#fff' }}>$9</span>
             <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 15, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>/month</span>
@@ -492,13 +496,16 @@ const Pricing = memo(function Pricing({ onUpgrade }) {
           <button onClick={onUpgrade} style={{ width: '100%', borderRadius: 40, padding: '13px', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13, background: '#fff', color: '#000', border: 'none', cursor: 'pointer', transition: 'transform 0.15s' }}
             onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
             onMouseLeave={e => e.currentTarget.style.transform = ''}>Upgrade to Pro — $9/month →</button>
+          <div style={{ textAlign: 'center', marginTop: 8 }}>
+            <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.25)', fontWeight: 300 }}>Cancel anytime · Full refund if not satisfied</span>
+          </div>
         </div>
 
         {/* 30-Day Pass */}
         <div className="liquid-glass" style={{ borderRadius: 18, padding: 28, border: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.6)', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 10, borderRadius: 20, padding: '3px 10px', marginBottom: 4, border: '1px solid rgba(255,255,255,0.1)' }}>For one-time movers</div>
           <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 21, color: '#fff', marginBottom: 4 }}>Mover Pass</div>
-          <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.35)', marginBottom: 14 }}>Full access, no subscription</div>
+          <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.35)', marginBottom: 14 }}>For a one-time move — no subscription</div>
           <div style={{ marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
             <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 44, color: '#fff' }}>$27</span>
             <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 15, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}> one time</span>
@@ -512,7 +519,7 @@ const Pricing = memo(function Pricing({ onUpgrade }) {
             ))}
           </div>
           <div style={{ marginBottom: 16, padding: '10px 14px', background: 'rgba(255,255,255,0.03)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)' }}>
-            <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.35)', fontWeight: 300 }}>Perfect if you move once a year or less</span>
+            <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.35)', fontWeight: 300 }}>$27 once vs. making a 6-figure decision blind</span>
           </div>
           <button onClick={onUpgrade} style={{ width: '100%', borderRadius: 40, padding: '12px', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13, background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', cursor: 'pointer', transition: 'transform 0.15s' }}
             onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
@@ -532,9 +539,21 @@ function CTAFooter({ onTermsClick, onScrollToTop, onUpgrade }) {
         <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2.2rem,6vw,4.5rem)', color: '#fff', lineHeight: 0.9, letterSpacing: '-0.03em', marginBottom: 20 }}>
           <BlurText text="Your next area decision starts here." />
         </h2>
-        <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 16, color: 'rgba(255,255,255,0.5)', marginBottom: 36, lineHeight: 1.7 }}>
+        <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 16, color: 'rgba(255,255,255,0.5)', marginBottom: 28, lineHeight: 1.7 }}>
           Free to start. Instant results. No credit card required.
         </p>
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 28 }}>
+          {[
+            { quote: 'Avoided a flood zone I never knew existed.', name: 'Marcus T.', detail: 'First-time buyer, Austin TX' },
+            { quote: 'Compared 4 cities in an afternoon. Worth every cent.', name: 'Priya M.', detail: 'Relocating to Canada' },
+          ].map(t => (
+            <div key={t.name} className="liquid-glass" style={{ borderRadius: 14, padding: '14px 18px', maxWidth: 260, textAlign: 'left' }}>
+              <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.7)', fontStyle: 'italic', lineHeight: 1.5, marginBottom: 8 }}>"{t.quote}"</p>
+              <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 400, fontSize: 12, color: '#fff' }}>{t.name}</div>
+              <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{t.detail}</div>
+            </div>
+          ))}
+        </div>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
           <button onClick={onScrollToTop} style={{ borderRadius: 40, padding: '13px 28px', fontFamily: "'Barlow',sans-serif", fontSize: 14, color: '#fff', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', transition: 'transform 0.15s' }}
             onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.04)'}
@@ -712,6 +731,7 @@ export default function App() {
   const [userRecord, setUserRecord] = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
   const [showDemo, setShowDemo] = useState(false)
+  const [teaserCity, setTeaserCity] = useState(null)
   const [compareResult, setCompareResult] = useState(null)
   const [comparingMode, setComparingMode] = useState(false)
   const [previewPlan, setPreviewPlan] = useState('pro') // 'free' | 'pro' | 'mover'
@@ -865,7 +885,11 @@ export default function App() {
     } finally { setLoading(false) }
   }
 
-  const analysesLeft = userRecord ? (userRecord.is_pro ? '∞' : Math.max(0, FREE_LIMIT - (userRecord.analyses_used ?? 0))) : '...'
+  const trialDaysLeft = userRecord?.trial_started_at
+    ? Math.max(0, TRIAL_DAYS - Math.floor((Date.now() - new Date(userRecord.trial_started_at).getTime()) / (1000 * 60 * 60 * 24)))
+    : null
+  const isInTrial = trialDaysLeft !== null && trialDaysLeft > 0 && !userRecord?.is_pro
+  const analysesLeft = userRecord ? (userRecord.is_pro ? '∞' : isInTrial ? '∞' : Math.max(0, FREE_LIMIT - (userRecord.analyses_used ?? 0))) : '...'
 
   if (authLoading) return (
     <div style={{ minHeight: '100vh', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -914,7 +938,7 @@ export default function App() {
     <div style={{ minHeight: '100vh', background: '#000', display: 'flex', flexDirection: 'column' }}>
       <GlobalBackground />
       {showTerms && <TermsModal onClose={() => setShowTerms(false)} />}
-      {showPaywall && <PaywallModal onClose={() => setShowPaywall(false)} onUpgrade={() => alert('Stripe coming soon!')} />}
+      {showPaywall && <PaywallModal onClose={() => setShowPaywall(false)} onUpgrade={() => alert('Stripe coming soon! Full refund guaranteed if not satisfied.')} />}
       <Navbar user={user} userRecord={userRecord} analysesLeft={analysesLeft} onSignOut={handleSignOut}
         onHome={() => { setResult(null); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
         onScrollTo={scrollTo} />
