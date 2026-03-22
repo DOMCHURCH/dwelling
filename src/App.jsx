@@ -23,10 +23,10 @@ import { IMG } from './images'
 const FREE_LIMIT = 10
 
 // ─── VIDEO URLS ──────────────────────────────────────────────────────────────
-const HERO_VIDEO = 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260307_083826_e938b29f-a43a-41ec-a153-3d4730578ab8.mp4'
-const HOW_IT_WORKS_VIDEO = 'https://stream.mux.com/9JXDljEVWYwWu01PUkAemafDugK89o01BR6zqJ3aS9u00A.m3u8'
-const STATS_VIDEO = 'https://stream.mux.com/NcU3HlHeF7CUL86azTTzpy3Tlb00d6iF3BmCdFslMJYM.m3u8'
-const CTA_VIDEO = 'https://stream.mux.com/8wrHPCX2dC3msyYU9ObwqNdm00u3ViXvOSHUMRYSEe5Q.m3u8'
+const HERO_VIDEO = '/video.mp4'
+const HOW_IT_WORKS_VIDEO = '/video.mp4'
+const STATS_VIDEO = '/video.mp4'
+const CTA_VIDEO = '/video.mp4'
 const HERO_POSTER = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663463031725/5FNF4QVCkxSRz6ba3cCadG/hero-poster-ZHdSBZKm8ENZMaTu9N2eqV.webp'
 const LOGO = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663463031725/5FNF4QVCkxSRz6ba3cCadG/dwelling-logo-3AJU9MMgr8YxSGXWKetVFA.webp'
 const FEATURE_VALUATION = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663463031725/5FNF4QVCkxSRz6ba3cCadG/feature-valuation-6WBABoG6LMJhpCDnAn9n88.webp'
