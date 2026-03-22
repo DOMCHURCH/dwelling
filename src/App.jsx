@@ -410,12 +410,11 @@ const Testimonials = memo(function Testimonials() {
 
 // ─── PRICING ─────────────────────────────────────────────────────────────────
 const PRICING_FREE = [
-  { text: '3 analyses/month', locked: false },
-  { text: 'Basic area overview', locked: false },
+  { text: '10 analyses/month', locked: false },
+  { text: 'Area intelligence reports', locked: false },
   { text: 'Neighbourhood scores', locked: false },
-  { text: 'Full AI analysis', locked: true },
-  { text: 'Investment insights', locked: true },
-  { text: 'Risk & hazard data', locked: true },
+  { text: 'Climate & weather data', locked: false },
+  { text: 'Risk & hazard overview', locked: false },
 ]
 const PRICING_PRO = [
   { text: 'Unlimited analyses', highlight: false },
@@ -715,6 +714,7 @@ export default function App() {
   const [showDemo, setShowDemo] = useState(false)
   const [compareResult, setCompareResult] = useState(null)
   const [comparingMode, setComparingMode] = useState(false)
+  const [previewPlan, setPreviewPlan] = useState('pro') // 'free' | 'pro' | 'mover'
   const realtimeRef = useRef(null)
 
   const scrollTo = (id) => {
@@ -937,6 +937,19 @@ export default function App() {
                   ⚖️ Compare with another area
                 </button>
               </div>
+              {/* Admin plan preview switcher */}
+              {user?.email === '01dominque.c@gmail.com' && (
+                <div className="liquid-glass" style={{ borderRadius: 14, padding: '10px 14px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                  <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>👁 Preview as:</span>
+                  {[['free', 'Free'], ['pro', 'Pro'], ['mover', 'Mover Pass']].map(([val, label]) => (
+                    <button key={val} onClick={() => setPreviewPlan(val)}
+                      style={{ borderRadius: 40, padding: '5px 14px', fontSize: 12, fontFamily: "'Barlow',sans-serif", fontWeight: previewPlan === val ? 600 : 300, border: 'none', cursor: 'pointer', background: previewPlan === val ? '#fff' : 'rgba(255,255,255,0.06)', color: previewPlan === val ? '#000' : 'rgba(255,255,255,0.5)', transition: 'all 0.15s' }}>
+                      {label}
+                    </button>
+                  ))}
+                  <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.2)', marginLeft: 'auto' }}>Admin only</span>
+                </div>
+              )}
               <AddressSearch onSearch={handleSearch} loading={loading} compact />
             </div>
           )}
@@ -966,7 +979,7 @@ export default function App() {
               onClearB={() => { setCompareResult(null); setComparingMode(true) }}
             />
           )}
-          {result && !loading && !compareResult && <Suspense fallback={<LoadingState step={0} />}><Dashboard data={result} onRecalculate={handleRecalculate} /></Suspense>}
+          {result && !loading && !compareResult && <Suspense fallback={<LoadingState step={0} />}><Dashboard data={result} onRecalculate={handleRecalculate} previewPlan={user?.email === '01dominque.c@gmail.com' ? previewPlan : 'pro'} /></Suspense>}
         </div>
       ) : (
         <div style={{ position: 'relative', zIndex: 1 }}>
