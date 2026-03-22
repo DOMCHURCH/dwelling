@@ -24,87 +24,96 @@ export default function GlobalBackground() {
     const container = containerRef.current
     if (!container || !THREE) return
 
-    const SEPARATION = 150
-    const AMOUNTX = 40
-    const AMOUNTY = 60
-
     const scene = new THREE.Scene()
-
-    const camera = new THREE.PerspectiveCamera(60, container.offsetWidth / container.offsetHeight, 1, 10000)
-    camera.position.set(0, 355, 1220)
+    const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, -1)
 
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true })
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5))
     renderer.setSize(container.offsetWidth, container.offsetHeight)
     renderer.setClearColor(0x000000, 0)
     container.appendChild(renderer.domElement)
-
-    // Make the canvas fill the container
     renderer.domElement.style.width = '100%'
     renderer.domElement.style.height = '100%'
     renderer.domElement.style.display = 'block'
 
-    const positions = []
-    const colors = []
-
-    for (let ix = 0; ix < AMOUNTX; ix++) {
-      for (let iy = 0; iy < AMOUNTY; iy++) {
-        positions.push(
-          ix * SEPARATION - (AMOUNTX * SEPARATION) / 2,
-          0,
-          iy * SEPARATION - (AMOUNTY * SEPARATION) / 2
-        )
-        colors.push(1, 1, 1)
-      }
+    const uniforms = {
+      resolution: { value: [container.offsetWidth, container.offsetHeight] },
+      time:       { value: 0.0 },
+      xScale:     { value: 1.0 },
+      yScale:     { value: 0.5 },
+      distortion: { value: 0.05 },
     }
 
-    const geometry = new THREE.BufferGeometry()
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
-    geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3))
+    const vertexShader = `
+      attribute vec3 position;
+      void main() {
+        gl_Position = vec4(position, 1.0);
+      }
+    `
 
-    const material = new THREE.PointsMaterial({
-      size: 6,
-      vertexColors: true,
-      transparent: true,
-      opacity: 0.25,
-      sizeAttenuation: true,
+    const fragmentShader = `
+      precision highp float;
+      uniform vec2 resolution;
+      uniform float time;
+      uniform float xScale;
+      uniform float yScale;
+      uniform float distortion;
+
+      void main() {
+        vec2 p = (gl_FragCoord.xy * 2.0 - resolution) / min(resolution.x, resolution.y);
+
+        float d = length(p) * distortion;
+
+        float rx = p.x * (1.0 + d);
+        float gx = p.x;
+        float bx = p.x * (1.0 - d);
+
+        float r = 0.05 / abs(p.y + sin((rx + time) * xScale) * yScale);
+        float g = 0.05 / abs(p.y + sin((gx + time) * xScale) * yScale);
+        float b = 0.05 / abs(p.y + sin((bx + time) * xScale) * yScale);
+
+        // Darken so it doesn't overpower the text
+        gl_FragColor = vec4(r * 0.6, g * 0.6, b * 0.6, 1.0);
+      }
+    `
+
+    const positions = new THREE.BufferAttribute(new Float32Array([
+      -1.0, -1.0, 0.0,
+       1.0, -1.0, 0.0,
+      -1.0,  1.0, 0.0,
+       1.0, -1.0, 0.0,
+      -1.0,  1.0, 0.0,
+       1.0,  1.0, 0.0,
+    ]), 3)
+
+    const geometry = new THREE.BufferGeometry()
+    geometry.setAttribute('position', positions)
+
+    const material = new THREE.RawShaderMaterial({
+      vertexShader,
+      fragmentShader,
+      uniforms,
+      side: THREE.DoubleSide,
     })
 
-    const points = new THREE.Points(geometry, material)
-    scene.add(points)
+    const mesh = new THREE.Mesh(geometry, material)
+    scene.add(mesh)
 
-    let count = 0
     let animationId = null
 
     const animate = () => {
       animationId = requestAnimationFrame(animate)
       if (sceneRef.current) sceneRef.current._animId = animationId
-
-      const posAttr = geometry.attributes.position
-      const pos = posAttr.array
-
-      let i = 0
-      for (let ix = 0; ix < AMOUNTX; ix++) {
-        for (let iy = 0; iy < AMOUNTY; iy++) {
-          pos[i * 3 + 1] =
-            Math.sin((ix + count) * 0.3) * 50 +
-            Math.sin((iy + count) * 0.5) * 50
-          i++
-        }
-      }
-
-      posAttr.needsUpdate = true
+      uniforms.time.value += 0.01
       renderer.render(scene, camera)
-      count += 0.07
     }
 
     animate()
 
     const handleResize = () => {
       if (!container) return
-      camera.aspect = container.offsetWidth / container.offsetHeight
-      camera.updateProjectionMatrix()
       renderer.setSize(container.offsetWidth, container.offsetHeight)
+      uniforms.resolution.value = [container.offsetWidth, container.offsetHeight]
     }
     window.addEventListener('resize', handleResize)
 
@@ -134,12 +143,10 @@ export default function GlobalBackground() {
     <div
       ref={containerRef}
       style={{
-        // absolute inside the hero section — moves with scroll, stays behind hero text only
         position: 'absolute',
         inset: 0,
         zIndex: 0,
         pointerEvents: 'none',
-        // fade out at the bottom so it blends into the black below
         WebkitMaskImage: 'linear-gradient(to bottom, black 40%, transparent 100%)',
         maskImage: 'linear-gradient(to bottom, black 40%, transparent 100%)',
       }}
