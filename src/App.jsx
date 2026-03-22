@@ -120,7 +120,7 @@ const FAQ = memo(function FAQ() {
       </div>
     </section>
   )
-}
+})
 
 // ─── NAVBAR ──────────────────────────────────────────────────────────────────
 function Navbar({ user, userRecord, analysesLeft, onSignOut, onHome }) {
@@ -269,7 +269,7 @@ const HowItWorks = memo(function HowItWorks() {
       </div>
     </Section>
   )
-}
+})
 
 // ─── FEATURES ────────────────────────────────────────────────────────────────
 const FeaturesChess = memo(function FeaturesChess() {
@@ -305,7 +305,7 @@ const FeaturesChess = memo(function FeaturesChess() {
       </div>
     </section>
   )
-}
+})
 
 const FeaturesGrid = memo(function FeaturesGrid() {
   const cards = [
@@ -339,7 +339,7 @@ const FeaturesGrid = memo(function FeaturesGrid() {
       </div>
     </section>
   )
-}
+})
 
 // ─── STATS ───────────────────────────────────────────────────────────────────
 const Stats = memo(function Stats() {
@@ -366,7 +366,7 @@ const Stats = memo(function Stats() {
       </div>
     </Section>
   )
-}
+})
 
 // ─── TESTIMONIALS ────────────────────────────────────────────────────────────
 const Testimonials = memo(function Testimonials() {
@@ -400,7 +400,7 @@ const Testimonials = memo(function Testimonials() {
       </div>
     </section>
   )
-}
+})
 
 // ─── PRICING ─────────────────────────────────────────────────────────────────
 const PRICING_FREE = ['10 analyses/month','All data sources','Area intelligence reports','Neighbourhood scores','Climate & weather']
@@ -443,7 +443,7 @@ const Pricing = memo(function Pricing({ onUpgrade }) {
       </div>
     </section>
   )
-}
+})
 
 // ─── CTA + FOOTER ────────────────────────────────────────────────────────────
 function CTAFooter({ onTermsClick, onScrollToTop, onUpgrade }) {
