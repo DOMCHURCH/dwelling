@@ -409,28 +409,60 @@ const Testimonials = memo(function Testimonials() {
 })
 
 // ─── PRICING ─────────────────────────────────────────────────────────────────
-const PRICING_FREE = ['10 analyses/month','All data sources','Area intelligence reports','Neighbourhood scores','Climate & weather']
-const PRICING_PASS = ['Unlimited analyses for 30 days','All data sources','AI analysis','No subscription needed','Best for one-time moves']
-const PRICING_PRO = ['Unlimited analyses','All data sources','Area intelligence reports','Neighbourhood scores','Climate & weather','Priority support','Early feature access']
+const PRICING_FREE = [
+  { text: '3 analyses/month', locked: false },
+  { text: 'Basic area overview', locked: false },
+  { text: 'Neighbourhood scores', locked: false },
+  { text: 'Full AI analysis', locked: true },
+  { text: 'Investment insights', locked: true },
+  { text: 'Risk & hazard data', locked: true },
+]
+const PRICING_PRO = [
+  { text: 'Unlimited analyses', highlight: false },
+  { text: 'Full investment-grade AI analysis', highlight: true },
+  { text: 'Hidden risk & hazard detection', highlight: true },
+  { text: 'Price trend & market predictions', highlight: true },
+  { text: 'Side-by-side area comparison', highlight: false },
+  { text: 'All neighbourhood data', highlight: false },
+  { text: 'Priority support', highlight: false },
+]
+const PRICING_PASS = [
+  { text: 'Unlimited analyses for 30 days', highlight: false },
+  { text: 'Full investment-grade AI analysis', highlight: true },
+  { text: 'Hidden risk & hazard detection', highlight: true },
+  { text: 'Side-by-side area comparison', highlight: false },
+  { text: 'No subscription — pay once', highlight: false },
+]
 const Pricing = memo(function Pricing({ onUpgrade }) {
   return (
     <section id="pricing" style={{ padding: 'clamp(56px, 8vw, 80px) 20px', maxWidth: 1200, margin: '0 auto' }}>
       <Reveal>
         <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>Pricing</div>
       </Reveal>
-      <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2rem,5vw,3.5rem)', color: '#fff', marginBottom: 40, lineHeight: 0.9, letterSpacing: '-0.02em' }}>
-        <BlurText text="Simple. Transparent. Fair." />
+      <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2rem,5vw,3.5rem)', color: '#fff', marginBottom: 8, lineHeight: 0.9, letterSpacing: '-0.02em' }}>
+        <BlurText text="Know before you move." />
       </h2>
+      <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 15, color: 'rgba(255,255,255,0.45)', marginBottom: 40, lineHeight: 1.6 }}>
+        Start free. Upgrade when you need the full picture.
+      </p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 14 }}>
 
         {/* Free */}
         <div className="liquid-glass" style={{ borderRadius: 18, padding: 28, display: 'flex', flexDirection: 'column' }}>
-          <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 21, color: '#fff', marginBottom: 14 }}>Free</div>
+          <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 21, color: '#fff', marginBottom: 4 }}>Free</div>
+          <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.35)', marginBottom: 14 }}>Good for exploring</div>
           <div style={{ marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
             <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 44, color: '#fff' }}>$0</span>
             <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 15, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>/month</span>
           </div>
-          <div style={{ flex: 1, marginBottom: 24 }}>{PRICING_FREE.map(f => <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}><span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>✓</span><span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{f}</span></div>)}</div>
+          <div style={{ flex: 1, marginBottom: 24 }}>
+            {PRICING_FREE.map(f => (
+              <div key={f.text} style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10, opacity: f.locked ? 0.35 : 1 }}>
+                <span style={{ fontSize: 12, color: f.locked ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.4)' }}>{f.locked ? '🔒' : '✓'}</span>
+                <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: f.locked ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.6)', textDecoration: f.locked ? 'line-through' : 'none' }}>{f.text}</span>
+              </div>
+            ))}
+          </div>
           <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} style={{ width: '100%', borderRadius: 40, padding: '12px', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13, background: 'rgba(255,255,255,0.08)', color: '#fff', border: 'none', cursor: 'pointer', transition: 'transform 0.15s' }}
             onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
             onMouseLeave={e => e.currentTarget.style.transform = ''}>Start for free</button>
@@ -438,30 +470,54 @@ const Pricing = memo(function Pricing({ onUpgrade }) {
 
         {/* Pro Monthly */}
         <div className="liquid-glass-strong" style={{ borderRadius: 18, padding: 28, border: '1px solid rgba(255,255,255,0.2)', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'inline-block', background: '#fff', color: '#000', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 10, borderRadius: 20, padding: '3px 10px', marginBottom: 10 }}>Most Popular</div>
-          <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 21, color: '#fff', marginBottom: 14 }}>Pro</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <div style={{ background: '#fff', color: '#000', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 10, borderRadius: 20, padding: '3px 10px' }}>Most Popular</div>
+          </div>
+          <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 21, color: '#fff', marginBottom: 4 }}>Pro</div>
+          <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 14 }}>Make smarter location decisions</div>
           <div style={{ marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
             <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 44, color: '#fff' }}>$9</span>
             <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 15, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>/month</span>
           </div>
-          <div style={{ flex: 1, marginBottom: 24 }}>{PRICING_PRO.map(f => <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}><span style={{ color: '#fff', fontSize: 12 }}>✓</span><span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: '#fff' }}>{f}</span></div>)}</div>
-          <button onClick={onUpgrade} style={{ width: '100%', borderRadius: 40, padding: '12px', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13, background: '#fff', color: '#000', border: 'none', cursor: 'pointer', transition: 'transform 0.15s' }}
+          <div style={{ flex: 1, marginBottom: 16 }}>
+            {PRICING_PRO.map(f => (
+              <div key={f.text} style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}>
+                <span style={{ fontSize: 12, color: f.highlight ? '#4ade80' : '#fff' }}>✓</span>
+                <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: f.highlight ? 400 : 300, fontSize: 13, color: f.highlight ? '#fff' : 'rgba(255,255,255,0.8)' }}>{f.text}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ marginBottom: 16, padding: '10px 14px', background: 'rgba(74,222,128,0.06)', borderRadius: 10, border: '1px solid rgba(74,222,128,0.15)' }}>
+            <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(74,222,128,0.8)', fontWeight: 300 }}>✓ Cancel anytime · No commitment</span>
+          </div>
+          <button onClick={onUpgrade} style={{ width: '100%', borderRadius: 40, padding: '13px', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13, background: '#fff', color: '#000', border: 'none', cursor: 'pointer', transition: 'transform 0.15s' }}
             onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
-            onMouseLeave={e => e.currentTarget.style.transform = ''}>Upgrade to Pro →</button>
+            onMouseLeave={e => e.currentTarget.style.transform = ''}>Upgrade to Pro — $9/month →</button>
         </div>
 
         {/* 30-Day Pass */}
         <div className="liquid-glass" style={{ borderRadius: 18, padding: 28, border: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 10, borderRadius: 20, padding: '3px 10px', marginBottom: 10, border: '1px solid rgba(255,255,255,0.12)' }}>Best for relocating</div>
-          <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 21, color: '#fff', marginBottom: 14 }}>30-Day Pass</div>
+          <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.6)', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 10, borderRadius: 20, padding: '3px 10px', marginBottom: 4, border: '1px solid rgba(255,255,255,0.1)' }}>For one-time movers</div>
+          <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 21, color: '#fff', marginBottom: 4 }}>Mover Pass</div>
+          <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.35)', marginBottom: 14 }}>Full access, no subscription</div>
           <div style={{ marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-            <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 44, color: '#fff' }}>$18</span>
+            <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 44, color: '#fff' }}>$27</span>
             <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 15, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}> one time</span>
           </div>
-          <div style={{ flex: 1, marginBottom: 24 }}>{PRICING_PASS.map(f => <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}><span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>✓</span><span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.75)' }}>{f}</span></div>)}</div>
+          <div style={{ flex: 1, marginBottom: 16 }}>
+            {PRICING_PASS.map(f => (
+              <div key={f.text} style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}>
+                <span style={{ fontSize: 12, color: f.highlight ? '#4ade80' : 'rgba(255,255,255,0.5)' }}>✓</span>
+                <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: f.highlight ? 400 : 300, fontSize: 13, color: f.highlight ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.65)' }}>{f.text}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ marginBottom: 16, padding: '10px 14px', background: 'rgba(255,255,255,0.03)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.08)' }}>
+            <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.35)', fontWeight: 300 }}>Perfect if you move once a year or less</span>
+          </div>
           <button onClick={onUpgrade} style={{ width: '100%', borderRadius: 40, padding: '12px', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13, background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', cursor: 'pointer', transition: 'transform 0.15s' }}
             onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
-            onMouseLeave={e => e.currentTarget.style.transform = ''}>Get 30-Day Access →</button>
+            onMouseLeave={e => e.currentTarget.style.transform = ''}>Get Mover Pass — $27 →</button>
         </div>
 
       </div>
