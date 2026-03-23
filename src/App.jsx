@@ -557,7 +557,7 @@ export default function App() {
       fetch('/api/comps', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ city: resolvedCity, state: resolvedState, country: resolvedCountry, mode: 'area' }),
+        body: JSON.stringify({ city: resolvedCity, state: resolvedState, country: resolvedCountry, lat: geo.lat, lon: geo.lon, mode: 'area' }),
       }).then(r => r.json()).catch(() => null),
       fetch('/api/news', {
         method: 'POST',
