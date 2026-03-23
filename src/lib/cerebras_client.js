@@ -8,22 +8,22 @@ const CEREBRAS_BASE = '/api/cerebras'
 const MODEL = 'llama-3.1-8b'
 
 async function getAuthToken() {
+  // Use getSession only — refreshSession acquires an exclusive browser lock
+  // that conflicts with concurrent calls during analysis pipeline
   const { data: { session } } = await supabase.auth.getSession()
-  if (session?.access_token) return session.access_token
-  const { data: refreshed } = await supabase.auth.refreshSession()
-  if (refreshed?.session?.access_token) return refreshed.session.access_token
-  return null
+  return session?.access_token ?? null
 }
 
-async function cerebrasChat(messages, json = false, skipCount = false) {
-  const token = await getAuthToken()
-  if (!token) throw new Error('Not authenticated. Please sign in again.')
+// cerebrasChat accepts a pre-fetched token to avoid multiple lock acquisitions
+async function cerebrasChat(messages, json = false, skipCount = false, token = null) {
+  const authToken = token ?? await getAuthToken()
+  if (!authToken) throw new Error('Not authenticated. Please sign in again.')
 
   const res = await fetch(CEREBRAS_BASE, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
+      'Authorization': `Bearer ${authToken}`,
       ...(skipCount && { 'X-Skip-Count': 'true' }),
     },
     body: JSON.stringify({
@@ -339,6 +339,9 @@ function finalizeAnalysis(est, known, realData, currency, currencySymbol, city, 
 }
 
 export async function analyzeProperty(geoData, weatherData, climateData, knownFacts = {}, realData = {}) {
+  // Acquire auth token once for the entire pipeline — avoids repeated lock acquisitions
+  const authToken = await getAuthToken()
+  if (!authToken) throw new Error('Not authenticated. Please sign in again.')
   const street = geoData.userStreet || geoData.address?.road || ''
   const city = geoData.userCity || geoData.address?.city || geoData.address?.town || ''
   const state = geoData.userState || geoData.address?.state || ''
@@ -418,7 +421,7 @@ Be specific, honest, and evidence-based. End with: READY_FOR_JSON`
     const areaReasoning = await cerebrasChat([
       { role: 'system', content: `You are a licensed real estate analyst specializing in ${city}, ${country}. Provide precise, evidence-based area intelligence.` },
       { role: 'user', content: areaCot }
-    ])
+    ], false, false, authToken)
 
     const areaJsonPrompt = `Based on your analysis, produce a JSON area intelligence report. Return ONLY valid raw JSON, no markdown.
 
@@ -494,7 +497,7 @@ Be specific, honest, and evidence-based. End with: READY_FOR_JSON`
       { role: 'user', content: areaCot },
       { role: 'assistant', content: areaReasoning },
       { role: 'user', content: areaJsonPrompt }
-    ], true, true)
+    ], true, true, authToken)
 
     if (!areaRaw || typeof areaRaw !== 'string') throw new Error('AI returned empty response. Please try again.')
     let areaResult
@@ -647,7 +650,7 @@ End with: READY_FOR_JSON`
       content: `You are a licensed real estate appraiser and local market expert specializing in ${city}, ${country}. You provide precise, evidence-based analysis with specific numbers anchored to real market knowledge. You never use placeholder text, generic descriptions, or made-up comparable sales. You think systematically and show your reasoning before concluding.`
     },
     { role: 'user', content: cotPrompt }
-  ])
+  ], false, false, authToken)
 
   // Pass 2: Structured JSON output using the reasoning as context
   const jsonPrompt = `Based on your detailed analysis above, produce the final property intelligence report as a single JSON object. Every field must be substantive and specific to ${neighbourhood || city}, ${city}. No generic filler text.
@@ -731,7 +734,7 @@ FIELD REQUIREMENTS:
     { role: 'user', content: cotPrompt },
     { role: 'assistant', content: reasoning },
     { role: 'user', content: jsonPrompt }
-  ], true, true)
+  ], true, true, authToken)
 
   if (!raw || typeof raw !== 'string') throw new Error('AI returned an empty response. Please try again.')
 
