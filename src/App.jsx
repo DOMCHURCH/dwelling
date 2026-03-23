@@ -525,11 +525,20 @@ export default function App() {
     } catch { return null }
   }
 
-  const runPipeline = async ({ street, city, state, country, knownFacts = {} }) => {
+  const runPipeline = async ({ street, city, state, country, freeform, knownFacts = {} }) => {
     const isAreaMode = !street?.trim()
-    const geocodeInput = isAreaMode ? { street: '', city, state, country } : { street, city, state, country }
+    // Pass freeform through to geocoder so it can search any format
+    const geocodeInput = { street: street || '', city: city || '', state: state || '', country: country || '', freeform: freeform || '' }
     const geo = await geocodeStructured(geocodeInput)
     setLoadStep(1)
+
+    // After geocoding, use the resolved values for all downstream calls
+    // This ensures comps/news/census get real city+country even if user typed freeform
+    const resolvedCity    = geo.userCity    || city    || ''
+    const resolvedState   = geo.userState   || state   || ''
+    const resolvedCountry = geo.userCountry || country || ''
+    const resolvedStreet  = geo.userStreet  || street  || ''
+
     const postcode = geo.address?.postcode ?? ''
     const [weather, climate, neighborhoodScores] = await Promise.all([
       getCurrentWeather(geo.lat, geo.lon),
@@ -538,22 +547,22 @@ export default function App() {
     ])
     setLoadStep(2)
     const [censusData, fmr, floodZone] = await Promise.all([
-      getCensusData(street, city, state, country),
+      getCensusData(resolvedStreet, resolvedCity, resolvedState, resolvedCountry),
       getFairMarketRent(postcode),
       getFloodZone(geo.lat, geo.lon),
     ])
     setLoadStep(3)
-    const riskData = await getRiskData({ lat: geo.lat, lon: geo.lon, county: geo.address?.county, state, country })
+    const riskData = await getRiskData({ lat: geo.lat, lon: geo.lon, county: geo.address?.county, state: resolvedState, country: resolvedCountry })
     const [bulkCompsRes, newsRes] = await Promise.allSettled([
       fetch('/api/comps', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ city, state, country, mode: 'area' }),
+        body: JSON.stringify({ city: resolvedCity, state: resolvedState, country: resolvedCountry, mode: 'area' }),
       }).then(r => r.json()).catch(() => null),
       fetch('/api/news', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ city, state, country }),
+        body: JSON.stringify({ city: resolvedCity, state: resolvedState, country: resolvedCountry }),
       }).then(r => r.json()).catch(() => null),
     ])
     const bulkListings = bulkCompsRes.status === 'fulfilled' ? bulkCompsRes.value?.listings || [] : []
