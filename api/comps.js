@@ -11,9 +11,13 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
   const { street, city, state, country, lat, lon, postcode, mode } = req.body
-  if (!city || !country) return res.status(400).json({ error: 'Missing required fields' })
 
-  const isCanada = country.toLowerCase().includes('canada')
+  // Be resilient — if city or country missing, try to proceed with what we have
+  // lat/lon can substitute for missing city in most fetch functions
+  if (!city && !lat) return res.status(400).json({ error: 'Missing required fields: need city or lat/lon' })
+
+  const isCanada = (country || '').toLowerCase().includes('canada') ||
+    (city || '').toLowerCase().includes('canada')
   // Area mode: fetch bulk listings for aggregation (no street needed)
   const isAreaMode = mode === 'area' || !street
 
