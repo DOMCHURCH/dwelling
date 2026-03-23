@@ -22,6 +22,7 @@ export default async function handler(req, res) {
       email,
       terms_accepted_at: new Date().toISOString(),
       analyses_used: 0,
+      analyses_left: 10,
       is_pro: false,
     }, { onConflict: 'id' })
 
