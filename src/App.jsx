@@ -191,6 +191,9 @@ const Hero = memo(function Hero({ onAnalyze, onSignIn, user, loading }) {
           <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 'clamp(14px,2vw,18px)', color: 'rgba(255,255,255,0.6)', marginBottom: 32, lineHeight: 1.6 }}>
             Instant area intelligence. Real market data. No guesses.
           </p>
+          <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.3)', marginBottom: 8, lineHeight: 1.5 }}>
+            Enter a city name — e.g. <em>Ottawa</em>, <em>Austin</em>, <em>Tokyo</em>
+          </p>
         </motion.div>
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }}>
           <AddressSearch onAnalyze={handleAnalyze} loading={loading} />
@@ -388,10 +391,10 @@ const Pricing = memo(function Pricing({ onUpgrade }) {
         </Reveal>
 
         {/* Pro */}
-        <Reveal delay="reveal-d1">
-          <div className="liquid-glass-strong" style={{ borderRadius: 18, padding: 28, position: 'relative', border: '1px solid rgba(74,222,128,0.2)' }}>
-            <div style={{ position: 'absolute', top: -12, left: 20, background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.3)', borderRadius: 20, padding: '4px 12px', fontSize: 11, color: '#4ade80', fontFamily: "'Barlow',sans-serif", fontWeight: 500 }}>Most popular</div>
-            <div style={{ marginBottom: 20, marginTop: 8 }}>
+        <Reveal delay="reveal-d1" style={{ overflow: 'visible' }}>
+          <div className="liquid-glass-strong" style={{ borderRadius: 18, padding: 28, position: 'relative', border: '1px solid rgba(74,222,128,0.2)', overflow: 'visible' }}>
+            <div style={{ position: 'absolute', top: -14, left: 20, background: '#4ade80', border: 'none', borderRadius: 20, padding: '4px 14px', fontSize: 11, color: '#000', fontFamily: "'Barlow',sans-serif", fontWeight: 600, whiteSpace: 'nowrap', zIndex: 2 }}>Most popular</div>
+            <div style={{ marginBottom: 20, marginTop: 12 }}>
               <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 24, color: '#fff', marginBottom: 4 }}>Pro</div>
               <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.4)' }}><span style={{ fontSize: 28, color: '#fff' }}>$5</span>/month</div>
             </div>
@@ -464,7 +467,11 @@ export default function App() {
   const [showPaywall, setShowPaywall] = useState(false)
 
   useEffect(() => {
+    let cancelled = false
     const checkAuth = async () => {
+      // Small delay prevents Strict Mode double-mount race on Supabase auth lock
+      await new Promise(r => setTimeout(r, 50))
+      if (cancelled) return
       try {
         const { data: { user: authUser } } = await supabase.auth.getUser()
         if (authUser) {
@@ -484,7 +491,7 @@ export default function App() {
           }
         }
       } catch (err) {
-        console.error('Auth check failed:', err)
+        if (err?.name !== 'AbortError') console.error('Auth check failed:', err)
       }
     }
     checkAuth()
@@ -506,7 +513,7 @@ export default function App() {
         setAuthOpen(false)
       }
     })
-    return () => subscription?.unsubscribe()
+    return () => { cancelled = true; subscription?.unsubscribe() }
   }, [])
 
   const getRiskData = async ({ lat, lon, county, state, country }) => {
@@ -584,7 +591,6 @@ export default function App() {
     setLoading(true)
     setError(null)
     setLoadStep(0)
-    setPage('loading') // immediately hide home page
     try {
       // AddressSearch passes a joined string — pass it straight through as freeform
       // runPipeline / geocodeStructured will handle any format via Nominatim free-form fallback
@@ -601,7 +607,7 @@ export default function App() {
         await supabase.from('users').update({ analyses_used: (userRecord?.analyses_used ?? 0) + 1 }).eq('id', user.id)
       }
     } catch (err) {
-      setPage('home') // go back to home on error
+      // stay on home page (page is still 'home')
       if (err.message?.includes('limit reached') || err.message?.includes('429')) setShowPaywall(true)
       else setError(err.message || 'Something went wrong.')
     } finally {
@@ -658,7 +664,7 @@ export default function App() {
       <GlobalBackground />
       <Navbar user={user} userRecord={userRecord} analysesLeft={analysesLeft} isInTrial={isInTrial} trialDaysLeft={trialDaysLeft} onSignOut={handleSignOut} onHome={handleHome} />
       {/* 3 mutually exclusive views: home / loading / dashboard */}
-      {!loading && page === 'home' && (
+      {!loading && page !== 'dashboard' && (
         <>
           <Hero onAnalyze={handleAnalyze} onSignIn={() => setAuthOpen(true)} user={user} loading={loading} />
           <FeaturesChess />
