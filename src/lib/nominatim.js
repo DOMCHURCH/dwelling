@@ -10,37 +10,53 @@ async function nominatimFetch(params) {
   return res.json()
 }
 
-// Geocode with structured fields first, fall back to free-form query if no results
-export async function geocodeStructured({ street, city, state, country }) {
-  // 1. Try structured search
-  const structuredParams = new URLSearchParams({ street, city, country })
-  if (state) structuredParams.set('state', state)
-  let data = await nominatimFetch(structuredParams)
+// Geocode any address string or structured fields.
+// When freeform is provided (user typed a plain string), skip structured parsing
+// and go straight to Nominatim free-form search which handles any format globally.
+export async function geocodeStructured({ street = '', city = '', state = '', country = '', freeform = '' }) {
+  let data = []
 
-  // 2. Fall back to free-form query (handles unusual addresses, abbreviations, etc.)
+  // 1. If we have a freeform string, try it directly first — handles any format
+  if (freeform) {
+    data = await nominatimFetch(new URLSearchParams({ q: freeform }))
+  }
+
+  // 2. Try structured search (used when AddressSearch fields are filled separately)
+  if (!data.length && (city || street)) {
+    const structuredParams = new URLSearchParams()
+    if (street)  structuredParams.set('street', street)
+    if (city)    structuredParams.set('city', city)
+    if (state)   structuredParams.set('state', state)
+    if (country) structuredParams.set('country', country)
+    data = await nominatimFetch(structuredParams)
+  }
+
+  // 3. Free-form fallback from structured fields
   if (!data.length) {
     const q = [street, city, state, country].filter(Boolean).join(', ')
-    data = await nominatimFetch(new URLSearchParams({ q }))
+    if (q) data = await nominatimFetch(new URLSearchParams({ q }))
   }
 
-  // 3. City-only last resort so coordinates are at least in the right area
-  if (!data.length && city && country) {
-    const cityParams = new URLSearchParams({ city, country })
-    if (state) cityParams.set('state', state)
-    data = await nominatimFetch(cityParams)
+  // 4. City + country only as last resort
+  if (!data.length && city) {
+    const p = new URLSearchParams({ city })
+    if (country) p.set('country', country)
+    data = await nominatimFetch(p)
   }
 
-  if (!data.length) throw new Error('Address not found — double-check the street, city, and country.')
+  if (!data.length) throw new Error('Address not found — try a different format, e.g. "Tokyo" or "Paris, France".')
 
   const r = data[0]
+  // Extract best available city/country from Nominatim response
+  const addr = r.address || {}
   return {
     lat: parseFloat(r.lat),
     lon: parseFloat(r.lon),
     displayName: r.display_name,
-    address: r.address,
-    userStreet: street,
-    userCity: city,
-    userState: state,
-    userCountry: country,
+    address: addr,
+    userStreet: street || addr.road || '',
+    userCity: city || addr.city || addr.town || addr.village || addr.county || '',
+    userState: state || addr.state || '',
+    userCountry: country || addr.country || '',
   }
 }
