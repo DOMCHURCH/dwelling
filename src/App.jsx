@@ -563,7 +563,7 @@ export default function App() {
         <CompareView address1={dashboardData?.address} address2={compareAddress} onClose={() => setCompareAddress(null)} user={user} />
       )}
       <AuthModal isOpen={authOpen} onClose={() => setAuthOpen(false)} onSuccess={(u) => { setUser(u); setAuthOpen(false) }} />
-      <PaywallModal isOpen={showPaywall} onClose={() => setShowPaywall(false)} />
+      <PaywallModal isOpen={showPaywall} onClose={() => setShowPaywall(false)} onUpgrade={() => { setShowPaywall(false); window.open('https://buy.stripe.com/your-link', '_blank') }} />
       {termsOpen && <TermsModal onClose={() => setTermsOpen(false)} />}
     </>
   )
