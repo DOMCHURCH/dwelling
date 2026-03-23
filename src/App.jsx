@@ -463,6 +463,8 @@ export default function App() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [compareAddress, setCompareAddress] = useState(null)
+  const [compareResult, setCompareResult] = useState(null)
+  const [loadStep, setLoadStep] = useState(0)
   const [showPaywall, setShowPaywall] = useState(false)
 
   useEffect(() => {
@@ -474,14 +476,13 @@ export default function App() {
           const { data: record } = await supabase.from('users').select('*').eq('id', authUser.id).single()
           if (record) {
             setUserRecord(record)
-            setAnalysesLeft(record.analyses_left ?? FREE_LIMIT)
-            if (record.trial_ends_at) {
-              const now = new Date()
-              const trialEnd = new Date(record.trial_ends_at)
-              if (trialEnd > now) {
+            setAnalysesLeft(record.is_pro ? Infinity : Math.max(0, FREE_LIMIT - (record.analyses_used ?? 0)))
+            if (record.trial_started_at) {
+              const trialStart = new Date(record.trial_started_at)
+              const daysUsed = (Date.now() - trialStart.getTime()) / (1000 * 60 * 60 * 24)
+              if (daysUsed < 7) {
                 setIsInTrial(true)
-                const daysLeft = Math.ceil((trialEnd - now) / (1000 * 60 * 60 * 24))
-                setTrialDaysLeft(Math.max(0, daysLeft))
+                setTrialDaysLeft(Math.max(0, Math.ceil(7 - daysUsed)))
               }
             }
           }
@@ -493,36 +494,142 @@ export default function App() {
     checkAuth()
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_OUT') {
-        setUser(null)
-        setUserRecord(null)
-        setPage('home')
+        setUser(null); setUserRecord(null); setAnalysesLeft(FREE_LIMIT)
+        setIsInTrial(false); setPage('home')
+      } else if (event === 'SIGNED_IN' && session?.user) {
+        setUser(session.user)
+        const { data: record } = await supabase.from('users').select('*').eq('id', session.user.id).maybeSingle()
+        if (record) {
+          setUserRecord(record)
+          setAnalysesLeft(record.is_pro ? Infinity : Math.max(0, FREE_LIMIT - (record.analyses_used ?? 0)))
+          if (record.trial_started_at) {
+            const daysUsed = (Date.now() - new Date(record.trial_started_at).getTime()) / (1000 * 60 * 60 * 24)
+            if (daysUsed < 7) { setIsInTrial(true); setTrialDaysLeft(Math.max(0, Math.ceil(7 - daysUsed))) }
+          }
+        }
+        setAuthOpen(false)
       }
     })
     return () => subscription?.unsubscribe()
   }, [])
 
-  const handleAnalyze = async (address) => {
+  const getRiskData = async ({ lat, lon, county, state, country }) => {
+    try {
+      const res = await fetch('/api/risk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lat, lon, county, state, country }),
+      })
+      if (!res.ok) return null
+      return await res.json()
+    } catch { return null }
+  }
+
+  const runPipeline = async ({ street, city, state, country, knownFacts = {} }) => {
+    const isAreaMode = !street?.trim()
+    const geocodeInput = isAreaMode ? { street: '', city, state, country } : { street, city, state, country }
+    const geo = await geocodeStructured(geocodeInput)
+    setLoadStep(1)
+    const postcode = geo.address?.postcode ?? ''
+    const [weather, climate, neighborhoodScores] = await Promise.all([
+      getCurrentWeather(geo.lat, geo.lon),
+      getClimateNormals(geo.lat, geo.lon),
+      getNeighborhoodScores(geo.lat, geo.lon),
+    ])
+    setLoadStep(2)
+    const [censusData, fmr, floodZone] = await Promise.all([
+      getCensusData(street, city, state, country),
+      getFairMarketRent(postcode),
+      getFloodZone(geo.lat, geo.lon),
+    ])
+    setLoadStep(3)
+    const riskData = await getRiskData({ lat: geo.lat, lon: geo.lon, county: geo.address?.county, state, country })
+    const [bulkCompsRes, newsRes] = await Promise.allSettled([
+      fetch('/api/comps', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ city, state, country, mode: 'area' }),
+      }).then(r => r.json()).catch(() => null),
+      fetch('/api/news', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ city, state, country }),
+      }).then(r => r.json()).catch(() => null),
+    ])
+    const bulkListings = bulkCompsRes.status === 'fulfilled' ? bulkCompsRes.value?.listings || [] : []
+    const newsData = newsRes.status === 'fulfilled' ? newsRes.value : null
+    const areaMetrics = aggregateListings(bulkListings) || null
+    const areaRiskScore = computeRiskScore(areaMetrics, null) || null
+    const marketTemperature = getMarketTemperature(areaMetrics) || null
+    const realData = { neighborhoodScores, censusData, fmr, floodZone, riskData, areaMetrics, areaRiskScore, marketTemperature, newsData, isAreaMode }
+    const ai = await analyzeProperty(geo, weather, climate, knownFacts, realData)
+    setLoadStep(4)
+    return { geo, weather, climate, ai, knownFacts, realData, isAreaMode }
+  }
+
+  const handleAnalyze = async (addressObj) => {
     if (!user) {
       setAuthOpen(true)
       return
     }
-    if (analysesLeft <= 0 && !isInTrial) {
+    if (analysesLeft <= 0 && !isInTrial && !userRecord?.is_pro) {
       setShowPaywall(true)
       return
     }
     setLoading(true)
     setError(null)
+    setLoadStep(0)
     try {
-      const data = await analyzeProperty(address, user.id)
+      // AddressSearch can pass either a string (onAnalyze) or object (onSearch)
+      const parsed = typeof addressObj === 'string'
+        ? { street: '', city: addressObj.trim(), state: '', country: '', knownFacts: {} }
+        : addressObj
+      const data = await runPipeline(parsed)
       setDashboardData(data)
       setPage('dashboard')
-      if (!isInTrial) {
+      // Only decrement for non-trial, non-pro users — server also enforces this
+      if (!isInTrial && !userRecord?.is_pro) {
         const newCount = Math.max(0, analysesLeft - 1)
         setAnalysesLeft(newCount)
-        await supabase.from('users').update({ analyses_left: newCount }).eq('id', user.id)
+        await supabase.from('users').update({ analyses_used: (userRecord?.analyses_used ?? 0) + 1 }).eq('id', user.id)
       }
     } catch (err) {
-      setError(err.message || 'Analysis failed')
+      if (err.message?.includes('limit reached') || err.message?.includes('429')) setShowPaywall(true)
+      else setError(err.message || 'Something went wrong.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleRecalculate = async (corrections) => {
+    if (!dashboardData) return
+    setLoading(true)
+    setError(null)
+    try {
+      const merged = { ...(dashboardData.knownFacts ?? {}), ...corrections }
+      const ai = await analyzeProperty(dashboardData.geo, dashboardData.weather, dashboardData.climate, merged, dashboardData.realData)
+      setDashboardData(p => ({ ...p, ai, knownFacts: merged }))
+    } catch (err) {
+      setError(err.message ?? 'Recalculation failed.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCompare = async (addressObj) => {
+    if (loading) return
+    setLoading(true)
+    setError(null)
+    setLoadStep(0)
+    try {
+      const parsed = typeof addressObj === 'string'
+        ? { street: '', city: addressObj.trim(), state: '', country: '', knownFacts: {} }
+        : addressObj
+      const data = await runPipeline(parsed)
+      setCompareResult(data)
+    } catch (err) {
+      if (err.message?.includes('limit reached') || err.message?.includes('429')) setShowPaywall(true)
+      else setError(err.message ?? 'Something went wrong.')
     } finally {
       setLoading(false)
     }
@@ -554,13 +661,27 @@ export default function App() {
           <FAQ />
         </>
       )}
-      {page === 'dashboard' && dashboardData && (
-        <Suspense fallback={<LoadingState />}>
-          <Dashboard data={dashboardData} onCompare={setCompareAddress} onHome={handleHome} user={user} />
-        </Suspense>
+      {loading && <LoadingState step={loadStep} />}
+      {error && (
+        <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 100, background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.3)', borderRadius: 12, padding: '12px 20px' }}>
+          <p style={{ fontFamily: "'Barlow',sans-serif", fontSize: 13, color: '#f87171', margin: 0 }}>⚠ {error}</p>
+        </div>
       )}
-      {compareAddress && (
-        <CompareView address1={dashboardData?.address} address2={compareAddress} onClose={() => setCompareAddress(null)} user={user} />
+      {page === 'dashboard' && dashboardData && !loading && (
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <div style={{ maxWidth: 960, margin: '0 auto', padding: 'clamp(80px,12vw,100px) 16px 16px' }}>
+            <button onClick={handleHome}
+              style={{ borderRadius: 40, padding: '8px 16px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: 'rgba(255,255,255,0.6)', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.06)', marginBottom: 16 }}>
+              ← New search
+            </button>
+          </div>
+          <Suspense fallback={<LoadingState step={0} />}>
+            <Dashboard data={dashboardData} onRecalculate={handleRecalculate} />
+          </Suspense>
+        </div>
+      )}
+      {compareResult && (
+        <CompareView resultA={dashboardData} resultB={compareResult} onBack={() => setCompareResult(null)} onClearB={() => setCompareResult(null)} />
       )}
       <AuthModal isOpen={authOpen} onClose={() => setAuthOpen(false)} onSuccess={(u) => { setUser(u); setAuthOpen(false) }} />
       <PaywallModal isOpen={showPaywall} onClose={() => setShowPaywall(false)} onUpgrade={() => { setShowPaywall(false); window.open('https://buy.stripe.com/your-link', '_blank') }} />
