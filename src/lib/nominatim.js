@@ -47,16 +47,25 @@ export async function geocodeStructured({ street = '', city = '', state = '', co
   if (!data.length) throw new Error('Address not found — try a different format, e.g. "Tokyo" or "Paris, France".')
 
   const r = data[0]
-  // Extract best available city/country from Nominatim response
   const addr = r.address || {}
+
+  // Nominatim uses many keys for city depending on place type — try all of them
+  const resolvedCity = city ||
+    addr.city || addr.town || addr.village || addr.municipality ||
+    addr.city_district || addr.suburb || addr.county || addr.region || ''
+
+  // Country: prefer what we were given, then Nominatim's country field
+  const resolvedCountry = country || addr.country || ''
+  const resolvedState   = state   || addr.state   || addr.province || ''
+
   return {
     lat: parseFloat(r.lat),
     lon: parseFloat(r.lon),
     displayName: r.display_name,
     address: addr,
-    userStreet: street || addr.road || '',
-    userCity: city || addr.city || addr.town || addr.village || addr.county || '',
-    userState: state || addr.state || '',
-    userCountry: country || addr.country || '',
+    userStreet:  street        || addr.road       || '',
+    userCity:    resolvedCity,
+    userState:   resolvedState,
+    userCountry: resolvedCountry,
   }
 }
