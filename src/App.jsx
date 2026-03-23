@@ -580,9 +580,10 @@ export default function App() {
     setError(null)
     setLoadStep(0)
     try {
-      // AddressSearch can pass either a string (onAnalyze) or object (onSearch)
+      // AddressSearch passes a joined string — pass it straight through as freeform
+      // runPipeline / geocodeStructured will handle any format via Nominatim free-form fallback
       const parsed = typeof addressObj === 'string'
-        ? { street: '', city: addressObj.trim(), state: '', country: '', knownFacts: {} }
+        ? { street: '', city: addressObj.trim(), state: '', country: '', freeform: addressObj.trim(), knownFacts: {} }
         : addressObj
       const data = await runPipeline(parsed)
       setDashboardData(data)
