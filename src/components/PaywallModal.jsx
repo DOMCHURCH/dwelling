@@ -1,7 +1,9 @@
 import { useState } from 'react'
 
-export default function PaywallModal({ onClose, onUpgrade }) {
+export default function PaywallModal({ isOpen, onClose, onUpgrade }) {
   const [selected, setSelected] = useState('monthly')
+
+  if (!isOpen) return null
 
   const btn = (primary) => ({
     width: '100%', padding: '13px', borderRadius: 40, border: 'none', cursor: 'pointer',
