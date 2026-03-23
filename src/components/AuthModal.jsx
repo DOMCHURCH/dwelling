@@ -15,7 +15,15 @@ const inp = {
   fontFamily:"'Barlow',sans-serif", fontWeight:300, transition:'border-color 0.15s, background 0.15s',
 }
 
-export default function AuthModal({ onAuth, onDemo }) {
+export default function AuthModal({ isOpen, onClose, onSuccess, onAuth, onDemo }) {
+  // Support both prop styles: onSuccess (App.jsx) and onAuth (legacy)
+  const handleAuth = (user) => {
+    if (onSuccess) onSuccess(user)
+    if (onAuth) onAuth(user)
+    if (onClose) onClose()
+  }
+
+  if (!isOpen && isOpen !== undefined) return null
   const [mode, setMode] = useState('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -51,7 +59,7 @@ export default function AuthModal({ onAuth, onDemo }) {
 
         // If session exists, email confirmation is disabled in Supabase — proceed directly
         if (data.session) {
-          onAuth(data.user)
+          handleAuth(data.user)
         } else {
           // Email confirmation required — show the confirmation screen
           setConfirmEmail(email)
@@ -59,7 +67,7 @@ export default function AuthModal({ onAuth, onDemo }) {
       } else {
         const { data, error: e } = await supabase.auth.signInWithPassword({ email, password })
         if (e) throw e
-        onAuth(data.user)
+        handleAuth(data.user)
       }
     } catch(e) {
       const msg = e.message ?? ''
