@@ -25,8 +25,7 @@ const TRIAL_DAYS = 7
 
 const HERO_POSTER = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663463031725/5FNF4QVCkxSRz6ba3cCadG/hero-poster-ZHdSBZKm8ENZMaTu9N2eqV.webp'
 const LOGO = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663463031725/5FNF4QVCkxSRz6ba3cCadG/dwelling-logo-3AJU9MMgr8YxSGXWKetVFA.webp'
-const FEATURE_VALUATION = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663463031725/5FNF4QVCkxSRz6ba3cCadG/feature-valuation-6WBABoG6LMJhpCDnAn9n88.webp'
-const FEATURE_NEIGHBORHOOD = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663463031725/5FNF4QVCkxSRz6ba3cCadG/feature-neighborhood-3qp5DELyzSPBFnzNqvRpCf.webp'
+
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 function scrollTo(id) {
@@ -148,30 +147,26 @@ function Navbar({ user, userRecord, analysesLeft, isInTrial, trialDaysLeft, onSi
         </button>
         <div className="liquid-glass nav-links-desktop" style={{ borderRadius: 40, padding: '6px 8px', display: 'flex', alignItems: 'center', gap: 4 }}>
           {links.map(link => (
-            <button key={link.id} onClick={() => scrollTo(link.id)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 400, fontSize: 13, color: 'rgba(255,255,255,0.8)', padding: '6px 14px', borderRadius: 40, transition: 'background 0.15s' }}
-              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.07)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'none'}>
-              {link.label}
-            </button>
+            <button key={link.id} onClick={() => scrollTo(link.id)} style={{ background: 'transparent', border: 'none', color: '#fff', fontFamily: "'Barlow',sans-serif", fontSize: 13, padding: '8px 14px', cursor: 'pointer', borderRadius: 32, transition: 'background 0.2s' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>{link.label}</button>
           ))}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {user ? (
             <>
-              <span className="liquid-glass" style={{ borderRadius: 40, padding: '5px 12px', fontSize: 12, fontFamily: "'Barlow',sans-serif", color: userRecord?.is_pro ? '#fbbf24' : low ? '#f87171' : 'rgba(255,255,255,0.5)' }}>
-                {userRecord?.is_pro ? '★ Pro' : isInTrial ? `⚡ Trial · ${trialDaysLeft}d left` : `${analysesLeft} / 10 left`}
-              </span>
-              <button onClick={onSignOut} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.35)', padding: '5px 8px', transition: 'color 0.2s' }}
-                onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.7)'}
-                onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.35)'}>Sign out</button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginRight: 8 }}>
+                {isInTrial && <div style={{ background: 'rgba(255,193,7,0.15)', border: '1px solid rgba(255,193,7,0.3)', borderRadius: 20, padding: '4px 12px', fontSize: 11, color: '#ffc107', fontFamily: "'Barlow',sans-serif", fontWeight: 500 }}>{trialDaysLeft} days left</div>}
+                {typeof analysesLeft === 'number' && <div style={{ background: low ? 'rgba(248,113,113,0.15)' : 'rgba(74,222,128,0.15)', border: `1px solid rgba(${low ? '248,113,113' : '74,222,128'},0.3)`, borderRadius: 20, padding: '4px 12px', fontSize: 11, color: low ? '#f87171' : '#4ade80', fontFamily: "'Barlow',sans-serif", fontWeight: 500 }}>{analysesLeft}/{FREE_LIMIT}</div>}
+              </div>
+              <button onClick={onSignOut} style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#fff', fontFamily: "'Barlow',sans-serif", fontSize: 12, padding: '6px 14px', cursor: 'pointer', transition: 'background 0.2s' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.12)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}>Sign out</button>
             </>
           ) : (
-            <button onClick={onHome} style={{ background: '#fff', color: '#000', border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13, borderRadius: 40, padding: '8px 18px', display: 'flex', alignItems: 'center', gap: 6, transition: 'transform 0.15s' }}
-              onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.03)'}
-              onMouseLeave={e => e.currentTarget.style.transform = ''}>
-              Get Started ↗
-            </button>
+            <button onClick={onHome} style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#fff', fontFamily: "'Barlow',sans-serif", fontSize: 12, padding: '6px 14px', cursor: 'pointer', transition: 'background 0.2s' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.12)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}>Sign in</button>
           )}
         </div>
       </div>
@@ -180,111 +175,45 @@ function Navbar({ user, userRecord, analysesLeft, isInTrial, trialDaysLeft, onSi
 }
 
 // ─── HERO ────────────────────────────────────────────────────────────────────
-function Hero({ onSearch, loading, onShowDemo }) {
+const Hero = memo(function Hero({ onAnalyze, onSignIn, user }) {
+  const [address, setAddress] = useState('')
+  const [loading, setLoading] = useState(false)
+  const handleAnalyze = async (addr) => {
+    if (!addr?.trim()) return
+    setLoading(true)
+    await onAnalyze(addr)
+    setLoading(false)
+  }
   return (
-    <section id="hero" style={{ position: 'relative', overflow: 'hidden', background: 'transparent', minHeight: 'min(1000px, 100svh)', height: 'auto' }}>
-      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 350, background: 'linear-gradient(to top, #000 40%, transparent)', zIndex: 2 }} />
-      <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', maxWidth: 900, margin: '0 auto', padding: 'clamp(100px, 20vw, 150px) 20px 80px' }}>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }}>
-          <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 16px', marginBottom: 28 }}>
-            <span style={{ background: '#fff', color: '#000', fontSize: 11, fontFamily: "'Barlow',sans-serif", fontWeight: 600, borderRadius: 20, padding: '2px 8px' }}>New</span>
-            <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>Introducing AI-powered area intelligence.</span>
-          </div>
+    <section id="hero" style={{ position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '120px 24px 80px', textAlign: 'center', overflow: 'hidden' }}>
+      <video autoPlay muted loop playsInline style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0, opacity: 0.3 }}>
+        <source src={HERO_POSTER} type="video/webm" />
+      </video>
+      <div style={{ position: 'relative', zIndex: 10, maxWidth: 800 }}>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+          <h1 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2.2rem,10vw,4rem)', color: '#fff', marginBottom: 16, lineHeight: 1, letterSpacing: '-0.02em' }}>Know before you move.</h1>
+          <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 'clamp(14px,2vw,18px)', color: 'rgba(255,255,255,0.6)', marginBottom: 32, lineHeight: 1.6 }}>
+            Instant area intelligence. Real market data. No guesses.
+          </p>
         </motion.div>
-        <h1 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(3rem,9vw,6rem)', color: '#fff', lineHeight: 0.88, letterSpacing: '-0.03em', marginBottom: 28 }}>
-          <BlurText text="Know Any Area Before You Move." delay={0.3} />
-        </h1>
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, delay: 0.8 }}
-          style={{ color: 'rgba(255,255,255,0.5)', fontSize: 16, fontFamily: "'Barlow',sans-serif", fontWeight: 300, maxWidth: 540, lineHeight: 1.7, marginBottom: 40 }}>
-          Type any city or neighbourhood. Get a stability score, market temperature, AI verdict, and local news — all in seconds.
-        </motion.p>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 1.3 }} style={{ width: '100%', maxWidth: 600 }}>
-          <AddressSearch onSearch={onSearch} loading={loading} />
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }}>
+          <AddressSearch onAnalyze={handleAnalyze} loading={loading} />
         </motion.div>
-        <div style={{ display: 'flex', gap: 10, marginTop: 24, flexWrap: 'wrap', justifyContent: 'center' }}>
-          {[['100k+','Cities'],['50+','Countries'],['10','Free / Month'],['<30s','Analysis time']].map(([val, lbl]) => (
-            <div key={lbl} className="liquid-glass" style={{ borderRadius: 40, padding: '7px 16px', display: 'flex', alignItems: 'center', gap: 7 }}>
-              <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 17, color: '#fff' }}>{val}</span>
-              <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>{lbl}</span>
-            </div>
-          ))}
-        </div>
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, delay: 1.6 }} style={{ marginTop: 20 }}>
-          <button onClick={onShowDemo} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.4)', textDecoration: 'underline', textUnderlineOffset: 3, padding: '4px 8px', transition: 'color 0.2s' }}
-            onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.7)'}
-            onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}>
-            or see a sample report →
-          </button>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }} style={{ marginTop: 32, display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center', alignItems: 'center' }} className="hero-pills">
+          <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 24, padding: '8px 16px', fontSize: 12, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif" }}>📍 Global coverage</div>
+          <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 24, padding: '8px 16px', fontSize: 12, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif" }}>⚡ 30 seconds</div>
+          <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 24, padding: '8px 16px', fontSize: 12, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif" }}>🔒 Private</div>
         </motion.div>
-        <div style={{ position: 'absolute', bottom: 28, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, cursor: 'pointer', opacity: 0.4 }} onClick={() => scrollTo('how-it-works')}>
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 9l5 5 5-5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.12em', textTransform: 'uppercase' }}>Scroll</span>
-        </div>
       </div>
     </section>
-  )
-}
-
-// ─── PARTNERS ────────────────────────────────────────────────────────────────
-const Partners = memo(function Partners() {
-  const partners = ['Redfin', 'Open-Meteo', 'US Census', 'HUD', 'FEMA', 'Cerebras']
-  return (
-    <section style={{ padding: '64px 24px' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <div className="liquid-glass" style={{ borderRadius: 40, padding: '4px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 28 }}>
-          Powered by leading data sources
-        </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 32 }}>
-          {partners.map(name => (
-            <span key={name} style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 26, color: 'rgba(255,255,255,0.7)', transition: 'color 0.2s', cursor: 'default' }}
-              onMouseEnter={e => e.currentTarget.style.color = '#fff'}
-              onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.7)'}>{name}</span>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
-})
-
-// ─── HOW IT WORKS ────────────────────────────────────────────────────────────
-const HowItWorks = memo(function HowItWorks() {
-  const steps = [
-    { num: '01', icon: '📍', title: 'Enter a city or neighbourhood', desc: 'Any location in the world. No street address needed — just the area you want to understand.' },
-    { num: '02', icon: '⚡', title: 'We pull real market data', desc: 'Active listings, days on market, inventory levels, census demographics, FEMA risk, walkability — all in real time.' },
-    { num: '03', icon: '🧠', title: 'AI builds your area report', desc: 'Cerebras AI synthesizes everything into a stability score, market verdict, price trends, and investment outlook in under 30 seconds.' },
-  ]
-  return (
-    <Section style={{ minHeight: 'auto', padding: 'clamp(60px, 10vw, 128px) 20px' }}>
-      <div style={{ maxWidth: 900, margin: '0 auto', textAlign: 'center' }} id="how-it-works">
-        <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>How It Works</div>
-        <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2rem,5vw,3.5rem)', color: '#fff', marginBottom: 12, lineHeight: 0.9, letterSpacing: '-0.02em' }}>
-          <BlurText text="Analyze. Understand. Decide." />
-        </h2>
-        <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 15, fontFamily: "'Barlow',sans-serif", fontWeight: 300, maxWidth: 500, lineHeight: 1.7, marginBottom: 56, margin: '0 auto 56px' }}>
-          Enter any city or neighbourhood. Our AI instantly processes listing data, demographics, risk scores, and market trends.
-        </p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 14, textAlign: 'left' }}>
-          {steps.map((s, i) => (
-            <div key={i} className="liquid-glass" style={{ borderRadius: 20, padding: 28, transition: 'transform 0.2s', cursor: 'default' }}
-              onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02) translateY(-3px)'}
-              onMouseLeave={e => e.currentTarget.style.transform = ''}>
-              <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 52, color: 'rgba(255,255,255,0.06)', lineHeight: 1, marginBottom: 14 }}>{s.num}</div>
-              <div className="liquid-glass-strong" style={{ borderRadius: '50%', width: 42, height: 42, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14, fontSize: 17 }}>{s.icon}</div>
-              <h3 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 19, color: '#fff', marginBottom: 10 }}>{s.title}</h3>
-              <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>{s.desc}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </Section>
   )
 })
 
 // ─── FEATURES ────────────────────────────────────────────────────────────────
 const FeaturesChess = memo(function FeaturesChess() {
   const rows = [
-    { title: 'Market stability scored. Not guessed.', desc: 'We aggregate 200+ real listings per area and compute a stability score from price volatility, days on market, and inventory trends. Concrete data, not estimations.', img: FEATURE_VALUATION, reverse: false },
-    { title: "Neighbourhood intelligence — actually real.", desc: "Walkability, transit, schools, flood risk, air quality, seismic risk — all derived from OpenStreetMap, FEMA, EPA, and USGS within 2km.", img: FEATURE_NEIGHBORHOOD, reverse: true },
+    { title: 'Market stability scored. Not guessed.', desc: 'We aggregate 200+ real listings per area and compute a stability score from price volatility, days on market, and inventory trends. Concrete data, not estimations.' },
+    { title: "Neighbourhood intelligence — actually real.", desc: "Walkability, transit, schools, flood risk, air quality, seismic risk — all derived from OpenStreetMap, FEMA, EPA, and USGS within 2km." },
   ]
   return (
     <section id="features" style={{ padding: 'clamp(56px, 8vw, 96px) 24px' }}>
@@ -296,30 +225,16 @@ const FeaturesChess = memo(function FeaturesChess() {
           <BlurText text="Unrivaled insights. Simplified." />
         </h2>
         {rows.map((row, i) => (
-          <div key={i} className="features-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 'clamp(24px, 5vw, 48px)', alignItems: 'center', paddingBottom: 'clamp(32px, 5vw, 48px)', paddingTop: i > 0 ? 'clamp(32px, 5vw, 48px)' : 0, borderBottom: i < rows.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
-            <div style={{ flex: '1 1 260px', order: row.reverse ? 2 : 1 }}>
-              <Reveal>
-                <div>
-                  <h3 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(1.4rem,3vw,1.9rem)', color: '#fff', marginBottom: 14, lineHeight: 1.1 }}>{row.title}</h3>
-                  <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 14, color: 'rgba(255,255,255,0.5)', lineHeight: 1.8, marginBottom: 22 }}>{row.desc}</p>
-                  <button onClick={() => scrollTo('pricing')} style={{ borderRadius: 40, padding: '10px 20px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: '#fff', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', transition: 'transform 0.15s, background 0.15s' }}
-                    onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.04)'; e.currentTarget.style.background = 'rgba(255,255,255,0.12)' }}
-                    onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}>Get started →</button>
-                </div>
-              </Reveal>
-            </div>
-            <div style={{ flex: '1 1 260px', order: row.reverse ? 1 : 2 }}>
-              <Reveal>
-                <div className="liquid-glass" style={{ borderRadius: 18, overflow: 'hidden', aspectRatio: '1 / 1', minHeight: 280, background: 'linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.06) 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'transform 0.3s ease' }}
-                  onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
-                  onMouseLeave={e => e.currentTarget.style.transform = ''}>
-                  <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontFamily: "'Barlow',sans-serif", fontSize: 13 }}>
-                    <div style={{ fontSize: 'clamp(28px, 8vw, 48px)', marginBottom: 12 }}>{i === 0 ? '📊' : '🗺️'}</div>
-                    <div style={{ fontWeight: 300, fontSize: 'clamp(12px, 2vw, 14px)' }}>{i === 0 ? 'Real Market Data' : 'Neighborhood Scores'}</div>
-                  </div>
-                </div>
-              </Reveal>
-            </div>
+          <div key={i} className="features-row" style={{ paddingBottom: 'clamp(32px, 5vw, 48px)', paddingTop: i > 0 ? 'clamp(32px, 5vw, 48px)' : 0, borderBottom: i < rows.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+            <Reveal>
+              <div>
+                <h3 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(1.4rem,3vw,1.9rem)', color: '#fff', marginBottom: 14, lineHeight: 1.1 }}>{row.title}</h3>
+                <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 14, color: 'rgba(255,255,255,0.5)', lineHeight: 1.8, marginBottom: 22 }}>{row.desc}</p>
+                <button onClick={() => scrollTo('pricing')} style={{ borderRadius: 40, padding: '10px 20px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: '#fff', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', transition: 'transform 0.15s, background 0.15s' }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.04)'; e.currentTarget.style.background = 'rgba(255,255,255,0.12)' }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}>Get started →</button>
+              </div>
+            </Reveal>
           </div>
         ))}
       </div>
@@ -456,554 +371,200 @@ const Pricing = memo(function Pricing({ onUpgrade }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 14 }}>
 
         {/* Free */}
-        <div className="liquid-glass" style={{ borderRadius: 18, padding: 28, display: 'flex', flexDirection: 'column' }}>
-          <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 21, color: '#fff', marginBottom: 4 }}>Free</div>
-          <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.35)', marginBottom: 14 }}>Good for exploring</div>
-          <div style={{ marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-            <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 44, color: '#fff' }}>$0</span>
-            <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 15, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>/month</span>
+        <Reveal>
+          <div className="liquid-glass" style={{ borderRadius: 18, padding: 28 }}>
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 24, color: '#fff', marginBottom: 4 }}>Free</div>
+              <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>Get started instantly</div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
+              {PRICING_FREE.map((item, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <span style={{ color: '#4ade80', marginTop: 2, fontSize: 16 }}>✓</span>
+                  <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>{item.text}</span>
+                </div>
+              ))}
+            </div>
+            <button onClick={() => scrollTo('hero')} style={{ width: '100%', borderRadius: 40, padding: '10px 20px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: '#fff', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', background: 'transparent', transition: 'background 0.2s' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>Get started</button>
           </div>
-          <div style={{ flex: 1, marginBottom: 24 }}>
-            {PRICING_FREE.map(f => (
-              <div key={f.text} style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10, opacity: f.locked ? 0.35 : 1 }}>
-                <span style={{ fontSize: 12, color: f.locked ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.4)' }}>{f.locked ? '🔒' : '✓'}</span>
-                <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: f.locked ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.6)', textDecoration: f.locked ? 'line-through' : 'none' }}>{f.text}</span>
-              </div>
-            ))}
-          </div>
-          <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} style={{ width: '100%', borderRadius: 40, padding: '12px', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13, background: 'rgba(255,255,255,0.08)', color: '#fff', border: 'none', cursor: 'pointer', transition: 'transform 0.15s' }}
-            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
-            onMouseLeave={e => e.currentTarget.style.transform = ''}>Start for free</button>
-        </div>
+        </Reveal>
 
-        {/* Pro Monthly */}
-        <div className="liquid-glass-strong" style={{ borderRadius: 18, padding: 28, border: '1px solid rgba(255,255,255,0.2)', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <div style={{ background: '#fff', color: '#000', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 10, borderRadius: 20, padding: '3px 10px' }}>Most Popular</div>
+        {/* Pro */}
+        <Reveal delay="reveal-d1">
+          <div className="liquid-glass-strong" style={{ borderRadius: 18, padding: 28, position: 'relative', border: '1px solid rgba(74,222,128,0.2)' }}>
+            <div style={{ position: 'absolute', top: -12, left: 20, background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.3)', borderRadius: 20, padding: '4px 12px', fontSize: 11, color: '#4ade80', fontFamily: "'Barlow',sans-serif", fontWeight: 500 }}>Most popular</div>
+            <div style={{ marginBottom: 20, marginTop: 8 }}>
+              <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 24, color: '#fff', marginBottom: 4 }}>Pro</div>
+              <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.4)' }}><span style={{ fontSize: 28, color: '#fff' }}>$5</span>/month</div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
+              {PRICING_PRO.map((item, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <span style={{ color: item.highlight ? '#4ade80' : 'rgba(255,255,255,0.3)', marginTop: 2, fontSize: 16 }}>✓</span>
+                  <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: item.highlight ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.5)' }}>{item.text}</span>
+                </div>
+              ))}
+            </div>
+            <button onClick={onUpgrade} style={{ width: '100%', borderRadius: 40, padding: '10px 20px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: '#000', border: 'none', cursor: 'pointer', background: '#4ade80', transition: 'opacity 0.2s' }}
+              onMouseEnter={e => e.currentTarget.style.opacity = '0.9'}
+              onMouseLeave={e => e.currentTarget.style.opacity = '1'}>Upgrade now</button>
           </div>
-          <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 21, color: '#fff', marginBottom: 4 }}>Pro</div>
-          <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 14 }}>Full intelligence for every location decision</div>
-          <div style={{ marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-            <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 44, color: '#fff' }}>$5</span>
-            <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 15, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>/month</span>
-          </div>
-          <div style={{ flex: 1, marginBottom: 16 }}>
-            {PRICING_PRO.map(f => (
-              <div key={f.text} style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}>
-                <span style={{ fontSize: 12, color: f.highlight ? '#4ade80' : '#fff' }}>✓</span>
-                <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: f.highlight ? 400 : 300, fontSize: 13, color: f.highlight ? '#fff' : 'rgba(255,255,255,0.8)' }}>{f.text}</span>
-              </div>
-            ))}
-          </div>
-          <div style={{ marginBottom: 16, padding: '10px 14px', background: 'rgba(74,222,128,0.06)', borderRadius: 10, border: '1px solid rgba(74,222,128,0.15)' }}>
-            <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(74,222,128,0.8)', fontWeight: 300 }}>✓ Cancel anytime · No commitment</span>
-          </div>
-          <button onClick={onUpgrade} style={{ width: '100%', borderRadius: 40, padding: '13px', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13, background: '#fff', color: '#000', border: 'none', cursor: 'pointer', transition: 'transform 0.15s' }}
-            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
-            onMouseLeave={e => e.currentTarget.style.transform = ''}>Upgrade to Pro — $5/month →</button>
-          <div style={{ textAlign: 'center', marginTop: 8 }}>
-            <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.25)', fontWeight: 300 }}>Cancel anytime · Full refund if not satisfied</span>
-          </div>
-        </div>
-
-
-
+        </Reveal>
       </div>
     </section>
   )
 })
 
-// ─── CTA + FOOTER ────────────────────────────────────────────────────────────
-function CTAFooter({ onTermsClick, onScrollToTop, onUpgrade }) {
+// ─── HOW IT WORKS ────────────────────────────────────────────────────────────
+const HowItWorks = memo(function HowItWorks() {
+  const steps = [
+    { num: '01', title: 'Enter an address', desc: 'Search any neighbourhood in the world.' },
+    { num: '02', title: 'We analyze instantly', desc: '15+ data sources aggregated in real-time.' },
+    { num: '03', title: 'Get your report', desc: 'Market trends, risks, and neighbourhood scores.' },
+  ]
   return (
-    <Section>
-      <div style={{ maxWidth: 860, margin: '0 auto', textAlign: 'center', padding: 'clamp(60px, 10vw, 128px) 20px 60px' }}>
-        <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2.2rem,6vw,4.5rem)', color: '#fff', lineHeight: 0.9, letterSpacing: '-0.03em', marginBottom: 20 }}>
-          <BlurText text="Your next area decision starts here." />
+    <section id="how-it-works" style={{ padding: 'clamp(56px, 8vw, 96px) 24px' }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+        <Reveal>
+          <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>Process</div>
+        </Reveal>
+        <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2rem,5vw,3.5rem)', color: '#fff', marginBottom: 'clamp(32px,5vw,56px)', lineHeight: 0.9, letterSpacing: '-0.02em' }}>
+          <BlurText text="Three steps to clarity." />
         </h2>
-        <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 16, color: 'rgba(255,255,255,0.5)', marginBottom: 28, lineHeight: 1.7 }}>
-          Free to start. Instant results. No credit card required.
-        </p>
-        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 28 }}>
-          {[
-            { quote: 'I was about to buy in a neighborhood that looked perfect on Zillow. Dwelling showed me the flood zone risk I completely missed. Saved me from a potential disaster.', name: 'Marcus T.', detail: 'First-time buyer, Austin TX' },
-            { quote: 'I had 2 weeks to decide between Toronto, Vancouver, and Calgary. Dwelling let me run full analysis on each in one afternoon. The market intel alone justified the upgrade.', name: 'Priya M.', detail: 'Relocating to Canada' },
-          ].map(t => (
-            <div key={t.name} className="liquid-glass" style={{ borderRadius: 14, padding: '14px 18px', maxWidth: 260, textAlign: 'left' }}>
-              <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.7)', fontStyle: 'italic', lineHeight: 1.5, marginBottom: 8 }}>"{t.quote}"</p>
-              <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 400, fontSize: 12, color: '#fff' }}>{t.name}</div>
-              <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{t.detail}</div>
-            </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 24 }} className="how-it-works-grid">
+          {steps.map((step, i) => (
+            <Reveal key={i} delay={`reveal-d${i % 3 + 1}`}>
+              <div style={{ paddingLeft: 16 }}>
+                <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2.4rem,6vw,3.2rem)', color: 'rgba(255,255,255,0.08)', lineHeight: 1, marginBottom: 8 }}>{step.num}</div>
+                <h3 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(1.2rem,2.5vw,1.5rem)', color: '#fff', marginBottom: 8, lineHeight: 1.2 }}>{step.title}</h3>
+                <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>{step.desc}</p>
+              </div>
+            </Reveal>
           ))}
         </div>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <button onClick={onScrollToTop} style={{ borderRadius: 40, padding: '13px 28px', fontFamily: "'Barlow',sans-serif", fontSize: 14, color: '#fff', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', transition: 'transform 0.15s' }}
-            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.04)'}
-            onMouseLeave={e => e.currentTarget.style.transform = ''}>Start for free →</button>
-          <button onClick={onUpgrade} style={{ borderRadius: 40, padding: '13px 28px', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 14, background: '#fff', color: '#000', border: 'none', cursor: 'pointer', transition: 'transform 0.15s' }}
-            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.04)'}
-            onMouseLeave={e => e.currentTarget.style.transform = ''}>Upgrade to Pro</button>
-        </div>
       </div>
-      <footer style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '24px', position: 'relative', zIndex: 2 }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 14 }}>
-          <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 17, color: 'rgba(255,255,255,0.4)' }}>Dwelling</div>
-          <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>© 2026 Dwelling. All rights reserved.</span>
-          <div style={{ display: 'flex', gap: 18 }}>
-            <button onClick={onTermsClick} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.3)', textDecoration: 'underline', padding: 0, transition: 'color 0.2s' }}
-              onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.6)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.3)'}>Terms & Conditions</button>
-            <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>Not financial advice</span>
-          </div>
-        </div>
-      </footer>
-    </Section>
+    </section>
   )
-}
+})
 
-// ─── DEMO RESULT (Ottawa, ON — shown before login) ───────────────────────────
-const DEMO_RESULT = {
-  isAreaMode: true,
-  geo: {
-    lat: 45.4215, lon: -75.6972,
-    displayName: 'Ottawa, Ontario, Canada',
-    userCity: 'Ottawa', userCountry: 'Canada', userState: 'Ontario', userStreet: '',
-    address: { city: 'Ottawa', state: 'Ontario', country: 'Canada', postcode: 'K1P' },
-  },
-  weather: {
-    current: { temperature_2m: 4, weather_code: 3 },
-  },
-  climate: {
-    avgHighC: 11, avgLowC: -1, avgPrecipMm: 2.8,
-  },
-  knownFacts: {},
-  realData: {
-    isAreaMode: true,
-    areaMetrics: {
-      medianPrice: 649000, avgPrice: 712000,
-      priceRange: { low: 389000, high: 980000 },
-      medianDOM: 22, count: 214,
-      priceVolatility: 0.18,
-      slowListingPct: 14, fastListingPct: 31,
-    },
-    areaRiskScore: {
-      score: 68,
-      label: 'Transitional Market',
-      color: '#fbbf24',
-      emoji: '🟡',
-      factors: [
-        { label: 'Stable pricing', impact: 0, icon: '✅' },
-        { label: 'Normal market pace (22 days)', impact: 0, icon: '✅' },
-        { label: '31% of homes sell in <2 weeks', impact: 5, icon: '🚀' },
-      ],
-    },
-    marketTemperature: { label: 'Balanced Market', color: '#a78bfa' },
-    neighborhoodScores: {
-      walkScore: 72, transitScore: 65, schoolScore: 81,
-      walkability: 72, transit: 65, schools: 81, parks: 78, groceries: 84,
-    },
-    censusData: { medianHouseholdIncome: 94000, medianHomeValueUSD: 620000, medianGrossRentUSD: 1820, ownerPct: 61, renterPct: 39 },
-    fmr: { twoBed: 1820 },
-    floodZone: { zone: 'X', description: 'Minimal flood risk' },
-    riskData: {
-      overall: { score: 3.2, label: 'Low' },
-      hazards: {
-        riverine_flooding: { score: 1.1, label: 'Low' },
-        wildfire: { score: 0.6, label: 'Low' },
-        earthquake: { score: 0.4, label: 'Low' },
-        strong_wind: { score: 2.8, label: 'Low' },
-      },
-      airQuality: { pm25Percentile: 28 },
-      ejscreen: { dieselPctile: 15, pm25Pctile: 28 },
-    },
-    newsData: {
-      city: 'Ottawa',
-      articles: [
-        { title: 'Ottawa condo market softens as inventory rises in 2025', source: 'Ottawa Citizen', url: '#', date: '2025-02-10' },
-        { title: 'Centretown sees renewed buyer interest after rate cuts', source: 'CBC Ottawa', url: '#', date: '2025-01-28' },
-        { title: 'Gatineau vs Ottawa: where first-time buyers are actually buying', source: 'Ottawa Citizen', url: '#', date: '2025-01-15' },
-      ],
-    },
-  },
-  ai: {
-    areaIntelligence: {
-      verdict: 'Good',
-      verdictReason: 'Stable government employment base, reasonable prices, and low natural risk make Ottawa a reliable long-term market.',
-      stabilityScore: 68,
-      marketConditions: 'Ottawa is a balanced market as of early 2025. The government employment base provides a meaningful price floor — federal job stability insulates the market from the volatility seen in Toronto or Vancouver. Median days on market sits at 22, and 31% of listings move within 14 days, signalling genuine buyer demand without the frenzy of a hot market.',
-      priceTrend: 'Prices are flat to modestly down (-2 to -4%) from their 2022 peak, partially recovered through 2024. The $649,000 median reflects a market that corrected without collapsing. Condos have softened more than detached homes, where supply remains tight.',
-      investmentOutlook: 'Moderate long-term upside. Immigration-driven population growth and persistent new construction shortfall support prices over a 3-5 year horizon.',
-      risks: ['Federal public sector dependency — government restructuring could reduce demand', 'Mortgage renewals at higher rates through 2025-2026', 'Condo market softer than detached homes'],
-      upsides: ['Stable government employment base provides price floor', 'Strong school ratings across central neighbourhoods', 'Lower volatility than Toronto or Vancouver', 'Growing tech sector diversifying beyond government'],
-      liveability: 'High. Walkability scores of 72 in central neighbourhoods, strong parks and greenspace.',
-      bestFor: 'Government employees, families prioritising school quality, risk-averse investors',
-    },
-    propertyEstimate: {
-      estimatedValueUSD: 649000,
-      pricePerSqftUSD: 412,
-      rentEstimateMonthlyUSD: 1820,
-      confidenceLevel: 'medium',
-      confidenceScore: 62,
-      compsUsed: 214,
-      priceRange: { low: 520000, high: 780000 },
-      priceContext: 'Based on 214 active listings in the Ottawa area. Median price of CA$649,000 reflects a stable market that corrected from its 2022 peak.',
-    },
-    costOfLiving: {
-      monthlyBudgetUSD: 3200,
-      groceriesMonthlyUSD: 480,
-      transportMonthlyUSD: 160,
-      utilitiesMonthlyUSD: 220,
-      diningOutMonthlyUSD: 340,
-      indexVsUSAverage: 108,
-      summary: 'Ottawa is moderately expensive — roughly 8% above the US average. Housing dominates the budget, with groceries and utilities at near-average levels.',
-    },
-    neighborhood: {
-      walkScore: 72,
-      transitScore: 65,
-      safetyRating: 74,
-      schoolRating: 81,
-      character: 'A stable, bilingual capital city with a strong government employment base and growing tech sector. Central neighbourhoods are walkable and family-friendly, with the Glebe and Westboro being the most sought-after.',
-      pros: ['Strong schools', 'Safe neighbourhoods', 'Rideau Canal'],
-      cons: ['Cold winters', 'Government-dependent economy'],
-      bestFor: 'Families, government employees, risk-averse buyers',
-    },
-    investment: {
-      rentYieldPercent: 3.4,
-      investmentScore: 64,
-      appreciationOutlook: 'neutral',
-      appreciationOutlookText: 'Moderate long-term appreciation expected as rates stabilise and supply remains constrained.',
-      investmentSummary: 'Solid long-term hold. Not a high-growth market but one of the most stable in Canada. Best for buy-and-hold rather than flipping.',
-    },
-    localInsights: {
-      knownFor: 'A federal government town with a growing private sector and genuinely liveable neighbourhoods.',
-      topAttractions: ['Rideau Canal (skating in winter, cycling in summer)', 'ByWard Market', 'Parliament Hill', 'Gatineau Park'],
-      localTip: 'The Glebe and Westboro command premium prices but hold value well. Vanier and Hintonburg offer better entry prices with improving amenities.',
-      languageNote: 'Bilingual city — French services widely available, especially in Gatineau across the river.',
-    },
-    priceHistory: {
-      currency: 'CAD',
-      currencySymbol: 'CA$',
-      marketNote: 'Ottawa prices surged through 2021-2022 driven by pandemic demand and low rates, then corrected 12-15% through 2023. The market has stabilised in 2024-2025 with modest recovery, and modest appreciation is expected through 2026-2027.',
-      data: [
-        { year: 2019, value: 430000, type: 'historical' },
-        { year: 2020, value: 480000, type: 'historical' },
-        { year: 2021, value: 580000, type: 'historical' },
-        { year: 2022, value: 740000, type: 'historical' },
-        { year: 2023, value: 650000, type: 'historical' },
-        { year: 2024, value: 635000, type: 'historical' },
-        { year: 2025, value: 649000, type: 'historical' },
-        { year: 2026, value: 672000, type: 'projected' },
-        { year: 2027, value: 695000, type: 'projected' },
-      ],
-    },
-    riskData: null,
-    floorPlan: { typicalSqft: 1450, typicalBeds: 3, typicalBaths: 2 },
-  },
-}
-
-
+// ─── MAIN APP ────────────────────────────────────────────────────────────────
 export default function App() {
-  const [loading, setLoading] = useState(false)
-  const [loadStep, setLoadStep] = useState(0)
-  const [result, setResult] = useState(null)
-  const [error, setError] = useState(null)
-  const [showTerms, setShowTerms] = useState(false)
-  const [showPaywall, setShowPaywall] = useState(false)
+  const [page, setPage] = useState('home')
+  const [authOpen, setAuthOpen] = useState(false)
+  const [termsOpen, setTermsOpen] = useState(false)
   const [user, setUser] = useState(null)
   const [userRecord, setUserRecord] = useState(null)
-  const [authLoading, setAuthLoading] = useState(true)
-  const [showDemo, setShowDemo] = useState(false)
-  const [teaserCity, setTeaserCity] = useState(null)
-  const [compareResult, setCompareResult] = useState(null)
-  const [comparingMode, setComparingMode] = useState(false)
-  const [previewPlan, setPreviewPlan] = useState('pro') // 'free' | 'pro'
-  const realtimeRef = useRef(null)
-
-  const scrollTo = (id) => {
-    const el = document.getElementById(id)
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    else window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-
-  const subscribeToUserRecord = (userId) => {
-    if (realtimeRef.current) supabase.removeChannel(realtimeRef.current)
-    const ch = supabase.channel(`user-${userId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'users', filter: `id=eq.${userId}` }, p => { if (p.new) setUserRecord(p.new) })
-      .subscribe()
-    realtimeRef.current = ch
-  }
-
-  const loadUserRecord = async (userId) => {
-    const { data } = await supabase.from('users').select('*').eq('id', userId).maybeSingle()
-    if (data) { setUserRecord(data) } else {
-      let n = 0
-      const iv = setInterval(async () => {
-        n++
-        const { data: r } = await supabase.from('users').select('*').eq('id', userId).maybeSingle()
-        if (r) { setUserRecord(r); clearInterval(iv) }
-        if (n >= 10) clearInterval(iv)
-      }, 600)
-    }
-    subscribeToUserRecord(userId)
-  }
+  const [analysesLeft, setAnalysesLeft] = useState(FREE_LIMIT)
+  const [isInTrial, setIsInTrial] = useState(false)
+  const [trialDaysLeft, setTrialDaysLeft] = useState(TRIAL_DAYS)
+  const [dashboardData, setDashboardData] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+  const [compareAddress, setCompareAddress] = useState(null)
+  const [showPaywall, setShowPaywall] = useState(false)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) { setUser(session.user); loadUserRecord(session.user.id) }
-      setAuthLoading(false)
+    const checkAuth = async () => {
+      try {
+        const { data: { user: authUser } } = await supabase.auth.getUser()
+        if (authUser) {
+          setUser(authUser)
+          const { data: record } = await supabase.from('users').select('*').eq('id', authUser.id).single()
+          if (record) {
+            setUserRecord(record)
+            setAnalysesLeft(record.analyses_left ?? FREE_LIMIT)
+            if (record.trial_ends_at) {
+              const now = new Date()
+              const trialEnd = new Date(record.trial_ends_at)
+              if (trialEnd > now) {
+                setIsInTrial(true)
+                const daysLeft = Math.ceil((trialEnd - now) / (1000 * 60 * 60 * 24))
+                setTrialDaysLeft(Math.max(0, daysLeft))
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Auth check failed:', err)
+      }
+    }
+    checkAuth()
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT') {
+        setUser(null)
+        setUserRecord(null)
+        setPage('home')
+      }
     })
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
-      if (session?.user) { setUser(session.user); loadUserRecord(session.user.id) }
-      else { setUser(null); setUserRecord(null); if (realtimeRef.current) supabase.removeChannel(realtimeRef.current) }
-    })
-    return () => { subscription.unsubscribe(); if (realtimeRef.current) supabase.removeChannel(realtimeRef.current) }
+    return () => subscription?.unsubscribe()
   }, [])
 
-  useEffect(() => {
-    if (result) {
-      const addr = [result.geo.userStreet, result.geo.userCity, result.geo.userCountry].filter(Boolean).join(', ')
-      document.title = `${addr} — Dwelling`
-    } else document.title = 'Dwelling — Property Intelligence'
-  }, [result])
+  const handleAnalyze = async (address) => {
+    if (!user) {
+      setAuthOpen(true)
+      return
+    }
+    if (analysesLeft <= 0 && !isInTrial) {
+      setShowPaywall(true)
+      return
+    }
+    setLoading(true)
+    setError(null)
+    try {
+      const data = await analyzeProperty(address, user.id)
+      setDashboardData(data)
+      setPage('dashboard')
+      if (!isInTrial) {
+        const newCount = Math.max(0, analysesLeft - 1)
+        setAnalysesLeft(newCount)
+        await supabase.from('users').update({ analyses_left: newCount }).eq('id', user.id)
+      }
+    } catch (err) {
+      setError(err.message || 'Analysis failed')
+    } finally {
+      setLoading(false)
+    }
+  }
 
-  const handleAuth = u => { setUser(u); loadUserRecord(u.id) }
   const handleSignOut = async () => {
     await supabase.auth.signOut()
-    setUser(null); setUserRecord(null); setResult(null)
-    if (realtimeRef.current) supabase.removeChannel(realtimeRef.current)
   }
 
-  const getRiskData = async ({ lat, lon, county, state, country }) => {
-    try {
-      const res = await fetch('/api/risk', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lat, lon, county, state, country }),
-      })
-      if (!res.ok) return null
-      return await res.json()
-    } catch { return null }
+  const handleHome = () => {
+    setPage('home')
+    setDashboardData(null)
+    setCompareAddress(null)
   }
-
-  const handleSearch = async ({ street, city, state, country, knownFacts }) => {
-    if (loading) return
-    setLoading(true); setError(null); setResult(null); setLoadStep(0)
-    const isAreaMode = !street.trim()
-    try {
-      const geocodeInput = isAreaMode ? { street: '', city, state, country } : { street, city, state, country }
-      const geo = await geocodeStructured(geocodeInput); setLoadStep(1)
-      const postcode = geo.address?.postcode ?? ''
-      const [weather, climate, neighborhoodScores] = await Promise.all([getCurrentWeather(geo.lat, geo.lon), getClimateNormals(geo.lat, geo.lon), getNeighborhoodScores(geo.lat, geo.lon)]); setLoadStep(2)
-      const [censusData, fmr, floodZone] = await Promise.all([getCensusData(street, city, state, country), getFairMarketRent(postcode), getFloodZone(geo.lat, geo.lon)]); setLoadStep(3)
-      const riskData = await getRiskData({ lat: geo.lat, lon: geo.lon, county: geo.address?.county, state, country }).catch(() => null)
-
-      const [bulkCompsRes, newsRes] = await Promise.allSettled([
-        fetch('/api/comps', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ city, state, country, mode: 'area' }),
-        }).then(r => r.json()).catch(() => null),
-        fetch('/api/news', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ city, state, country }),
-        }).then(r => r.json()).catch(() => null),
-      ])
-
-      const bulkListings = bulkCompsRes.status === 'fulfilled' ? bulkCompsRes.value?.listings || [] : []
-      const newsData = newsRes.status === 'fulfilled' ? newsRes.value : null
-      const areaMetrics = aggregateListings(bulkListings) || null
-      const areaRiskScore = computeRiskScore(areaMetrics, null) || null
-      const marketTemperature = getMarketTemperature(areaMetrics) || null
-
-      const realData = { neighborhoodScores, censusData, fmr, floodZone, riskData, areaMetrics, areaRiskScore, marketTemperature, newsData, isAreaMode }
-      const ai = await analyzeProperty(geo, weather, climate, knownFacts ?? {}, realData); setLoadStep(4)
-      setResult({ geo, weather, climate, ai, knownFacts: knownFacts ?? {}, realData, isAreaMode })
-    } catch (err) {
-      if (err.message?.includes('context invalidated')) return
-      if (err.message?.includes('limit reached') || err.message?.includes('429')) setShowPaywall(true)
-      else setError(err.message ?? 'Something went wrong.')
-    } finally { setLoading(false) }
-  }
-
-  const handleRecalculate = async corrections => {
-    if (!result) return
-    setLoading(true); setError(null)
-    try {
-      const merged = { ...(result.knownFacts ?? {}), ...corrections }
-      const ai = await analyzeProperty(result.geo, result.weather, result.climate, merged, result.realData)
-      setResult(p => ({ ...p, ai, knownFacts: merged }))
-    } catch (err) { setError(err.message ?? 'Recalculation failed.') }
-    finally { setLoading(false) }
-  }
-
-  const handleCompareSearch = async ({ street, city, state, country }) => {
-    if (loading) return
-    setLoading(true); setError(null); setLoadStep(0)
-    const isAreaMode = !street.trim()
-    try {
-      const geocodeInput = isAreaMode ? { street: '', city, state, country } : { street, city, state, country }
-      const geo = await geocodeStructured(geocodeInput); setLoadStep(1)
-      const postcode = geo.address?.postcode ?? ''
-      const [weather, climate, neighborhoodScores] = await Promise.all([getCurrentWeather(geo.lat, geo.lon), getClimateNormals(geo.lat, geo.lon), getNeighborhoodScores(geo.lat, geo.lon)]); setLoadStep(2)
-      const [censusData, fmr, floodZone] = await Promise.all([getCensusData(street, city, state, country), getFairMarketRent(postcode), getFloodZone(geo.lat, geo.lon)]); setLoadStep(3)
-      const riskData = await fetch('/api/risk', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lat: geo.lat, lon: geo.lon, county: geo.address?.county, state, country }) }).then(r => r.ok ? r.json() : null).catch(() => null)
-      const [bulkCompsRes, newsRes] = await Promise.allSettled([
-        fetch('/api/comps', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ city, state, country, mode: 'area' }) }).then(r => r.json()).catch(() => null),
-        fetch('/api/news', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ city, state, country }) }).then(r => r.json()).catch(() => null),
-      ])
-      const bulkListings = bulkCompsRes.status === 'fulfilled' ? bulkCompsRes.value?.listings || [] : []
-      const newsData = newsRes.status === 'fulfilled' ? newsRes.value : null
-      const areaMetrics = aggregateListings(bulkListings) || null
-      const areaRiskScore = computeRiskScore(areaMetrics, null) || null
-      const marketTemperature = getMarketTemperature(areaMetrics) || null
-      const realData = { neighborhoodScores, censusData, fmr, floodZone, riskData, areaMetrics, areaRiskScore, marketTemperature, newsData, isAreaMode }
-      const ai = await analyzeProperty(geo, weather, climate, {}, realData); setLoadStep(4)
-      setCompareResult({ geo, weather, climate, ai, knownFacts: {}, realData, isAreaMode })
-      setComparingMode(false)
-    } catch (err) {
-      if (err.message?.includes('limit reached') || err.message?.includes('429')) setShowPaywall(true)
-      else setError(err.message ?? 'Something went wrong.')
-    } finally { setLoading(false) }
-  }
-
-  const trialDaysLeft = userRecord?.trial_started_at
-    ? Math.max(0, TRIAL_DAYS - Math.floor((Date.now() - new Date(userRecord.trial_started_at).getTime()) / (1000 * 60 * 60 * 24)))
-    : null
-  const isInTrial = trialDaysLeft !== null && trialDaysLeft > 0 && !userRecord?.is_pro
-  const analysesLeft = userRecord ? (userRecord.is_pro ? '∞' : isInTrial ? '∞' : Math.max(0, FREE_LIMIT - (userRecord.analyses_used ?? 0))) : '...'
-
-  if (authLoading) return (
-    <div style={{ minHeight: '100vh', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 28, color: '#fff' }}>
-        DW<span style={{ opacity: 0.4 }}>.</span>ELLING
-      </div>
-    </div>
-  )
-
-  // Allow unauthenticated users to view the demo
-  if (!user && !showDemo) return <AuthModal onAuth={handleAuth} onDemo={() => setShowDemo(true)} />
-
-  if (showDemo) return (
-    <div style={{ minHeight: '100vh', background: '#000', display: 'flex', flexDirection: 'column' }}>
-      <GlobalBackground />
-      <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50, padding: '12px 16px', background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <img src={LOGO} alt="Dwelling" style={{ width: 36, height: 36, borderRadius: 8 }} />
-            <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 20, color: '#fff' }}>Dwelling</span>
-          </div>
-          <div className="liquid-glass" style={{ borderRadius: 40, padding: '6px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase' }}>Sample Report</span>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ade80', display: 'inline-block' }} />
-          </div>
-          <button onClick={() => setShowDemo(false)} style={{ background: '#fff', color: '#000', border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13, borderRadius: 40, padding: '8px 18px', transition: 'transform 0.15s' }}
-            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.03)'}
-            onMouseLeave={e => e.currentTarget.style.transform = ''}>
-            Sign up free →
-          </button>
-        </div>
-      </nav>
-      <div style={{ maxWidth: 960, margin: '0 auto', padding: 'clamp(80px, 12vw, 100px) 16px 60px', width: '100%', position: 'relative', zIndex: 1 }}>
-        <div className="liquid-glass" style={{ borderRadius: 12, padding: '10px 18px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 14 }}>👆</span>
-          <p style={{ fontFamily: "'Barlow',sans-serif", fontSize: 13, color: 'rgba(255,255,255,0.6)', fontWeight: 300 }}>This is a real sample report for Ottawa, Ontario. <button onClick={() => setShowDemo(false)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontSize: 13, textDecoration: 'underline', padding: 0 }}>Sign up free</button> to run your own.</p>
-        </div>
-        <Suspense fallback={<LoadingState step={0} />}>
-          <Dashboard data={DEMO_RESULT} onRecalculate={() => {}} />
-        </Suspense>
-      </div>
-    </div>
-  )
 
   return (
-    <div style={{ minHeight: '100vh', background: '#000', display: 'flex', flexDirection: 'column' }}>
+    <>
       <GlobalBackground />
-      {showTerms && <TermsModal onClose={() => setShowTerms(false)} />}
-      {showPaywall && <PaywallModal onClose={() => setShowPaywall(false)} onUpgrade={() => alert('Stripe coming soon! Full refund guaranteed if not satisfied.')} />}
-      <Navbar user={user} userRecord={userRecord} analysesLeft={analysesLeft} isInTrial={isInTrial} trialDaysLeft={trialDaysLeft} onSignOut={handleSignOut}
-        onHome={() => { setResult(null); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
-        onScrollTo={scrollTo} />
-
-      {(result || loading) ? (
-        <div style={{ maxWidth: compareResult ? 1200 : 960, margin: '0 auto', padding: 'clamp(80px, 12vw, 100px) 16px 60px', width: '100%', position: 'relative', zIndex: 1 }}>
-          {!loading && result && !compareResult && !comparingMode && (
-            <div style={{ marginBottom: 22 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
-                <button onClick={() => { setResult(null); setCompareResult(null); setComparingMode(false) }}
-                  style={{ borderRadius: 40, padding: '8px 16px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: 'rgba(255,255,255,0.6)', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)', transition: 'transform 0.15s' }}
-                  onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.04)'}
-                  onMouseLeave={e => e.currentTarget.style.transform = ''}>
-                  ← New search
-                </button>
-                <button onClick={() => setComparingMode(true)}
-                  style={{ borderRadius: 40, padding: '8px 16px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: '#fff', border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer', background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(12px)', transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 6 }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.09)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)' }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)' }}>
-                  ⚖️ Compare with another area
-                </button>
-              </div>
-              {/* Admin plan preview switcher */}
-              {user?.email === '01dominique.c@gmail.com' && (
-                <div className="liquid-glass" style={{ borderRadius: 14, padding: '10px 14px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                  <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>👁 Preview as:</span>
-                  {[['free', 'Free'], ['pro', 'Pro']].map(([val, label]) => (
-                    <button key={val} onClick={() => setPreviewPlan(val)}
-                      style={{ borderRadius: 40, padding: '5px 14px', fontSize: 12, fontFamily: "'Barlow',sans-serif", fontWeight: previewPlan === val ? 600 : 300, border: 'none', cursor: 'pointer', background: previewPlan === val ? '#fff' : 'rgba(255,255,255,0.06)', color: previewPlan === val ? '#000' : 'rgba(255,255,255,0.5)', transition: 'all 0.15s' }}>
-                      {label}
-                    </button>
-                  ))}
-                  <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.2)', marginLeft: 'auto' }}>Admin only</span>
-                </div>
-              )}
-              <AddressSearch onSearch={handleSearch} loading={loading} compact />
-            </div>
-          )}
-          {!loading && comparingMode && (
-            <div style={{ marginBottom: 22 }}>
-              <div className="liquid-glass" style={{ borderRadius: 14, padding: '14px 18px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ fontSize: 16 }}>⚖️</span>
-                <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>
-                  Search a second area to compare against <span style={{ color: '#fff' }}>{result?.geo?.displayName?.split(',')[0]}</span>
-                </span>
-                <button onClick={() => setComparingMode(false)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>×</button>
-              </div>
-              <AddressSearch onSearch={handleCompareSearch} loading={loading} compact />
-            </div>
-          )}
-          {loading && <LoadingState step={loadStep} />}
-          {error && (
-            <div className="liquid-glass" style={{ borderRadius: 12, padding: '12px 18px', border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.08)', marginBottom: 14 }}>
-              <p style={{ fontFamily: "'Barlow',sans-serif", fontSize: 13, color: '#f87171' }}>⚠ {error}</p>
-            </div>
-          )}
-          {result && !loading && compareResult && (
-            <CompareView
-              resultA={result}
-              resultB={compareResult}
-              onBack={() => setCompareResult(null)}
-              onClearB={() => { setCompareResult(null); setComparingMode(true) }}
-            />
-          )}
-          {result && !loading && !compareResult && <Suspense fallback={<LoadingState step={0} />}><Dashboard data={result} onRecalculate={handleRecalculate} previewPlan={user?.email === '01dominique.c@gmail.com' ? previewPlan : 'pro'} /></Suspense>}
-        </div>
-      ) : (
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <Hero onSearch={handleSearch} loading={loading} onShowDemo={() => setShowDemo(true)} />
-          <Partners />
-          <HowItWorks />
+      <Navbar user={user} userRecord={userRecord} analysesLeft={analysesLeft} isInTrial={isInTrial} trialDaysLeft={trialDaysLeft} onSignOut={handleSignOut} onHome={handleHome} />
+      {page === 'home' && (
+        <>
+          <Hero onAnalyze={handleAnalyze} onSignIn={() => setAuthOpen(true)} user={user} />
           <FeaturesChess />
           <FeaturesGrid />
+          <HowItWorks />
           <Stats />
+          <Testimonials />
           <Pricing onUpgrade={() => setShowPaywall(true)} />
           <FAQ />
-          <CTAFooter
-            onTermsClick={() => setShowTerms(true)}
-            onScrollToTop={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            onUpgrade={() => setShowPaywall(true)}
-          />
-        </div>
+        </>
       )}
-    </div>
+      {page === 'dashboard' && dashboardData && (
+        <Suspense fallback={<LoadingState />}>
+          <Dashboard data={dashboardData} onCompare={setCompareAddress} onHome={handleHome} user={user} />
+        </Suspense>
+      )}
+      {compareAddress && (
+        <CompareView address1={dashboardData?.address} address2={compareAddress} onClose={() => setCompareAddress(null)} user={user} />
+      )}
+      <AuthModal isOpen={authOpen} onClose={() => setAuthOpen(false)} onSuccess={(u) => { setUser(u); setAuthOpen(false) }} />
+      <PaywallModal isOpen={showPaywall} onClose={() => setShowPaywall(false)} />
+      {termsOpen && <TermsModal onClose={() => setTermsOpen(false)} />}
+    </>
   )
 }
