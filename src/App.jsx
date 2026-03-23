@@ -175,14 +175,10 @@ function Navbar({ user, userRecord, analysesLeft, isInTrial, trialDaysLeft, onSi
 }
 
 // ─── HERO ────────────────────────────────────────────────────────────────────
-const Hero = memo(function Hero({ onAnalyze, onSignIn, user }) {
-  const [address, setAddress] = useState('')
-  const [loading, setLoading] = useState(false)
-  const handleAnalyze = async (addr) => {
+const Hero = memo(function Hero({ onAnalyze, onSignIn, user, loading }) {
+  const handleAnalyze = (addr) => {
     if (!addr?.trim()) return
-    setLoading(true)
-    await onAnalyze(addr)
-    setLoading(false)
+    onAnalyze(addr)
   }
   return (
     <section id="hero" style={{ position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '120px 24px 80px', textAlign: 'center', overflow: 'hidden' }}>
@@ -588,6 +584,7 @@ export default function App() {
     setLoading(true)
     setError(null)
     setLoadStep(0)
+    setPage('loading') // immediately hide home page
     try {
       // AddressSearch passes a joined string — pass it straight through as freeform
       // runPipeline / geocodeStructured will handle any format via Nominatim free-form fallback
@@ -604,6 +601,7 @@ export default function App() {
         await supabase.from('users').update({ analyses_used: (userRecord?.analyses_used ?? 0) + 1 }).eq('id', user.id)
       }
     } catch (err) {
+      setPage('home') // go back to home on error
       if (err.message?.includes('limit reached') || err.message?.includes('429')) setShowPaywall(true)
       else setError(err.message || 'Something went wrong.')
     } finally {
@@ -659,9 +657,10 @@ export default function App() {
     <>
       <GlobalBackground />
       <Navbar user={user} userRecord={userRecord} analysesLeft={analysesLeft} isInTrial={isInTrial} trialDaysLeft={trialDaysLeft} onSignOut={handleSignOut} onHome={handleHome} />
-      {page === 'home' && (
+      {/* 3 mutually exclusive views: home / loading / dashboard */}
+      {!loading && page === 'home' && (
         <>
-          <Hero onAnalyze={handleAnalyze} onSignIn={() => setAuthOpen(true)} user={user} />
+          <Hero onAnalyze={handleAnalyze} onSignIn={() => setAuthOpen(true)} user={user} loading={loading} />
           <FeaturesChess />
           <FeaturesGrid />
           <HowItWorks />
@@ -671,13 +670,17 @@ export default function App() {
           <FAQ />
         </>
       )}
-      {loading && <LoadingState step={loadStep} />}
+      {loading && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 50, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <LoadingState step={loadStep} />
+        </div>
+      )}
       {error && (
         <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 100, background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.3)', borderRadius: 12, padding: '12px 20px' }}>
           <p style={{ fontFamily: "'Barlow',sans-serif", fontSize: 13, color: '#f87171', margin: 0 }}>⚠ {error}</p>
         </div>
       )}
-      {page === 'dashboard' && dashboardData && !loading && (
+      {!loading && page === 'dashboard' && dashboardData && (
         <div style={{ position: 'relative', zIndex: 1 }}>
           <div style={{ maxWidth: 960, margin: '0 auto', padding: 'clamp(80px,12vw,100px) 16px 16px' }}>
             <button onClick={handleHome}
