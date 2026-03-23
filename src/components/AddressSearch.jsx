@@ -19,7 +19,7 @@ const btn = (valid, loading) => ({
 const hover = e => { e.currentTarget.style.transform = 'scale(1.02)' }
 const unhover = e => { e.currentTarget.style.transform = '' }
 
-export default function AddressSearch({ onSearch, loading, compact }) {
+export default function AddressSearch({ onAnalyze, onSearch, loading, compact }) {
   const [city, setCity]       = useState('')
   const [state, setState]     = useState('')
   const [country, setCountry] = useState('')
@@ -27,7 +27,10 @@ export default function AddressSearch({ onSearch, loading, compact }) {
   const submit = (e) => {
     e.preventDefault()
     if (!city.trim() || !country.trim()) return
-    onSearch({ street: '', city: city.trim(), state: state.trim(), country: country.trim(), knownFacts: {} })
+    const parts = [city.trim(), state.trim(), country.trim()].filter(Boolean)
+    const addressString = parts.join(', ')
+    if (onAnalyze) onAnalyze(addressString)
+    else if (onSearch) onSearch({ street: '', city: city.trim(), state: state.trim(), country: country.trim(), knownFacts: {} })
   }
   const valid = city.trim() && country.trim()
   const focus = e => { e.target.style.borderColor = 'rgba(255,255,255,0.3)'; e.target.style.background = 'rgba(255,255,255,0.08)' }
