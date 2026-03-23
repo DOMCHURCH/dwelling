@@ -212,9 +212,14 @@ section {
     contain: layout;
   }
 
-  /* Features chess: always column on mobile */
+  /* Features chess: responsive grid on mobile */
   .features-row {
-    flex-direction: column !important;
+    grid-template-columns: 1fr !important;
+    gap: 24px !important;
+  }
+  
+  .features-row > div {
+    order: unset !important;
   }
 
   /* Pricing grid: single column on mobile */
@@ -305,5 +310,15 @@ section {
   #pricing {
     padding-left: 14px !important;
     padding-right: 14px !important;
+  }
+  
+  #features {
+    padding: 40px 16px !important;
+  }
+  
+  .features-row {
+    gap: 16px !important;
+    padding-bottom: 24px !important;
+    padding-top: 24px !important;
   }
 }
