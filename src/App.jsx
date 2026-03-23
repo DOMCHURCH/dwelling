@@ -473,7 +473,9 @@ export default function App() {
       await new Promise(r => setTimeout(r, 50))
       if (cancelled) return
       try {
-        const { data: { user: authUser } } = await supabase.auth.getUser()
+        // Use getSession (no lock) instead of getUser to avoid competing with cerebrasChat
+        const { data: { session: authSession } } = await supabase.auth.getSession()
+        const authUser = authSession?.user
         if (authUser) {
           setUser(authUser)
           const { data: record } = await supabase.from('users').select('*').eq('id', authUser.id).single()
@@ -600,6 +602,7 @@ export default function App() {
       const data = await runPipeline(parsed)
       setDashboardData(data)
       setPage('dashboard')
+      window.scrollTo({ top: 0, behavior: 'instant' })
       // Only decrement for non-trial, non-pro users — server also enforces this
       if (!isInTrial && !userRecord?.is_pro) {
         const newCount = Math.max(0, analysesLeft - 1)
@@ -682,8 +685,8 @@ export default function App() {
         </div>
       )}
       {error && (
-        <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 100, background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.3)', borderRadius: 12, padding: '12px 20px' }}>
-          <p style={{ fontFamily: "'Barlow',sans-serif", fontSize: 13, color: '#f87171', margin: 0 }}>⚠ {error}</p>
+        <div onClick={() => setError(null)} style={{ position: 'fixed', bottom: 32, left: '50%', transform: 'translateX(-50%)', zIndex: 200, background: 'rgba(15,15,15,0.95)', border: '1px solid rgba(248,113,113,0.5)', borderRadius: 16, padding: '14px 24px', cursor: 'pointer', maxWidth: 480, width: '90vw', boxShadow: '0 8px 32px rgba(0,0,0,0.6)' }}>
+          <p style={{ fontFamily: "'Barlow',sans-serif", fontSize: 13, color: '#f87171', margin: 0, textAlign: 'center' }}>⚠ {error} <span style={{ opacity: 0.5, marginLeft: 8 }}>tap to dismiss</span></p>
         </div>
       )}
       {!loading && page === 'dashboard' && dashboardData && (
