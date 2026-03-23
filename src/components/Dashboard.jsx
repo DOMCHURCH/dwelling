@@ -134,7 +134,7 @@ function IncomeSlider({ costOfLiving, sym }) {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
         <StatCard label="Monthly cost" value={fmtUSD(total, sym)} sub="estimated total" />
-        <StatCard label="vs US Average" value={costOfLiving.indexVsUSAverage ? `${costOfLiving.indexVsUSAverage > 0 ? '+' : ''}${costOfLiving.indexVsUSAverage}%` : '—'}
+        <StatCard label="vs US Average" value={costOfLiving.indexVsUSAverage ? `${costOfLiving.indexVsUSAverage > 0 ? '+' : ''}${Math.round(costOfLiving.indexVsUSAverage)}%` : '—'}
           accent={costOfLiving.indexVsUSAverage > 15 ? '#f87171' : costOfLiving.indexVsUSAverage < -15 ? '#4ade80' : '#ffffff'} />
       </div>
       <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 14, fontFamily: "'Barlow', sans-serif", fontWeight: 300, lineHeight: 1.7 }}>{costOfLiving.summary}</p>
@@ -632,16 +632,7 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro' }) 
         </div>
       </SectionCard>
 
-      {/* Investment — hidden on free plan */}
-      {isLocked('investment') && (
-        <div className="liquid-glass" style={{ borderRadius: 18, padding: 28, border: '1px solid rgba(251,191,36,0.15)', display: 'flex', alignItems: 'center', gap: 16 }}>
-          <span style={{ fontSize: 24 }}>🔒</span>
-          <div>
-            <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 16, color: '#fff', marginBottom: 4 }}>Investment Analysis</div>
-            <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>Upgrade to Pro for rent yield, investment score, appreciation outlook and full AI analysis.</div>
-          </div>
-        </div>
-      )}
+
 
       {/* Local Insights */}
       <SectionCard title="Local Insights" icon="🗺" delay={350}>
