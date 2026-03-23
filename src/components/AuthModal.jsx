@@ -16,14 +16,6 @@ const inp = {
 }
 
 export default function AuthModal({ isOpen, onClose, onSuccess, onAuth, onDemo }) {
-  // Support both prop styles: onSuccess (App.jsx) and onAuth (legacy)
-  const handleAuth = (user) => {
-    if (onSuccess) onSuccess(user)
-    if (onAuth) onAuth(user)
-    if (onClose) onClose()
-  }
-
-  if (!isOpen && isOpen !== undefined) return null
   const [mode, setMode] = useState('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -32,6 +24,16 @@ export default function AuthModal({ isOpen, onClose, onSuccess, onAuth, onDemo }
   const [error, setError] = useState(null)
   const [showTerms, setShowTerms] = useState(false)
   const [confirmEmail, setConfirmEmail] = useState(null)
+
+  // Support both prop styles: onSuccess (App.jsx) and onAuth (legacy)
+  const handleAuth = (user) => {
+    if (onSuccess) onSuccess(user)
+    if (onAuth) onAuth(user)
+    if (onClose) onClose()
+  }
+
+  // Guard AFTER all hooks
+  if (!isOpen && isOpen !== undefined) return null
 
   const submit = async () => {
     if (!email || !password) return setError('Please fill in all fields.')
