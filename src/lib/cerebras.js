@@ -24,7 +24,7 @@ async function cerebrasChat(messages, json = false, skipCount = false, token) {
       model: MODEL,
       messages,
       temperature: 0.15,
-      max_tokens: 4096,
+      max_tokens: 2048,
       ...(json && { response_format: { type: 'json_object' } }),
     }),
   })
@@ -396,29 +396,15 @@ OPENSTREETMAP REAL DATA:
 
   // ── AREA MODE: simplified prompt + schema ──────────────────────────────────
   if (isAreaMode) {
-    const areaCot = `You are a senior real estate market analyst with deep knowledge of ${city}, ${country}.
+    // Single-call area analysis — no chain-of-thought to stay within Vercel 60s limit
+    const areaJsonPrompt = `You are a licensed real estate analyst specializing in ${city}, ${country}.
 
-AREA INTELLIGENCE REPORT FOR: ${city}${state ? ', ' + state : ''}, ${country}
+AREA DATA:
 ${areaContext}
 ${marketContext2}
 ${riskContext}
 
-Analyze this area across 6 dimensions:
-1. MARKET CONDITIONS: What do the listing data signals mean? Is supply rising or falling? Who has negotiating power?
-2. PRICE TRENDS: Where are prices now, where were they 2 years ago, where are they heading in 2026-2027?
-3. INVESTMENT OUTLOOK: Gross rental yield, net yield, landlord vs tenant market, realistic horizon for positive return.
-4. LIVEABILITY: Cost of living, commute, schools, walkability, safety, community character.
-5. WHO SHOULD MOVE HERE: Families, young professionals, retirees, investors? Who does this area suit best?
-6. RISKS & UPSIDES: 3 specific downside risks, 3 specific upside catalysts.
-
-Be specific, honest, and evidence-based. End with: READY_FOR_JSON`
-
-    const areaReasoning = await cerebrasChat([
-      { role: 'system', content: `You are a licensed real estate analyst specializing in ${city}, ${country}. Provide precise, evidence-based area intelligence.` },
-      { role: 'user', content: areaCot }
-    ], false, false, authToken)
-
-    const areaJsonPrompt = `Based on your analysis, produce a JSON area intelligence report. Return ONLY valid raw JSON, no markdown.
+Produce a JSON area intelligence report. Return ONLY valid raw JSON, no markdown, no explanation.
 
 {
   "areaIntelligence": {
@@ -488,9 +474,7 @@ Be specific, honest, and evidence-based. End with: READY_FOR_JSON`
 }
 `
     const areaRaw = await cerebrasChat([
-      { role: 'system', content: `You are a licensed real estate analyst. Return only valid JSON.` },
-      { role: 'user', content: areaCot },
-      { role: 'assistant', content: areaReasoning },
+      { role: 'system', content: `You are a licensed real estate analyst for ${city}, ${country}. Return only valid JSON with no markdown.` },
       { role: 'user', content: areaJsonPrompt }
     ], true, true, authToken)
 
