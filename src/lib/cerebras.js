@@ -7,17 +7,11 @@ import { formatAreaContextForPrompt } from './areaAnalysis'
 const CEREBRAS_BASE = '/api/cerebras'
 const MODEL = 'llama-3.1-8b'
 
-async function getAuthToken() {
-  // Use getSession only — refreshSession acquires an exclusive browser lock
-  // that conflicts with concurrent calls during analysis pipeline
-  const { data: { session } } = await supabase.auth.getSession()
-  return session?.access_token ?? null
-}
-
-// cerebrasChat accepts a pre-fetched token to avoid multiple lock acquisitions
-async function cerebrasChat(messages, json = false, skipCount = false, token = null) {
-  const authToken = token ?? await getAuthToken()
-  if (!authToken) throw new Error('Not authenticated. Please sign in again.')
+// cerebrasChat — token MUST be pre-fetched by caller (analyzeProperty)
+// Never call getSession/getUser here — causes lock contention with Supabase internals
+async function cerebrasChat(messages, json = false, skipCount = false, token) {
+  if (!token) throw new Error('Not authenticated. Please sign in again.')
+  const authToken = token
 
   const res = await fetch(CEREBRAS_BASE, {
     method: 'POST',
@@ -338,9 +332,9 @@ function finalizeAnalysis(est, known, realData, currency, currencySymbol, city, 
   return est
 }
 
-export async function analyzeProperty(geoData, weatherData, climateData, knownFacts = {}, realData = {}) {
-  // Acquire auth token once for the entire pipeline — avoids repeated lock acquisitions
-  const authToken = await getAuthToken()
+export async function analyzeProperty(geoData, weatherData, climateData, knownFacts = {}, realData = {}, authToken = null) {
+  // authToken must be passed in from App.jsx — never fetched inside this function
+  // Fetching here would race with Supabase's internal lock management
   if (!authToken) throw new Error('Not authenticated. Please sign in again.')
   const street = geoData.userStreet || geoData.address?.road || ''
   const city = geoData.userCity || geoData.address?.city || geoData.address?.town || ''
