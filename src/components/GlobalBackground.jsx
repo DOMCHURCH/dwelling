@@ -25,11 +25,11 @@ export default function GlobalBackground() {
     if (!container || !THREE) return
 
     const scene = new THREE.Scene()
-    const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, -1)
+    const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1)
+    const clock = new THREE.Clock()
 
-    // FIX 10: 1.0 pixel ratio on mobile, 1.5 cap on desktop
     const isMobile = navigator.maxTouchPoints > 0
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true })
+    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: !isMobile })
     renderer.setPixelRatio(isMobile ? 1.0 : Math.min(window.devicePixelRatio, 1.5))
     renderer.setSize(container.offsetWidth, container.offsetHeight)
     renderer.setClearColor(0x000000, 0)
@@ -39,89 +39,79 @@ export default function GlobalBackground() {
     renderer.domElement.style.display = 'block'
 
     const uniforms = {
-      resolution: { value: [container.offsetWidth, container.offsetHeight] },
-      time:       { value: 0.0 },
-      xScale:     { value: 1.0 },
-      yScale:     { value: 0.5 },
-      distortion: { value: 0.05 },
+      iTime:       { value: 0 },
+      iResolution: { value: new THREE.Vector2(container.offsetWidth, container.offsetHeight) },
+      iMouse:      { value: new THREE.Vector2(container.offsetWidth / 2, container.offsetHeight / 2) },
     }
 
     const vertexShader = `
-      attribute vec3 position;
       void main() {
         gl_Position = vec4(position, 1.0);
       }
     `
 
+    // Warp drive tunnel shader — chromatic aberration tunnel effect
     const fragmentShader = `
       precision highp float;
-      uniform vec2 resolution;
-      uniform float time;
-      uniform float xScale;
-      uniform float yScale;
-      uniform float distortion;
+      uniform vec2 iResolution;
+      uniform float iTime;
+      uniform vec2 iMouse;
 
       void main() {
-        vec2 p = (gl_FragCoord.xy * 2.0 - resolution) / min(resolution.x, resolution.y);
-        float d = length(p) * distortion;
-        float rx = p.x * (1.0 + d);
-        float gx = p.x;
-        float bx = p.x * (1.0 - d);
-        float r = 0.05 / abs(p.y + sin((rx + time) * xScale) * yScale);
-        float g = 0.05 / abs(p.y + sin((gx + time) * xScale) * yScale);
-        float b = 0.05 / abs(p.y + sin((bx + time) * xScale) * yScale);
-        gl_FragColor = vec4(r * 0.6, g * 0.6, b * 0.6, 1.0);
+        vec2 uv    = (gl_FragCoord.xy - 0.5 * iResolution.xy) / iResolution.y;
+        vec2 mouse = (iMouse          - 0.5 * iResolution.xy) / iResolution.y;
+
+        float t = iTime * 0.4;
+        uv -= mouse * 0.15;
+
+        float r = length(uv);
+        float offset = 0.012;
+
+        vec3 col = vec3(0.0);
+        col.r = pow(fract(0.5 / length(uv + vec2(offset, 0.0)) + t * 2.0), 15.0);
+        col.g = pow(fract(0.5 / length(uv)                     + t * 2.0), 15.0);
+        col.b = pow(fract(0.5 / length(uv - vec2(offset, 0.0)) + t * 2.0), 15.0);
+
+        // Fade edges so it blends with the black background
+        float fade = smoothstep(0.0, 0.08, r) * smoothstep(1.2, 0.3, r);
+        col *= fade * 0.85;
+
+        gl_FragColor = vec4(col, 1.0);
       }
     `
 
-    const positions = new THREE.BufferAttribute(new Float32Array([
-      -1.0, -1.0, 0.0,
-       1.0, -1.0, 0.0,
-      -1.0,  1.0, 0.0,
-       1.0, -1.0, 0.0,
-      -1.0,  1.0, 0.0,
-       1.0,  1.0, 0.0,
-    ]), 3)
-
-    const geometry = new THREE.BufferGeometry()
-    geometry.setAttribute('position', positions)
-
-    const material = new THREE.RawShaderMaterial({
-      vertexShader,
-      fragmentShader,
-      uniforms,
-      side: THREE.DoubleSide,
-    })
-
+    const geometry = new THREE.PlaneGeometry(2, 2)
+    const material = new THREE.ShaderMaterial({ vertexShader, fragmentShader, uniforms })
     const mesh = new THREE.Mesh(geometry, material)
     scene.add(mesh)
 
-    let animationId = null
     let paused = false
 
     const animate = () => {
-      animationId = requestAnimationFrame(animate)
-      if (sceneRef.current) sceneRef.current._animId = animationId
-      // FIX 1 & 2: skip GPU work entirely when paused
+      if (!sceneRef.current) return
+      sceneRef.current._animId = requestAnimationFrame(animate)
       if (paused) return
-      uniforms.time.value += 0.01
+      uniforms.iTime.value = clock.getElapsedTime()
       renderer.render(scene, camera)
     }
-
     animate()
 
     const handleResize = () => {
       if (!container) return
-      renderer.setSize(container.offsetWidth, container.offsetHeight)
-      uniforms.resolution.value = [container.offsetWidth, container.offsetHeight]
+      const w = container.offsetWidth, h = container.offsetHeight
+      renderer.setSize(w, h)
+      uniforms.iResolution.value.set(w, h)
     }
     window.addEventListener('resize', handleResize)
 
-    // FIX 2: pause when tab loses focus
+    const handleMouse = (e) => {
+      uniforms.iMouse.value.set(e.clientX, container.offsetHeight - e.clientY)
+    }
+    window.addEventListener('mousemove', handleMouse)
+
     const handleVisibility = () => { paused = document.hidden }
     document.addEventListener('visibilitychange', handleVisibility)
 
-    // FIX 1: pause when hero is scrolled out of view
     const observer = new IntersectionObserver(
       ([entry]) => { paused = !entry.isIntersecting || document.hidden },
       { threshold: 0 }
@@ -129,9 +119,9 @@ export default function GlobalBackground() {
     observer.observe(container)
 
     sceneRef.current = {
-      scene, renderer, geometry, material,
-      handleResize, handleVisibility, observer,
-      _animId: animationId,
+      scene, renderer, geometry, material, clock,
+      handleResize, handleMouse, handleVisibility, observer,
+      _animId: sceneRef.current?._animId,
       _script: sceneRef.current?._script,
     }
   }
@@ -140,12 +130,13 @@ export default function GlobalBackground() {
     const s = sceneRef.current
     if (!s) return
     if (s._animId) cancelAnimationFrame(s._animId)
-    if (s.handleResize) window.removeEventListener('resize', s.handleResize)
+    if (s.handleResize)     window.removeEventListener('resize', s.handleResize)
+    if (s.handleMouse)      window.removeEventListener('mousemove', s.handleMouse)
     if (s.handleVisibility) document.removeEventListener('visibilitychange', s.handleVisibility)
-    if (s.observer) s.observer.disconnect()
-    if (s.geometry) s.geometry.dispose()
-    if (s.material) s.material.dispose()
-    if (s.renderer) s.renderer.dispose()
+    if (s.observer)  s.observer.disconnect()
+    if (s.geometry)  s.geometry.dispose()
+    if (s.material)  s.material.dispose()
+    if (s.renderer)  s.renderer.dispose()
     if (s._script && document.head.contains(s._script)) document.head.removeChild(s._script)
   }
 
@@ -157,8 +148,9 @@ export default function GlobalBackground() {
         inset: 0,
         zIndex: 0,
         pointerEvents: 'none',
-        WebkitMaskImage: 'linear-gradient(to bottom, black 40%, transparent 100%)',
-        maskImage: 'linear-gradient(to bottom, black 40%, transparent 100%)',
+        // Fade out toward bottom so content sections stay dark
+        WebkitMaskImage: 'linear-gradient(to bottom, black 50%, transparent 100%)',
+        maskImage:       'linear-gradient(to bottom, black 50%, transparent 100%)',
       }}
     />
   )
