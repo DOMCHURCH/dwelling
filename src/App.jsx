@@ -494,11 +494,11 @@ export default function App() {
   useEffect(() => {
     let cancelled = false
     const checkAuth = async () => {
-      // Small delay prevents Strict Mode double-mount race on Supabase auth lock
-      await new Promise(r => setTimeout(r, 50))
+      // Delay long enough for React Strict Mode double-mount to resolve
+      // The first mount's getSession lock must be released before we call it
+      await new Promise(r => setTimeout(r, 300))
       if (cancelled) return
       try {
-        // Use getSession (no lock) instead of getUser to avoid competing with cerebrasChat
         const { data: { session: authSession } } = await supabase.auth.getSession()
         const authUser = authSession?.user
         if (authUser) {
@@ -558,7 +558,8 @@ export default function App() {
   const runPipeline = async ({ street, city, state, country, freeform, knownFacts = {} }) => {
     const isAreaMode = !street?.trim()
 
-    // Get session token — safe to call here, analysis runs outside any auth lock window
+    // Small pause to ensure any in-progress auth operations have released the lock
+    await new Promise(r => setTimeout(r, 100))
     const { data: { session: pipelineSession } } = await supabase.auth.getSession()
     const pipelineToken = pipelineSession?.access_token
     if (!pipelineToken) throw new Error('Session expired. Please sign in again.')
