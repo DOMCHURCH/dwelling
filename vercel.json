@@ -2,12 +2,6 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
-  "functions": {
-    "api/cerebras.js": { "maxDuration": 60 },
-    "api/comps.js":    { "maxDuration": 30 },
-    "api/news.js":     { "maxDuration": 30 },
-    "api/risk.js":     { "maxDuration": 30 }
-  },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/((?!api).*)", "destination": "/index.html" }
