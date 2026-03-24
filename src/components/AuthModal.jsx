@@ -15,7 +15,7 @@ const inp = {
   fontFamily:"'Barlow',sans-serif", fontWeight:300, transition:'border-color 0.15s, background 0.15s',
 }
 
-export default function AuthModal({ isOpen, onClose, onSuccess, onAuth, onDemo }) {
+export default function AuthModal({ onAuth, onDemo }) {
   const [mode, setMode] = useState('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -24,16 +24,6 @@ export default function AuthModal({ isOpen, onClose, onSuccess, onAuth, onDemo }
   const [error, setError] = useState(null)
   const [showTerms, setShowTerms] = useState(false)
   const [confirmEmail, setConfirmEmail] = useState(null)
-
-  // Support both prop styles: onSuccess (App.jsx) and onAuth (legacy)
-  const handleAuth = (user) => {
-    if (onSuccess) onSuccess(user)
-    if (onAuth) onAuth(user)
-    if (onClose) onClose()
-  }
-
-  // Guard AFTER all hooks
-  if (!isOpen && isOpen !== undefined) return null
 
   const submit = async () => {
     if (!email || !password) return setError('Please fill in all fields.')
@@ -61,7 +51,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, onAuth, onDemo }
 
         // If session exists, email confirmation is disabled in Supabase — proceed directly
         if (data.session) {
-          handleAuth(data.user)
+          onAuth(data.user)
         } else {
           // Email confirmation required — show the confirmation screen
           setConfirmEmail(email)
@@ -69,7 +59,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, onAuth, onDemo }
       } else {
         const { data, error: e } = await supabase.auth.signInWithPassword({ email, password })
         if (e) throw e
-        handleAuth(data.user)
+        onAuth(data.user)
       }
     } catch(e) {
       const msg = e.message ?? ''
