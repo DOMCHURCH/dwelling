@@ -301,7 +301,7 @@ const FeaturesChess = memo(function FeaturesChess() {
     },
     {
       title: 'One score. Clear decision.',
-      desc: 'Following the best-practice recommendation to turn raw indicators into clear, actionable scores — we produce a single Investment Score and Market Verdict so you know exactly what you're looking at.',
+      desc: 'Following the best-practice recommendation to turn raw indicators into clear, actionable scores — we produce a single Investment Score and Market Verdict so you know exactly what you’re looking at.',
       stats: [
         { val: '5', label: 'Verdict levels' },
         { val: '0–100', label: 'Stability score' },
