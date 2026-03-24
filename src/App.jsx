@@ -551,6 +551,7 @@ export default function App() {
     // Pass freeform through to geocoder so it can search any format
     const geocodeInput = { street: street || '', city: city || '', state: state || '', country: country || '', freeform: freeform || '' }
     const geo = await geocodeStructured(geocodeInput)
+    console.log('[Pipeline] Step 1: geocoded', geo.displayName)
     setLoadStep(1)
 
     // After geocoding, use the resolved values for all downstream calls
@@ -566,12 +567,14 @@ export default function App() {
       getClimateNormals(geo.lat, geo.lon),
       getNeighborhoodScores(geo.lat, geo.lon),
     ])
+    console.log('[Pipeline] Step 2: weather done')
     setLoadStep(2)
     const [censusData, fmr, floodZone] = await Promise.all([
       getCensusData(resolvedStreet, resolvedCity, resolvedState, resolvedCountry),
       getFairMarketRent(postcode),
       getFloodZone(geo.lat, geo.lon),
     ])
+    console.log('[Pipeline] Step 3: census/fmr done')
     setLoadStep(3)
     const riskData = await getRiskData({ lat: geo.lat, lon: geo.lon, county: geo.address?.county, state: resolvedState, country: resolvedCountry })
     const [bulkCompsRes, newsRes] = await Promise.allSettled([
@@ -593,6 +596,7 @@ export default function App() {
     const marketTemperature = getMarketTemperature(areaMetrics) || null
     const realData = { neighborhoodScores, censusData, fmr, floodZone, riskData, areaMetrics, areaRiskScore, marketTemperature, newsData, isAreaMode }
     const ai = await analyzeProperty(geo, weather, climate, knownFacts, realData, pipelineToken)
+    console.log('[Pipeline] Step 4: AI done, returning result')
     setLoadStep(4)
     return { geo, weather, climate, ai, knownFacts, realData, isAreaMode }
   }
@@ -626,9 +630,9 @@ export default function App() {
         await supabase.from('users').update({ analyses_used: (userRecord?.analyses_used ?? 0) + 1 }).eq('id', user.id)
       }
     } catch (err) {
-      // stay on home page (page is still 'home')
+      console.error('[Dwelling] Pipeline failed:', err)
       if (err.message?.includes('limit reached') || err.message?.includes('429')) setShowPaywall(true)
-      else setError(err.message || 'Something went wrong.')
+      else setError(err.message || 'Something went wrong. Check console for details.')
     } finally {
       setLoading(false)
     }
@@ -704,8 +708,11 @@ export default function App() {
         </div>
       )}
       {error && (
-        <div onClick={() => setError(null)} style={{ position: 'fixed', bottom: 32, left: '50%', transform: 'translateX(-50%)', zIndex: 200, background: 'rgba(15,15,15,0.95)', border: '1px solid rgba(248,113,113,0.5)', borderRadius: 16, padding: '14px 24px', cursor: 'pointer', maxWidth: 480, width: '90vw', boxShadow: '0 8px 32px rgba(0,0,0,0.6)' }}>
-          <p style={{ fontFamily: "'Barlow',sans-serif", fontSize: 13, color: '#f87171', margin: 0, textAlign: 'center' }}>⚠ {error} <span style={{ opacity: 0.5, marginLeft: 8 }}>tap to dismiss</span></p>
+        <div onClick={() => setError(null)} style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', zIndex: 300, background: 'rgba(10,10,10,0.98)', border: '1px solid rgba(248,113,113,0.6)', borderRadius: 20, padding: '28px 32px', cursor: 'pointer', maxWidth: 500, width: '90vw', boxShadow: '0 16px 48px rgba(0,0,0,0.8)', textAlign: 'center' }}>
+          <div style={{ fontSize: 32, marginBottom: 12 }}>⚠️</div>
+          <p style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 18, color: '#f87171', marginBottom: 8 }}>Analysis failed</p>
+          <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.6)', marginBottom: 16 }}>{error}</p>
+          <p style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Tap to dismiss and try again</p>
         </div>
       )}
       {!loading && page === 'dashboard' && dashboardData && (
