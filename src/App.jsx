@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, memo, lazy, Suspense } from 'react'
+import { useState, useEffect, useRef, memo, lazy, Suspense, Component } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import AddressSearch from './components/AddressSearch'
 import LoadingState from './components/LoadingState'
@@ -448,6 +448,31 @@ const HowItWorks = memo(function HowItWorks() {
   )
 })
 
+// ─── ERROR BOUNDARY ──────────────────────────────────────────────────────────
+class DashboardErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { error: null } }
+  static getDerivedStateFromError(e) { return { error: e } }
+  componentDidCatch(e) { console.error('[Dashboard crash]', e) }
+  render() {
+    if (this.state.error) return (
+      <div style={{ maxWidth: 600, margin: '120px auto', padding: 32, textAlign: 'center' }}>
+        <div style={{ fontSize: 32, marginBottom: 16 }}>⚠️</div>
+        <p style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 20, color: '#fff', marginBottom: 12 }}>
+          Report loaded but couldn't render
+        </p>
+        <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>
+          {this.state.error?.message}
+        </p>
+        <button onClick={() => this.setState({ error: null })}
+          style={{ marginTop: 16, borderRadius: 40, padding: '10px 24px', background: '#fff', color: '#000', border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13 }}>
+          Try again
+        </button>
+      </div>
+    )
+    return this.props.children
+  }
+}
+
 // ─── MAIN APP ────────────────────────────────────────────────────────────────
 export default function App() {
   const [page, setPage] = useState('home')
@@ -720,9 +745,11 @@ export default function App() {
               ← New search
             </button>
           </div>
-          <Suspense fallback={<LoadingState step={0} />}>
-            <Dashboard data={dashboardData} onRecalculate={handleRecalculate} />
-          </Suspense>
+          <DashboardErrorBoundary>
+            <Suspense fallback={<LoadingState step={0} />}>
+              <Dashboard data={dashboardData} onRecalculate={handleRecalculate} />
+            </Suspense>
+          </DashboardErrorBoundary>
         </div>
       )}
       {compareResult && (
