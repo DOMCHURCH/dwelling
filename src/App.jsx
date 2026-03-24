@@ -490,9 +490,6 @@ export default function App() {
   const [compareResult, setCompareResult] = useState(null)
   const [loadStep, setLoadStep] = useState(0)
   const [showPaywall, setShowPaywall] = useState(false)
-  // Store token in ref — updated on auth state changes, never fetched during pipeline
-  // This completely eliminates getSession() calls during analysis, stopping all lock errors
-  const tokenRef = useRef(null)
 
   useEffect(() => {
     let cancelled = false
@@ -504,7 +501,6 @@ export default function App() {
         // Use getSession (no lock) instead of getUser to avoid competing with cerebrasChat
         const { data: { session: authSession } } = await supabase.auth.getSession()
         const authUser = authSession?.user
-        if (authSession?.access_token) tokenRef.current = authSession.access_token
         if (authUser) {
           setUser(authUser)
           const { data: record } = await supabase.from('users').select('*').eq('id', authUser.id).single()
@@ -527,14 +523,10 @@ export default function App() {
     }
     checkAuth()
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'TOKEN_REFRESHED' && session?.access_token) {
-        tokenRef.current = session.access_token
-      } else if (event === 'SIGNED_OUT') {
-        tokenRef.current = null
+      if (event === 'SIGNED_OUT') {
         setUser(null); setUserRecord(null); setAnalysesLeft(FREE_LIMIT)
         setIsInTrial(false); setPage('home')
       } else if (event === 'SIGNED_IN' && session?.user) {
-        if (session?.access_token) tokenRef.current = session.access_token
         setUser(session.user)
         const { data: record } = await supabase.from('users').select('*').eq('id', session.user.id).maybeSingle()
         if (record) {
@@ -566,9 +558,9 @@ export default function App() {
   const runPipeline = async ({ street, city, state, country, freeform, knownFacts = {} }) => {
     const isAreaMode = !street?.trim()
 
-    // Use cached token from ref — never call getSession during pipeline
-    // tokenRef is updated by onAuthStateChange which handles refresh automatically
-    const pipelineToken = tokenRef.current
+    // Get session token — safe to call here, analysis runs outside any auth lock window
+    const { data: { session: pipelineSession } } = await supabase.auth.getSession()
+    const pipelineToken = pipelineSession?.access_token
     if (!pipelineToken) throw new Error('Session expired. Please sign in again.')
 
     // Pass freeform through to geocoder so it can search any format
@@ -667,7 +659,8 @@ export default function App() {
     setError(null)
     try {
       const merged = { ...(dashboardData.knownFacts ?? {}), ...corrections }
-      const recalcToken = tokenRef.current
+      const { data: { session: rs } } = await supabase.auth.getSession()
+      const recalcToken = rs?.access_token
       if (!recalcToken) throw new Error('Session expired. Please sign in again.')
       const ai = await analyzeProperty(dashboardData.geo, dashboardData.weather, dashboardData.climate, merged, dashboardData.realData, recalcToken)
       setDashboardData(p => ({ ...p, ai, knownFacts: merged }))
