@@ -1,9 +1,7 @@
 import { useState } from 'react'
 
-export default function PaywallModal({ isOpen, onClose, onUpgrade }) {
+export default function PaywallModal({ onClose, onUpgrade }) {
   const [selected, setSelected] = useState('monthly')
-
-  if (!isOpen) return null
 
   const btn = (primary) => ({
     width: '100%', padding: '13px', borderRadius: 40, border: 'none', cursor: 'pointer',
@@ -36,7 +34,7 @@ export default function PaywallModal({ isOpen, onClose, onUpgrade }) {
   const activePlan = plans.find(p => p.id === selected)
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 999999, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <div className="liquid-glass-strong" style={{ borderRadius: 24, maxWidth: 480, width: '100%', padding: 32, animation: 'fadeUp 0.3s ease', maxHeight: '90vh', overflowY: 'auto' }}>
 
         <div style={{ textAlign: 'center', marginBottom: 20 }}>
