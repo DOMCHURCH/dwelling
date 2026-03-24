@@ -40,7 +40,7 @@ export default async function handler(req, res) {
     // 2. Load user record — auto-create if missing (handles new signups)
     let { data: userRecord } = await supabaseAdmin
       .from('users')
-      .select('analyses_used, analyses_reset_at, is_pro, trial_started_at')
+      .select('analyses_used, analyses_reset_at, is_pro')
       .eq('id', user.id)
       .maybeSingle()
 
