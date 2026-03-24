@@ -515,7 +515,16 @@ export default function App() {
         setAuthOpen(false)
       }
     })
-    return () => { cancelled = true; subscription?.unsubscribe() }
+    // Manually refresh token every 4 minutes — safe window well before 1hr expiry
+    // We do this here instead of autoRefreshToken to avoid lock conflicts during analysis
+    const refreshInterval = setInterval(async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session) await supabase.auth.refreshSession()
+      } catch { /* silent — user will be asked to re-login if expired */ }
+    }, 4 * 60 * 1000)
+
+    return () => { cancelled = true; subscription?.unsubscribe(); clearInterval(refreshInterval) }
   }, [])
 
   const getRiskData = async ({ lat, lon, county, state, country }) => {
@@ -532,6 +541,13 @@ export default function App() {
 
   const runPipeline = async ({ street, city, state, country, freeform, knownFacts = {} }) => {
     const isAreaMode = !street?.trim()
+
+    // Get auth token ONCE before any pipeline work — Supabase lock must be free here
+    // Never call getSession inside cerebrasChat or analyzeProperty
+    const { data: { session: pipelineSession } } = await supabase.auth.getSession()
+    const pipelineToken = pipelineSession?.access_token
+    if (!pipelineToken) throw new Error('Session expired. Please sign in again.')
+
     // Pass freeform through to geocoder so it can search any format
     const geocodeInput = { street: street || '', city: city || '', state: state || '', country: country || '', freeform: freeform || '' }
     const geo = await geocodeStructured(geocodeInput)
@@ -576,7 +592,7 @@ export default function App() {
     const areaRiskScore = computeRiskScore(areaMetrics, null) || null
     const marketTemperature = getMarketTemperature(areaMetrics) || null
     const realData = { neighborhoodScores, censusData, fmr, floodZone, riskData, areaMetrics, areaRiskScore, marketTemperature, newsData, isAreaMode }
-    const ai = await analyzeProperty(geo, weather, climate, knownFacts, realData)
+    const ai = await analyzeProperty(geo, weather, climate, knownFacts, realData, pipelineToken)
     setLoadStep(4)
     return { geo, weather, climate, ai, knownFacts, realData, isAreaMode }
   }
@@ -624,7 +640,10 @@ export default function App() {
     setError(null)
     try {
       const merged = { ...(dashboardData.knownFacts ?? {}), ...corrections }
-      const ai = await analyzeProperty(dashboardData.geo, dashboardData.weather, dashboardData.climate, merged, dashboardData.realData)
+      const { data: { session: recalcSession } } = await supabase.auth.getSession()
+      const recalcToken = recalcSession?.access_token
+      if (!recalcToken) throw new Error('Session expired. Please sign in again.')
+      const ai = await analyzeProperty(dashboardData.geo, dashboardData.weather, dashboardData.climate, merged, dashboardData.realData, recalcToken)
       setDashboardData(p => ({ ...p, ai, knownFacts: merged }))
     } catch (err) {
       setError(err.message ?? 'Recalculation failed.')
