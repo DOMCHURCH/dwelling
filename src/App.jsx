@@ -465,6 +465,9 @@ export default function App() {
   const [compareResult, setCompareResult] = useState(null)
   const [loadStep, setLoadStep] = useState(0)
   const [showPaywall, setShowPaywall] = useState(false)
+  // Store token in ref — updated on auth state changes, never fetched during pipeline
+  // This completely eliminates getSession() calls during analysis, stopping all lock errors
+  const tokenRef = useRef(null)
 
   useEffect(() => {
     let cancelled = false
@@ -476,6 +479,7 @@ export default function App() {
         // Use getSession (no lock) instead of getUser to avoid competing with cerebrasChat
         const { data: { session: authSession } } = await supabase.auth.getSession()
         const authUser = authSession?.user
+        if (authSession?.access_token) tokenRef.current = authSession.access_token
         if (authUser) {
           setUser(authUser)
           const { data: record } = await supabase.from('users').select('*').eq('id', authUser.id).single()
@@ -498,10 +502,14 @@ export default function App() {
     }
     checkAuth()
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_OUT') {
+      if (event === 'TOKEN_REFRESHED' && session?.access_token) {
+        tokenRef.current = session.access_token
+      } else if (event === 'SIGNED_OUT') {
+        tokenRef.current = null
         setUser(null); setUserRecord(null); setAnalysesLeft(FREE_LIMIT)
         setIsInTrial(false); setPage('home')
       } else if (event === 'SIGNED_IN' && session?.user) {
+        if (session?.access_token) tokenRef.current = session.access_token
         setUser(session.user)
         const { data: record } = await supabase.from('users').select('*').eq('id', session.user.id).maybeSingle()
         if (record) {
@@ -515,16 +523,7 @@ export default function App() {
         setAuthOpen(false)
       }
     })
-    // Manually refresh token every 4 minutes — safe window well before 1hr expiry
-    // We do this here instead of autoRefreshToken to avoid lock conflicts during analysis
-    const refreshInterval = setInterval(async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (session) await supabase.auth.refreshSession()
-      } catch { /* silent — user will be asked to re-login if expired */ }
-    }, 4 * 60 * 1000)
-
-    return () => { cancelled = true; subscription?.unsubscribe(); clearInterval(refreshInterval) }
+    return () => { cancelled = true; subscription?.unsubscribe() }
   }, [])
 
   const getRiskData = async ({ lat, lon, county, state, country }) => {
@@ -542,10 +541,9 @@ export default function App() {
   const runPipeline = async ({ street, city, state, country, freeform, knownFacts = {} }) => {
     const isAreaMode = !street?.trim()
 
-    // Get auth token ONCE before any pipeline work — Supabase lock must be free here
-    // Never call getSession inside cerebrasChat or analyzeProperty
-    const { data: { session: pipelineSession } } = await supabase.auth.getSession()
-    const pipelineToken = pipelineSession?.access_token
+    // Use cached token from ref — never call getSession during pipeline
+    // tokenRef is updated by onAuthStateChange which handles refresh automatically
+    const pipelineToken = tokenRef.current
     if (!pipelineToken) throw new Error('Session expired. Please sign in again.')
 
     // Pass freeform through to geocoder so it can search any format
@@ -644,8 +642,7 @@ export default function App() {
     setError(null)
     try {
       const merged = { ...(dashboardData.knownFacts ?? {}), ...corrections }
-      const { data: { session: recalcSession } } = await supabase.auth.getSession()
-      const recalcToken = recalcSession?.access_token
+      const recalcToken = tokenRef.current
       if (!recalcToken) throw new Error('Session expired. Please sign in again.')
       const ai = await analyzeProperty(dashboardData.geo, dashboardData.weather, dashboardData.climate, merged, dashboardData.realData, recalcToken)
       setDashboardData(p => ({ ...p, ai, knownFacts: merged }))
