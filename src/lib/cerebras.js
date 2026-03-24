@@ -7,11 +7,17 @@ import { formatAreaContextForPrompt } from './areaAnalysis'
 const CEREBRAS_BASE = '/api/cerebras'
 const MODEL = 'llama-3.1-8b'
 
-// cerebrasChat — token MUST be pre-fetched by caller (analyzeProperty)
-// Never call getSession/getUser here — causes lock contention with Supabase internals
-async function cerebrasChat(messages, json = false, skipCount = false, token) {
-  if (!token) throw new Error('Not authenticated. Please sign in again.')
-  const authToken = token
+async function getAuthToken() {
+  // Use getSession only — refreshSession acquires an exclusive browser lock
+  // that conflicts with concurrent calls during analysis pipeline
+  const { data: { session } } = await supabase.auth.getSession()
+  return session?.access_token ?? null
+}
+
+// cerebrasChat accepts a pre-fetched token to avoid multiple lock acquisitions
+async function cerebrasChat(messages, json = false, skipCount = false, token = null) {
+  const authToken = token ?? await getAuthToken()
+  if (!authToken) throw new Error('Not authenticated. Please sign in again.')
 
   const res = await fetch(CEREBRAS_BASE, {
     method: 'POST',
@@ -332,9 +338,9 @@ function finalizeAnalysis(est, known, realData, currency, currencySymbol, city, 
   return est
 }
 
-export async function analyzeProperty(geoData, weatherData, climateData, knownFacts = {}, realData = {}, authToken = null) {
-  // authToken must be passed in from App.jsx — never fetched inside this function
-  // Fetching here would race with Supabase's internal lock management
+export async function analyzeProperty(geoData, weatherData, climateData, knownFacts = {}, realData = {}) {
+  // Acquire auth token once for the entire pipeline — avoids repeated lock acquisitions
+  const authToken = await getAuthToken()
   if (!authToken) throw new Error('Not authenticated. Please sign in again.')
   const street = geoData.userStreet || geoData.address?.road || ''
   const city = geoData.userCity || geoData.address?.city || geoData.address?.town || ''
@@ -521,21 +527,68 @@ Be specific, honest, and evidence-based. End with: READY_FOR_JSON`
     c.utilitiesMonthlyUSD = toNum(c.utilitiesMonthlyUSD)
     c.diningOutMonthlyUSD = toNum(c.diningOutMonthlyUSD)
 
-    // Fix investment fields
+    // ── Normalize investment fields ─────────────────────────────────────────
     const inv = areaResult.investment || {}
-    // If yield is 0 or missing, provide a realistic 4% default for the UI
-    inv.rentYieldPercent = toNum(inv.rentYieldPercent) || 4
+    // AI may return rentYield as "4.5%" string or rentYieldPercent as number
+    const rawYield = inv.rentYieldPercent || inv.rentYield || inv.yield || 4
+    inv.rentYieldPercent = typeof rawYield === 'string'
+      ? parseFloat(rawYield.replace(/[^0-9.]/g, '')) || 4
+      : toNum(rawYield) || 4
     inv.investmentScore = toNum(inv.investmentScore) || 50
+    // AI may return outlook or appreciationOutlook
+    inv.appreciationOutlook = (inv.appreciationOutlook || inv.outlook || 'neutral')
+      .toLowerCase().replace('positive', 'bullish').replace('negative', 'bearish')
+    inv.appreciationOutlookText = inv.appreciationOutlookText || inv.investmentSummary || ''
+    inv.investmentSummary = inv.investmentSummary || inv.appreciationOutlookText || ''
     areaResult.investment = inv
 
-    // Fix neighborhood fields
-    const n = areaResult.neighborhood || {}
-    n.safetyRating = toNum(n.safetyRating) || 50
-    areaResult.neighborhood = n
+    // ── Normalize neighborhood fields ────────────────────────────────────────
+    const nb = areaResult.neighborhood || {}
+    // AI may return safetyScore or safetyRating
+    nb.safetyRating = toNum(nb.safetyRating || nb.safetyScore) || 65
+    // AI may return schoolScore or schoolRating
+    nb.schoolRating = toNum(nb.schoolRating || nb.schoolScore) || 60
+    nb.walkScore = toNum(nb.walkScore) || realData.neighborhoodScores?.walkScore || 50
+    nb.transitScore = toNum(nb.transitScore) || realData.neighborhoodScores?.transitScore || 40
+    // Ensure pros/cons are always arrays
+    nb.pros = Array.isArray(nb.pros) && nb.pros.length > 0 ? nb.pros
+      : ['Established community', 'Good local amenities', 'Stable residential area']
+    nb.cons = Array.isArray(nb.cons) && nb.cons.length > 0 ? nb.cons
+      : ['Car dependent for some errands', 'Limited walkable retail']
+    nb.bestFor = nb.bestFor || 'Families and professionals seeking stability'
+    nb.character = nb.character || `${city} is a well-established area with a mix of residential and commercial development.`
+    areaResult.neighborhood = nb
 
+    // ── Normalize localInsights ──────────────────────────────────────────────
+    const li = areaResult.localInsights || {}
+    li.knownFor = li.knownFor || `${city} is known for its community character and local amenities.`
+    li.localTip = li.localTip || `Explore the local neighbourhoods to find the best areas for your needs.`
+    li.topAttractions = Array.isArray(li.topAttractions) && li.topAttractions.length > 0
+      ? li.topAttractions : ['Local parks and green spaces', 'Community centres', 'Shopping and dining districts']
+    areaResult.localInsights = li
+
+    // ── Normalize areaIntelligence ───────────────────────────────────────────
+    const ai = areaResult.areaIntelligence || {}
+    ai.verdict = ai.verdict || 'Neutral'
+    ai.verdictReason = ai.verdictReason || ''
+    ai.marketConditions = ai.marketConditions || ''
+    ai.upsides = Array.isArray(ai.upsides) ? ai.upsides : []
+    ai.risks = Array.isArray(ai.risks) ? ai.risks : []
+    ai.bestFor = ai.bestFor || ''
+    areaResult.areaIntelligence = ai
+
+    // ── Normalize priceHistory ───────────────────────────────────────────────
     areaResult.priceHistory = areaResult.priceHistory || {}
     areaResult.priceHistory.currencySymbol = currencySymbol
     areaResult.priceHistory.currency = currency
+    if (!Array.isArray(areaResult.priceHistory.data)) {
+      areaResult.priceHistory.data = []
+    }
+
+    // ── Ensure floorPlan exists (Dashboard may access it) ────────────────────
+    areaResult.floorPlan = areaResult.floorPlan || {
+      typicalSqft: null, typicalBeds: null, typicalBaths: null, commonFeatures: []
+    }
 
     return areaResult
   }
