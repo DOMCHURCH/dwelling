@@ -1,3 +1,4 @@
+import { supabase } from './supabase'
 import { getCurrencyFromCountry, getCurrencySymbol } from './currency'
 import { runAVM, applyBoundedAIAdjustment, formatAVMForPrompt } from './avm'
 import { formatMarketDataForPrompt, getMarketData, getLiveMarketData } from './marketPrices'
@@ -6,25 +7,30 @@ import { formatAreaContextForPrompt } from './areaAnalysis'
 const CEREBRAS_BASE = '/api/cerebras'
 const MODEL = 'llama-3.1-8b'
 
-// Token is always pre-fetched by the caller (analyzeProperty receives it from App)
-// Never call getSession() here — it acquires the Supabase browser lock
-// which conflicts with the startup checkAuth and causes a 5s hang
-async function cerebrasChat(messages, json = false, skipCount = false, token) {
+async function getAuthToken() {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (session?.access_token) return session.access_token
+  const { data: refreshed } = await supabase.auth.refreshSession()
+  if (refreshed?.session?.access_token) return refreshed.session.access_token
+  return null
+}
+
+async function cerebrasChat(messages, json = false, skipCount = false) {
+  const token = await getAuthToken()
   if (!token) throw new Error('Not authenticated. Please sign in again.')
-  const authToken = token
 
   const res = await fetch(CEREBRAS_BASE, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`,
+      'Authorization': `Bearer ${token}`,
       ...(skipCount && { 'X-Skip-Count': 'true' }),
     },
     body: JSON.stringify({
       model: MODEL,
       messages,
       temperature: 0.15,
-      max_tokens: 2048,
+      max_tokens: 4096,
       ...(json && { response_format: { type: 'json_object' } }),
     }),
   })
@@ -332,11 +338,7 @@ function finalizeAnalysis(est, known, realData, currency, currencySymbol, city, 
   return est
 }
 
-export async function analyzeProperty(geoData, weatherData, climateData, knownFacts = {}, realData = {}, authToken = null) {
-  // authToken MUST be passed from App.jsx — never fetched here
-  // Calling getSession() here causes a Supabase browser lock conflict
-  // with the startup auth check, resulting in a 5s hang and silent failure
-  if (!authToken) throw new Error('Not authenticated. Please sign in again.')
+export async function analyzeProperty(geoData, weatherData, climateData, knownFacts = {}, realData = {}) {
   const street = geoData.userStreet || geoData.address?.road || ''
   const city = geoData.userCity || geoData.address?.city || geoData.address?.town || ''
   const state = geoData.userState || geoData.address?.state || ''
@@ -396,15 +398,29 @@ OPENSTREETMAP REAL DATA:
 
   // ── AREA MODE: simplified prompt + schema ──────────────────────────────────
   if (isAreaMode) {
-    // Single-call area analysis — no chain-of-thought to stay within Vercel 60s limit
-    const areaJsonPrompt = `You are a licensed real estate analyst specializing in ${city}, ${country}.
+    const areaCot = `You are a senior real estate market analyst with deep knowledge of ${city}, ${country}.
 
-AREA DATA:
+AREA INTELLIGENCE REPORT FOR: ${city}${state ? ', ' + state : ''}, ${country}
 ${areaContext}
 ${marketContext2}
 ${riskContext}
 
-Produce a JSON area intelligence report. Return ONLY valid raw JSON, no markdown, no explanation.
+Analyze this area across 6 dimensions:
+1. MARKET CONDITIONS: What do the listing data signals mean? Is supply rising or falling? Who has negotiating power?
+2. PRICE TRENDS: Where are prices now, where were they 2 years ago, where are they heading in 2026-2027?
+3. INVESTMENT OUTLOOK: Gross rental yield, net yield, landlord vs tenant market, realistic horizon for positive return.
+4. LIVEABILITY: Cost of living, commute, schools, walkability, safety, community character.
+5. WHO SHOULD MOVE HERE: Families, young professionals, retirees, investors? Who does this area suit best?
+6. RISKS & UPSIDES: 3 specific downside risks, 3 specific upside catalysts.
+
+Be specific, honest, and evidence-based. End with: READY_FOR_JSON`
+
+    const areaReasoning = await cerebrasChat([
+      { role: 'system', content: `You are a licensed real estate analyst specializing in ${city}, ${country}. Provide precise, evidence-based area intelligence.` },
+      { role: 'user', content: areaCot }
+    ])
+
+    const areaJsonPrompt = `Based on your analysis, produce a JSON area intelligence report. Return ONLY valid raw JSON, no markdown.
 
 {
   "areaIntelligence": {
@@ -474,9 +490,11 @@ Produce a JSON area intelligence report. Return ONLY valid raw JSON, no markdown
 }
 `
     const areaRaw = await cerebrasChat([
-      { role: 'system', content: `You are a licensed real estate analyst for ${city}, ${country}. Return only valid JSON with no markdown.` },
+      { role: 'system', content: `You are a licensed real estate analyst. Return only valid JSON.` },
+      { role: 'user', content: areaCot },
+      { role: 'assistant', content: areaReasoning },
       { role: 'user', content: areaJsonPrompt }
-    ], true, true, authToken)
+    ], true, true)
 
     if (!areaRaw || typeof areaRaw !== 'string') throw new Error('AI returned empty response. Please try again.')
     let areaResult
@@ -506,68 +524,21 @@ Produce a JSON area intelligence report. Return ONLY valid raw JSON, no markdown
     c.utilitiesMonthlyUSD = toNum(c.utilitiesMonthlyUSD)
     c.diningOutMonthlyUSD = toNum(c.diningOutMonthlyUSD)
 
-    // ── Normalize investment fields ─────────────────────────────────────────
+    // Fix investment fields
     const inv = areaResult.investment || {}
-    // AI may return rentYield as "4.5%" string or rentYieldPercent as number
-    const rawYield = inv.rentYieldPercent || inv.rentYield || inv.yield || 4
-    inv.rentYieldPercent = typeof rawYield === 'string'
-      ? parseFloat(rawYield.replace(/[^0-9.]/g, '')) || 4
-      : toNum(rawYield) || 4
+    // If yield is 0 or missing, provide a realistic 4% default for the UI
+    inv.rentYieldPercent = toNum(inv.rentYieldPercent) || 4
     inv.investmentScore = toNum(inv.investmentScore) || 50
-    // AI may return outlook or appreciationOutlook
-    inv.appreciationOutlook = (inv.appreciationOutlook || inv.outlook || 'neutral')
-      .toLowerCase().replace('positive', 'bullish').replace('negative', 'bearish')
-    inv.appreciationOutlookText = inv.appreciationOutlookText || inv.investmentSummary || ''
-    inv.investmentSummary = inv.investmentSummary || inv.appreciationOutlookText || ''
     areaResult.investment = inv
 
-    // ── Normalize neighborhood fields ────────────────────────────────────────
-    const nb = areaResult.neighborhood || {}
-    // AI may return safetyScore or safetyRating
-    nb.safetyRating = toNum(nb.safetyRating || nb.safetyScore) || 65
-    // AI may return schoolScore or schoolRating
-    nb.schoolRating = toNum(nb.schoolRating || nb.schoolScore) || 60
-    nb.walkScore = toNum(nb.walkScore) || realData.neighborhoodScores?.walkScore || 50
-    nb.transitScore = toNum(nb.transitScore) || realData.neighborhoodScores?.transitScore || 40
-    // Ensure pros/cons are always arrays
-    nb.pros = Array.isArray(nb.pros) && nb.pros.length > 0 ? nb.pros
-      : ['Established community', 'Good local amenities', 'Stable residential area']
-    nb.cons = Array.isArray(nb.cons) && nb.cons.length > 0 ? nb.cons
-      : ['Car dependent for some errands', 'Limited walkable retail']
-    nb.bestFor = nb.bestFor || 'Families and professionals seeking stability'
-    nb.character = nb.character || `${city} is a well-established area with a mix of residential and commercial development.`
-    areaResult.neighborhood = nb
+    // Fix neighborhood fields
+    const n = areaResult.neighborhood || {}
+    n.safetyRating = toNum(n.safetyRating) || 50
+    areaResult.neighborhood = n
 
-    // ── Normalize localInsights ──────────────────────────────────────────────
-    const li = areaResult.localInsights || {}
-    li.knownFor = li.knownFor || `${city} is known for its community character and local amenities.`
-    li.localTip = li.localTip || `Explore the local neighbourhoods to find the best areas for your needs.`
-    li.topAttractions = Array.isArray(li.topAttractions) && li.topAttractions.length > 0
-      ? li.topAttractions : ['Local parks and green spaces', 'Community centres', 'Shopping and dining districts']
-    areaResult.localInsights = li
-
-    // ── Normalize areaIntelligence ───────────────────────────────────────────
-    const ai = areaResult.areaIntelligence || {}
-    ai.verdict = ai.verdict || 'Neutral'
-    ai.verdictReason = ai.verdictReason || ''
-    ai.marketConditions = ai.marketConditions || ''
-    ai.upsides = Array.isArray(ai.upsides) ? ai.upsides : []
-    ai.risks = Array.isArray(ai.risks) ? ai.risks : []
-    ai.bestFor = ai.bestFor || ''
-    areaResult.areaIntelligence = ai
-
-    // ── Normalize priceHistory ───────────────────────────────────────────────
     areaResult.priceHistory = areaResult.priceHistory || {}
     areaResult.priceHistory.currencySymbol = currencySymbol
     areaResult.priceHistory.currency = currency
-    if (!Array.isArray(areaResult.priceHistory.data)) {
-      areaResult.priceHistory.data = []
-    }
-
-    // ── Ensure floorPlan exists (Dashboard may access it) ────────────────────
-    areaResult.floorPlan = areaResult.floorPlan || {
-      typicalSqft: null, typicalBeds: null, typicalBaths: null, commonFeatures: []
-    }
 
     return areaResult
   }
@@ -676,7 +647,7 @@ End with: READY_FOR_JSON`
       content: `You are a licensed real estate appraiser and local market expert specializing in ${city}, ${country}. You provide precise, evidence-based analysis with specific numbers anchored to real market knowledge. You never use placeholder text, generic descriptions, or made-up comparable sales. You think systematically and show your reasoning before concluding.`
     },
     { role: 'user', content: cotPrompt }
-  ], false, false, authToken)
+  ])
 
   // Pass 2: Structured JSON output using the reasoning as context
   const jsonPrompt = `Based on your detailed analysis above, produce the final property intelligence report as a single JSON object. Every field must be substantive and specific to ${neighbourhood || city}, ${city}. No generic filler text.
@@ -760,7 +731,7 @@ FIELD REQUIREMENTS:
     { role: 'user', content: cotPrompt },
     { role: 'assistant', content: reasoning },
     { role: 'user', content: jsonPrompt }
-  ], true, true, authToken)
+  ], true, true)
 
   if (!raw || typeof raw !== 'string') throw new Error('AI returned an empty response. Please try again.')
 
