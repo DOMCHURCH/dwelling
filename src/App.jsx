@@ -610,7 +610,14 @@ export default function App() {
     const areaRiskScore = computeRiskScore(areaMetrics, null) || null
     const marketTemperature = getMarketTemperature(areaMetrics) || null
     const realData = { neighborhoodScores, censusData, fmr, floodZone, riskData, areaMetrics, areaRiskScore, marketTemperature, newsData, isAreaMode }
-    const ai = await analyzeProperty(geo, weather, climate, knownFacts, realData, pipelineToken)
+    console.log('[Pipeline] calling analyzeProperty, token present:', !!pipelineToken)
+    let ai
+    try {
+      ai = await analyzeProperty(geo, weather, climate, knownFacts, realData, pipelineToken)
+    } catch (aiErr) {
+      console.error('[Pipeline] analyzeProperty threw:', aiErr.message, aiErr)
+      throw aiErr
+    }
     console.log('[Pipeline] Step 4: AI done, returning result')
     setLoadStep(4)
     return { geo, weather, climate, ai, knownFacts, realData, isAreaMode }
