@@ -107,8 +107,8 @@ void main() {
           this.uniforms.mapSampler = t
         }
         apply(fm, input, output, clear) {
-          this.uniforms.dimensions[0] = input.sourceFrame.width
-          this.uniforms.dimensions[1] = input.sourceFrame.height
+          this.uniforms.dimensions[0] = input.filterFrame ? input.filterFrame.width : input.size.width
+          this.uniforms.dimensions[1] = input.filterFrame ? input.filterFrame.height : input.size.height
           this.uniforms.time = this.time
           fm.applyFilter(this, input, output, clear)
         }
