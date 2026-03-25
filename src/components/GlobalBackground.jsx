@@ -1,9 +1,5 @@
 import { useEffect, useRef } from 'react'
 
-// Plain WebGL1 — no PixiJS, no CDN dependency
-// Flame shader ported from @kuvkar (shadertoy.com/view/4tXXRn)
-// Flipped upside down, made wider
-
 const VERT = `
 attribute vec2 a_pos;
 void main() {
@@ -11,6 +7,7 @@ void main() {
 }
 `
 
+// Wide fireplace flame — rises from bottom, spreads like a hearth
 const FRAG = `
 precision highp float;
 uniform vec2  u_res;
@@ -21,85 +18,98 @@ float rand(vec2 co) {
   return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453);
 }
 
-mat2 rotz(float a) {
-  return mat2(cos(a), -sin(a), sin(a), cos(a));
-}
-
 float fbm(vec2 uv) {
-  float n  = (texture2D(u_noise, uv      ).r - 0.5) * 0.5;
-        n += (texture2D(u_noise, uv * 2.0).r - 0.5) * 0.25;
-        n += (texture2D(u_noise, uv * 3.0).r - 0.5) * 0.125;
+  float n  = (texture2D(u_noise, uv       ).r - 0.5) * 0.5;
+        n += (texture2D(u_noise, uv * 2.0 ).r - 0.5) * 0.25;
+        n += (texture2D(u_noise, uv * 3.0 ).r - 0.5) * 0.125;
+        n += (texture2D(u_noise, uv * 6.0 ).r - 0.5) * 0.0625;
   return n + 0.5;
 }
 
 void main() {
-  // _uv: 0..1 from top-left
-  vec2 _uv = gl_FragCoord.xy / u_res;
-  // FLIP: invert y so flame origin is at top, drips downward
-  _uv.y = 1.0 - _uv.y;
+  // uv: 0..1, origin bottom-left, y increases upward
+  vec2 uv = gl_FragCoord.xy / u_res;
 
-  vec2 uv = _uv - vec2(0.5);
-  float aspect = u_res.x / u_res.y;
-  // wider: divide x by 0.35 instead of aspect
-  uv.x /= 0.35;
-  uv.y /= aspect;
+  // flame rises from bottom: y=0 is base, y=1 is top
+  float y = uv.y;
 
-  vec2 centerUV = uv;
+  // center x around 0, keep wide
+  float x = uv.x - 0.5;
 
-  float variationH = fbm(vec2(u_time * 0.3)) * 1.1;
-  // downward drip: positive y offset
-  vec2 offset = vec2(0.0, u_time * 0.05);
-  float f = fbm(uv * 0.1 + offset);
-  float l = max(0.1, length(uv));
-  uv += rotz(((f - 0.5) / l) * smoothstep(0.8, 0.3, _uv.y) * 0.45) * uv;
+  // time-driven upward scroll for turbulence
+  float speed = u_time * 0.4;
 
-  float flame = 1.3 - length(uv.x) * 5.0;
+  // sample noise at multiple scales for organic look
+  vec2 noiseUV = vec2(x * 1.0, y * 1.5 - speed);
+  float turb = fbm(noiseUV);
+  float turb2 = fbm(noiseUV * 2.0 + vec2(0.3, speed * 0.5));
 
-  float blueflame = pow(max(0.0, flame * 0.9), 15.0);
-  blueflame *= smoothstep(0.8, 2.0, _uv.y);
-  blueflame /= max(0.001, abs(uv.x * 2.0));
-  blueflame = clamp(blueflame, 0.0, 1.0);
+  // warp x position with turbulence — more warp near top
+  float warpAmt = 0.15 * (1.0 - y) + 0.08 * y;
+  float xWarped = x + (turb - 0.5) * warpAmt * 2.0;
 
-  // flame drips downward from top (_uv.y=0 is top after flip)
-  flame *= smoothstep(0.0, variationH * 0.5, 1.0 - _uv.y);
-  flame  = clamp(flame, 0.0, 1.0);
-  flame  = pow(flame, 3.0);
-  flame /= max(0.001, smoothstep(-0.1, 1.1, _uv.y));
-  flame  = clamp(flame, 0.0, 1.0);
+  // fireplace shape: wide at bottom, tapers as it rises
+  // base width = 1.0 (full screen), narrows at top
+  float baseWidth = 0.82;
+  float topWidth  = 0.18;
+  float widthAtY  = mix(baseWidth, topWidth, pow(y, 0.6));
 
-  // colors: yellow core → red → orange
-  vec3 col = mix(vec3(1.0, 1.0, 0.0), vec3(1.0, 1.0, 0.6), flame);
-  col = mix(vec3(1.0, 0.0, 0.0), col, smoothstep(0.0, 1.6, flame));
+  // flame body: 1 inside shape, 0 outside
+  float shape = 1.0 - smoothstep(widthAtY * 0.7, widthAtY, abs(xWarped));
 
-  // blue tinge at base (top of screen after flip)
-  vec3 blue = mix(vec3(0.0, 0.0, 1.0), col, 0.95);
-  col = mix(col, blue, blueflame);
+  // height falloff — flame fades before reaching top
+  // add turbulence to height so edge is ragged
+  float heightNoise = fbm(vec2(x * 2.0, speed * 0.8)) * 0.35;
+  float maxHeight = 0.65 + heightNoise;
+  float heightFade = 1.0 - smoothstep(maxHeight * 0.5, maxHeight, y);
 
-  col *= flame;
+  float flame = shape * heightFade;
 
-  // red halo glow
-  float haloSize = 0.5;
-  float centerL  = 1.0 - (length(centerUV + vec2(0.0, -0.1)) / haloSize);
-  vec3 halo = vec3(0.8, 0.3, 0.3) * fbm(vec2(u_time * 0.035)) * centerL + 0.02;
-  col = mix(halo, col, clamp(flame * 2.0, 0.0, 1.0));
+  // extra glow at base — always bright across full width
+  float baseGlow = smoothstep(0.35, 0.0, y) * smoothstep(0.92, 0.6, abs(x));
+
+  // inner hot core — brighter center band
+  float core = (1.0 - smoothstep(0.0, widthAtY * 0.35, abs(xWarped))) * heightFade;
+  core = pow(core, 1.5);
+
+  // add flickering via low-freq time noise
+  float flicker = 0.85 + 0.15 * fbm(vec2(u_time * 0.8, 0.5));
+
+  flame = clamp(flame * flicker, 0.0, 1.0);
+  core  = clamp(core  * flicker, 0.0, 1.0);
+
+  // color layers
+  // outer: deep red / dark orange
+  vec3 outerColor = vec3(0.6, 0.1, 0.0);
+  // mid: bright orange
+  vec3 midColor   = vec3(1.0, 0.35, 0.0);
+  // inner: yellow-orange
+  vec3 coreColor  = vec3(1.0, 0.78, 0.1);
+  // base glow: warm amber
+  vec3 glowColor  = vec3(0.9, 0.25, 0.0);
+
+  vec3 col = vec3(0.0);
+  col = mix(col, outerColor, flame);
+  col = mix(col, midColor,   flame * flame);
+  col = mix(col, coreColor,  core);
+  col += glowColor * baseGlow * 0.7;
 
   // subtle noise grain
-  col *= mix(rand(uv) + rand(uv * 0.45), 1.0, 0.9);
-  col  = clamp(col, 0.0, 1.0);
+  col *= 0.92 + 0.08 * rand(uv + u_time * 0.01);
 
+  col = clamp(col, 0.0, 1.0);
   gl_FragColor = vec4(col, 1.0);
 }
 `
 
-// Procedural noise texture — tileable value noise
 function makeNoiseTex(gl, size) {
   const data = new Uint8Array(size * size * 4)
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       const i = (y * size + x) * 4
-      // smooth value noise via sin hash
       const v = Math.sin(x * 127.1 + y * 311.7) * 43758.5453
       const n = Math.abs(v - Math.floor(v))
+      // smoother noise via bilinear-friendly values
       const b = Math.floor(n * 255)
       data[i] = data[i+1] = data[i+2] = b
       data[i+3] = 255
@@ -127,7 +137,6 @@ export default function GlobalBackground() {
     const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl')
     if (!gl) return
 
-    // compile
     const compile = (type, src) => {
       const s = gl.createShader(type)
       gl.shaderSource(s, src)
@@ -137,12 +146,14 @@ export default function GlobalBackground() {
       }
       return s
     }
+
     const vs = compile(gl.VERTEX_SHADER,   VERT)
     const fs = compile(gl.FRAGMENT_SHADER, FRAG)
     if (!vs || !fs) return
 
     const prog = gl.createProgram()
-    gl.attachShader(prog, vs); gl.attachShader(prog, fs)
+    gl.attachShader(prog, vs)
+    gl.attachShader(prog, fs)
     gl.linkProgram(prog)
     if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
       console.error(gl.getProgramInfoLog(prog)); return
@@ -169,8 +180,7 @@ export default function GlobalBackground() {
     resize()
 
     let paused = false
-    const onVis = () => { paused = document.hidden }
-    document.addEventListener('visibilitychange', onVis)
+    document.addEventListener('visibilitychange', () => { paused = document.hidden })
 
     const render = () => {
       rafRef.current = requestAnimationFrame(render)
@@ -195,7 +205,6 @@ export default function GlobalBackground() {
     return () => {
       cancelAnimationFrame(rafRef.current)
       window.removeEventListener('resize', resize)
-      document.removeEventListener('visibilitychange', onVis)
       gl.deleteProgram(prog)
       gl.deleteTexture(noiseTex)
     }
@@ -208,8 +217,9 @@ export default function GlobalBackground() {
       height: '100vh',
       zIndex: 0,
       pointerEvents: 'none',
-      WebkitMaskImage: 'linear-gradient(to bottom, black 30%, transparent 100%)',
-      maskImage:       'linear-gradient(to bottom, black 30%, transparent 100%)',
+      // fade out toward top so content above is readable
+      WebkitMaskImage: 'linear-gradient(to top, black 0%, black 40%, transparent 100%)',
+      maskImage:       'linear-gradient(to top, black 0%, black 40%, transparent 100%)',
     }}>
       <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: '100%' }} />
     </div>
