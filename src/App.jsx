@@ -7,9 +7,7 @@ import AuthModal from './components/AuthModal'
 import PaywallModal from './components/PaywallModal'
 import GlobalBackground from './components/GlobalBackground'
 import CompareView from './components/CompareView'
-import BlurText from './components/BlurText'
 import CountUp from './components/CountUp'
-import { useInView } from './hooks/useInView'
 import { geocodeStructured } from './lib/nominatim'
 import { getCurrentWeather, getClimateNormals } from './lib/weather'
 import { analyzeProperty } from './lib/cerebras'
@@ -32,10 +30,6 @@ function scrollTo(id) {
   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
-function Reveal({ children, delay = '', style = {} }) {
-  const [ref, inView] = useInView()
-  return <div ref={ref} className={`reveal ${delay} ${inView ? 'in-view' : ''}`} style={style}>{children}</div>
-}
 
 function Section({ children, style = {} }) {
   return (
@@ -82,7 +76,7 @@ function TermsModal({ onClose }) {
 // ─── FAQ ─────────────────────────────────────────────────────────────────────
 const FAQ_ITEMS = [
   { q: 'Which cities does Dwelling cover?', a: 'Currently all major Canadian cities — Toronto, Vancouver, Calgary, Ottawa, Montreal, Edmonton, Winnipeg, Halifax, and hundreds more. We started with Canada to build a rock-solid, data-rich pilot before expanding.' },
-  { q: 'Where does the data come from?', a: 'Realtor.ca active MLS listings (200+ per city), Statistics Canada NHPI price indices, OpenStreetMap walkability and amenities, Open-Meteo climate normals, and Cerebras AI for synthesis.' },
+  { q: 'Where does the data come from?', a: 'Realtor.ca active MLS listings (200+ per city), Statistics Canada price indices, OpenStreetMap walkability and amenities, Open-Meteo climate normals, and our proprietary AI engine for synthesis.' },
   { q: 'What is the Stability Score?', a: 'A 0–100 score computed from real listing data: median days on market, price volatility (coefficient of variation), inventory levels, and percentage of listings sitting >60 days. Higher = more stable.' },
   { q: 'Is Dwelling free to use?', a: 'Free users get 10 analyses per month. Upgrade to Pro for $9/month for unlimited analyses and full investment-grade reports.' },
   { q: 'Can I use the results to make a real estate decision?', a: 'No. All outputs are informational only and do not constitute financial, legal, or real estate advice. Always consult a qualified professional.' },
@@ -94,11 +88,11 @@ const FAQ = memo(function FAQ() {
   const [open, setOpen] = useState(null)
   return (
     <section id="faq" style={{ padding: 'clamp(56px, 8vw, 96px) 20px', maxWidth: 780, margin: '0 auto' }}>
-      <Reveal>
+      <div>
         <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>Support</div>
-      </Reveal>
+      </div>
       <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2rem,5vw,3.5rem)', color: '#fff', marginBottom: 40, lineHeight: 0.9, letterSpacing: '-0.02em' }}>
-        <BlurText text="Questions, answered." />
+        <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic' }}>"Questions, answered.</span>
       </h2>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {FAQ_ITEMS.map((item, i) => (
@@ -166,8 +160,8 @@ function Navbar({ user, userRecord, analysesLeft, isInTrial, trialDaysLeft, onSi
             </>
           ) : (
             <button onClick={onHome} style={{ background: '#fff', color: '#000', border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13, borderRadius: 40, padding: '8px 18px', display: 'flex', alignItems: 'center', gap: 6, transition: 'transform 0.15s' }}
-              onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.03)'}
-              onMouseLeave={e => e.currentTarget.style.transform = ''}>
+              onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+              onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
               Get Started ↗
             </button>
           )}
@@ -183,20 +177,20 @@ function Hero({ onSearch, loading, onShowDemo }) {
     <section id="hero" style={{ position: 'relative', overflow: 'hidden', background: 'transparent', minHeight: 'min(1000px, 100svh)', height: 'auto' }}>
       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 350, background: 'linear-gradient(to top, #000 40%, transparent)', zIndex: 2 }} />
       <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', maxWidth: 900, margin: '0 auto', padding: 'clamp(100px, 20vw, 150px) 20px 80px' }}>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }}>
+        <div>
           <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 16px', marginBottom: 28 }}>
             <span style={{ background: '#fff', color: '#000', fontSize: 11, fontFamily: "'Barlow',sans-serif", fontWeight: 600, borderRadius: 20, padding: '2px 8px' }}>New</span>
             <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>Introducing AI-powered area intelligence.</span>
           </div>
         </motion.div>
         <h1 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(3rem,9vw,6rem)', color: '#fff', lineHeight: 0.88, letterSpacing: '-0.03em', marginBottom: 28 }}>
-          <BlurText text="Know Any Area Before You Move." delay={0.3} />
+          <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic' }}>"Know Any Area Before You Move." delay={0.3} />
         </h1>
         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, delay: 0.8 }}
           style={{ color: 'rgba(255,255,255,0.5)', fontSize: 16, fontFamily: "'Barlow',sans-serif", fontWeight: 300, maxWidth: 540, lineHeight: 1.7, marginBottom: 40 }}>
           Type any Canadian city. Get a stability score, market temperature, AI verdict, and local news — all in seconds.
-        </motion.p>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 1.3 }} style={{ width: '100%', maxWidth: 600 }}>
+        </p>
+        <div style={{ width: '100%', maxWidth: 600 }}>
           <AddressSearch onSearch={onSearch} loading={loading} />
         </motion.div>
         <div style={{ display: 'flex', gap: 10, marginTop: 24, flexWrap: 'wrap', justifyContent: 'center' }}>
@@ -225,7 +219,7 @@ function Hero({ onSearch, loading, onShowDemo }) {
 
 // ─── PARTNERS ────────────────────────────────────────────────────────────────
 const Partners = memo(function Partners() {
-  const partners = ['Redfin', 'Open-Meteo', 'US Census', 'HUD', 'FEMA', 'Cerebras']
+  const partners = ['Realtor.ca', 'StatCan', 'Open-Meteo', 'OpenStreetMap', 'FEMA', 'Dwelling AI']
   return (
     <section style={{ padding: '64px 24px' }}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -249,14 +243,14 @@ const HowItWorks = memo(function HowItWorks() {
   const steps = [
     { num: '01', icon: '📍', title: 'Enter a city or neighbourhood', desc: 'Any location in the world. No street address needed — just the area you want to understand.' },
     { num: '02', icon: '⚡', title: 'We pull real market data', desc: 'Active listings, days on market, inventory levels, census demographics, FEMA risk, walkability — all in real time.' },
-    { num: '03', icon: '🧠', title: 'AI builds your area report', desc: 'Cerebras AI synthesizes everything into a stability score, market verdict, price trends, and investment outlook in under 30 seconds.' },
+    { num: '03', icon: '🧠', title: 'AI builds your area report', desc: 'Our AI engine synthesizes everything into a stability score, market verdict, price trends, and investment outlook in under 30 seconds.' },
   ]
   return (
     <Section style={{ minHeight: 'auto', padding: 'clamp(60px, 10vw, 128px) 20px' }}>
       <div style={{ maxWidth: 900, margin: '0 auto', textAlign: 'center' }} id="how-it-works">
         <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>How It Works</div>
         <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2rem,5vw,3.5rem)', color: '#fff', marginBottom: 12, lineHeight: 0.9, letterSpacing: '-0.02em' }}>
-          <BlurText text="Analyze. Understand. Decide." />
+          <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic' }}>"Analyze. Understand. Decide.</span>
         </h2>
         <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 15, fontFamily: "'Barlow',sans-serif", fontWeight: 300, maxWidth: 500, lineHeight: 1.7, marginBottom: 56, margin: '0 auto 56px' }}>
           Enter any city or neighbourhood. Our AI instantly processes listing data, demographics, risk scores, and market trends.
@@ -264,8 +258,8 @@ const HowItWorks = memo(function HowItWorks() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 14, textAlign: 'left' }}>
           {steps.map((s, i) => (
             <div key={i} className="liquid-glass" style={{ borderRadius: 20, padding: 28, transition: 'transform 0.2s', cursor: 'default' }}
-              onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02) translateY(-3px)'}
-              onMouseLeave={e => e.currentTarget.style.transform = ''}>
+              onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+              onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
               <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 52, color: 'rgba(255,255,255,0.06)', lineHeight: 1, marginBottom: 14 }}>{s.num}</div>
               <div className="liquid-glass-strong" style={{ borderRadius: '50%', width: 42, height: 42, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14, fontSize: 17 }}>{s.icon}</div>
               <h3 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 19, color: '#fff', marginBottom: 10 }}>{s.title}</h3>
@@ -312,26 +306,26 @@ const FeaturesChess = memo(function FeaturesChess() {
   return (
     <section id="features" style={{ padding: '96px 24px' }}>
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-        <Reveal>
+        <div>
           <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>Capabilities</div>
-        </Reveal>
+        </div>
         <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2rem,5vw,3.5rem)', color: '#fff', marginBottom: 56, lineHeight: 0.9, letterSpacing: '-0.02em' }}>
-          <BlurText text="Unrivaled insights. Simplified." />
+          <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic' }}>"Unrivaled insights. Simplified.</span>
         </h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
           {features.map((f, i) => (
             <div key={i} style={{ paddingBottom: 48, paddingTop: i > 0 ? 48 : 0, borderBottom: i < features.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'center' }}>
-                <Reveal>
+                <div>
                   <div>
                     <h3 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(1.4rem,3vw,1.9rem)', color: '#fff', marginBottom: 14, lineHeight: 1.1 }}>{f.title}</h3>
                     <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 14, color: 'rgba(255,255,255,0.5)', lineHeight: 1.8, marginBottom: 22 }}>{f.desc}</p>
                     <button onClick={() => scrollTo('pricing')} style={{ borderRadius: 40, padding: '10px 20px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: '#fff', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', transition: 'transform 0.15s' }}
-                      onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.04)'}
-                      onMouseLeave={e => e.currentTarget.style.transform = ''}>Get started →</button>
+                      onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+                      onMouseLeave={e => e.currentTarget.style.opacity = '1'}>Get started →</button>
                   </div>
-                </Reveal>
-                <Reveal delay="reveal-d1">
+                </div>
+                <div>
                   <div className="liquid-glass" style={{ borderRadius: 18, padding: 32, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
                     {f.stats.map((s, j) => (
                       <div key={j} style={{ textAlign: 'center' }}>
@@ -340,7 +334,7 @@ const FeaturesChess = memo(function FeaturesChess() {
                       </div>
                     ))}
                   </div>
-                </Reveal>
+                </div>
               </div>
             </div>
           ))}
@@ -360,23 +354,23 @@ const FeaturesGrid = memo(function FeaturesGrid() {
   return (
     <section style={{ padding: '80px 24px' }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-        <Reveal>
+        <div>
           <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>Why Dwelling</div>
-        </Reveal>
+        </div>
         <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2rem,5vw,3.5rem)', color: '#fff', marginBottom: 40, lineHeight: 0.9, letterSpacing: '-0.02em' }}>
-          <BlurText text="The difference is intelligence." />
+          <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic' }}>"The difference is intelligence.</span>
         </h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 14 }}>
           {cards.map((card, i) => (
-            <Reveal key={i} delay={`reveal-d${i % 3 + 1}`}>
+            <div key={i}>
               <div className="liquid-glass" style={{ borderRadius: 18, padding: 24, transition: 'transform 0.2s', cursor: 'default' }}
-                onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02) translateY(-3px)'}
-                onMouseLeave={e => e.currentTarget.style.transform = ''}>
+                onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+                onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
                 <div className="liquid-glass-strong" style={{ borderRadius: '50%', width: 42, height: 42, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18, fontSize: 17 }}>{card.icon}</div>
                 <h3 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 17, color: '#fff', marginBottom: 7 }}>{card.title}</h3>
                 <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>{card.desc}</p>
               </div>
-            </Reveal>
+            </div>
           ))}
         </div>
       </div>
@@ -392,7 +386,7 @@ const DataPartnerships = memo(function DataPartnerships() {
       icon: '🏛️',
       name: 'Realtor.ca / CREA',
       type: 'MLS Data',
-      desc: 'Active listings across Canada via the Canadian Real Estate Association’s hidden API — 200+ listings per city, updated daily.',
+      desc: 'Active listings across Canada sourced from Realtor.ca — 200+ listings per city, refreshed continuously to reflect current market conditions.',
       status: 'live',
     },
     {
@@ -418,9 +412,9 @@ const DataPartnerships = memo(function DataPartnerships() {
     },
     {
       icon: '🤖',
-      name: 'Cerebras AI',
-      type: 'AI Synthesis',
-      desc: 'llama-3.1-8b running on Cerebras hardware — sub-second inference for city verdict and investment analysis.',
+      name: 'Dwelling AI Engine',
+      type: 'Proprietary AI',
+      desc: 'Our proprietary AI engine synthesizes all data sources into a single city verdict, investment score, and market analysis — designed specifically for Canadian real estate.',
       status: 'live',
     },
     {
@@ -435,12 +429,12 @@ const DataPartnerships = memo(function DataPartnerships() {
   return (
     <section style={{ padding: '80px 24px' }}>
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-        <Reveal>
+        <div>
           <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>Data Sources</div>
-        </Reveal>
+        </div>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, marginBottom: 40 }}>
           <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2rem,5vw,3.5rem)', color: '#fff', lineHeight: 0.9, letterSpacing: '-0.02em' }}>
-            <BlurText text="Data you can actually trust." />
+            <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic' }}>"Data you can actually trust.</span>
           </h2>
           <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 14, color: 'rgba(255,255,255,0.4)', maxWidth: 340, lineHeight: 1.7 }}>
             Every data point is sourced from official providers, real MLS feeds, or government agencies — not scraped blogs or AI guesses.
@@ -448,10 +442,10 @@ const DataPartnerships = memo(function DataPartnerships() {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12 }}>
           {partners.map((p, i) => (
-            <Reveal key={i} delay={`reveal-d${(i % 3) + 1}`}>
+            <div key={i}>
               <div className="liquid-glass" style={{ borderRadius: 18, padding: 24, height: '100%', opacity: p.status === 'soon' ? 0.7 : 1, transition: 'transform 0.2s' }}
-                onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
-                onMouseLeave={e => e.currentTarget.style.transform = ''}>
+                onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+                onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <div className="liquid-glass-strong" style={{ borderRadius: 10, width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>{p.icon}</div>
@@ -472,7 +466,7 @@ const DataPartnerships = memo(function DataPartnerships() {
                 </div>
                 <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>{p.desc}</p>
               </div>
-            </Reveal>
+            </div>
           ))}
         </div>
         <div className="liquid-glass-strong" style={{ borderRadius: 18, padding: '20px 24px', marginTop: 16, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
@@ -526,9 +520,9 @@ const Testimonials = memo(function Testimonials() {
   return (
     <section style={{ padding: '96px 24px' }}>
       <div style={{ maxWidth: 860, margin: '0 auto', textAlign: 'center' }}>
-        <Reveal>
+        <div>
           <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 24 }}>Why we built this</div>
-        </Reveal>
+        </div>
         <div className="liquid-glass-strong" style={{ borderRadius: 24, padding: '40px 48px', maxWidth: 700, margin: '0 auto' }}>
           <div style={{ fontSize: 32, marginBottom: 20 }}>🏠</div>
           <p style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(1.2rem,2.5vw,1.6rem)', color: '#fff', lineHeight: 1.5, marginBottom: 20 }}>
@@ -574,11 +568,11 @@ const PRICING_PRO = [
 const Pricing = memo(function Pricing({ onUpgrade }) {
   return (
     <section id="pricing" style={{ padding: 'clamp(56px, 8vw, 80px) 20px', maxWidth: 1200, margin: '0 auto' }}>
-      <Reveal>
+      <div>
         <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>Pricing</div>
-      </Reveal>
+      </div>
       <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2rem,5vw,3.5rem)', color: '#fff', marginBottom: 8, lineHeight: 0.9, letterSpacing: '-0.02em' }}>
-        <BlurText text="Know before you move." />
+        <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic' }}>"Know before you move.</span>
       </h2>
       <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 15, color: 'rgba(255,255,255,0.45)', marginBottom: 40, lineHeight: 1.6 }}>
         Start free. Upgrade when you need the full picture.
@@ -605,8 +599,8 @@ const Pricing = memo(function Pricing({ onUpgrade }) {
             ))}
           </div>
           <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} style={{ width: '100%', borderRadius: 40, padding: '12px', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13, background: 'rgba(255,255,255,0.08)', color: '#fff', border: 'none', cursor: 'pointer', transition: 'transform 0.15s' }}
-            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
-            onMouseLeave={e => e.currentTarget.style.transform = ''}>Start for free</button>
+            onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+            onMouseLeave={e => e.currentTarget.style.opacity = '1'}>Start for free</button>
         </div>
 
         {/* Pro Monthly */}
@@ -632,8 +626,8 @@ const Pricing = memo(function Pricing({ onUpgrade }) {
             <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(74,222,128,0.8)', fontWeight: 300 }}>✓ Cancel anytime · No commitment</span>
           </div>
           <button onClick={onUpgrade} style={{ width: '100%', borderRadius: 40, padding: '13px', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13, background: '#fff', color: '#000', border: 'none', cursor: 'pointer', transition: 'transform 0.15s' }}
-            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
-            onMouseLeave={e => e.currentTarget.style.transform = ''}>Upgrade to Pro — $5/month →</button>
+            onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+            onMouseLeave={e => e.currentTarget.style.opacity = '1'}>Upgrade to Pro — $5/month →</button>
           <div style={{ textAlign: 'center', marginTop: 8 }}>
             <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.25)', fontWeight: 300 }}>Cancel anytime · Full refund if not satisfied</span>
           </div>
@@ -652,7 +646,7 @@ function CTAFooter({ onTermsClick, onScrollToTop, onUpgrade }) {
     <Section>
       <div style={{ maxWidth: 860, margin: '0 auto', textAlign: 'center', padding: 'clamp(60px, 10vw, 128px) 20px 60px' }}>
         <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2.2rem,6vw,4.5rem)', color: '#fff', lineHeight: 0.9, letterSpacing: '-0.03em', marginBottom: 20 }}>
-          <BlurText text="Your next area decision starts here." />
+          <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic' }}>"Your next area decision starts here.</span>
         </h2>
         <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 16, color: 'rgba(255,255,255,0.5)', marginBottom: 28, lineHeight: 1.7 }}>
           Free to start. Instant results. No credit card required.
@@ -671,11 +665,11 @@ function CTAFooter({ onTermsClick, onScrollToTop, onUpgrade }) {
         </div>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
           <button onClick={onScrollToTop} style={{ borderRadius: 40, padding: '13px 28px', fontFamily: "'Barlow',sans-serif", fontSize: 14, color: '#fff', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', transition: 'transform 0.15s' }}
-            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.04)'}
-            onMouseLeave={e => e.currentTarget.style.transform = ''}>Start for free →</button>
+            onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+            onMouseLeave={e => e.currentTarget.style.opacity = '1'}>Start for free →</button>
           <button onClick={onUpgrade} style={{ borderRadius: 40, padding: '13px 28px', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 14, background: '#fff', color: '#000', border: 'none', cursor: 'pointer', transition: 'transform 0.15s' }}
-            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.04)'}
-            onMouseLeave={e => e.currentTarget.style.transform = ''}>Upgrade to Pro</button>
+            onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+            onMouseLeave={e => e.currentTarget.style.opacity = '1'}>Upgrade to Pro</button>
         </div>
       </div>
       <footer style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '24px', position: 'relative', zIndex: 2 }}>
@@ -1032,8 +1026,8 @@ export default function App() {
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ade80', display: 'inline-block' }} />
           </div>
           <button onClick={() => setShowDemo(false)} style={{ background: '#fff', color: '#000', border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13, borderRadius: 40, padding: '8px 18px', transition: 'transform 0.15s' }}
-            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.03)'}
-            onMouseLeave={e => e.currentTarget.style.transform = ''}>
+            onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+            onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
             Sign up free →
           </button>
         </div>
@@ -1066,8 +1060,8 @@ export default function App() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
                 <button onClick={() => { setResult(null); setCompareResult(null); setComparingMode(false) }}
                   style={{ borderRadius: 40, padding: '8px 16px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: 'rgba(255,255,255,0.6)', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)', transition: 'transform 0.15s' }}
-                  onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.04)'}
-                  onMouseLeave={e => e.currentTarget.style.transform = ''}>
+                  onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+                  onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
                   ← New search
                 </button>
                 <button onClick={() => setComparingMode(true)}
