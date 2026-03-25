@@ -466,20 +466,6 @@ const DataPartnerships = memo(function DataPartnerships() {
             </div>
           ))}
         </div>
-        <div className="liquid-glass-strong" style={{ borderRadius: 18, padding: '20px 24px', marginTop: 16, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-          <div style={{ fontSize: 20 }}>🤝</div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 500, fontSize: 13, color: '#fff', marginBottom: 3 }}>Data partnership enquiries</div>
-            <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.6 }}>
-              We are actively seeking partnerships with real estate agencies, notarial data providers, and provincial land registries to provide exclusive, verified data. Early partners receive priority integration and co-marketing.
-            </p>
-          </div>
-          <a href="mailto:hello@dwelling.ca" style={{ borderRadius: 40, padding: '9px 20px', fontSize: 13, fontFamily: "'Barlow',sans-serif", fontWeight: 600, color: '#000', background: '#fff', border: 'none', cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0, transition: 'opacity 0.15s' }}
-            onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
-            onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
-            Get in touch →
-          </a>
-        </div>
       </div>
     </section>
   )
