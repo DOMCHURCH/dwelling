@@ -7,98 +7,160 @@ void main() {
 }
 `
 
-// Wide fireplace flame — rises from bottom, spreads like a hearth
 const FRAG = `
 precision highp float;
 uniform vec2  u_res;
 uniform float u_time;
 uniform sampler2D u_noise;
 
-float rand(vec2 co) {
-  return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453);
+float random (vec2 st) {
+  return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
 }
 
-float fbm(vec2 uv) {
-  float n  = (texture2D(u_noise, uv       ).r - 0.5) * 0.5;
-        n += (texture2D(u_noise, uv * 2.0 ).r - 0.5) * 0.25;
-        n += (texture2D(u_noise, uv * 3.0 ).r - 0.5) * 0.125;
-        n += (texture2D(u_noise, uv * 6.0 ).r - 0.5) * 0.0625;
-  return n + 0.5;
+float noise(vec2 st) {
+  vec2 i = floor(st);
+  vec2 f = fract(st);
+  float a = random(i);
+  float b = random(i + vec2(1.0, 0.0));
+  float c = random(i + vec2(0.0, 1.0));
+  float d = random(i + vec2(1.0, 1.0));
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+}
+
+float fbm(vec2 st, int octaves, float persistence, float lacunarity) {
+  float value = 0.0;
+  float amplitude = 0.5;
+  float frequency = 4.0;
+  for(int i = 0; i < 5; i++) {
+    if(i >= octaves) break;
+    value += amplitude * noise(st * frequency);
+    amplitude *= persistence;
+    frequency *= lacunarity;
+  }
+  return value;
 }
 
 void main() {
-  // uv: 0..1, origin bottom-left, y increases upward
   vec2 uv = gl_FragCoord.xy / u_res;
-
-  // flame rises from bottom: y=0 is base, y=1 is top
-  float y = uv.y;
-
-  // center x around 0, keep wide
-  float x = uv.x - 0.5;
-
-  // time-driven upward scroll for turbulence
-  float speed = u_time * 0.4;
-
-  // sample noise at multiple scales for organic look
-  vec2 noiseUV = vec2(x * 1.0, y * 1.5 - speed);
-  float turb = fbm(noiseUV);
-  float turb2 = fbm(noiseUV * 2.0 + vec2(0.3, speed * 0.5));
-
-  // warp x position with turbulence — more warp near top
-  float warpAmt = 0.15 * (1.0 - y) + 0.08 * y;
-  float xWarped = x + (turb - 0.5) * warpAmt * 2.0;
-
-  // fireplace shape: wide at bottom, tapers as it rises
-  // base width = 1.0 (full screen), narrows at top
-  float baseWidth = 0.82;
-  float topWidth  = 0.18;
-  float widthAtY  = mix(baseWidth, topWidth, pow(y, 0.6));
-
-  // flame body: 1 inside shape, 0 outside
-  float shape = 1.0 - smoothstep(widthAtY * 0.7, widthAtY, abs(xWarped));
-
-  // height falloff — flame fades before reaching top
-  // add turbulence to height so edge is ragged
-  float heightNoise = fbm(vec2(x * 2.0, speed * 0.8)) * 0.35;
-  float maxHeight = 0.65 + heightNoise;
-  float heightFade = 1.0 - smoothstep(maxHeight * 0.5, maxHeight, y);
-
-  float flame = shape * heightFade;
-
-  // extra glow at base — always bright across full width
-  float baseGlow = smoothstep(0.35, 0.0, y) * smoothstep(0.92, 0.6, abs(x));
-
-  // inner hot core — brighter center band
-  float core = (1.0 - smoothstep(0.0, widthAtY * 0.35, abs(xWarped))) * heightFade;
-  core = pow(core, 1.5);
-
-  // add flickering via low-freq time noise
-  float flicker = 0.85 + 0.15 * fbm(vec2(u_time * 0.8, 0.5));
-
-  flame = clamp(flame * flicker, 0.0, 1.0);
-  core  = clamp(core  * flicker, 0.0, 1.0);
-
-  // color layers
-  // outer: deep red / dark orange
-  vec3 outerColor = vec3(0.6, 0.1, 0.0);
-  // mid: bright orange
-  vec3 midColor   = vec3(1.0, 0.35, 0.0);
-  // inner: yellow-orange
-  vec3 coreColor  = vec3(1.0, 0.78, 0.1);
-  // base glow: warm amber
-  vec3 glowColor  = vec3(0.9, 0.25, 0.0);
-
-  vec3 col = vec3(0.0);
-  col = mix(col, outerColor, flame);
-  col = mix(col, midColor,   flame * flame);
-  col = mix(col, coreColor,  core);
-  col += glowColor * baseGlow * 0.7;
-
-  // subtle noise grain
-  col *= 0.92 + 0.08 * rand(uv + u_time * 0.01);
-
-  col = clamp(col, 0.0, 1.0);
-  gl_FragColor = vec4(col, 1.0);
+  
+  // Create brick fireplace structure at bottom
+  float brickHeight = 0.35;
+  float isBrickArea = step(uv.y, brickHeight);
+  
+  // Brick pattern
+  vec2 brickUV = uv;
+  brickUV.x *= 8.0;
+  brickUV.y *= 12.0;
+  
+  float brickRow = floor(brickUV.y);
+  float brickOffset = mod(brickRow, 2.0) * 0.5;
+  vec2 brickCoord = fract(vec2(brickUV.x + brickOffset, brickUV.y));
+  
+  float brick = step(brickCoord.x, 0.9) * step(brickCoord.y, 0.75);
+  float mortar = 1.0 - brick;
+  
+  vec3 brickColor = vec3(0.55, 0.28, 0.18);
+  vec3 mortarColor = vec3(0.25, 0.2, 0.18);
+  
+  vec3 fireplaceColor = mix(mortarColor, brickColor, brick);
+  fireplaceColor += vec3(0.1, 0.05, 0.02) * sin(uv.x * 30.0) * step(uv.y, brickHeight);
+  
+  // Fireplace opening (arch shape)
+  float archX = abs(uv.x - 0.5) * 2.0;
+  float archY = (uv.y - 0.05) / 0.45;
+  
+  float archShape = 0.0;
+  if(uv.y > 0.05 && uv.y < 0.5) {
+    float archCurve = 1.0 - pow(archX, 1.5);
+    archShape = smoothstep(0.6, 0.95, archCurve) * smoothstep(0.0, 0.8, archY);
+    archShape *= (1.0 - smoothstep(0.7, 1.0, archY));
+  }
+  
+  // Fire area mask
+  float fireMask = 0.0;
+  if(uv.y > 0.08 && uv.y < 0.48) {
+    float fireWidth = 0.7 * (1.0 - (uv.y - 0.08) / 0.45);
+    fireMask = 1.0 - smoothstep(fireWidth * 0.6, fireWidth, abs(uv.x - 0.5) * 1.8);
+    fireMask *= smoothstep(0.0, 0.3, (uv.y - 0.08) / 0.45);
+    fireMask *= (1.0 - smoothstep(0.7, 1.0, (uv.y - 0.08) / 0.45));
+  }
+  
+  // Flame effects
+  float time = u_time * 2.5;
+  vec2 fireUV = vec2(uv.x * 3.0 - 1.5, uv.y * 4.0 - time);
+  
+  // Multiple layers of fire noise
+  float fire1 = fbm(fireUV, 3, 0.5, 2.0);
+  float fire2 = fbm(fireUV * 2.5 + vec2(1.2, 0.0), 2, 0.6, 2.2);
+  float fire3 = fbm(fireUV * 5.0 - vec2(0.5, time * 0.5), 2, 0.7, 2.0);
+  
+  float fireIntensity = (fire1 * 0.6 + fire2 * 0.3 + fire3 * 0.1) * fireMask;
+  
+  // Flickering effect
+  float flicker = 0.7 + 0.3 * sin(time * 15.0) + 0.15 * sin(time * 37.0);
+  fireIntensity *= flicker;
+  
+  // Add some embers flying up
+  float embers = 0.0;
+  for(float i = 0.0; i < 5.0; i++) {
+    float t = time * 2.0 + i * 2.5;
+    vec2 emberUV = vec2(
+      uv.x * 8.0 + sin(t * 1.3) * 0.5,
+      uv.y * 12.0 - t * 1.8 + i * 1.2
+    );
+    float emberNoise = fract(sin(dot(floor(emberUV * 10.0), vec2(12.9898, 78.233))) * 43758.5453);
+    float emberAlpha = smoothstep(0.2, 0.8, emberNoise) * (1.0 - uv.y * 1.5);
+    emberAlpha *= step(uv.y, 0.45) * step(0.08, uv.y);
+    embers += emberAlpha * 0.3;
+  }
+  
+  // Logs at bottom of fire
+  float logs = 0.0;
+  if(uv.y < 0.15 && uv.y > 0.05 && abs(uv.x - 0.5) < 0.4) {
+    float logPattern = sin(uv.x * 35.0) * 0.5 + 0.5;
+    logs = (1.0 - smoothstep(0.05, 0.12, abs(uv.y - 0.1))) * logPattern;
+    logs *= step(uv.y, 0.13);
+  }
+  
+  // Fire colors
+  vec3 fireColor;
+  if(fireIntensity > 0.7) {
+    fireColor = vec3(1.0, 0.9, 0.4); // White hot core
+  } else if(fireIntensity > 0.4) {
+    fireColor = vec3(1.0, 0.6, 0.1); // Orange
+  } else {
+    fireColor = vec3(0.8, 0.2, 0.05); // Red
+  }
+  
+  fireColor = mix(fireColor, vec3(1.0, 0.3, 0.05), fire2);
+  fireColor *= (0.8 + fire3 * 0.5);
+  
+  // Add ember glow
+  fireColor += vec3(1.0, 0.5, 0.2) * embers;
+  
+  // Glow effect around fire
+  float glow = fireIntensity * 0.6 * (1.0 - abs(uv.x - 0.5) * 1.2);
+  glow *= smoothstep(0.0, 0.3, (uv.y - 0.08) / 0.45);
+  
+  // Combine all elements
+  vec3 finalColor = fireplaceColor * (1.0 - archShape);
+  finalColor += fireColor * fireIntensity;
+  finalColor += vec3(1.0, 0.4, 0.1) * glow * 0.5;
+  finalColor += vec3(0.4, 0.2, 0.05) * logs;
+  
+  // Add some smoke rising (very subtle)
+  if(uv.y > 0.35 && uv.y < 0.6 && abs(uv.x - 0.5) < 0.25) {
+    float smokeNoise = fbm(vec2(uv.x * 5.0, uv.y * 3.0 - time * 0.5), 2, 0.5, 2.0);
+    float smokeAlpha = smokeNoise * 0.15 * (1.0 - (uv.y - 0.35) / 0.25);
+    finalColor += vec3(0.2, 0.15, 0.1) * smokeAlpha;
+  }
+  
+  // Slight vignette effect
+  float vignette = 1.0 - length(uv - 0.5) * 0.3;
+  finalColor *= vignette;
+  
+  gl_FragColor = vec4(finalColor, 1.0);
 }
 `
 
@@ -109,7 +171,6 @@ function makeNoiseTex(gl, size) {
       const i = (y * size + x) * 4
       const v = Math.sin(x * 127.1 + y * 311.7) * 43758.5453
       const n = Math.abs(v - Math.floor(v))
-      // smoother noise via bilinear-friendly values
       const b = Math.floor(n * 255)
       data[i] = data[i+1] = data[i+2] = b
       data[i+3] = 255
@@ -125,29 +186,33 @@ function makeNoiseTex(gl, size) {
   return tex
 }
 
-export default function GlobalBackground() {
+export default function Fireplace() {
   const canvasRef = useRef(null)
-  const rafRef    = useRef(null)
-  const t0Ref     = useRef(Date.now())
+  const rafRef = useRef(null)
+  const t0Ref = useRef(Date.now())
 
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
 
     const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl')
-    if (!gl) return
+    if (!gl) {
+      console.error('WebGL not supported')
+      return
+    }
 
     const compile = (type, src) => {
       const s = gl.createShader(type)
       gl.shaderSource(s, src)
       gl.compileShader(s)
       if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
-        console.error(gl.getShaderInfoLog(s)); return null
+        console.error(gl.getShaderInfoLog(s))
+        return null
       }
       return s
     }
 
-    const vs = compile(gl.VERTEX_SHADER,   VERT)
+    const vs = compile(gl.VERTEX_SHADER, VERT)
     const fs = compile(gl.FRAGMENT_SHADER, FRAG)
     if (!vs || !fs) return
 
@@ -156,35 +221,41 @@ export default function GlobalBackground() {
     gl.attachShader(prog, fs)
     gl.linkProgram(prog)
     if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
-      console.error(gl.getProgramInfoLog(prog)); return
+      console.error(gl.getProgramInfoLog(prog))
+      return
     }
 
     const buf = gl.createBuffer()
     gl.bindBuffer(gl.ARRAY_BUFFER, buf)
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,1,-1,-1,1,1,1,-1]), gl.STATIC_DRAW)
 
-    const posLoc   = gl.getAttribLocation(prog,  'a_pos')
-    const resLoc   = gl.getUniformLocation(prog,  'u_res')
-    const timeLoc  = gl.getUniformLocation(prog,  'u_time')
-    const noiseLoc = gl.getUniformLocation(prog,  'u_noise')
+    const posLoc = gl.getAttribLocation(prog, 'a_pos')
+    const resLoc = gl.getUniformLocation(prog, 'u_res')
+    const timeLoc = gl.getUniformLocation(prog, 'u_time')
+    const noiseLoc = gl.getUniformLocation(prog, 'u_noise')
 
     const noiseTex = makeNoiseTex(gl, 256)
 
     const resize = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 1.5)
-      canvas.width  = canvas.clientWidth  * dpr
-      canvas.height = canvas.clientHeight * dpr
-      gl.viewport(0, 0, canvas.width, canvas.height)
+      const width = canvas.clientWidth
+      const height = canvas.clientHeight
+      canvas.width = width
+      canvas.height = height
+      gl.viewport(0, 0, width, height)
     }
-    window.addEventListener('resize', resize, { passive: true })
+    
+    window.addEventListener('resize', resize)
     resize()
 
     let paused = false
-    document.addEventListener('visibilitychange', () => { paused = document.hidden })
+    document.addEventListener('visibilitychange', () => {
+      paused = document.hidden
+    })
 
     const render = () => {
       rafRef.current = requestAnimationFrame(render)
       if (paused) return
+      
       const t = (Date.now() - t0Ref.current) * 0.001
 
       gl.clearColor(0, 0, 0, 1)
@@ -200,28 +271,44 @@ export default function GlobalBackground() {
       gl.uniform1i(noiseLoc, 0)
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
     }
+    
     rafRef.current = requestAnimationFrame(render)
 
     return () => {
-      cancelAnimationFrame(rafRef.current)
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current)
+      }
       window.removeEventListener('resize', resize)
-      gl.deleteProgram(prog)
-      gl.deleteTexture(noiseTex)
+      if (gl) {
+        gl.deleteProgram(prog)
+        gl.deleteTexture(noiseTex)
+        gl.deleteBuffer(buf)
+        gl.deleteShader(vs)
+        gl.deleteShader(fs)
+      }
     }
   }, [])
 
   return (
     <div style={{
       position: 'fixed',
-      top: 0, left: 0, right: 0,
-      height: '100vh',
-      zIndex: 0,
+      top: 0,
+      left: 0,
+      right: 0,
+      height: '400px', // Fixed height for fireplace
+      zIndex: 10,
       pointerEvents: 'none',
-      // fade out toward top so content above is readable
-      WebkitMaskImage: 'linear-gradient(to top, black 0%, black 40%, transparent 100%)',
-      maskImage:       'linear-gradient(to top, black 0%, black 40%, transparent 100%)',
+      boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
     }}>
-      <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: '100%' }} />
+      <canvas 
+        ref={canvasRef} 
+        style={{ 
+          display: 'block', 
+          width: '100%', 
+          height: '100%',
+          objectFit: 'cover',
+        }} 
+      />
     </div>
   )
 }
