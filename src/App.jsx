@@ -392,7 +392,7 @@ const DataPartnerships = memo(function DataPartnerships() {
       icon: '🏛️',
       name: 'Realtor.ca / CREA',
       type: 'MLS Data',
-      desc: 'Active listings across Canada via the Canadian Real Estate Association's hidden API — 200+ listings per city, updated daily.',
+      desc: 'Active listings across Canada via the Canadian Real Estate Association’s hidden API — 200+ listings per city, updated daily.',
       status: 'live',
     },
     {
