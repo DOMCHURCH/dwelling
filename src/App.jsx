@@ -384,6 +384,116 @@ const FeaturesGrid = memo(function FeaturesGrid() {
   )
 })
 
+
+// ─── DATA PARTNERSHIPS ───────────────────────────────────────────────────────
+const DataPartnerships = memo(function DataPartnerships() {
+  const partners = [
+    {
+      icon: '🏛️',
+      name: 'Realtor.ca / CREA',
+      type: 'MLS Data',
+      desc: 'Active listings across Canada via the Canadian Real Estate Association's hidden API — 200+ listings per city, updated daily.',
+      status: 'live',
+    },
+    {
+      icon: '📊',
+      name: 'Statistics Canada',
+      type: 'Price Indices',
+      desc: 'New Housing Price Index (NHPI) by CMA — 27 major Canadian cities, quarterly data for time-adjusting prices.',
+      status: 'live',
+    },
+    {
+      icon: '🗺️',
+      name: 'OpenStreetMap / Overpass',
+      type: 'Walkability & Amenities',
+      desc: 'Transit stops, schools, parks, groceries, hospitals within 2km radius. Cached and queried via 3 Overpass mirrors.',
+      status: 'live',
+    },
+    {
+      icon: '🌤️',
+      name: 'Open-Meteo',
+      type: 'Climate & Weather',
+      desc: 'Current weather + 12-month climate normals. 300,000 req/month free — no API key needed.',
+      status: 'live',
+    },
+    {
+      icon: '🤖',
+      name: 'Cerebras AI',
+      type: 'AI Synthesis',
+      desc: 'llama-3.1-8b running on Cerebras hardware — sub-second inference for city verdict and investment analysis.',
+      status: 'live',
+    },
+    {
+      icon: '📋',
+      name: 'Notarial Values & Permits',
+      type: 'Coming Soon',
+      desc: 'Partnership discussions underway with provincial data providers for notarial sale values and building permits — exclusive data that reduces AI estimation reliance.',
+      status: 'soon',
+    },
+  ]
+
+  return (
+    <section style={{ padding: '80px 24px' }}>
+      <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+        <Reveal>
+          <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>Data Sources</div>
+        </Reveal>
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, marginBottom: 40 }}>
+          <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2rem,5vw,3.5rem)', color: '#fff', lineHeight: 0.9, letterSpacing: '-0.02em' }}>
+            <BlurText text="Data you can actually trust." />
+          </h2>
+          <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 14, color: 'rgba(255,255,255,0.4)', maxWidth: 340, lineHeight: 1.7 }}>
+            Every data point is sourced from official providers, real MLS feeds, or government agencies — not scraped blogs or AI guesses.
+          </p>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12 }}>
+          {partners.map((p, i) => (
+            <Reveal key={i} delay={`reveal-d${(i % 3) + 1}`}>
+              <div className="liquid-glass" style={{ borderRadius: 18, padding: 24, height: '100%', opacity: p.status === 'soon' ? 0.7 : 1, transition: 'transform 0.2s' }}
+                onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+                onMouseLeave={e => e.currentTarget.style.transform = ''}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div className="liquid-glass-strong" style={{ borderRadius: 10, width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>{p.icon}</div>
+                    <div>
+                      <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 500, fontSize: 14, color: '#fff', lineHeight: 1.2 }}>{p.name}</div>
+                      <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>{p.type}</div>
+                    </div>
+                  </div>
+                  <div style={{
+                    borderRadius: 20, padding: '3px 10px', fontSize: 10,
+                    fontFamily: "'Barlow',sans-serif", fontWeight: 600, flexShrink: 0,
+                    background: p.status === 'live' ? 'rgba(74,222,128,0.12)' : 'rgba(255,255,255,0.06)',
+                    border: `1px solid ${p.status === 'live' ? 'rgba(74,222,128,0.25)' : 'rgba(255,255,255,0.1)'}`,
+                    color: p.status === 'live' ? '#4ade80' : 'rgba(255,255,255,0.4)',
+                  }}>
+                    {p.status === 'live' ? '● Live' : '◌ Soon'}
+                  </div>
+                </div>
+                <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>{p.desc}</p>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+        <div className="liquid-glass-strong" style={{ borderRadius: 18, padding: '20px 24px', marginTop: 16, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+          <div style={{ fontSize: 20 }}>🤝</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 500, fontSize: 13, color: '#fff', marginBottom: 3 }}>Data partnership enquiries</div>
+            <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.6 }}>
+              We are actively seeking partnerships with real estate agencies, notarial data providers, and provincial land registries to provide exclusive, verified data. Early partners receive priority integration and co-marketing.
+            </p>
+          </div>
+          <a href="mailto:hello@dwelling.ca" style={{ borderRadius: 40, padding: '9px 20px', fontSize: 13, fontFamily: "'Barlow',sans-serif", fontWeight: 600, color: '#000', background: '#fff', border: 'none', cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0, transition: 'opacity 0.15s' }}
+            onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+            onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
+            Get in touch →
+          </a>
+        </div>
+      </div>
+    </section>
+  )
+})
+
 // ─── STATS ───────────────────────────────────────────────────────────────────
 const Stats = memo(function Stats() {
   return (
@@ -1018,6 +1128,7 @@ export default function App() {
           <HowItWorks />
           <FeaturesChess />
           <FeaturesGrid />
+          <DataPartnerships />
           <Stats />
           <Pricing onUpgrade={() => setShowPaywall(true)} />
           <FAQ />
