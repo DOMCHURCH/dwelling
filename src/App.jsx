@@ -921,7 +921,7 @@ export default function App() {
         }).then(r => r.json()).catch(() => null),
       ])
 
-      const bulkListings = bulkCompsRes.status === 'fulfilled' ? bulkCompsRes.value?.listings || [] : []
+      const bulkListings = bulkCompsRes.status === 'fulfilled' ? bulkCompsRes.value?.listings || bulkCompsRes.value?.comps || [] : []
       const newsData = newsRes.status === 'fulfilled' ? newsRes.value : null
       const areaMetrics = aggregateListings(bulkListings) || null
       const areaRiskScore = computeRiskScore(areaMetrics, null) || null
@@ -963,7 +963,7 @@ export default function App() {
         fetch('/api/comps', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ city, state, country, mode: 'area' }) }).then(r => r.json()).catch(() => null),
         fetch('/api/news', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ city, state, country }) }).then(r => r.json()).catch(() => null),
       ])
-      const bulkListings = bulkCompsRes.status === 'fulfilled' ? bulkCompsRes.value?.listings || [] : []
+      const bulkListings = bulkCompsRes.status === 'fulfilled' ? bulkCompsRes.value?.listings || bulkCompsRes.value?.comps || [] : []
       const newsData = newsRes.status === 'fulfilled' ? newsRes.value : null
       const areaMetrics = aggregateListings(bulkListings) || null
       const areaRiskScore = computeRiskScore(areaMetrics, null) || null
