@@ -188,98 +188,99 @@ async function fetchRealtorCaComps({ city, state, lat, lon }) {
     'Origin': 'https://www.realtor.ca',
   }
 
-  // Realtor.ca PropertySearch — search by lat/lon for active listings nearby
-  const body = new URLSearchParams({
-    ZoomLevel: '13',
-    LatitudeMax: String((lat || 45.4) + 0.05),
-    LongitudeMax: String((lon || -75.7) + 0.07),
-    LatitudeMin: String((lat || 45.4) - 0.05),
-    LongitudeMin: String((lon || -75.7) - 0.07),
-    Sort: '6-D', // newest first
-    PropertyTypeGroupID: '1', // residential
-    TransactionTypeId: '2', // for sale
+  // Realtor.ca PropertySearch — wider bbox, multiple pages, 50 per page
+  const bbox = {
+    latMax: String((lat || 45.4) + 0.18),
+    lonMax: String((lon || -75.7) + 0.22),
+    latMin: String((lat || 45.4) - 0.18),
+    lonMin: String((lon || -75.7) - 0.22),
+  }
+
+  const makeBody = (page) => new URLSearchParams({
+    ZoomLevel: '11',
+    LatitudeMax: bbox.latMax,
+    LongitudeMax: bbox.lonMax,
+    LatitudeMin: bbox.latMin,
+    LongitudeMin: bbox.lonMin,
+    Sort: '6-D',
+    PropertyTypeGroupID: '1',
+    TransactionTypeId: '2',
     Currency: 'CAD',
-    RecordsPerPage: '12',
-    CurrentPage: '1',
+    RecordsPerPage: '50',
+    CurrentPage: String(page),
     ApplicationId: '1',
     CultureId: '1',
     Version: '7.0',
     PropertySearchTypeId: '1',
   })
 
-  const comps = []
-
-  try {
-    const res = await fetch('https://api2.realtor.ca/Listing.svc/PropertySearch_Post', {
-      method: 'POST',
-      headers,
-      body: body.toString(),
-    })
-
-    if (!res.ok) throw new Error(`Realtor.ca returned ${res.status}`)
-    const data = await res.json()
-    const listings = data?.Results || []
-
-    for (const listing of listings.slice(0, 8)) {
-      const price = parseInt(listing?.Property?.Price?.replace(/[^0-9]/g, '') || '0')
-      if (!price) continue
-
-      const address = [
-        listing?.Property?.Address?.AddressText,
-      ].filter(Boolean).join(', ')
-
-      comps.push({
-        address: address || 'Nearby property',
-        price,
-        pricePerSqft: null, // Realtor.ca doesn't always include sqft
-        sqft: listing?.Building?.SizeInterior
-          ? parseInt(listing.Building.SizeInterior.replace(/[^0-9]/g, ''))
-          : null,
-        beds: listing?.Building?.Bedrooms ? parseInt(listing.Building.Bedrooms) : null,
-        baths: listing?.Building?.BathroomTotal ? parseInt(listing.Building.BathroomTotal) : null,
-        listedDate: listing?.InsertedDateUTC || null,
-        type: 'active_listing',
-        source: 'realtor_ca',
-        mlsNumber: listing?.MlsNumber || null,
-      })
-    }
-  } catch (e) {
-    console.warn('Realtor.ca search failed:', e.message)
-    // Try alternate API endpoint
-    try {
-      const altRes = await fetch('https://api37.realtor.ca/Listing.svc/PropertySearch_Post', {
-        method: 'POST',
-        headers,
-        body: body.toString(),
-      })
-      if (altRes.ok) {
-        const altData = await altRes.json()
-        const listings = altData?.Results || []
-        for (const listing of listings.slice(0, 8)) {
-          const price = parseInt(listing?.Property?.Price?.replace(/[^0-9]/g, '') || '0')
-          if (!price) continue
-          comps.push({
-            address: listing?.Property?.Address?.AddressText || 'Nearby property',
-            price,
-            sqft: listing?.Building?.SizeInterior
-              ? parseInt(listing.Building.SizeInterior.replace(/[^0-9]/g, ''))
-              : null,
-            beds: listing?.Building?.Bedrooms ? parseInt(listing.Building.Bedrooms) : null,
-            baths: listing?.Building?.BathroomTotal ? parseInt(listing.Building.BathroomTotal) : null,
-            type: 'active_listing',
-            source: 'realtor_ca',
-          })
-        }
-      }
-    } catch (e2) {
-      console.warn('Realtor.ca alt endpoint also failed:', e2.message)
+  const parseListing = (listing) => {
+    const price = parseInt(listing?.Property?.Price?.replace(/[^0-9]/g, '') || '0')
+    if (!price || price < 50000) return null
+    const sqftRaw = listing?.Building?.SizeInterior
+    const sqft = sqftRaw ? parseInt(sqftRaw.replace(/[^0-9]/g, '')) : null
+    return {
+      address: listing?.Property?.Address?.AddressText || 'Nearby property',
+      price,
+      pricePerSqft: sqft && sqft > 100 ? Math.round(price / sqft) : null,
+      sqft,
+      beds: listing?.Building?.Bedrooms ? parseInt(listing.Building.Bedrooms) : null,
+      baths: listing?.Building?.BathroomTotal ? parseInt(listing.Building.BathroomTotal) : null,
+      daysOnMarket: listing?.InsertedDateUTC
+        ? Math.round((Date.now() - new Date(listing.InsertedDateUTC).getTime()) / 86400000)
+        : null,
+      type: 'active_listing',
+      source: 'realtor_ca',
+      mlsNumber: listing?.MlsNumber || null,
     }
   }
 
+  const comps = []
+  const endpoints = [
+    'https://api2.realtor.ca/Listing.svc/PropertySearch_Post',
+    'https://api.realtor.ca/Listing.svc/PropertySearch_Post',
+  ]
+
+  for (const endpoint of endpoints) {
+    if (comps.length >= 100) break
+    for (let page = 1; page <= 3; page++) {
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers,
+          body: makeBody(page).toString(),
+        })
+        if (!res.ok) break
+        const data = await res.json()
+        const listings = data?.Results || []
+        if (!listings.length) break
+        for (const listing of listings) {
+          const parsed = parseListing(listing)
+          if (parsed) comps.push(parsed)
+        }
+        if (listings.length < 50) break // no more pages
+      } catch (e) {
+        console.warn(`Realtor.ca ${endpoint} page ${page} failed:`, e.message)
+        break
+      }
+    }
+    if (comps.length > 0) break // got data from first endpoint
+  }
+
+  // Deduplicate by MLS number
+  const seen = new Set()
+  const deduped = comps.filter(c => {
+    const key = c.mlsNumber || c.address
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+
   return {
-    comps: comps.filter(c => c.price > 0),
+    listings: deduped.filter(c => c.price > 0),
+    comps: deduped.filter(c => c.price > 0),
     source: 'realtor_ca',
-    count: comps.length,
+    count: deduped.length,
   }
 }
 
