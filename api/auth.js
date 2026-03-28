@@ -23,7 +23,9 @@ async function ensureTable(db) {
       analyses_used INTEGER DEFAULT 0,
       analyses_reset_at TEXT,
       cerebras_key TEXT,
-      created_at TEXT
+      created_at TEXT,
+      terms_accepted_at TEXT,
+      terms_accepted_ip TEXT
     )
   `)
 }
@@ -83,9 +85,10 @@ export default async function handler(req, res) {
       const id = randomBytes(16).toString('hex')
       const is_pro = ADMIN_EMAILS.includes(key) ? 1 : 0
 
+      const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown'
       await db.execute({
-        sql: 'INSERT INTO users (email, id, salt, password, is_pro, analyses_used, analyses_reset_at, created_at) VALUES (?, ?, ?, ?, ?, 0, ?, ?)',
-        args: [key, id, salt, hashPassword(password, salt), is_pro, new Date().toISOString(), new Date().toISOString()],
+        sql: 'INSERT INTO users (email, id, salt, password, is_pro, analyses_used, analyses_reset_at, created_at, terms_accepted_at, terms_accepted_ip) VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?)',
+        args: [key, id, salt, hashPassword(password, salt), is_pro, new Date().toISOString(), new Date().toISOString(), new Date().toISOString(), clientIp],
       })
 
       const token = sign({ sub: id, email: key, is_pro: !!is_pro, exp: Math.floor(Date.now() / 1000) + 30 * 86400 })
