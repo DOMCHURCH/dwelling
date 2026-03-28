@@ -209,7 +209,7 @@ export default function AddressSearch({ onSearch, loading, compact }) {
         <button type="submit" disabled={loading || !valid}
           style={{ ...btn(valid, loading), width: '100%', padding: '14px', fontSize: 15 }}
           onMouseEnter={hover} onMouseLeave={unhover}>
-          {loading ? '⟳ Analyzing...' : '→ Analyze City'}
+          {loading ? '⟳ Analyzing...' : '→ Get Free Report'}
         </button>
       </div>
     </form>
