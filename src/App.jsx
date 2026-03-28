@@ -78,7 +78,7 @@ const FAQ_ITEMS = [
   { q: 'Which cities does Dwelling cover?', a: 'Currently all major Canadian cities — Toronto, Vancouver, Calgary, Ottawa, Montreal, Edmonton, Winnipeg, Halifax, and hundreds more. We started with Canada to build a rock-solid, data-rich pilot before expanding.' },
   { q: 'Where does the data come from?', a: 'Realtor.ca active MLS listings (200+ per city), Statistics Canada price indices, OpenStreetMap walkability and amenities, Open-Meteo climate normals, and our proprietary AI engine for synthesis.' },
   { q: 'What is the Stability Score?', a: 'A 0–100 score computed from real listing data: median days on market, price volatility (coefficient of variation), inventory levels, and percentage of listings sitting >60 days. Higher = more stable.' },
-  { q: 'Is Dwelling free to use?', a: 'Free users get 10 analyses per month. Upgrade to Pro for $9/month for unlimited analyses and full investment-grade reports.' },
+  { q: 'Is Dwelling free to use?', a: 'Free users get 10 analyses per month. Upgrade to Pro for $9/month for unlimited analyses, full city intelligence, and investment-grade reports.' },
   { q: 'Can I use the results to make a real estate decision?', a: 'No. All outputs are informational only and do not constitute financial, legal, or real estate advice. Always consult a qualified professional.' },
   { q: 'Does Dwelling store my searches?', a: 'No. Searches are processed in real time and discarded immediately. We store only your usage count to enforce free-tier limits.' },
   { q: 'Why Canada only right now?', a: 'Depth over breadth. Starting with one country lets us build a genuinely reliable product — accurate data partnerships, verified sources, Canada-specific context — before expanding internationally.' },
@@ -174,7 +174,8 @@ function Navbar({ user, userRecord, analysesLeft, isInTrial, trialDaysLeft, onSi
 // ─── HERO ────────────────────────────────────────────────────────────────────
 function Hero({ onSearch, loading, onShowDemo }) {
   return (
-    <section id="hero" style={{ position: 'relative', overflow: 'hidden', background: 'transparent', minHeight: 'min(1000px, 100svh)', height: 'auto' }}>
+    <section id="hero" style={{ position: 'relative', overflow: 'hidden', background: 'transparent', minHeight: 'min(1000px, 100svh)', height: 'auto', isolation: 'isolate' }}>
+      <GlobalBackground />
       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 350, background: 'linear-gradient(to top, #000 40%, transparent)', zIndex: 2 }} />
       <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', maxWidth: 900, margin: '0 auto', padding: 'clamp(100px, 20vw, 150px) 20px 80px' }}>
         <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 16px', marginBottom: 28 }}>
@@ -252,18 +253,7 @@ const HowItWorks = memo(function HowItWorks() {
         <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 15, fontFamily: "'Barlow',sans-serif", fontWeight: 300, maxWidth: 500, lineHeight: 1.7, marginBottom: 56, margin: '0 auto 56px' }}>
           Enter any city or neighbourhood. Our AI instantly processes listing data, demographics, risk scores, and market trends.
         </p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 14, textAlign: 'left' }}>
-          {steps.map((s, i) => (
-            <div key={i} className="liquid-glass" style={{ borderRadius: 20, padding: 28, transition: 'transform 0.2s', cursor: 'default' }}
-              onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
-              onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
-              <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 52, color: 'rgba(255,255,255,0.06)', lineHeight: 1, marginBottom: 14 }}>{s.num}</div>
-              <div className="liquid-glass-strong" style={{ borderRadius: '50%', width: 42, height: 42, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14, fontSize: 17 }}>{s.icon}</div>
-              <h3 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 19, color: '#fff', marginBottom: 10 }}>{s.title}</h3>
-              <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>{s.desc}</p>
-            </div>
-          ))}
-        </div>
+        <HoverGroup steps={steps} />
       </div>
     </Section>
   )
@@ -397,14 +387,14 @@ const DataPartnerships = memo(function DataPartnerships() {
       icon: '🗺️',
       name: 'OpenStreetMap / Overpass',
       type: 'Walkability & Amenities',
-      desc: 'Transit stops, schools, parks, groceries, hospitals within 2km radius. Cached and queried via 3 Overpass mirrors.',
+      desc: 'Transit stops, schools, parks, groceries, and hospitals within 2km radius of your target city.',
       status: 'live',
     },
     {
       icon: '🌤️',
       name: 'Open-Meteo',
       type: 'Climate & Weather',
-      desc: 'Current weather + 12-month climate normals. 300,000 req/month free — no API key needed.',
+      desc: 'Current weather + 12-month climate normals for any city in Canada. Updated daily with historical context.',
       status: 'live',
     },
     {
@@ -413,14 +403,7 @@ const DataPartnerships = memo(function DataPartnerships() {
       type: 'Proprietary AI',
       desc: 'Our proprietary AI engine synthesizes all data sources into a single city verdict, investment score, and market analysis — designed specifically for Canadian real estate.',
       status: 'live',
-    },
-    {
-      icon: '📋',
-      name: 'Notarial Values & Permits',
-      type: 'Coming Soon',
-      desc: 'Partnership discussions underway with provincial data providers for notarial sale values and building permits — exclusive data that reduces AI estimation reliance.',
-      status: 'soon',
-    },
+    }
   ]
 
   return (
@@ -470,6 +453,59 @@ const DataPartnerships = memo(function DataPartnerships() {
     </section>
   )
 })
+
+
+// ─── HOVER GROUP — cards pop, siblings dim/shrink ────────────────────────────
+function HoverGroup({ steps }) {
+  const [hovered, setHovered] = useState(null)
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 14, textAlign: 'left' }}>
+      {steps.map((s, i) => (
+        <div key={i} className="liquid-glass"
+          onMouseEnter={() => setHovered(i)}
+          onMouseLeave={() => setHovered(null)}
+          style={{
+            borderRadius: 20, padding: 28, cursor: 'default',
+            transition: 'transform 0.25s ease, opacity 0.25s ease, box-shadow 0.25s ease',
+            transform: hovered === null ? 'scale(1)' : hovered === i ? 'scale(1.04) translateY(-4px)' : 'scale(0.96)',
+            opacity: hovered === null ? 1 : hovered === i ? 1 : 0.45,
+            boxShadow: hovered === i ? '0 12px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.2)' : 'none',
+            zIndex: hovered === i ? 2 : 1, position: 'relative',
+          }}>
+          <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 52, color: 'rgba(255,255,255,0.06)', lineHeight: 1, marginBottom: 14 }}>{s.num}</div>
+          <div className="liquid-glass-strong" style={{ borderRadius: '50%', width: 42, height: 42, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14, fontSize: 17 }}>{s.icon}</div>
+          <h3 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 19, color: '#fff', marginBottom: 10 }}>{s.title}</h3>
+          <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>{s.desc}</p>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function HoverGroupGrid({ cards }) {
+  const [hovered, setHovered] = useState(null)
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 14 }}>
+      {cards.map((card, i) => (
+        <div key={i} className="liquid-glass"
+          onMouseEnter={() => setHovered(i)}
+          onMouseLeave={() => setHovered(null)}
+          style={{
+            borderRadius: 18, padding: 24, cursor: 'default',
+            transition: 'transform 0.25s ease, opacity 0.25s ease, box-shadow 0.25s ease',
+            transform: hovered === null ? 'scale(1)' : hovered === i ? 'scale(1.04) translateY(-4px)' : 'scale(0.96)',
+            opacity: hovered === null ? 1 : hovered === i ? 1 : 0.45,
+            boxShadow: hovered === i ? '0 12px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.2)' : 'none',
+            zIndex: hovered === i ? 2 : 1, position: 'relative',
+          }}>
+          <div className="liquid-glass-strong" style={{ borderRadius: '50%', width: 42, height: 42, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18, fontSize: 17 }}>{card.icon}</div>
+          <h3 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 17, color: '#fff', marginBottom: 7 }}>{card.title}</h3>
+          <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>{card.desc}</p>
+        </div>
+      ))}
+    </div>
+  )
+}
 
 // ─── STATS ───────────────────────────────────────────────────────────────────
 const Stats = memo(function Stats() {
@@ -550,7 +586,13 @@ const PRICING_PRO = [
 
 const Pricing = memo(function Pricing({ onUpgrade }) {
   return (
-    <section id="pricing" style={{ padding: 'clamp(56px, 8vw, 80px) 20px', maxWidth: 1200, margin: '0 auto' }}>
+    <section id="pricing" style={{ position: 'relative', overflow: 'hidden', padding: 'clamp(56px, 8vw, 80px) 20px' }}>
+      <video autoPlay muted loop playsInline
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.12, zIndex: 0 }}>
+        <source src="/pricing-bg.webm" type="video/webm" />
+      </video>
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, #000 0%, transparent 20%, transparent 80%, #000 100%)', zIndex: 1 }} />
+      <div style={{ position: 'relative', zIndex: 2, maxWidth: 1200, margin: '0 auto' }}>
       <div>
         <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>Pricing</div>
       </div>
@@ -594,7 +636,7 @@ const Pricing = memo(function Pricing({ onUpgrade }) {
           <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 21, color: '#fff', marginBottom: 4 }}>Pro</div>
           <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 14 }}>Full intelligence for every location decision</div>
           <div style={{ marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-            <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 44, color: '#fff' }}>$5</span>
+            <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 44, color: '#fff' }}>$9</span>
             <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 15, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>/month</span>
           </div>
           <div style={{ flex: 1, marginBottom: 16 }}>
@@ -610,7 +652,7 @@ const Pricing = memo(function Pricing({ onUpgrade }) {
           </div>
           <button onClick={onUpgrade} style={{ width: '100%', borderRadius: 40, padding: '13px', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13, background: '#fff', color: '#000', border: 'none', cursor: 'pointer', transition: 'transform 0.15s' }}
             onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
-            onMouseLeave={e => e.currentTarget.style.opacity = '1'}>Upgrade to Pro — $5/month →</button>
+            onMouseLeave={e => e.currentTarget.style.opacity = '1'}>Upgrade to Pro — $9/month →</button>
           <div style={{ textAlign: 'center', marginTop: 8 }}>
             <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.25)', fontWeight: 300 }}>Cancel anytime · Full refund if not satisfied</span>
           </div>
@@ -997,8 +1039,7 @@ export default function App() {
 
   if (showDemo) return (
     <div style={{ minHeight: '100vh', background: '#000', display: 'flex', flexDirection: 'column' }}>
-      <GlobalBackground />
-      <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50, padding: '12px 16px', background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50, padding: '12px 16px', background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <img src={LOGO} alt="Dwelling" style={{ width: 36, height: 36, borderRadius: 8 }} />
@@ -1029,8 +1070,7 @@ export default function App() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#000', display: 'flex', flexDirection: 'column' }}>
-      <GlobalBackground />
-      {showTerms && <TermsModal onClose={() => setShowTerms(false)} />}
+        {showTerms && <TermsModal onClose={() => setShowTerms(false)} />}
       {showPaywall && <PaywallModal onClose={() => setShowPaywall(false)} onUpgrade={() => alert('Stripe coming soon! Full refund guaranteed if not satisfied.')} />}
       <Navbar user={user} userRecord={userRecord} analysesLeft={analysesLeft} isInTrial={isInTrial} trialDaysLeft={trialDaysLeft} onSignOut={handleSignOut}
         onHome={() => { setResult(null); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
