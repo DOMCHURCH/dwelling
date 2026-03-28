@@ -8,7 +8,7 @@ const PRICING_FREE = [
 ]
 
 const PRICING_PRO = [
-  { text: 'Unlimited analyses', highlight: false },
+  { text: 'High-volume analysis access', highlight: false },
   { text: 'Full investment-grade AI analysis', highlight: true },
   { text: 'Hidden risk & hazard detection', highlight: true },
   { text: 'Price trend & market predictions', highlight: true },
