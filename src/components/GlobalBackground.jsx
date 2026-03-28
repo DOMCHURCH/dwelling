@@ -145,10 +145,11 @@ export default function GlobalBackground() {
       style={{
         position: 'absolute',
         inset: 0,
-        zIndex: 0,
+        zIndex: -1,
         pointerEvents: 'none',
-        WebkitMaskImage: 'linear-gradient(to bottom, black 40%, transparent 100%)',
-        maskImage: 'linear-gradient(to bottom, black 40%, transparent 100%)',
+        WebkitMaskImage: 'linear-gradient(to bottom, black 50%, transparent 100%)',
+        maskImage: 'linear-gradient(to bottom, black 50%, transparent 100%)',
+        overflow: 'hidden',
       }}
     />
   )
