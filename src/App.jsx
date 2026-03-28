@@ -577,11 +577,11 @@ const Testimonials = memo(function Testimonials() {
 
 // ─── PRICING ─────────────────────────────────────────────────────────────────
 const PRICING_FREE = [
-  { text: '10 analyses/month', locked: false },
-  { text: 'Area intelligence reports', locked: false },
-  { text: 'Neighbourhood scores', locked: false },
-  { text: 'Climate & weather data', locked: false },
-  { text: 'Risk & hazard overview', locked: false },
+  '10 analyses/month',
+  'Area intelligence reports',
+  'Neighbourhood scores',
+  'Climate & weather data',
+  'Risk & hazard overview',
 ]
 const PRICING_PRO = [
   { text: 'Unlimited analyses', highlight: false },
@@ -593,82 +593,255 @@ const PRICING_PRO = [
   { text: 'Priority support', highlight: false },
 ]
 
+function PricingCard({ plan, price, desc, features, cta, onCta, popular, highlight }) {
+  const [hov, setHov] = useState(false)
+  return (
+    <div
+      style={{
+        flex: 1, minWidth: 260, maxWidth: 360,
+        borderRadius: 24, padding: 32,
+        background: popular
+          ? 'linear-gradient(135deg, rgba(255,255,255,0.13) 0%, rgba(255,255,255,0.06) 100%)'
+          : 'linear-gradient(135deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.03) 100%)',
+        border: popular ? '1px solid rgba(255,255,255,0.22)' : '1px solid rgba(255,255,255,0.09)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        boxShadow: popular ? '0 24px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.15)' : '0 8px 32px rgba(0,0,0,0.3)',
+        display: 'flex', flexDirection: 'column',
+        position: 'relative',
+        transform: popular ? 'scale(1.04)' : 'scale(1)',
+        transition: 'box-shadow 0.3s ease',
+      }}
+    >
+      {popular && (
+        <div style={{
+          position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)',
+          background: 'linear-gradient(90deg, #38bdf8, #818cf8)',
+          borderRadius: 20, padding: '4px 16px',
+          fontFamily: "'Barlow',sans-serif", fontWeight: 700, fontSize: 11,
+          color: '#000', whiteSpace: 'nowrap', letterSpacing: '0.06em', textTransform: 'uppercase',
+        }}>Most Popular</div>
+      )}
+
+      {/* Plan name */}
+      <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 28, color: '#fff', marginBottom: 4 }}>{plan}</div>
+      <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.45)', marginBottom: 20 }}>{desc}</div>
+
+      {/* Price */}
+      <div style={{ marginBottom: 24, paddingBottom: 24, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 56, color: '#fff', lineHeight: 1 }}>${price}</span>
+        <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 14, color: 'rgba(255,255,255,0.35)', marginLeft: 6 }}>/month</span>
+      </div>
+
+      {/* Features */}
+      <div style={{ flex: 1, marginBottom: 24 }}>
+        {features.map((f, i) => {
+          const text = typeof f === 'string' ? f : f.text
+          const hl = typeof f === 'object' && f.highlight
+          return (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 11 }}>
+              <div style={{
+                width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
+                background: hl ? 'rgba(56,189,248,0.15)' : 'rgba(255,255,255,0.06)',
+                border: hl ? '1px solid rgba(56,189,248,0.4)' : '1px solid rgba(255,255,255,0.1)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <span style={{ fontSize: 10, color: hl ? '#38bdf8' : 'rgba(255,255,255,0.5)' }}>✓</span>
+              </div>
+              <span style={{
+                fontFamily: "'Barlow',sans-serif", fontWeight: hl ? 400 : 300, fontSize: 13,
+                color: hl ? '#fff' : 'rgba(255,255,255,0.65)',
+              }}>{text}</span>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* CTA */}
+      <button
+        onClick={onCta}
+        onMouseEnter={() => setHov(true)}
+        onMouseLeave={() => setHov(false)}
+        style={{
+          width: '100%', borderRadius: 40, padding: '14px',
+          fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 14,
+          border: popular ? 'none' : '1px solid rgba(255,255,255,0.15)',
+          background: popular
+            ? hov ? 'rgba(255,255,255,0.92)' : '#fff'
+            : hov ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.06)',
+          color: popular ? '#000' : '#fff',
+          cursor: 'pointer',
+          transition: 'background 0.2s ease, transform 0.15s ease',
+          transform: hov ? 'scale(1.01)' : 'scale(1)',
+        }}
+      >{cta}</button>
+
+      {popular && (
+        <div style={{ textAlign: 'center', marginTop: 10 }}>
+          <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.25)', fontWeight: 300 }}>Cancel anytime · Full refund if not satisfied</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
 const Pricing = memo(function Pricing({ onUpgrade }) {
   return (
-    <section id="pricing" style={{ position: 'relative', overflow: 'hidden', padding: 'clamp(56px, 8vw, 80px) 20px' }}>
+    <section id="pricing" style={{ position: 'relative', overflow: 'hidden', padding: 'clamp(80px, 10vw, 120px) 20px' }}>
+      {/* Video background */}
       <video autoPlay muted loop playsInline
-        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.12, zIndex: 0 }}>
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.1, zIndex: 0 }}>
         <source src="/pricing-bg.webm" type="video/webm" />
       </video>
-      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, #000 0%, transparent 20%, transparent 80%, #000 100%)', zIndex: 1 }} />
-      <div style={{ position: 'relative', zIndex: 2, maxWidth: 1200, margin: '0 auto' }}>
-        <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>Pricing</div>
-      <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2rem,5vw,3.5rem)', color: '#fff', marginBottom: 8, lineHeight: 0.9, letterSpacing: '-0.02em' }}>
-        <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic' }}>"Know before you move.</span>
-      </h2>
-      <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 15, color: 'rgba(255,255,255,0.45)', marginBottom: 40, lineHeight: 1.6 }}>
-        Start free. Upgrade when you need the full picture.
-        <span style={{ display: 'block', marginTop: 6, fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>
-          Pro costs less than a coffee for every major location decision you make.
-        </span>
-      </p>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 14 }}>
+      {/* Gradient overlays */}
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, #000 0%, rgba(0,0,0,0.6) 30%, rgba(0,0,0,0.6) 70%, #000 100%)', zIndex: 1 }} />
+      {/* Subtle radial glow */}
+      <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 80% 60% at 50% 50%, rgba(56,189,248,0.07) 0%, transparent 70%)', zIndex: 1 }} />
 
-        {/* Free */}
-        <div className="liquid-glass" style={{ borderRadius: 18, padding: 28, display: 'flex', flexDirection: 'column' }}>
-          <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 21, color: '#fff', marginBottom: 4 }}>Free</div>
-          <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.35)', marginBottom: 14 }}>Good for exploring</div>
-          <div style={{ marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-            <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 44, color: '#fff' }}>$0</span>
-            <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 15, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>/month</span>
-          </div>
-          <div style={{ flex: 1, marginBottom: 24 }}>
-            {PRICING_FREE.map(f => (
-              <div key={f.text} style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10, opacity: f.locked ? 0.35 : 1 }}>
-                <span style={{ fontSize: 12, color: f.locked ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.4)' }}>{f.locked ? '🔒' : '✓'}</span>
-                <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: f.locked ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.6)', textDecoration: f.locked ? 'line-through' : 'none' }}>{f.text}</span>
-              </div>
-            ))}
-          </div>
-          <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} style={{ width: '100%', borderRadius: 40, padding: '12px', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13, background: 'rgba(255,255,255,0.08)', color: '#fff', border: 'none', cursor: 'pointer', transition: 'transform 0.15s' }}
-            onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
-            onMouseLeave={e => e.currentTarget.style.opacity = '1'}>Start for free</button>
-        </div>
+      <div style={{ position: 'relative', zIndex: 2, maxWidth: 900, margin: '0 auto', textAlign: 'center' }}>
+        <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 20 }}>Pricing</div>
 
-        {/* Pro Monthly */}
-        <div className="liquid-glass-strong" style={{ borderRadius: 18, padding: 28, border: '1px solid rgba(255,255,255,0.2)', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <div style={{ background: '#fff', color: '#000', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 10, borderRadius: 20, padding: '3px 10px' }}>Most Popular</div>
-          </div>
-          <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 21, color: '#fff', marginBottom: 4 }}>Pro</div>
-          <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 14 }}>Full intelligence for every location decision</div>
-          <div style={{ marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-            <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 44, color: '#fff' }}>$19</span>
-            <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 15, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>/month</span>
-          </div>
-          <div style={{ flex: 1, marginBottom: 16 }}>
-            {PRICING_PRO.map(f => (
-              <div key={f.text} style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}>
-                <span style={{ fontSize: 12, color: f.highlight ? '#4ade80' : '#fff' }}>✓</span>
-                <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: f.highlight ? 400 : 300, fontSize: 13, color: f.highlight ? '#fff' : 'rgba(255,255,255,0.8)' }}>{f.text}</span>
-              </div>
-            ))}
-          </div>
-          <div style={{ marginBottom: 16, padding: '10px 14px', background: 'rgba(74,222,128,0.06)', borderRadius: 10, border: '1px solid rgba(74,222,128,0.15)' }}>
-            <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(74,222,128,0.8)', fontWeight: 300 }}>✓ Cancel anytime · No commitment</span>
-          </div>
-          <button onClick={onUpgrade} style={{ width: '100%', borderRadius: 40, padding: '13px', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13, background: '#fff', color: '#000', border: 'none', cursor: 'pointer', transition: 'transform 0.15s' }}
-            onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
-            onMouseLeave={e => e.currentTarget.style.opacity = '1'}>Upgrade to Pro — $19/month →</button>
-          <div style={{ textAlign: 'center', marginTop: 8 }}>
-            <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.25)', fontWeight: 300 }}>Cancel anytime · Full refund if not satisfied</span>
-          </div>
-        </div>
+        <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2.2rem,5vw,3.8rem)', color: '#fff', marginBottom: 12, lineHeight: 0.95, letterSpacing: '-0.02em' }}>
+          "Know before you move.
+        </h2>
+        <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 16, color: 'rgba(255,255,255,0.45)', marginBottom: 56, lineHeight: 1.7, maxWidth: 500, margin: '0 auto 56px' }}>
+          Start free. Upgrade when you need the full picture — pro pays for itself the moment it helps you avoid the wrong neighbourhood.
+        </p>
+
+        <div style={{ display: 'flex', gap: 20, justifyContent: 'center', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+          <PricingCard
+            plan="Free" price="0" desc="Good for exploring"
+            features={PRICING_FREE}
+            cta="Start for free"
+            onCta={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            popular={false}
+          />
+          <PricingCard
+            plan="Pro" price="19" desc="Full intelligence for every location decision"
+            features={PRICING_PRO}
+            cta="Upgrade to Pro →"
+            onCta={onUpgrade}
+            popular={true}
+          />
         </div>
       </div>
     </section>
   )
 })
+
+
+// ─── ANIMATED TESTIMONIALS ────────────────────────────────────────────────────
+const TESTIMONIALS = [
+  {
+    id: 1,
+    quote: "I was about to buy in the wrong neighbourhood — everything looked great online. Dwelling flagged the flood zone risk and showed listings sitting 40+ days. Saved me from a disaster.",
+    name: "Marcus T.",
+    role: "First-time buyer",
+    location: "Hamilton, ON",
+    avatar: "MT",
+    stars: 5,
+  },
+  {
+    id: 2,
+    quote: "Had 2 weeks to pick between Toronto, Ottawa, and Calgary. Ran all three in one afternoon. The stability scores made the decision obvious. We moved to Calgary and couldn't be happier.",
+    name: "Priya M.",
+    role: "Relocating for work",
+    location: "Calgary, AB",
+    avatar: "PM",
+    stars: 5,
+  },
+  {
+    id: 3,
+    quote: "I use it before every client showing now. The investment score and market temperature data gives me something concrete to discuss beyond just price per sqft.",
+    name: "Daniel R.",
+    role: "Real estate investor",
+    location: "Vancouver, BC",
+    avatar: "DR",
+    stars: 5,
+  },
+]
+
+function AnimatedTestimonials() {
+  const [active, setActive] = useState(0)
+  const [animating, setAnimating] = useState(false)
+
+  useEffect(() => {
+    const iv = setInterval(() => {
+      setAnimating(true)
+      setTimeout(() => {
+        setActive(i => (i + 1) % TESTIMONIALS.length)
+        setAnimating(false)
+      }, 300)
+    }, 5500)
+    return () => clearInterval(iv)
+  }, [])
+
+  const t = TESTIMONIALS[active]
+
+  return (
+    <div style={{ maxWidth: 680, margin: '0 auto 36px', position: 'relative' }}>
+      {/* Card */}
+      <div className="liquid-glass-strong" style={{
+        borderRadius: 20, padding: '32px 36px',
+        border: '1px solid rgba(255,255,255,0.1)',
+        transition: 'opacity 0.3s ease, transform 0.3s ease',
+        opacity: animating ? 0 : 1,
+        transform: animating ? 'translateY(8px)' : 'translateY(0)',
+      }}>
+        {/* Stars */}
+        <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
+          {Array(t.stars).fill(0).map((_, i) => (
+            <span key={i} style={{ color: '#fbbf24', fontSize: 14 }}>★</span>
+          ))}
+        </div>
+
+        {/* Quote */}
+        <p style={{
+          fontFamily: "'Instrument Serif',serif", fontStyle: 'italic',
+          fontSize: 'clamp(1rem,2.2vw,1.2rem)', color: 'rgba(255,255,255,0.88)',
+          lineHeight: 1.65, marginBottom: 24,
+        }}>
+          "{t.quote}"
+        </p>
+
+        {/* Divider */}
+        <div style={{ height: 1, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1) 50%, transparent)', marginBottom: 20 }} />
+
+        {/* Author */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{
+            width: 42, height: 42, borderRadius: '50%',
+            background: 'linear-gradient(135deg, rgba(56,189,248,0.3), rgba(129,140,248,0.3))',
+            border: '1px solid rgba(255,255,255,0.15)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13, color: '#fff', flexShrink: 0,
+          }}>{t.avatar}</div>
+          <div>
+            <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 500, fontSize: 14, color: '#fff' }}>{t.name}</div>
+            <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{t.role} · {t.location}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Dot indicators */}
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 20 }}>
+        {TESTIMONIALS.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => { setAnimating(true); setTimeout(() => { setActive(i); setAnimating(false) }, 300) }}
+            style={{
+              height: 8, borderRadius: 4, border: 'none', cursor: 'pointer',
+              background: i === active ? '#fff' : 'rgba(255,255,255,0.2)',
+              width: i === active ? 28 : 8,
+              transition: 'width 0.3s ease, background 0.3s ease',
+              padding: 0,
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
 
 // ─── CTA + FOOTER ────────────────────────────────────────────────────────────
 function CTAFooter({ onTermsClick, onScrollToTop, onUpgrade }) {
@@ -681,18 +854,7 @@ function CTAFooter({ onTermsClick, onScrollToTop, onUpgrade }) {
         <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 16, color: 'rgba(255,255,255,0.5)', marginBottom: 28, lineHeight: 1.7 }}>
           Free to start. Instant results. No credit card required.
         </p>
-        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 28 }}>
-          {[
-            { quote: 'I was about to buy in a neighborhood that looked perfect on Zillow. Dwelling showed me the flood zone risk I completely missed. Saved me from a potential disaster.', name: 'Marcus T.', detail: 'First-time buyer, Austin TX' },
-            { quote: 'I had 2 weeks to decide between Toronto, Vancouver, and Calgary. Dwelling let me run full analysis on each in one afternoon. The market intel alone justified the upgrade.', name: 'Priya M.', detail: 'Relocating to Canada' },
-          ].map(t => (
-            <div key={t.name} className="liquid-glass" style={{ borderRadius: 14, padding: '14px 18px', maxWidth: 260, textAlign: 'left' }}>
-              <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.7)', fontStyle: 'italic', lineHeight: 1.5, marginBottom: 8 }}>"{t.quote}"</p>
-              <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 400, fontSize: 12, color: '#fff' }}>{t.name}</div>
-              <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{t.detail}</div>
-            </div>
-          ))}
-        </div>
+        <AnimatedTestimonials />
         <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
           <button onClick={onScrollToTop} style={{ borderRadius: 40, padding: '13px 28px', fontFamily: "'Barlow',sans-serif", fontSize: 14, color: '#fff', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', transition: 'transform 0.15s' }}
             onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
