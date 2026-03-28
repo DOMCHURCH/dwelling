@@ -1,9 +1,7 @@
-import { createHash, randomBytes } from 'crypto'
+import { createHash, createHmac, randomBytes } from 'crypto'
 import { readFileSync, writeFileSync, existsSync } from 'fs'
-import { join } from 'path'
 
 const SECRET = process.env.AUTH_SECRET || 'dwelling-secret-change-me-in-production'
-const FREE_LIMIT = 10
 const ADMIN_EMAILS = ['01dominique.c@gmail.com']
 const USERS_FILE = '/tmp/dw_users.json'
 
@@ -15,7 +13,6 @@ function b64url(buf) {
 function sign(payload) {
   const header = b64url(Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })))
   const body = b64url(Buffer.from(JSON.stringify(payload)))
-  const { createHmac } = require('crypto')
   const sig = b64url(createHmac('sha256', SECRET).update(`${header}.${body}`).digest())
   return `${header}.${body}.${sig}`
 }
@@ -23,7 +20,6 @@ function sign(payload) {
 function verify(token) {
   try {
     const [header, body, sig] = token.split('.')
-    const { createHmac } = require('crypto')
     const expected = b64url(createHmac('sha256', SECRET).update(`${header}.${body}`).digest())
     if (sig !== expected) return null
     const payload = JSON.parse(Buffer.from(body, 'base64').toString())
@@ -34,20 +30,16 @@ function verify(token) {
   }
 }
 
-// ─── User store (JSON file in /tmp) ──────────────────────────────────────────
+// ─── User store ───────────────────────────────────────────────────────────────
 function loadUsers() {
   try {
-    if (existsSync(USERS_FILE)) {
-      return JSON.parse(readFileSync(USERS_FILE, 'utf8'))
-    }
+    if (existsSync(USERS_FILE)) return JSON.parse(readFileSync(USERS_FILE, 'utf8'))
   } catch {}
   return {}
 }
 
 function saveUsers(users) {
-  try {
-    writeFileSync(USERS_FILE, JSON.stringify(users), 'utf8')
-  } catch {}
+  try { writeFileSync(USERS_FILE, JSON.stringify(users), 'utf8') } catch {}
 }
 
 function hashPassword(password, salt) {
@@ -64,7 +56,7 @@ export default async function handler(req, res) {
 
   const { action } = req.body || {}
 
-  // ── signup ──────────────────────────────────────────────────────────────────
+  // ── signup ────────────────────────────────────────────────────────────────
   if (action === 'signup') {
     const { email, password } = req.body
     if (!email || !password) return res.status(400).json({ error: 'Missing email or password' })
@@ -90,7 +82,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ token, userId: id, email: key, is_pro: users[key].is_pro })
   }
 
-  // ── signin ──────────────────────────────────────────────────────────────────
+  // ── signin ────────────────────────────────────────────────────────────────
   if (action === 'signin') {
     const { email, password } = req.body
     if (!email || !password) return res.status(400).json({ error: 'Missing email or password' })
@@ -105,7 +97,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ token, userId: user.id, email: key, is_pro: user.is_pro })
   }
 
-  // ── usage (GET user's current usage count) ──────────────────────────────────
+  // ── usage ─────────────────────────────────────────────────────────────────
   if (action === 'usage') {
     const authHeader = req.headers.authorization
     if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
