@@ -1,39 +1,33 @@
 const _cache = new Map()
-const CACHE_TTL = 1000 * 60 * 60 * 24 // 24 hours
+const CACHE_TTL = 1000 * 60 * 60 * 24
 
-// 4 mirrors — tried in order, short timeout so failures are fast
+// Only use mirrors that are actually reliable
+// kumi.systems and mail.ru are removed — they 503/403 too often
 const BASES = [
   'https://overpass-api.de/api/interpreter',
   'https://z.overpass-api.de/api/interpreter',
-  'https://overpass.kumi.systems/api/interpreter',
-  'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
 ]
-
-const sleep = (ms) => new Promise(r => setTimeout(r, ms))
 
 async function fetchOverpass(query) {
   for (const base of BASES) {
     try {
       const controller = new AbortController()
-      const timeout = setTimeout(() => controller.abort(), 8000) // 8s per mirror
+      const tid = setTimeout(() => controller.abort(), 9000)
       const res = await fetch(base, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: `data=${encodeURIComponent(query)}`,
         signal: controller.signal,
       })
-      clearTimeout(timeout)
+      clearTimeout(tid)
       if (res.ok) return await res.json()
-      if (res.status === 429) await sleep(1500)
-      // any other error → try next mirror immediately
     } catch {
-      // timeout or network error → try next mirror
+      // try next mirror
     }
   }
-  return null // all mirrors failed — caller handles gracefully
+  return null
 }
 
-// Estimated fallback scores when Overpass is fully down
 function fallbackScores() {
   return {
     walkScore: 55, transitScore: 45, schoolScore: 55,
@@ -50,7 +44,7 @@ export async function getNeighborhoodScores(lat, lon) {
 
   try {
     const query = `
-      [out:json][timeout:25];
+      [out:json][timeout:20];
       (
         node["amenity"~"school|supermarket|restaurant|cafe|fast_food|pharmacy|hospital|bank|gym"](around:2000,${lat},${lon});
         way["amenity"~"school|supermarket|restaurant|cafe|fast_food|pharmacy|hospital|bank|gym"](around:2000,${lat},${lon});
@@ -65,11 +59,10 @@ export async function getNeighborhoodScores(lat, lon) {
     `
 
     const data = await fetchOverpass(query)
-
-    // If all mirrors failed, return graceful fallback — don't throw
     if (!data) {
+      // Cache the fallback briefly so we don't hammer the API on retries
       const fb = fallbackScores()
-      _cache.set(key, { data: fb, ts: Date.now() - CACHE_TTL + 1000 * 60 * 10 }) // re-try in 10min
+      _cache.set(key, { data: fb, ts: Date.now() - CACHE_TTL + 1000 * 60 * 5 })
       return fb
     }
 
@@ -91,30 +84,28 @@ export async function getNeighborhoodScores(lat, lon) {
     }
 
     const places1km = allPlaces.filter(p => p.lat && p.lon && getDist(p) <= 1000)
-    const schools = allPlaces.filter(p => p.tags?.amenity === 'school')
-    const parks = allPlaces.filter(p => p.tags?.leisure === 'park')
-    const grocery = allPlaces.filter(p => p.tags?.amenity === 'supermarket' || p.tags?.shop === 'supermarket' || p.tags?.shop === 'grocery')
-    const transit = allPlaces.filter(p => p.tags?.public_transport === 'station' || p.tags?.highway === 'bus_stop' || p.tags?.railway === 'station' || p.tags?.railway === 'subway_entrance')
+    const schools   = allPlaces.filter(p => p.tags?.amenity === 'school')
+    const parks     = allPlaces.filter(p => p.tags?.leisure === 'park')
+    const grocery   = allPlaces.filter(p => p.tags?.amenity === 'supermarket' || p.tags?.shop === 'supermarket' || p.tags?.shop === 'grocery')
+    const transit   = allPlaces.filter(p => p.tags?.public_transport === 'station' || p.tags?.highway === 'bus_stop' || p.tags?.railway === 'station' || p.tags?.railway === 'subway_entrance')
     const restaurants = allPlaces.filter(p => p.tags?.amenity === 'restaurant' || p.tags?.amenity === 'cafe' || p.tags?.amenity === 'fast_food')
     const amenities = allPlaces.filter(p => p.tags?.amenity === 'pharmacy' || p.tags?.amenity === 'hospital' || p.tags?.amenity === 'bank' || p.tags?.amenity === 'gym' || p.tags?.shop === 'convenience')
 
-    const walkScore = Math.min(95, Math.max(15,
-      (grocery.length > 0 ? 20 : 0) +
-      (restaurants.length >= 3 ? 20 : restaurants.length * 5) +
-      (parks.length > 0 ? 10 : 0) +
-      (amenities.length > 0 ? 10 : 0) +
-      (transit.length > 0 ? 10 : 0)
-    ))
-
     const result = {
-      walkScore,
+      walkScore: Math.min(95, Math.max(15,
+        (grocery.length > 0 ? 20 : 0) +
+        (restaurants.length >= 3 ? 20 : restaurants.length * 5) +
+        (parks.length > 0 ? 10 : 0) +
+        (amenities.length > 0 ? 10 : 0) +
+        (transit.length > 0 ? 10 : 0)
+      )),
       transitScore: Math.min(95, Math.max(10, transit.length * 8 + (transit.length > 0 ? 20 : 0))),
-      schoolScore: Math.min(95, Math.max(35, 40 + schools.length * 15)),
+      schoolScore:  Math.min(95, Math.max(35, 40 + schools.length * 15)),
       amenityCount500m: places1km.length,
-      nearbySchools: schools.filter(p => p.tags?.name).map(p => p.tags.name).slice(0, 3),
-      nearbyParks: parks.filter(p => p.tags?.name).map(p => p.tags.name).slice(0, 3),
-      nearbyTransit: transit.filter(p => p.tags?.name).map(p => p.tags.name).slice(0, 5),
-      nearbyGrocery: grocery.filter(p => p.tags?.name).map(p => p.tags.name).slice(0, 3),
+      nearbySchools:  schools.filter(p => p.tags?.name).map(p => p.tags.name).slice(0, 3),
+      nearbyParks:    parks.filter(p => p.tags?.name).map(p => p.tags.name).slice(0, 3),
+      nearbyTransit:  transit.filter(p => p.tags?.name).map(p => p.tags.name).slice(0, 5),
+      nearbyGrocery:  grocery.filter(p => p.tags?.name).map(p => p.tags.name).slice(0, 3),
       buildingType,
       dataSource: 'OpenStreetMap',
     }
