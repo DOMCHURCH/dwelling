@@ -593,9 +593,7 @@ const Pricing = memo(function Pricing({ onUpgrade }) {
       </video>
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, #000 0%, transparent 20%, transparent 80%, #000 100%)', zIndex: 1 }} />
       <div style={{ position: 'relative', zIndex: 2, maxWidth: 1200, margin: '0 auto' }}>
-      <div>
         <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>Pricing</div>
-      </div>
       <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2rem,5vw,3.5rem)', color: '#fff', marginBottom: 8, lineHeight: 0.9, letterSpacing: '-0.02em' }}>
         <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic' }}>"Know before you move.</span>
       </h2>
@@ -657,9 +655,7 @@ const Pricing = memo(function Pricing({ onUpgrade }) {
             <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.25)', fontWeight: 300 }}>Cancel anytime · Full refund if not satisfied</span>
           </div>
         </div>
-
-
-
+        </div>
       </div>
     </section>
   )
