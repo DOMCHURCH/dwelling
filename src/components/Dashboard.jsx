@@ -1,6 +1,44 @@
 import { useState, useEffect } from 'react'
 import SectionCard from './SectionCard'
 import StatCard from './StatCard'
+
+// Score label helpers
+function scoreLabel(score, type) {
+  if (score == null) return ''
+  if (type === 'walk') {
+    if (score >= 90) return "Walker's Paradise"
+    if (score >= 70) return 'Very Walkable'
+    if (score >= 50) return 'Somewhat Walkable'
+    if (score >= 25) return 'Car-Friendly'
+    return 'Car-Dependent'
+  }
+  if (type === 'transit') {
+    if (score >= 90) return "Rider's Paradise"
+    if (score >= 70) return 'Excellent Transit'
+    if (score >= 50) return 'Good Transit'
+    if (score >= 25) return 'Some Transit'
+    return 'Minimal Transit'
+  }
+  if (type === 'school') {
+    if (score >= 80) return 'Top-Rated Schools'
+    if (score >= 65) return 'Above Average'
+    if (score >= 50) return 'Average Schools'
+    return 'Below Average'
+  }
+  if (type === 'safety') {
+    if (score >= 80) return 'Very Safe'
+    if (score >= 60) return 'Generally Safe'
+    if (score >= 40) return 'Moderate Risk'
+    return 'Higher Risk'
+  }
+  return ''
+}
+function scoreColor(score) {
+  if (score == null) return 'rgba(255,255,255,0.3)'
+  if (score >= 70) return '#4ade80'
+  if (score >= 45) return '#fbbf24'
+  return '#f87171'
+}
 import ScoreRing from './ScoreRing'
 import PriceHistoryChart from './PriceHistoryChart'
 
@@ -345,12 +383,13 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro' }) 
             {[
               { label: 'Median Price', value: `${sym}${Math.round(areaMetrics.medianPrice / 1000)}k` },
               { label: 'Avg Price', value: `${sym}${Math.round(areaMetrics.avgPrice / 1000)}k` },
-              { label: 'Median DOM', value: areaMetrics.medianDOM != null ? `${areaMetrics.medianDOM} days` : 'N/A' },
+              { label: 'Median DOM', value: areaMetrics.medianDOM != null ? `${areaMetrics.medianDOM} days` : 'N/A', sub: areaMetrics.medianDOM != null ? (areaMetrics.medianDOM < 21 ? '⚡ Fast market' : areaMetrics.medianDOM < 35 ? '✓ Normal pace' : '⏱ Slow market') : null },
               { label: 'Price/sqft', value: areaMetrics.medianPPSF ? `${sym}${areaMetrics.medianPPSF}` : 'N/A' },
-            ].map(({ label, value }) => (
+            ].map(({ label, value, sub }) => (
               <div key={label} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 10, padding: '10px 12px', border: '1px solid rgba(255,255,255,0.06)' }}>
                 <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>{label}</div>
                 <div style={{ fontSize: 16, fontFamily: "'Instrument Serif', serif", fontStyle: 'italic', color: '#ffffff' }}>{value}</div>
+                {sub && <div style={{ fontSize: 9, color: sub.includes('⚡') ? '#f87171' : sub.includes('⏱') ? '#fbbf24' : '#4ade80', marginTop: 3, fontFamily: "'Barlow',sans-serif" }}>{sub}</div>}
               </div>
             ))}
           </div>
@@ -451,11 +490,18 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro' }) 
         <SectionCard title="Neighborhood" icon="🏘" delay={150}>
           <div style={{ position: 'relative' }}>
             <div style={{ filter: isLocked('neighborhood') ? 'blur(6px)' : 'none', userSelect: isLocked('neighborhood') ? 'none' : 'auto', pointerEvents: isLocked('neighborhood') ? 'none' : 'auto' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: 14 }}>
-                <ScoreRing score={realData?.neighborhoodScores?.walkScore ?? neighborhood.walkScore} label="Walk" color="rgba(255,255,255,0.9)" />
-                <ScoreRing score={realData?.neighborhoodScores?.transitScore ?? neighborhood.transitScore} label="Transit" color="rgba(255,255,255,0.65)" />
-                <ScoreRing score={neighborhood.safetyRating} label="Safety" color="#4ade80" />
-                <ScoreRing score={realData?.neighborhoodScores?.schoolScore ?? neighborhood.schoolRating} label="Schools" color="rgba(196,181,253,0.9)" />
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8, marginBottom: 14 }}>
+                {[
+                  { score: realData?.neighborhoodScores?.walkScore ?? neighborhood.walkScore, label: 'Walk', type: 'walk' },
+                  { score: realData?.neighborhoodScores?.transitScore ?? neighborhood.transitScore, label: 'Transit', type: 'transit' },
+                  { score: neighborhood.safetyRating, label: 'Safety', type: 'safety' },
+                  { score: realData?.neighborhoodScores?.schoolScore ?? neighborhood.schoolRating, label: 'Schools', type: 'school' },
+                ].map(({ score, label, type }) => (
+                  <div key={label} style={{ textAlign: 'center' }}>
+                    <ScoreRing score={score} label={label} color={scoreColor(score)} />
+                    <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 9, color: scoreColor(score), marginTop: 4, lineHeight: 1.3 }}>{scoreLabel(score, type)}</div>
+                  </div>
+                ))}
               </div>
               {realData?.neighborhoodScores && (
                 <div style={{ textAlign: 'center', fontSize: 10, color: 'rgba(255,255,255,0.3)', marginBottom: 14, letterSpacing: '0.06em', fontFamily: "'Barlow', sans-serif" }}>
