@@ -15,7 +15,7 @@ import { aggregateListings, computeRiskScore, getMarketTemperature } from './lib
 import { getNeighborhoodScores } from './lib/overpass'
 import { getCensusData } from './lib/census'
 import { getFairMarketRent, getFloodZone } from './lib/hud'
-import { supabase } from './lib/supabase'
+import { getCurrentUser, getAuthToken, signOut as localSignOut, getUsage } from './lib/localAuth'
 
 
 const FREE_LIMIT = 10
@@ -117,7 +117,7 @@ const FAQ = memo(function FAQ() {
 })
 
 // ─── NAVBAR ──────────────────────────────────────────────────────────────────
-function Navbar({ user, userRecord, analysesLeft, isInTrial, trialDaysLeft, onSignOut, onHome }) {
+function Navbar({ user, userRecord, analysesLeft, isInTrial, trialDaysLeft, onSignOut, onHome, onOpenKeyModal, hasOwnKey }) {
   const [scrolled, setScrolled] = useState(false)
   useEffect(() => {
     const h = () => { const s = window.scrollY > 50; setScrolled(prev => prev === s ? prev : s) }
@@ -154,6 +154,9 @@ function Navbar({ user, userRecord, analysesLeft, isInTrial, trialDaysLeft, onSi
               <span className="liquid-glass" style={{ borderRadius: 40, padding: '5px 12px', fontSize: 12, fontFamily: "'Barlow',sans-serif", color: userRecord?.is_pro ? '#fbbf24' : low ? '#f87171' : 'rgba(255,255,255,0.5)' }}>
                 {userRecord?.is_pro ? '★ Pro' : isInTrial ? `⚡ Trial · ${trialDaysLeft}d left` : `${analysesLeft} / 10 left`}
               </span>
+              <button onClick={onOpenKeyModal} title="Use your own Cerebras API key" style={{ background: hasOwnKey ? 'rgba(74,222,128,0.1)' : 'none', border: hasOwnKey ? '1px solid rgba(74,222,128,0.25)' : 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: hasOwnKey ? '#4ade80' : 'rgba(255,255,255,0.35)', padding: '5px 10px', borderRadius: 20, transition: 'color 0.2s' }}
+                onMouseEnter={e => e.currentTarget.style.color = hasOwnKey ? '#4ade80' : 'rgba(255,255,255,0.7)'}
+                onMouseLeave={e => e.currentTarget.style.color = hasOwnKey ? '#4ade80' : 'rgba(255,255,255,0.35)'}>{hasOwnKey ? '🔑 Own Key' : '🔑 API Key'}</button>
               <button onClick={onSignOut} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.35)', padding: '5px 8px', transition: 'color 0.2s' }}
                 onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.7)'}
                 onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.35)'}>Sign out</button>
@@ -174,7 +177,7 @@ function Navbar({ user, userRecord, analysesLeft, isInTrial, trialDaysLeft, onSi
 // ─── HERO ────────────────────────────────────────────────────────────────────
 function Hero({ onSearch, loading, onShowDemo }) {
   return (
-    <section id="hero" style={{ position: 'relative', overflow: 'hidden', background: 'transparent', minHeight: 'min(1000px, 100svh)', height: 'auto', isolation: 'isolate' }}>
+    <section id="hero" style={{ position: 'relative', overflow: 'hidden', background: 'transparent', minHeight: 'min(1000px, 100svh)', height: 'auto', isolation: 'isolate', contain: 'layout paint', zIndex: 0 }}>
       <GlobalBackground />
       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 350, background: 'linear-gradient(to top, #000 40%, transparent)', zIndex: 2 }} />
       <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', maxWidth: 900, margin: '0 auto', padding: 'clamp(100px, 20vw, 150px) 20px 80px' }}>
@@ -336,7 +339,7 @@ const FeaturesGrid = memo(function FeaturesGrid() {
     { icon: '🍁', title: 'Canada-First', desc: 'Built specifically for Canadian cities. Realtor.ca MLS data, Statistics Canada demographics, and Canadian market context baked in.' },
     { icon: '📊', title: 'Real MLS Data', desc: 'Active listings from Realtor.ca, StatCan NHPI price indices, and Open-Meteo climate normals. No made-up numbers.' },
     { icon: '⚡', title: 'Instant Analysis', desc: 'Full city intelligence report in under 30 seconds — stability score, verdict, market temperature, investment outlook.' },
-    { icon: '🔒', title: 'Secure & Private', desc: 'Your searches are never stored. Bank-grade auth with Supabase. Searches processed in real time and discarded.' },
+    { icon: '🔒', title: 'Secure & Private', desc: 'Your searches are never stored. Bank-grade encryption. Searches processed in real time and never retained.' },
   ]
   return (
     <section style={{ padding: '80px 24px' }}>
@@ -347,19 +350,7 @@ const FeaturesGrid = memo(function FeaturesGrid() {
         <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2rem,5vw,3.5rem)', color: '#fff', marginBottom: 40, lineHeight: 0.9, letterSpacing: '-0.02em' }}>
           <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic' }}>"The difference is intelligence.</span>
         </h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 14 }}>
-          {cards.map((card, i) => (
-            <div key={i}>
-              <div className="liquid-glass" style={{ borderRadius: 18, padding: 24, transition: 'transform 0.2s', cursor: 'default' }}
-                onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
-                onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
-                <div className="liquid-glass-strong" style={{ borderRadius: '50%', width: 42, height: 42, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18, fontSize: 17 }}>{card.icon}</div>
-                <h3 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 17, color: '#fff', marginBottom: 7 }}>{card.title}</h3>
-                <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>{card.desc}</p>
-              </div>
-            </div>
-          ))}
-        </div>
+        <HoverGroupGrid cards={cards} />
       </div>
     </section>
   )
@@ -394,7 +385,7 @@ const DataPartnerships = memo(function DataPartnerships() {
       icon: '🌤️',
       name: 'Open-Meteo',
       type: 'Climate & Weather',
-      desc: 'Current weather + 12-month climate normals for any city in Canada. Updated daily with historical context.',
+      desc: 'Current weather + 12-month climate normals for every Canadian city. Refreshed continuously.',
       status: 'live',
     },
     {
@@ -420,12 +411,28 @@ const DataPartnerships = memo(function DataPartnerships() {
             Every data point is sourced from official providers, real MLS feeds, or government agencies — not scraped blogs or AI guesses.
           </p>
         </div>
+        <DataSourcesGrid partners={partners} />
+      </div>
+    </section>
+  )
+})
+
+function DataSourcesGrid({ partners }) {
+  const [hovered, setHovered] = useState(null)
+  return (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12 }}>
           {partners.map((p, i) => (
             <div key={i}>
-              <div className="liquid-glass" style={{ borderRadius: 18, padding: 24, height: '100%', opacity: p.status === 'soon' ? 0.7 : 1, transition: 'transform 0.2s' }}
-                onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
-                onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
+              <div className="liquid-glass"
+                onMouseEnter={() => setHovered(i)}
+                onMouseLeave={() => setHovered(null)}
+                style={{ borderRadius: 18, padding: 24, height: '100%', cursor: 'default',
+                  transition: 'transform 0.25s ease, opacity 0.25s ease, box-shadow 0.25s ease',
+                  transform: hovered === null ? 'scale(1)' : hovered === i ? 'scale(1.03) translateY(-3px)' : 'scale(0.97)',
+                  opacity: hovered === null ? (p.status === 'soon' ? 0.7 : 1) : hovered === i ? 1 : 0.4,
+                  boxShadow: hovered === i ? '0 12px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.2)' : 'none',
+                  zIndex: hovered === i ? 2 : 1, position: 'relative',
+                }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <div className="liquid-glass-strong" style={{ borderRadius: 10, width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>{p.icon}</div>
@@ -449,11 +456,8 @@ const DataPartnerships = memo(function DataPartnerships() {
             </div>
           ))}
         </div>
-      </div>
-    </section>
   )
-})
-
+}
 
 // ─── HOVER GROUP — cards pop, siblings dim/shrink ────────────────────────────
 function HoverGroup({ steps }) {
@@ -634,7 +638,7 @@ const Pricing = memo(function Pricing({ onUpgrade }) {
           <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 21, color: '#fff', marginBottom: 4 }}>Pro</div>
           <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 14 }}>Full intelligence for every location decision</div>
           <div style={{ marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-            <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 44, color: '#fff' }}>$9</span>
+            <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 44, color: '#fff' }}>$19</span>
             <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 15, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>/month</span>
           </div>
           <div style={{ flex: 1, marginBottom: 16 }}>
@@ -650,7 +654,7 @@ const Pricing = memo(function Pricing({ onUpgrade }) {
           </div>
           <button onClick={onUpgrade} style={{ width: '100%', borderRadius: 40, padding: '13px', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13, background: '#fff', color: '#000', border: 'none', cursor: 'pointer', transition: 'transform 0.15s' }}
             onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
-            onMouseLeave={e => e.currentTarget.style.opacity = '1'}>Upgrade to Pro — $9/month →</button>
+            onMouseLeave={e => e.currentTarget.style.opacity = '1'}>Upgrade to Pro — $19/month →</button>
           <div style={{ textAlign: 'center', marginTop: 8 }}>
             <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.25)', fontWeight: 300 }}>Cancel anytime · Full refund if not satisfied</span>
           </div>
@@ -850,6 +854,45 @@ const DEMO_RESULT = {
 }
 
 
+
+// ─── API KEY MODAL ────────────────────────────────────────────────────────────
+function ApiKeyModal({ currentKey, onSave, onClose }) {
+  const [key, setKey] = useState(currentKey || '')
+  const save = () => {
+    const trimmed = key.trim()
+    if (trimmed) localStorage.setItem('dw_cerebras_key', trimmed)
+    else localStorage.removeItem('dw_cerebras_key')
+    onSave(trimmed)
+    onClose()
+  }
+  return (
+    <div style={{ position:'fixed', inset:0, zIndex:1200, background:'rgba(0,0,0,0.88)', backdropFilter:'blur(8px)', display:'flex', alignItems:'center', justifyContent:'center', padding:20 }} onClick={onClose}>
+      <div onClick={e=>e.stopPropagation()} className="liquid-glass-strong" style={{ borderRadius:24, maxWidth:480, width:'100%', padding:32, animation:'fadeUp 0.25s ease' }}>
+        <div style={{ fontFamily:"'Instrument Serif',serif", fontStyle:'italic', fontSize:22, color:'#fff', marginBottom:8 }}>Your Cerebras API Key</div>
+        <p style={{ fontFamily:"'Barlow',sans-serif", fontWeight:300, fontSize:13, color:'rgba(255,255,255,0.5)', lineHeight:1.7, marginBottom:20 }}>
+          Use your own key for unlimited analyses — bypasses the monthly limit entirely. Get a free key at <a href="https://cerebras.ai" target="_blank" rel="noreferrer" style={{ color:'rgba(255,255,255,0.7)' }}>cerebras.ai</a>. Your key is stored locally and never sent to our servers except to forward to Cerebras.
+        </p>
+        <div style={{ marginBottom:16 }}>
+          <label style={{ display:'block', fontSize:11, color:'rgba(255,255,255,0.4)', marginBottom:6, fontFamily:"'Barlow',sans-serif", letterSpacing:'0.08em', textTransform:'uppercase' }}>Cerebras API Key</label>
+          <input
+            type="password" value={key} onChange={e=>setKey(e.target.value)}
+            placeholder="csk-..."
+            style={{ width:'100%', padding:'13px 16px', background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:12, color:'#fff', fontSize:14, outline:'none', fontFamily:"'Barlow',sans-serif", fontWeight:300, boxSizing:'border-box' }}
+            onFocus={e=>{e.target.style.borderColor='rgba(255,255,255,0.3)'; e.target.style.background='rgba(255,255,255,0.08)'}}
+            onBlur={e=>{e.target.style.borderColor='rgba(255,255,255,0.1)'; e.target.style.background='rgba(255,255,255,0.05)'}}
+          />
+        </div>
+        <div style={{ display:'flex', gap:10 }}>
+          <button onClick={save} style={{ flex:1, padding:'13px', background:'#fff', border:'none', borderRadius:40, color:'#000', fontFamily:"'Barlow',sans-serif", fontWeight:600, fontSize:14, cursor:'pointer' }}>
+            {key.trim() ? 'Save Key' : 'Remove Key'}
+          </button>
+          <button onClick={onClose} style={{ padding:'13px 20px', background:'rgba(255,255,255,0.06)', border:'none', borderRadius:40, color:'rgba(255,255,255,0.5)', fontFamily:"'Barlow',sans-serif", fontSize:14, cursor:'pointer' }}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function App() {
   const [loading, setLoading] = useState(false)
   const [loadStep, setLoadStep] = useState(0)
@@ -865,7 +908,8 @@ export default function App() {
   const [compareResult, setCompareResult] = useState(null)
   const [comparingMode, setComparingMode] = useState(false)
   const [previewPlan, setPreviewPlan] = useState('pro') // 'free' | 'pro'
-  const realtimeRef = useRef(null)
+  const [cerebrasKey, setCerebrasKey] = useState(() => localStorage.getItem('dw_cerebras_key') || '')
+  const [showKeyModal, setShowKeyModal] = useState(false)
 
   const scrollTo = (id) => {
     const el = document.getElementById(id)
@@ -873,38 +917,17 @@ export default function App() {
     else window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const subscribeToUserRecord = (userId) => {
-    if (realtimeRef.current) supabase.removeChannel(realtimeRef.current)
-    const ch = supabase.channel(`user-${userId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'users', filter: `id=eq.${userId}` }, p => { if (p.new) setUserRecord(p.new) })
-      .subscribe()
-    realtimeRef.current = ch
-  }
-
-  const loadUserRecord = async (userId) => {
-    const { data } = await supabase.from('users').select('*').eq('id', userId).maybeSingle()
-    if (data) { setUserRecord(data) } else {
-      let n = 0
-      const iv = setInterval(async () => {
-        n++
-        const { data: r } = await supabase.from('users').select('*').eq('id', userId).maybeSingle()
-        if (r) { setUserRecord(r); clearInterval(iv) }
-        if (n >= 10) clearInterval(iv)
-      }, 600)
-    }
-    subscribeToUserRecord(userId)
+  const loadUserRecord = async () => {
+    try {
+      const usage = await getUsage()
+      setUserRecord(prev => ({ ...(prev || {}), ...usage }))
+    } catch {}
   }
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) { setUser(session.user); loadUserRecord(session.user.id) }
-      setAuthLoading(false)
-    })
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
-      if (session?.user) { setUser(session.user); loadUserRecord(session.user.id) }
-      else { setUser(null); setUserRecord(null); if (realtimeRef.current) supabase.removeChannel(realtimeRef.current) }
-    })
-    return () => { subscription.unsubscribe(); if (realtimeRef.current) supabase.removeChannel(realtimeRef.current) }
+    const u = getCurrentUser()
+    if (u) { setUser(u); setUserRecord({ is_pro: u.is_pro, analyses_used: 0 }); loadUserRecord() }
+    setAuthLoading(false)
   }, [])
 
   useEffect(() => {
@@ -914,11 +937,10 @@ export default function App() {
     } else document.title = 'Dwelling — Property Intelligence'
   }, [result])
 
-  const handleAuth = u => { setUser(u); loadUserRecord(u.id) }
-  const handleSignOut = async () => {
-    await supabase.auth.signOut()
+  const handleAuth = u => { setUser(u); setUserRecord({ is_pro: u.is_pro, analyses_used: 0 }); loadUserRecord() }
+  const handleSignOut = () => {
+    localSignOut()
     setUser(null); setUserRecord(null); setResult(null)
-    if (realtimeRef.current) supabase.removeChannel(realtimeRef.current)
   }
 
   const getRiskData = async ({ lat, lon, county, state, country }) => {
@@ -966,7 +988,7 @@ export default function App() {
       const marketTemperature = getMarketTemperature(areaMetrics) || null
 
       const realData = { neighborhoodScores, censusData, fmr, floodZone, riskData, areaMetrics, areaRiskScore, marketTemperature, newsData, isAreaMode }
-      const ai = await analyzeProperty(geo, weather, climate, knownFacts ?? {}, realData); setLoadStep(4)
+      const ai = await analyzeProperty(geo, weather, climate, knownFacts ?? {}, realData, cerebrasKey); setLoadStep(4)
       setResult({ geo, weather, climate, ai, knownFacts: knownFacts ?? {}, realData, isAreaMode })
     } catch (err) {
       if (err.message?.includes('context invalidated')) return
@@ -980,7 +1002,7 @@ export default function App() {
     setLoading(true); setError(null)
     try {
       const merged = { ...(result.knownFacts ?? {}), ...corrections }
-      const ai = await analyzeProperty(result.geo, result.weather, result.climate, merged, result.realData)
+      const ai = await analyzeProperty(result.geo, result.weather, result.climate, merged, result.realData, cerebrasKey)
       setResult(p => ({ ...p, ai, knownFacts: merged }))
     } catch (err) { setError(err.message ?? 'Recalculation failed.') }
     finally { setLoading(false) }
@@ -1007,7 +1029,7 @@ export default function App() {
       const areaRiskScore = computeRiskScore(areaMetrics, null) || null
       const marketTemperature = getMarketTemperature(areaMetrics) || null
       const realData = { neighborhoodScores, censusData, fmr, floodZone, riskData, areaMetrics, areaRiskScore, marketTemperature, newsData, isAreaMode }
-      const ai = await analyzeProperty(geo, weather, climate, {}, realData); setLoadStep(4)
+      const ai = await analyzeProperty(geo, weather, climate, {}, realData, cerebrasKey); setLoadStep(4)
       setCompareResult({ geo, weather, climate, ai, knownFacts: {}, realData, isAreaMode })
       setComparingMode(false)
     } catch (err) {
@@ -1016,11 +1038,9 @@ export default function App() {
     } finally { setLoading(false) }
   }
 
-  const trialDaysLeft = userRecord?.trial_started_at
-    ? Math.max(0, TRIAL_DAYS - Math.floor((Date.now() - new Date(userRecord.trial_started_at).getTime()) / (1000 * 60 * 60 * 24)))
-    : null
-  const isInTrial = trialDaysLeft !== null && trialDaysLeft > 0 && !userRecord?.is_pro
-  const analysesLeft = userRecord ? (userRecord.is_pro ? '∞' : isInTrial ? '∞' : Math.max(0, FREE_LIMIT - (userRecord.analyses_used ?? 0))) : '...'
+  const trialDaysLeft = null
+  const isInTrial = false
+  const analysesLeft = userRecord ? (userRecord.is_pro ? '∞' : Math.max(0, FREE_LIMIT - (userRecord.analyses_used ?? 0))) : '...'
 
   if (authLoading) return (
     <div style={{ minHeight: '100vh', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1067,8 +1087,9 @@ export default function App() {
   return (
     <div style={{ minHeight: '100vh', background: '#000', display: 'flex', flexDirection: 'column' }}>
         {showTerms && <TermsModal onClose={() => setShowTerms(false)} />}
+      {showKeyModal && <ApiKeyModal currentKey={cerebrasKey} onSave={k => setCerebrasKey(k)} onClose={() => setShowKeyModal(false)} />}
       {showPaywall && <PaywallModal onClose={() => setShowPaywall(false)} onUpgrade={() => alert('Stripe coming soon! Full refund guaranteed if not satisfied.')} />}
-      <Navbar user={user} userRecord={userRecord} analysesLeft={analysesLeft} isInTrial={isInTrial} trialDaysLeft={trialDaysLeft} onSignOut={handleSignOut}
+      <Navbar user={user} userRecord={userRecord} analysesLeft={analysesLeft} isInTrial={isInTrial} trialDaysLeft={trialDaysLeft} onSignOut={handleSignOut} onOpenKeyModal={() => setShowKeyModal(true)} hasOwnKey={!!cerebrasKey}
         onHome={() => { setResult(null); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
         onScrollTo={scrollTo} />
 
