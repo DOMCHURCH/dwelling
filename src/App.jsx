@@ -232,12 +232,12 @@ function Hero({ onSearch, loading, onShowDemo }) {
 
 // ─── PARTNERS ────────────────────────────────────────────────────────────────
 const Partners = memo(function Partners() {
-  const partners = ['Realtor.ca', 'StatCan', 'Open-Meteo', 'OpenStreetMap', 'Walk Score', 'Fraser Institute', 'Dwelling AI']
+  const partners = ['Realtor.ca', 'StatCan', 'Open-Meteo', 'OpenStreetMap', 'Fraser Institute', 'Dwelling AI']
   return (
     <section style={{ padding: '64px 24px' }}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <div className="liquid-glass" style={{ borderRadius: 40, padding: '4px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 28 }}>
-          Powered by 17+ official data sources
+          Powered by 16+ official data sources
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 32 }}>
           {partners.map(name => (
@@ -267,7 +267,7 @@ const Partners = memo(function Partners() {
 const HowItWorks = memo(function HowItWorks() {
   const steps = [
     { num: '01', icon: '📍', title: 'Enter any Canadian city', desc: 'Type a city name — no street address needed. Our city dropdown covers every major Canadian market from Halifax to Victoria.' },
-    { num: '02', icon: '⚡', title: 'We pull 17+ live data sources', desc: 'MLS listings, days on market, census demographics, climate risk, school ratings, crime data, walkability, and investment signals — all in real time.' },
+    { num: '02', icon: '⚡', title: 'We pull 16+ live data sources', desc: 'MLS listings, days on market, census demographics, climate risk, school ratings, crime data, walkability, and investment signals — all in real time.' },
     { num: '03', icon: '🧠', title: 'AI builds your intelligence report', desc: 'Our AI synthesizes everything into a stability score, AI verdict, investment outlook, school ratings, crime data, and climate risk — in under 30 seconds.' },
   ]
   return (
@@ -419,13 +419,7 @@ const DataPartnerships = memo(function DataPartnerships() {
       desc: 'Our proprietary AI engine synthesizes all data sources into a single city verdict, investment score, and market analysis — designed specifically for Canadian real estate.',
       status: 'live',
     },
-    {
-      icon: '🚶',
-      name: 'Walk Score',
-      type: 'Walkability & Transit',
-      desc: 'Industry-standard Walk, Transit, and Bike scores embedded in every Dwelling report. The same scores used by Realtor.ca, Redfin, and Zillow — 20M scores served daily.',
-      status: 'live',
-    },
+
     {
       icon: '🏫',
       name: 'Fraser Institute',
@@ -557,7 +551,7 @@ const Stats = memo(function Stats() {
         <div className="liquid-glass" style={{ borderRadius: 26, padding: '44px 28px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 28, textAlign: 'center' }}>
             {[
-              { target: 17, suffix: '+', label: 'Data sources per report' },
+              { target: 16, suffix: '+', label: 'Data sources per report' },
               { target: 100, suffix: 'k+', label: 'Cities covered' },
               { target: 10, suffix: '', label: 'Free analyses / month' },
               { target: 30, prefix: '<', suffix: 's', label: 'Avg analysis time' },
@@ -853,7 +847,17 @@ function MortgageCalculator() {
             </div>
             <div>
               <label style={labelStyle}>Household Income / yr</label>
-              <input type="number" value={income} onChange={e => setIncome(Number(e.target.value))} style={inputStyle} step={5000} min={30000} max={500000} />
+              <input
+                type="text"
+                value={income === 0 ? '' : income.toLocaleString('en-CA')}
+                onChange={e => {
+                  const raw = e.target.value.replace(/,/g, '').replace(/[^0-9]/g, '')
+                  const num = parseInt(raw) || 0
+                  if (num <= 500000) setIncome(num)
+                }}
+                placeholder="e.g. 120,000"
+                style={inputStyle}
+              />
             </div>
             <div>
               <label style={labelStyle}>Down Payment — {downPct}%</label>
