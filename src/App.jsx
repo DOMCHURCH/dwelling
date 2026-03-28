@@ -15,7 +15,7 @@ import { aggregateListings, computeRiskScore, getMarketTemperature } from './lib
 import { getNeighborhoodScores } from './lib/overpass'
 import { getCensusData } from './lib/census'
 import { getFairMarketRent, getFloodZone } from './lib/hud'
-import { getCurrentUser, getAuthToken, signOut as localSignOut, getUsage } from './lib/localAuth'
+import { getCurrentUser, getAuthToken, signOut as localSignOut, getUsage, saveCerebrasKey, getCachedCerebrasKey } from './lib/localAuth'
 
 
 const FREE_LIMIT = 10
@@ -858,12 +858,18 @@ const DEMO_RESULT = {
 // ─── API KEY MODAL ────────────────────────────────────────────────────────────
 function ApiKeyModal({ currentKey, onSave, onClose }) {
   const [key, setKey] = useState(currentKey || '')
-  const save = () => {
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState(null)
+  const save = async () => {
     const trimmed = key.trim()
-    if (trimmed) localStorage.setItem('dw_cerebras_key', trimmed)
-    else localStorage.removeItem('dw_cerebras_key')
-    onSave(trimmed)
-    onClose()
+    setSaving(true); setSaveError(null)
+    try {
+      await saveCerebrasKey(trimmed)
+      onSave(trimmed)
+      onClose()
+    } catch {
+      setSaveError('Failed to save. Try again.')
+    } finally { setSaving(false) }
   }
   return (
     <div style={{ position:'fixed', inset:0, zIndex:1200, background:'rgba(0,0,0,0.88)', backdropFilter:'blur(8px)', display:'flex', alignItems:'center', justifyContent:'center', padding:20 }} onClick={onClose}>
@@ -882,9 +888,10 @@ function ApiKeyModal({ currentKey, onSave, onClose }) {
             onBlur={e=>{e.target.style.borderColor='rgba(255,255,255,0.1)'; e.target.style.background='rgba(255,255,255,0.05)'}}
           />
         </div>
+        {saveError && <p style={{ color:'#f87171', fontFamily:"'Barlow',sans-serif", fontSize:12, marginBottom:8 }}>⚠ {saveError}</p>}
         <div style={{ display:'flex', gap:10 }}>
-          <button onClick={save} style={{ flex:1, padding:'13px', background:'#fff', border:'none', borderRadius:40, color:'#000', fontFamily:"'Barlow',sans-serif", fontWeight:600, fontSize:14, cursor:'pointer' }}>
-            {key.trim() ? 'Save Key' : 'Remove Key'}
+          <button onClick={save} disabled={saving} style={{ flex:1, padding:'13px', background:saving?'rgba(255,255,255,0.1)':'#fff', border:'none', borderRadius:40, color:saving?'rgba(255,255,255,0.3)':'#000', fontFamily:"'Barlow',sans-serif", fontWeight:600, fontSize:14, cursor:saving?'not-allowed':'pointer' }}>
+            {saving ? 'Saving...' : key.trim() ? 'Save Key' : 'Remove Key'}
           </button>
           <button onClick={onClose} style={{ padding:'13px 20px', background:'rgba(255,255,255,0.06)', border:'none', borderRadius:40, color:'rgba(255,255,255,0.5)', fontFamily:"'Barlow',sans-serif", fontSize:14, cursor:'pointer' }}>Cancel</button>
         </div>
@@ -908,7 +915,7 @@ export default function App() {
   const [compareResult, setCompareResult] = useState(null)
   const [comparingMode, setComparingMode] = useState(false)
   const [previewPlan, setPreviewPlan] = useState('pro') // 'free' | 'pro'
-  const [cerebrasKey, setCerebrasKey] = useState(() => localStorage.getItem('dw_cerebras_key') || '')
+  const [cerebrasKey, setCerebrasKey] = useState(() => getCachedCerebrasKey())
   const [showKeyModal, setShowKeyModal] = useState(false)
 
   const scrollTo = (id) => {
@@ -1089,7 +1096,7 @@ export default function App() {
         {showTerms && <TermsModal onClose={() => setShowTerms(false)} />}
       {showKeyModal && <ApiKeyModal currentKey={cerebrasKey} onSave={k => setCerebrasKey(k)} onClose={() => setShowKeyModal(false)} />}
       {showPaywall && <PaywallModal onClose={() => setShowPaywall(false)} onUpgrade={() => alert('Stripe coming soon! Full refund guaranteed if not satisfied.')} />}
-      <Navbar user={user} userRecord={userRecord} analysesLeft={analysesLeft} isInTrial={isInTrial} trialDaysLeft={trialDaysLeft} onSignOut={handleSignOut} onOpenKeyModal={() => setShowKeyModal(true)} hasOwnKey={!!cerebrasKey}
+      <Navbar user={user} userRecord={userRecord} analysesLeft={analysesLeft} isInTrial={isInTrial} trialDaysLeft={trialDaysLeft} onSignOut={handleSignOut} onOpenKeyModal={() => setShowKeyModal(true)} hasOwnKey={!!cerebrasKey || !!userRecord?.has_own_key}
         onHome={() => { setResult(null); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
         onScrollTo={scrollTo} />
 
