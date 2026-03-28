@@ -78,7 +78,7 @@ const FAQ_ITEMS = [
   { q: 'Which cities does Dwelling cover?', a: 'Currently all major Canadian cities — Toronto, Vancouver, Calgary, Ottawa, Montreal, Edmonton, Winnipeg, Halifax, and hundreds more. We started with Canada to build a rock-solid, data-rich pilot before expanding.' },
   { q: 'Where does the data come from?', a: 'Realtor.ca active MLS listings (200+ per city), Statistics Canada price indices, OpenStreetMap walkability and amenities, Open-Meteo climate normals, and our proprietary AI engine for synthesis.' },
   { q: 'What is the Stability Score?', a: 'A 0–100 score computed from real listing data: median days on market, price volatility (coefficient of variation), inventory levels, and percentage of listings sitting >60 days. Higher = more stable.' },
-  { q: 'Is Dwelling free to use?', a: 'Free users get 10 analyses per month. Upgrade to Pro for $19/month (or $152/year — save 33%) for unlimited analyses, full city intelligence, and investment-grade reports.' },
+  { q: 'Is Dwelling free to use?', a: 'Free users get 10 analyses per month. Upgrade to Pro for $19/month (or $152/year — save 33%) for expanded analysis access, full city intelligence, and investment-grade reports. Analysis availability is subject to platform capacity.' },
   { q: 'Can I use the results to make a real estate decision?', a: 'No. All outputs are informational only and do not constitute financial, legal, or real estate advice. Always consult a qualified professional.' },
   { q: 'Does Dwelling store my searches?', a: 'No. Searches are processed in real time and discarded immediately. We store only your usage count to enforce free-tier limits.' },
   { q: 'Why Canada only right now?', a: 'Depth over breadth. Starting with one country lets us build a genuinely reliable product — accurate data partnerships, verified sources, Canada-specific context — before expanding internationally.' },
@@ -459,10 +459,10 @@ function DataSourcesGrid({ partners }) {
                 onMouseEnter={() => setHovered(i)}
                 onMouseLeave={() => setHovered(null)}
                 style={{ borderRadius: 18, padding: 24, height: '100%', cursor: 'default',
-                  transition: 'transform 0.25s ease, opacity 0.25s ease, box-shadow 0.25s ease',
-                  transform: hovered === null ? 'scale(1)' : hovered === i ? 'scale(1.03) translateY(-3px)' : 'scale(0.97)',
-                  opacity: hovered === null ? (p.status === 'soon' ? 0.7 : 1) : hovered === i ? 1 : 0.4,
-                  boxShadow: hovered === i ? '0 12px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.2)' : 'none',
+                  transition: 'transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.35s ease, box-shadow 0.35s ease',
+                  transform: hovered === null ? 'scale(1)' : hovered === i ? 'scale(1.04) translateY(-5px)' : 'scale(0.96)',
+                  opacity: hovered === null ? (p.status === 'soon' ? 0.7 : 1) : hovered === i ? 1 : 0.35,
+                  boxShadow: hovered === i ? '0 20px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.25)' : 'none',
                   zIndex: hovered === i ? 2 : 1, position: 'relative',
                 }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
@@ -502,10 +502,10 @@ function HoverGroup({ steps }) {
           onMouseLeave={() => setHovered(null)}
           style={{
             borderRadius: 20, padding: 28, cursor: 'default',
-            transition: 'transform 0.25s ease, opacity 0.25s ease, box-shadow 0.25s ease',
-            transform: hovered === null ? 'scale(1)' : hovered === i ? 'scale(1.04) translateY(-4px)' : 'scale(0.96)',
-            opacity: hovered === null ? 1 : hovered === i ? 1 : 0.45,
-            boxShadow: hovered === i ? '0 12px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.2)' : 'none',
+            transition: 'transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.35s ease, box-shadow 0.35s ease',
+            transform: hovered === null ? 'scale(1)' : hovered === i ? 'scale(1.05) translateY(-6px)' : 'scale(0.95)',
+            opacity: hovered === null ? 1 : hovered === i ? 1 : 0.38,
+            boxShadow: hovered === i ? '0 20px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.25)' : 'none',
             zIndex: hovered === i ? 2 : 1, position: 'relative',
           }}>
           <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 52, color: 'rgba(255,255,255,0.06)', lineHeight: 1, marginBottom: 14 }}>{s.num}</div>
@@ -528,10 +528,10 @@ function HoverGroupGrid({ cards }) {
           onMouseLeave={() => setHovered(null)}
           style={{
             borderRadius: 18, padding: 24, cursor: 'default',
-            transition: 'transform 0.25s ease, opacity 0.25s ease, box-shadow 0.25s ease',
-            transform: hovered === null ? 'scale(1)' : hovered === i ? 'scale(1.04) translateY(-4px)' : 'scale(0.96)',
-            opacity: hovered === null ? 1 : hovered === i ? 1 : 0.45,
-            boxShadow: hovered === i ? '0 12px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.2)' : 'none',
+            transition: 'transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.35s ease, box-shadow 0.35s ease',
+            transform: hovered === null ? 'scale(1)' : hovered === i ? 'scale(1.05) translateY(-6px)' : 'scale(0.95)',
+            opacity: hovered === null ? 1 : hovered === i ? 1 : 0.38,
+            boxShadow: hovered === i ? '0 20px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.25)' : 'none',
             zIndex: hovered === i ? 2 : 1, position: 'relative',
           }}>
           <div className="liquid-glass-strong" style={{ borderRadius: '50%', width: 42, height: 42, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18, fontSize: 17 }}>{card.icon}</div>
@@ -611,7 +611,7 @@ const PRICING_FREE = [
   'Risk & hazard overview',
 ]
 const PRICING_PRO = [
-  { text: 'Unlimited analyses', highlight: false },
+  { text: 'High-volume analysis access', highlight: false },
   { text: 'Full investment-grade AI analysis', highlight: true },
   { text: 'Hidden risk & hazard detection', highlight: true },
   { text: 'Price trend & market predictions', highlight: true },
@@ -853,7 +853,7 @@ function MortgageCalculator() {
                 onChange={e => {
                   const raw = e.target.value.replace(/,/g, '').replace(/[^0-9]/g, '')
                   const num = parseInt(raw) || 0
-                  if (num <= 500000) setIncome(num)
+                  if (num <= 50000000) setIncome(num)
                 }}
                 placeholder="e.g. 120,000"
                 style={inputStyle}
@@ -900,6 +900,134 @@ function MortgageCalculator() {
               </span>
             </div>
           </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+
+// ─── RENTAL YIELD CALCULATOR ──────────────────────────────────────────────────
+function RentalCalculator() {
+  const [city, setCity] = useState('Ottawa')
+  const [downPct, setDownPct] = useState(20)
+  const [rate, setRate] = useState(5.5)
+  const [mgmt, setMgmt] = useState(8) // property mgmt %
+  const [vacancy, setVacancy] = useState(5) // vacancy %
+
+  const CITY_DATA = {
+    'Ottawa':    { price: 620000,  rent: 2100 },
+    'Toronto':   { price: 1080000, rent: 2600 },
+    'Vancouver': { price: 1320000, rent: 2900 },
+    'Calgary':   { price: 630000,  rent: 2000 },
+    'Edmonton':  { price: 430000,  rent: 1650 },
+    'Montreal':  { price: 540000,  rent: 1800 },
+    'Hamilton':  { price: 710000,  rent: 2000 },
+    'Waterloo':  { price: 700000,  rent: 2000 },
+    'Victoria':  { price: 880000,  rent: 2400 },
+    'Halifax':   { price: 530000,  rent: 1900 },
+    'Winnipeg':  { price: 360000,  rent: 1500 },
+    'Saskatoon': { price: 360000,  rent: 1450 },
+  }
+
+  const { price, rent } = CITY_DATA[city] || { price: 600000, rent: 1900 }
+  const down = price * (downPct / 100)
+  const principal = price - down
+  const monthlyRate = rate / 100 / 12
+  const months = 25 * 12
+  const mortgage = principal * (monthlyRate * Math.pow(1 + monthlyRate, months)) / (Math.pow(1 + monthlyRate, months) - 1)
+  const annualRent = rent * 12
+  const grossYield = ((annualRent / price) * 100).toFixed(2)
+  const effectiveRent = rent * (1 - vacancy / 100)
+  const mgmtFee = effectiveRent * (mgmt / 100)
+  const tax = price * 0.012 / 12 // ~1.2% property tax annual
+  const insurance = price * 0.005 / 12
+  const maintenance = price * 0.01 / 12
+  const totalExpenses = mortgage + mgmtFee + tax + insurance + maintenance
+  const cashflow = effectiveRent - totalExpenses
+  const netYield = (((effectiveRent - mgmtFee - tax - insurance - maintenance) * 12 / price) * 100).toFixed(2)
+
+  const fmt = v => '$' + Math.round(Math.abs(v)).toLocaleString('en-CA')
+  const inputStyle = { background:'rgba(255,255,255,0.07)', border:'1px solid rgba(255,255,255,0.12)', borderRadius:10, color:'#fff', padding:'8px 12px', fontSize:13, fontFamily:"'Barlow',sans-serif", outline:'none', width:'100%', boxSizing:'border-box' }
+  const label = { display:'block', fontFamily:"'Barlow',sans-serif", fontSize:11, color:'rgba(255,255,255,0.4)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:6 }
+
+  return (
+    <section style={{ padding:'clamp(60px,8vw,96px) 20px' }}>
+      <div style={{ maxWidth:860, margin:'0 auto' }}>
+        <div className="liquid-glass" style={{ borderRadius:40, display:'inline-flex', padding:'5px 14px', fontSize:11, color:'rgba(255,255,255,0.5)', fontFamily:"'Barlow',sans-serif", letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:16 }}>Investment</div>
+        <h2 style={{ fontFamily:"'Instrument Serif',serif", fontStyle:'italic', fontSize:'clamp(2rem,5vw,3.5rem)', color:'#fff', marginBottom:10, lineHeight:0.9, letterSpacing:'-0.02em' }}>
+          "Is it worth buying to rent?
+        </h2>
+        <p style={{ fontFamily:"'Barlow',sans-serif", fontWeight:300, fontSize:15, color:'rgba(255,255,255,0.4)', marginBottom:36, lineHeight:1.7 }}>
+          Estimates gross yield, net yield, and monthly cash flow after mortgage, tax, insurance, and maintenance.
+        </p>
+
+        <div className="liquid-glass-strong" style={{ borderRadius:24, padding:32 }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))', gap:20, marginBottom:28 }}>
+            <div>
+              <label style={label}>City</label>
+              <select value={city} onChange={e=>setCity(e.target.value)} style={{ ...inputStyle, cursor:'pointer' }}>
+                {Object.keys(CITY_DATA).map(c=><option key={c} value={c} style={{ background:'#111' }}>{c}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={label}>Down — {downPct}%</label>
+              <input type="range" value={downPct} onChange={e=>setDownPct(Number(e.target.value))} min={5} max={60} step={5} style={{ width:'100%', accentColor:'#38bdf8', marginTop:8 }} />
+            </div>
+            <div>
+              <label style={label}>Rate % (5yr)</label>
+              <input type="number" value={rate} onChange={e=>setRate(Number(e.target.value))} style={inputStyle} step={0.05} min={1} max={12} />
+            </div>
+            <div>
+              <label style={label}>Mgmt fee % / Vacancy %</label>
+              <div style={{ display:'flex', gap:8 }}>
+                <input type="number" value={mgmt} onChange={e=>setMgmt(Number(e.target.value))} style={{ ...inputStyle, width:'50%' }} min={0} max={20} step={1} />
+                <input type="number" value={vacancy} onChange={e=>setVacancy(Number(e.target.value))} style={{ ...inputStyle, width:'50%' }} min={0} max={30} step={1} />
+              </div>
+            </div>
+          </div>
+
+          {/* Results */}
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))', gap:12, marginBottom:20 }}>
+            {[
+              { label:'Median Price', val:fmt(price), color:'#fff' },
+              { label:'Est. Monthly Rent', val:fmt(rent), color:'#fff' },
+              { label:'Gross Yield', val:`${grossYield}%`, color: parseFloat(grossYield) >= 5 ? '#4ade80' : parseFloat(grossYield) >= 3.5 ? '#fbbf24' : '#f87171' },
+              { label:'Net Yield', val:`${netYield}%`, color: parseFloat(netYield) >= 3 ? '#4ade80' : parseFloat(netYield) >= 1.5 ? '#fbbf24' : '#f87171' },
+            ].map(({label:l,val,color})=>(
+              <div key={l} style={{ background:'rgba(255,255,255,0.04)', borderRadius:14, padding:'14px 16px' }}>
+                <div style={{ fontFamily:"'Barlow',sans-serif", fontSize:10, color:'rgba(255,255,255,0.35)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:6 }}>{l}</div>
+                <div style={{ fontFamily:"'Instrument Serif',serif", fontStyle:'italic', fontSize:26, color, lineHeight:1 }}>{val}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Monthly cash flow breakdown */}
+          <div style={{ background:'rgba(255,255,255,0.03)', borderRadius:14, padding:'16px 20px' }}>
+            <div style={{ fontFamily:"'Barlow',sans-serif", fontSize:10, color:'rgba(255,255,255,0.35)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:12 }}>Monthly Breakdown</div>
+            {[
+              { label:'Effective rent', val:`+${fmt(effectiveRent)}`, pos:true },
+              { label:`Mortgage (${fmt(down)} down, 25yr)`, val:`−${fmt(mortgage)}`, pos:false },
+              { label:'Property tax (est.)', val:`−${fmt(tax)}`, pos:false },
+              { label:`Mgmt fee (${mgmt}%)`, val:`−${fmt(mgmtFee)}`, pos:false },
+              { label:'Insurance + maintenance', val:`−${fmt(insurance+maintenance)}`, pos:false },
+            ].map(({label:l,val,pos})=>(
+              <div key={l} style={{ display:'flex', justifyContent:'space-between', marginBottom:6, paddingBottom:6, borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
+                <span style={{ fontFamily:"'Barlow',sans-serif", fontWeight:300, fontSize:12, color:'rgba(255,255,255,0.5)' }}>{l}</span>
+                <span style={{ fontFamily:"'Barlow',sans-serif", fontWeight:400, fontSize:12, color: pos ? '#4ade80' : 'rgba(255,255,255,0.6)' }}>{val}</span>
+              </div>
+            ))}
+            <div style={{ display:'flex', justifyContent:'space-between', marginTop:8 }}>
+              <span style={{ fontFamily:"'Barlow',sans-serif", fontWeight:600, fontSize:13, color:'#fff' }}>Monthly Cash Flow</span>
+              <span style={{ fontFamily:"'Instrument Serif',serif", fontStyle:'italic', fontSize:20, color: cashflow >= 0 ? '#4ade80' : '#f87171' }}>
+                {cashflow >= 0 ? '+' : '−'}{fmt(cashflow)}/mo
+              </span>
+            </div>
+          </div>
+
+          <p style={{ fontFamily:"'Barlow',sans-serif", fontWeight:300, fontSize:11, color:'rgba(255,255,255,0.2)', marginTop:14, lineHeight:1.6 }}>
+            Estimates only. Does not constitute financial advice. Consult a licensed financial advisor before making investment decisions. Actual returns may vary significantly.
+          </p>
         </div>
       </div>
     </section>
@@ -1300,7 +1428,7 @@ function ApiKeyModal({ currentKey, onSave, onClose, isOnboarding = false }) {
             <p style={{ fontFamily:"'Barlow',sans-serif", fontWeight:300, fontSize:13, color:'rgba(255,255,255,0.45)', lineHeight:1.7, marginBottom:20 }}>
               {isOnboarding
                 ? 'Find it at cloud.cerebras.ai → API Keys → Create new key. It starts with "csk-".'
-                : <>Use your own key for unlimited analyses. Get one free at <a href="https://cloud.cerebras.ai" target="_blank" rel="noreferrer" style={{ color:'rgba(255,255,255,0.7)' }}>cloud.cerebras.ai</a>.</>
+                : <>Use your own key for expanded analysis access. Get one free at <a href="https://cloud.cerebras.ai" target="_blank" rel="noreferrer" style={{ color:'rgba(255,255,255,0.7)' }}>cloud.cerebras.ai</a>.</>
               }
             </p>
 
@@ -1393,16 +1521,26 @@ export default function App() {
   const handleAuth = u => {
     setUser(u)
     setUserRecord({ is_pro: u.is_pro, analyses_used: 0 })
-    loadUserRecord()
-    // Show key onboarding if they don't have a key yet and haven't seen it this session
-    const alreadySeen = sessionStorage.getItem('dw_key_onboarding_seen')
-    const hasKey = !!getCachedCerebrasKey()
-    if (!hasKey && !alreadySeen) {
-      setTimeout(() => setShowOnboarding(true), 600) // small delay so auth modal fades first
-    }
+    // Clear any previously cached key from a different account
+    localStorage.removeItem('dw_cerebras_key')
+    setCerebrasKey('')
+    loadUserRecord().then(() => {
+      // After loading user record, check if they have a server-side key
+      // The onboarding will show if they have no key at all
+      const alreadySeen = sessionStorage.getItem('dw_key_onboarding_seen')
+      if (!alreadySeen) {
+        setTimeout(() => setShowOnboarding(true), 600)
+      }
+    }).catch(() => {
+      const alreadySeen = sessionStorage.getItem('dw_key_onboarding_seen')
+      if (!alreadySeen) setTimeout(() => setShowOnboarding(true), 600)
+    })
   }
   const handleSignOut = () => {
     localSignOut()
+    // Clear API key from localStorage so it doesn't leak to next account
+    localStorage.removeItem('dw_cerebras_key')
+    setCerebrasKey('')
     setUser(null); setUserRecord(null); setResult(null)
   }
 
@@ -1458,6 +1596,7 @@ export default function App() {
       const realData = { neighborhoodScores, censusData, fmr, floodZone, riskData, areaMetrics, areaRiskScore, marketTemperature, newsData, isAreaMode, walkScoreData }
       const ai = await analyzeProperty(geo, weather, climate, knownFacts ?? {}, realData, cerebrasKey); setLoadStep(4)
       setResult({ geo, weather, climate, ai, knownFacts: knownFacts ?? {}, realData, isAreaMode })
+      loadUserRecord() // refresh usage counter after analysis
     } catch (err) {
       if (err.message?.includes('context invalidated')) return
       if (err.message?.includes('limit reached') || err.message?.includes('429')) setShowPaywall(true)
@@ -1505,6 +1644,7 @@ export default function App() {
       const ai = await analyzeProperty(geo, weather, climate, {}, realData, cerebrasKey); setLoadStep(4)
       setCompareResult({ geo, weather, climate, ai, knownFacts: {}, realData, isAreaMode })
       setComparingMode(false)
+      loadUserRecord() // refresh usage counter
     } catch (err) {
       if (err.message?.includes('limit reached') || err.message?.includes('429')) setShowPaywall(true)
       else setError(err.message ?? 'Something went wrong.')
@@ -1651,6 +1791,7 @@ export default function App() {
           <FeaturesChess />
           <FeaturesGrid />
           <MortgageCalculator />
+          <RentalCalculator />
           <DataPartnerships />
           <Stats />
           <Pricing onUpgrade={() => setShowPaywall(true)} />
