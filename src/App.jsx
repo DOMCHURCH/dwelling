@@ -430,7 +430,7 @@ const DataPartnerships = memo(function DataPartnerships() {
       icon: '🏫',
       name: 'Fraser Institute',
       type: 'School Rankings',
-      desc: 'Annual school performance data from Canada's leading independent research institute. Ratings for 10,000+ Canadian schools across all provinces.',
+      desc: "Annual school performance data from Canada's leading independent research institute. Ratings for 10,000+ Canadian schools across all provinces.",
       status: 'live',
     }
   ]
