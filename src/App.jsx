@@ -78,7 +78,7 @@ const FAQ_ITEMS = [
   { q: 'Which cities does Dwelling cover?', a: 'Currently all major Canadian cities — Toronto, Vancouver, Calgary, Ottawa, Montreal, Edmonton, Winnipeg, Halifax, and hundreds more. We started with Canada to build a rock-solid, data-rich pilot before expanding.' },
   { q: 'Where does the data come from?', a: 'Realtor.ca active MLS listings (200+ per city), Statistics Canada price indices, OpenStreetMap walkability and amenities, Open-Meteo climate normals, and our proprietary AI engine for synthesis.' },
   { q: 'What is the Stability Score?', a: 'A 0–100 score computed from real listing data: median days on market, price volatility (coefficient of variation), inventory levels, and percentage of listings sitting >60 days. Higher = more stable.' },
-  { q: 'Is Dwelling free to use?', a: 'Free users get 10 analyses per month. Upgrade to Pro for $9/month for unlimited analyses, full city intelligence, and investment-grade reports.' },
+  { q: 'Is Dwelling free to use?', a: 'Free users get 10 analyses per month. Upgrade to Pro for $19/month (or $152/year — save 33%) for unlimited analyses, full city intelligence, and investment-grade reports.' },
   { q: 'Can I use the results to make a real estate decision?', a: 'No. All outputs are informational only and do not constitute financial, legal, or real estate advice. Always consult a qualified professional.' },
   { q: 'Does Dwelling store my searches?', a: 'No. Searches are processed in real time and discarded immediately. We store only your usage count to enforce free-tier limits.' },
   { q: 'Why Canada only right now?', a: 'Depth over breadth. Starting with one country lets us build a genuinely reliable product — accurate data partnerships, verified sources, Canada-specific context — before expanding internationally.' },
@@ -191,10 +191,10 @@ function Hero({ onSearch, loading, onShowDemo }) {
           <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>Introducing AI-powered area intelligence.</span>
         </div>
         <h1 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(3rem,9vw,6rem)', color: '#fff', lineHeight: 0.88, letterSpacing: '-0.03em', marginBottom: 28 }}>
-          Know Any City Before You Move.
+          Know Your Neighbourhood Before You Buy.
         </h1>
         <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 16, fontFamily: "'Barlow',sans-serif", fontWeight: 300, maxWidth: 540, lineHeight: 1.7, marginBottom: 40 }}>
-          Type any Canadian city. Get a stability score, market temperature, AI verdict, and local news — all in seconds.
+          Climate risk. School ratings. Crime data. Investment score. AI verdict. — One search, 30 seconds, any Canadian city.
         </p>
         <div style={{ width: '100%', maxWidth: 600 }}>
           <AddressSearch onSearch={onSearch} loading={loading} />
@@ -208,11 +208,18 @@ function Hero({ onSearch, loading, onShowDemo }) {
           ))}
         </div>
         <div style={{ marginTop: 20 }}>
-          <button onClick={onShowDemo} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.4)', textDecoration: 'underline', textUnderlineOffset: 3, padding: '4px 8px', transition: 'color 0.2s' }}
-            onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.7)'}
-            onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}>
-            or see a sample report →
-          </button>
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <button onClick={onShowDemo} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.4)', textDecoration: 'underline', textUnderlineOffset: 3, padding: '4px 8px', transition: 'color 0.2s' }}
+              onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.7)'}
+              onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}>
+              or see a sample report →
+            </button>
+            <button onClick={() => scrollTo('pricing')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.25)', textDecoration: 'underline', textUnderlineOffset: 3, padding: '4px 8px', transition: 'color 0.2s' }}
+              onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.55)'}
+              onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.25)'}>
+              view pricing →
+            </button>
+          </div>
         </div>
         <div style={{ position: 'absolute', bottom: 28, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, cursor: 'pointer', opacity: 0.4 }} onClick={() => scrollTo('how-it-works')}>
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 9l5 5 5-5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
@@ -225,18 +232,30 @@ function Hero({ onSearch, loading, onShowDemo }) {
 
 // ─── PARTNERS ────────────────────────────────────────────────────────────────
 const Partners = memo(function Partners() {
-  const partners = ['Realtor.ca', 'StatCan', 'Open-Meteo', 'OpenStreetMap', 'FEMA', 'Dwelling AI']
+  const partners = ['Realtor.ca', 'StatCan', 'Open-Meteo', 'OpenStreetMap', 'Walk Score', 'Fraser Institute', 'Dwelling AI']
   return (
     <section style={{ padding: '64px 24px' }}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <div className="liquid-glass" style={{ borderRadius: 40, padding: '4px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 28 }}>
-          Powered by leading data sources
+          Powered by 17+ official data sources
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 32 }}>
           {partners.map(name => (
             <span key={name} style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 26, color: 'rgba(255,255,255,0.7)', transition: 'color 0.2s', cursor: 'default' }}
               onMouseEnter={e => e.currentTarget.style.color = '#fff'}
               onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.7)'}>{name}</span>
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: 24, marginTop: 32, flexWrap: 'wrap', justifyContent: 'center' }}>
+          {[
+            { icon: '🏆', text: 'No brokerage agenda — unbiased intelligence' },
+            { icon: '🔒', text: 'Searches never stored or sold' },
+            { icon: '⚡', text: 'Reports in under 30 seconds' },
+          ].map(({ icon, text }) => (
+            <div key={text} className="liquid-glass" style={{ borderRadius: 40, padding: '6px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 14 }}>{icon}</span>
+              <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>{text}</span>
+            </div>
           ))}
         </div>
       </div>
@@ -247,9 +266,9 @@ const Partners = memo(function Partners() {
 // ─── HOW IT WORKS ────────────────────────────────────────────────────────────
 const HowItWorks = memo(function HowItWorks() {
   const steps = [
-    { num: '01', icon: '📍', title: 'Enter a city or neighbourhood', desc: 'Any location in the world. No street address needed — just the area you want to understand.' },
-    { num: '02', icon: '⚡', title: 'We pull real market data', desc: 'Active listings, days on market, inventory levels, census demographics, FEMA risk, walkability — all in real time.' },
-    { num: '03', icon: '🧠', title: 'AI builds your area report', desc: 'Our AI engine synthesizes everything into a stability score, market verdict, price trends, and investment outlook in under 30 seconds.' },
+    { num: '01', icon: '📍', title: 'Enter any Canadian city', desc: 'Type a city name — no street address needed. Our city dropdown covers every major Canadian market from Halifax to Victoria.' },
+    { num: '02', icon: '⚡', title: 'We pull 17+ live data sources', desc: 'MLS listings, days on market, census demographics, climate risk, school ratings, crime data, walkability, and investment signals — all in real time.' },
+    { num: '03', icon: '🧠', title: 'AI builds your intelligence report', desc: 'Our AI synthesizes everything into a stability score, AI verdict, investment outlook, school ratings, crime data, and climate risk — in under 30 seconds.' },
   ]
   return (
     <Section style={{ minHeight: 'auto', padding: 'clamp(60px, 10vw, 128px) 20px' }}>
@@ -399,6 +418,20 @@ const DataPartnerships = memo(function DataPartnerships() {
       type: 'Proprietary AI',
       desc: 'Our proprietary AI engine synthesizes all data sources into a single city verdict, investment score, and market analysis — designed specifically for Canadian real estate.',
       status: 'live',
+    },
+    {
+      icon: '🚶',
+      name: 'Walk Score',
+      type: 'Walkability & Transit',
+      desc: 'Industry-standard Walk, Transit, and Bike scores embedded in every Dwelling report. The same scores used by Realtor.ca, Redfin, and Zillow — 20M scores served daily.',
+      status: 'live',
+    },
+    {
+      icon: '🏫',
+      name: 'Fraser Institute',
+      type: 'School Rankings',
+      desc: 'Annual school performance data from Canada's leading independent research institute. Ratings for 10,000+ Canadian schools across all provinces.',
+      status: 'live',
     }
   ]
 
@@ -524,9 +557,9 @@ const Stats = memo(function Stats() {
         <div className="liquid-glass" style={{ borderRadius: 26, padding: '44px 28px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 28, textAlign: 'center' }}>
             {[
-              { target: 15, suffix: '+', label: 'Data sources per report' },
+              { target: 17, suffix: '+', label: 'Data sources per report' },
               { target: 100, suffix: 'k+', label: 'Cities covered' },
-              { target: 10, suffix: '', label: 'Free / Month' },
+              { target: 10, suffix: '', label: 'Free analyses / month' },
               { target: 30, prefix: '<', suffix: 's', label: 'Avg analysis time' },
             ].map(({ target, suffix, prefix, label }) => (
               <div key={label}>
@@ -579,7 +612,7 @@ const Testimonials = memo(function Testimonials() {
 const PRICING_FREE = [
   '10 analyses/month',
   'Area intelligence reports',
-  'Neighbourhood scores',
+  'Neighbourhood & walkability scores',
   'Climate & weather data',
   'Risk & hazard overview',
 ]
@@ -591,9 +624,10 @@ const PRICING_PRO = [
   { text: 'Side-by-side area comparison', highlight: false },
   { text: 'All neighbourhood data', highlight: false },
   { text: 'Priority support', highlight: false },
+  { text: 'PDF report export (coming soon)', highlight: false },
 ]
 
-function PricingCard({ plan, price, desc, features, cta, onCta, popular, highlight }) {
+function PricingCard({ plan, price, desc, features, cta, onCta, popular, highlight, priceLabel, annualSavings }) {
   const [hov, setHov] = useState(false)
   return (
     <div
@@ -686,6 +720,12 @@ function PricingCard({ plan, price, desc, features, cta, onCta, popular, highlig
 }
 
 const Pricing = memo(function Pricing({ onUpgrade }) {
+  const [annual, setAnnual] = useState(false)
+  const monthlyPrice = 19
+  const annualPrice = 152
+  const displayPrice = annual ? Math.round(annualPrice / 12) : monthlyPrice
+  const displaySuffix = annual ? '/mo · billed yearly' : '/month'
+
   return (
     <section id="pricing" style={{ position: 'relative', overflow: 'hidden', padding: 'clamp(80px, 10vw, 120px) 20px' }}>
       {/* Video background */}
@@ -708,6 +748,29 @@ const Pricing = memo(function Pricing({ onUpgrade }) {
           Start free. Upgrade when you need the full picture — pro pays for itself the moment it helps you avoid the wrong neighbourhood.
         </p>
 
+        {/* Annual / Monthly toggle */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 40 }}>
+          <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 13, color: annual ? 'rgba(255,255,255,0.35)' : '#fff', fontWeight: 400 }}>Monthly</span>
+          <button
+            onClick={() => setAnnual(a => !a)}
+            style={{
+              width: 48, height: 26, borderRadius: 13, border: 'none', cursor: 'pointer', position: 'relative',
+              background: annual ? 'linear-gradient(90deg, #38bdf8, #818cf8)' : 'rgba(255,255,255,0.15)',
+              transition: 'background 0.25s ease',
+            }}
+          >
+            <div style={{
+              position: 'absolute', top: 3, left: annual ? 25 : 3,
+              width: 20, height: 20, borderRadius: '50%', background: '#fff',
+              transition: 'left 0.25s ease',
+            }} />
+          </button>
+          <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 13, color: annual ? '#fff' : 'rgba(255,255,255,0.35)', fontWeight: 400 }}>
+            Annual
+            <span style={{ marginLeft: 6, background: 'rgba(56,189,248,0.15)', border: '1px solid rgba(56,189,248,0.3)', borderRadius: 20, padding: '2px 8px', fontSize: 11, color: '#38bdf8' }}>Save 33%</span>
+          </span>
+        </div>
+
         <div style={{ display: 'flex', gap: 20, justifyContent: 'center', flexWrap: 'wrap', alignItems: 'flex-start' }}>
           <PricingCard
             plan="Free" price="0" desc="Good for exploring"
@@ -717,11 +780,13 @@ const Pricing = memo(function Pricing({ onUpgrade }) {
             popular={false}
           />
           <PricingCard
-            plan="Pro" price="19" desc="Full intelligence for every location decision"
+            plan="Pro" price={String(displayPrice)} desc={annual ? "Billed $152/year — cancel anytime" : "Full intelligence for every location decision"}
+            priceLabel={annual ? '/mo · billed yearly' : '/month'}
             features={PRICING_PRO}
-            cta="Upgrade to Pro →"
+            cta={annual ? `Get Pro — $152/year →` : "Upgrade to Pro →"}
             onCta={onUpgrade}
             popular={true}
+            annualSavings={annual}
           />
         </div>
       </div>
@@ -729,6 +794,113 @@ const Pricing = memo(function Pricing({ onUpgrade }) {
   )
 })
 
+
+
+// ─── MORTGAGE CALCULATOR ──────────────────────────────────────────────────────
+function MortgageCalculator() {
+  const [income, setIncome] = useState(120000)
+  const [downPct, setDownPct] = useState(20)
+  const [rate, setRate] = useState(5.5)
+  const [city, setCity] = useState('Ottawa')
+
+  // Canadian median prices per city (2025 estimates)
+  const CITY_PRICES = {
+    'Ottawa': 620000, 'Toronto': 1080000, 'Vancouver': 1320000,
+    'Calgary': 630000, 'Edmonton': 430000, 'Montreal': 540000,
+    'Hamilton': 710000, 'Waterloo': 700000, 'Victoria': 880000,
+    'Halifax': 530000, 'Winnipeg': 360000, 'Saskatoon': 360000,
+  }
+
+  const medianPrice = CITY_PRICES[city] || 600000
+  const downPayment = medianPrice * (downPct / 100)
+  const principal = medianPrice - downPayment
+
+  // Canadian mortgage stress test: qualifying rate = rate + 2% or 5.25%, whichever higher
+  const stressRate = Math.max(rate + 2, 5.25) / 100 / 12
+  const months = 25 * 12
+  const monthlyPayment = principal * (stressRate * Math.pow(1 + stressRate, months)) / (Math.pow(1 + stressRate, months) - 1)
+  const maxAffordableMonthly = (income / 12) * 0.32 // GDS ratio 32%
+  const canAfford = monthlyPayment <= maxAffordableMonthly
+  const pct = Math.min(100, Math.round((monthlyPayment / maxAffordableMonthly) * 100))
+
+  const fmt = v => '$' + Math.round(v).toLocaleString('en-CA')
+
+  const inputStyle = {
+    background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)',
+    borderRadius: 10, color: '#fff', padding: '8px 12px', fontSize: 13,
+    fontFamily: "'Barlow',sans-serif", outline: 'none', width: '100%',
+  }
+  const labelStyle = { fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6, display: 'block' }
+
+  return (
+    <section style={{ padding: 'clamp(60px,8vw,96px) 20px' }}>
+      <div style={{ maxWidth: 860, margin: '0 auto' }}>
+        <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>Affordability</div>
+        <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2rem,5vw,3.5rem)', color: '#fff', marginBottom: 10, lineHeight: 0.9, letterSpacing: '-0.02em' }}>
+          "Can I afford to live there?
+        </h2>
+        <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 15, color: 'rgba(255,255,255,0.4)', marginBottom: 36, lineHeight: 1.7 }}>
+          Uses the Canadian mortgage stress test (GDS ratio 32%) to calculate real affordability.
+        </p>
+
+        <div className="liquid-glass-strong" style={{ borderRadius: 24, padding: 32 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 20, marginBottom: 28 }}>
+            <div>
+              <label style={labelStyle}>City</label>
+              <select value={city} onChange={e => setCity(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
+                {Object.keys(CITY_PRICES).map(c => <option key={c} value={c} style={{ background: '#111' }}>{c}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={labelStyle}>Household Income / yr</label>
+              <input type="number" value={income} onChange={e => setIncome(Number(e.target.value))} style={inputStyle} step={5000} min={30000} max={500000} />
+            </div>
+            <div>
+              <label style={labelStyle}>Down Payment — {downPct}%</label>
+              <input type="range" value={downPct} onChange={e => setDownPct(Number(e.target.value))} min={5} max={50} step={1}
+                style={{ width: '100%', accentColor: '#38bdf8', marginTop: 8 }} />
+            </div>
+            <div>
+              <label style={labelStyle}>Rate % (5yr fixed)</label>
+              <input type="number" value={rate} onChange={e => setRate(Number(e.target.value))} style={inputStyle} step={0.05} min={1} max={12} />
+            </div>
+          </div>
+
+          {/* Result bar */}
+          <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 16, padding: 24 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
+              <div>
+                <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Median home in {city}</div>
+                <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 28, color: '#fff' }}>{fmt(medianPrice)}</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Stress-test payment</div>
+                <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 28, color: canAfford ? '#4ade80' : '#f87171' }}>{fmt(monthlyPayment)}/mo</div>
+              </div>
+            </div>
+
+            {/* Progress bar */}
+            <div style={{ background: 'rgba(255,255,255,0.08)', borderRadius: 8, height: 8, marginBottom: 10, overflow: 'hidden' }}>
+              <div style={{
+                height: '100%', borderRadius: 8, width: `${pct}%`,
+                background: pct < 70 ? '#4ade80' : pct < 90 ? '#fbbf24' : '#f87171',
+                transition: 'width 0.4s ease, background 0.4s ease',
+              }} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
+                {fmt(downPayment)} down · {fmt(principal)} mortgage · 25yr am
+              </span>
+              <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 12, fontWeight: 500, color: canAfford ? '#4ade80' : '#f87171' }}>
+                {canAfford ? `✓ Affordable (${pct}% of limit)` : `✗ Over budget by ${fmt(monthlyPayment - maxAffordableMonthly)}/mo`}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
 
 // ─── ANIMATED TESTIMONIALS ────────────────────────────────────────────────────
 const TESTIMONIALS = [
@@ -1138,7 +1310,12 @@ export default function App() {
       const geocodeInput = isAreaMode ? { street: '', city, state, country } : { street, city, state, country }
       const geo = await geocodeStructured(geocodeInput); setLoadStep(1)
       const postcode = geo.address?.postcode ?? ''
-      const [weather, climate, neighborhoodScores] = await Promise.all([getCurrentWeather(geo.lat, geo.lon), getClimateNormals(geo.lat, geo.lon), getNeighborhoodScores(geo.lat, geo.lon)]); setLoadStep(2)
+      const [weather, climate, neighborhoodScores, walkScoreData] = await Promise.all([
+        getCurrentWeather(geo.lat, geo.lon),
+        getClimateNormals(geo.lat, geo.lon),
+        getNeighborhoodScores(geo.lat, geo.lon),
+        fetch('/api/walkscore', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lat: geo.lat, lon: geo.lon, address: `${city}, ${state || ''}, Canada` }) }).then(r => r.ok ? r.json() : null).catch(() => null),
+      ]); setLoadStep(2)
       const [censusData, fmr, floodZone] = await Promise.all([getCensusData(street, city, state, country), getFairMarketRent(postcode), getFloodZone(geo.lat, geo.lon)]); setLoadStep(3)
       const riskData = await getRiskData({ lat: geo.lat, lon: geo.lon, county: geo.address?.county, state, country }).catch(() => null)
 
@@ -1161,7 +1338,7 @@ export default function App() {
       const areaRiskScore = computeRiskScore(areaMetrics, null) || null
       const marketTemperature = getMarketTemperature(areaMetrics) || null
 
-      const realData = { neighborhoodScores, censusData, fmr, floodZone, riskData, areaMetrics, areaRiskScore, marketTemperature, newsData, isAreaMode }
+      const realData = { neighborhoodScores, censusData, fmr, floodZone, riskData, areaMetrics, areaRiskScore, marketTemperature, newsData, isAreaMode, walkScoreData }
       const ai = await analyzeProperty(geo, weather, climate, knownFacts ?? {}, realData, cerebrasKey); setLoadStep(4)
       setResult({ geo, weather, climate, ai, knownFacts: knownFacts ?? {}, realData, isAreaMode })
     } catch (err) {
@@ -1190,7 +1367,12 @@ export default function App() {
       const geocodeInput = isAreaMode ? { street: '', city, state, country } : { street, city, state, country }
       const geo = await geocodeStructured(geocodeInput); setLoadStep(1)
       const postcode = geo.address?.postcode ?? ''
-      const [weather, climate, neighborhoodScores] = await Promise.all([getCurrentWeather(geo.lat, geo.lon), getClimateNormals(geo.lat, geo.lon), getNeighborhoodScores(geo.lat, geo.lon)]); setLoadStep(2)
+      const [weather, climate, neighborhoodScores, walkScoreData] = await Promise.all([
+        getCurrentWeather(geo.lat, geo.lon),
+        getClimateNormals(geo.lat, geo.lon),
+        getNeighborhoodScores(geo.lat, geo.lon),
+        fetch('/api/walkscore', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lat: geo.lat, lon: geo.lon, address: `${city}, ${state || ''}, Canada` }) }).then(r => r.ok ? r.json() : null).catch(() => null),
+      ]); setLoadStep(2)
       const [censusData, fmr, floodZone] = await Promise.all([getCensusData(street, city, state, country), getFairMarketRent(postcode), getFloodZone(geo.lat, geo.lon)]); setLoadStep(3)
       const riskData = await fetch('/api/risk', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lat: geo.lat, lon: geo.lon, county: geo.address?.county, state, country }) }).then(r => r.ok ? r.json() : null).catch(() => null)
       const [bulkCompsRes, newsRes] = await Promise.allSettled([
@@ -1282,7 +1464,21 @@ export default function App() {
                   style={{ borderRadius: 40, padding: '8px 16px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: '#fff', border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer', background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(12px)', transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 6 }}
                   onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.09)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)' }}
                   onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)' }}>
-                  ⚖️ Compare with another area
+                  ⚖️ Compare areas
+                </button>
+                <button
+                  onClick={() => {
+                    const city = result?.geo?.userCity || 'this city'
+                    const score = result?.ai?.stabilityScore || result?.ai?.overallScore || ''
+                    const verdict = result?.ai?.verdict || result?.ai?.marketVerdict || ''
+                    const text = `I just ran a Dwelling AI report on ${city}${score ? ` — Score: ${score}/100` : ''}${verdict ? `, Verdict: ${verdict}` : ''}. Free at dwelling-three.vercel.app`
+                    if (navigator.share) { navigator.share({ title: `Dwelling: ${city}`, text, url: 'https://dwelling-three.vercel.app' }).catch(() => {}) }
+                    else { navigator.clipboard?.writeText(text).then(() => alert('Copied to clipboard!')).catch(() => alert(text)) }
+                  }}
+                  style={{ borderRadius: 40, padding: '8px 16px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: 'rgba(255,255,255,0.6)', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)', transition: 'opacity 0.15s', display: 'flex', alignItems: 'center', gap: 5 }}
+                  onMouseEnter={e => e.currentTarget.style.opacity = '0.75'}
+                  onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
+                  ↗ Share
                 </button>
               </div>
               {/* Admin plan preview switcher */}
@@ -1336,6 +1532,7 @@ export default function App() {
           <HowItWorks />
           <FeaturesChess />
           <FeaturesGrid />
+          <MortgageCalculator />
           <DataPartnerships />
           <Stats />
           <Pricing onUpgrade={() => setShowPaywall(true)} />
