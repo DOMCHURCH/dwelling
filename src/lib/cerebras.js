@@ -333,7 +333,7 @@ function finalizeAnalysis(est, known, realData, currency, currencySymbol, city, 
   return est
 }
 
-export async function analyzeProperty(geoData, weatherData, climateData, knownFacts = {}, realData = {}) {
+export async function analyzeProperty(geoData, weatherData, climateData, knownFacts = {}, realData = {}, userApiKey = '') {
   const street = geoData.userStreet || geoData.address?.road || ''
   const city = geoData.userCity || geoData.address?.city || geoData.address?.town || ''
   const state = geoData.userState || geoData.address?.state || ''
