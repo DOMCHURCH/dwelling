@@ -10,7 +10,7 @@
 export function aggregateListings(listings) {
   if (!listings || listings.length === 0) return null
 
-  const prices = listings.map(l => l.price).filter(p => p > 0).sort((a, b) => a - b)
+  const prices = listings.map(l => l.price).filter(p => p > 50000).sort((a, b) => a - b)
   const doms   = listings.map(l => l.daysOnMarket).filter(d => d != null && d >= 0)
   const ppsfs  = listings.map(l => l.pricePerSqft).filter(p => p > 0)
 
