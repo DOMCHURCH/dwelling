@@ -1195,10 +1195,19 @@ const DEMO_RESULT = {
 
 
 // ─── API KEY MODAL ────────────────────────────────────────────────────────────
-function ApiKeyModal({ currentKey, onSave, onClose }) {
+function ApiKeyModal({ currentKey, onSave, onClose, isOnboarding = false }) {
   const [key, setKey] = useState(currentKey || '')
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
+  const [step, setStep] = useState(isOnboarding ? 'explain' : 'enter') // 'explain' | 'enter'
+
+  const inp = {
+    width: '100%', padding: '13px 16px', boxSizing: 'border-box',
+    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: 12, color: '#fff', fontSize: 14, outline: 'none',
+    fontFamily: "'Barlow',sans-serif", fontWeight: 300,
+  }
+
   const save = async () => {
     const trimmed = key.trim()
     setSaving(true); setSaveError(null)
@@ -1210,30 +1219,123 @@ function ApiKeyModal({ currentKey, onSave, onClose }) {
       setSaveError('Failed to save. Try again.')
     } finally { setSaving(false) }
   }
+
+  const skipAndClose = () => {
+    // Mark as seen so it doesn't show again this session
+    sessionStorage.setItem('dw_key_onboarding_seen', '1')
+    onClose()
+  }
+
   return (
-    <div style={{ position:'fixed', inset:0, zIndex:1200, background:'rgba(0,0,0,0.88)', backdropFilter:'blur(8px)', display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
-      <div onClick={e=>e.stopPropagation()} className="liquid-glass-strong" style={{ borderRadius:24, maxWidth:480, width:'100%', padding:32, animation:'fadeUp 0.25s ease' }}>
-        <div style={{ fontFamily:"'Instrument Serif',serif", fontStyle:'italic', fontSize:22, color:'#fff', marginBottom:8 }}>Your Cerebras API Key</div>
-        <p style={{ fontFamily:"'Barlow',sans-serif", fontWeight:300, fontSize:13, color:'rgba(255,255,255,0.5)', lineHeight:1.7, marginBottom:20 }}>
-          Use your own key for unlimited analyses — bypasses the monthly limit entirely. Get a free key at <a href="https://cerebras.ai" target="_blank" rel="noreferrer" style={{ color:'rgba(255,255,255,0.7)' }}>cerebras.ai</a>. Your key is stored locally and never sent to our servers except to forward to Cerebras.
-        </p>
-        <div style={{ marginBottom:16 }}>
-          <label style={{ display:'block', fontSize:11, color:'rgba(255,255,255,0.4)', marginBottom:6, fontFamily:"'Barlow',sans-serif", letterSpacing:'0.08em', textTransform:'uppercase' }}>Cerebras API Key</label>
-          <input
-            type="password" value={key} onChange={e=>setKey(e.target.value)}
-            placeholder="csk-..."
-            style={{ width:'100%', padding:'13px 16px', background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:12, color:'#fff', fontSize:14, outline:'none', fontFamily:"'Barlow',sans-serif", fontWeight:300, boxSizing:'border-box' }}
-            onFocus={e=>{e.target.style.borderColor='rgba(255,255,255,0.3)'; e.target.style.background='rgba(255,255,255,0.08)'}}
-            onBlur={e=>{e.target.style.borderColor='rgba(255,255,255,0.1)'; e.target.style.background='rgba(255,255,255,0.05)'}}
-          />
-        </div>
-        {saveError && <p style={{ color:'#f87171', fontFamily:"'Barlow',sans-serif", fontSize:12, marginBottom:8 }}>⚠ {saveError}</p>}
-        <div style={{ display:'flex', gap:10 }}>
-          <button onClick={save} disabled={saving} style={{ flex:1, padding:'13px', background:saving?'rgba(255,255,255,0.1)':'#fff', border:'none', borderRadius:40, color:saving?'rgba(255,255,255,0.3)':'#000', fontFamily:"'Barlow',sans-serif", fontWeight:600, fontSize:14, cursor:saving?'not-allowed':'pointer' }}>
-            {saving ? 'Saving...' : key.trim() ? 'Save Key' : 'Remove Key'}
-          </button>
-          <button onClick={onClose} style={{ padding:'13px 20px', background:'rgba(255,255,255,0.06)', border:'none', borderRadius:40, color:'rgba(255,255,255,0.5)', fontFamily:"'Barlow',sans-serif", fontSize:14, cursor:'pointer' }}>Cancel</button>
-        </div>
+    <div style={{ position:'fixed', inset:0, zIndex:1200, background:'rgba(0,0,0,0.92)', backdropFilter:'blur(12px)', display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
+      <div className="liquid-glass-strong" style={{ borderRadius:24, maxWidth:520, width:'100%', padding:36, animation:'fadeUp 0.3s ease' }}>
+
+        {step === 'explain' ? (
+          <>
+            {/* Onboarding explanation screen */}
+            <div style={{ textAlign:'center', marginBottom:28 }}>
+              <div style={{ fontSize:48, marginBottom:16 }}>🔑</div>
+              <div style={{ fontFamily:"'Instrument Serif',serif", fontStyle:'italic', fontSize:26, color:'#fff', marginBottom:10 }}>
+                One quick setup step
+              </div>
+              <p style={{ fontFamily:"'Barlow',sans-serif", fontWeight:300, fontSize:14, color:'rgba(255,255,255,0.55)', lineHeight:1.75 }}>
+                Dwelling uses Cerebras AI to generate your reports. You'll need a free Cerebras API key to run analyses — it takes about 60 seconds to get one.
+              </p>
+            </div>
+
+            {/* Why box */}
+            <div className="liquid-glass" style={{ borderRadius:16, padding:'18px 20px', marginBottom:24 }}>
+              <div style={{ fontFamily:"'Barlow',sans-serif", fontWeight:500, fontSize:13, color:'#fff', marginBottom:10 }}>Why do I need this?</div>
+              {[
+                ['⚡', 'Your key = your quota. Free Cerebras accounts get 1M tokens/minute — plenty for hundreds of analyses.'],
+                ['🔒', 'Your key is stored securely in your account and never shared or logged.'],
+                ['🆓', 'Cerebras is completely free to sign up. No credit card required.'],
+              ].map(([icon, text]) => (
+                <div key={text} style={{ display:'flex', gap:10, marginBottom:8, alignItems:'flex-start' }}>
+                  <span style={{ fontSize:15, flexShrink:0 }}>{icon}</span>
+                  <span style={{ fontFamily:"'Barlow',sans-serif", fontWeight:300, fontSize:13, color:'rgba(255,255,255,0.6)', lineHeight:1.6 }}>{text}</span>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display:'flex', gap:10, flexDirection:'column' }}>
+              <a
+                href="https://cloud.cerebras.ai"
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => setTimeout(() => setStep('enter'), 800)}
+                style={{ display:'block', width:'100%', padding:'14px', background:'#fff', border:'none', borderRadius:40, color:'#000', fontFamily:"'Barlow',sans-serif", fontWeight:600, fontSize:14, cursor:'pointer', textDecoration:'none', textAlign:'center', boxSizing:'border-box' }}
+              >
+                Get my free Cerebras key →
+              </a>
+              <button
+                onClick={() => setStep('enter')}
+                style={{ width:'100%', padding:'12px', background:'rgba(255,255,255,0.06)', border:'none', borderRadius:40, color:'rgba(255,255,255,0.6)', fontFamily:"'Barlow',sans-serif", fontSize:13, cursor:'pointer' }}
+              >
+                I already have a key
+              </button>
+              <button
+                onClick={skipAndClose}
+                style={{ background:'none', border:'none', color:'rgba(255,255,255,0.25)', fontFamily:"'Barlow',sans-serif", fontSize:12, cursor:'pointer', padding:'4px' }}
+              >
+                Skip for now — I'll add it later from the 🔑 button
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Key entry screen */}
+            {isOnboarding && (
+              <button onClick={() => setStep('explain')} style={{ background:'none', border:'none', color:'rgba(255,255,255,0.3)', fontFamily:"'Barlow',sans-serif", fontSize:12, cursor:'pointer', padding:'0 0 20px 0', display:'block' }}>
+                ← Back
+              </button>
+            )}
+            <div style={{ fontFamily:"'Instrument Serif',serif", fontStyle:'italic', fontSize:22, color:'#fff', marginBottom:6 }}>
+              {isOnboarding ? 'Paste your Cerebras key' : 'Your Cerebras API Key'}
+            </div>
+            <p style={{ fontFamily:"'Barlow',sans-serif", fontWeight:300, fontSize:13, color:'rgba(255,255,255,0.45)', lineHeight:1.7, marginBottom:20 }}>
+              {isOnboarding
+                ? 'Find it at cloud.cerebras.ai → API Keys → Create new key. It starts with "csk-".'
+                : <>Use your own key for unlimited analyses. Get one free at <a href="https://cloud.cerebras.ai" target="_blank" rel="noreferrer" style={{ color:'rgba(255,255,255,0.7)' }}>cloud.cerebras.ai</a>.</>
+              }
+            </p>
+
+            <div style={{ marginBottom:16 }}>
+              <label style={{ display:'block', fontSize:11, color:'rgba(255,255,255,0.4)', marginBottom:6, fontFamily:"'Barlow',sans-serif", letterSpacing:'0.08em', textTransform:'uppercase' }}>API Key</label>
+              <input
+                autoFocus
+                type="password" value={key} onChange={e => setKey(e.target.value)}
+                placeholder="csk-..."
+                style={inp}
+                onFocus={e => { e.target.style.borderColor='rgba(255,255,255,0.3)'; e.target.style.background='rgba(255,255,255,0.08)' }}
+                onBlur={e => { e.target.style.borderColor='rgba(255,255,255,0.1)'; e.target.style.background='rgba(255,255,255,0.05)' }}
+                onKeyDown={e => e.key === 'Enter' && key.trim() && save()}
+              />
+            </div>
+
+            {saveError && <p style={{ color:'#f87171', fontFamily:"'Barlow',sans-serif", fontSize:12, marginBottom:12 }}>⚠ {saveError}</p>}
+
+            <div style={{ display:'flex', gap:10 }}>
+              <button onClick={save} disabled={saving || !key.trim()} style={{
+                flex:1, padding:'13px', border:'none', borderRadius:40, fontFamily:"'Barlow',sans-serif", fontWeight:600, fontSize:14,
+                background: saving || !key.trim() ? 'rgba(255,255,255,0.08)' : '#fff',
+                color: saving || !key.trim() ? 'rgba(255,255,255,0.25)' : '#000',
+                cursor: saving || !key.trim() ? 'not-allowed' : 'pointer',
+              }}>
+                {saving ? 'Saving...' : 'Save & Start Analyzing →'}
+              </button>
+              {!isOnboarding && (
+                <button onClick={onClose} style={{ padding:'13px 20px', background:'rgba(255,255,255,0.06)', border:'none', borderRadius:40, color:'rgba(255,255,255,0.5)', fontFamily:"'Barlow',sans-serif", fontSize:14, cursor:'pointer' }}>Cancel</button>
+              )}
+            </div>
+
+            {isOnboarding && (
+              <button onClick={skipAndClose} style={{ display:'block', width:'100%', marginTop:10, background:'none', border:'none', color:'rgba(255,255,255,0.2)', fontFamily:"'Barlow',sans-serif", fontSize:12, cursor:'pointer', padding:'4px' }}>
+                Skip — I'll add it later
+              </button>
+            )}
+          </>
+        )}
       </div>
     </div>
   )
@@ -1256,6 +1358,7 @@ export default function App() {
   const [previewPlan, setPreviewPlan] = useState('pro') // 'free' | 'pro'
   const [cerebrasKey, setCerebrasKey] = useState(() => getCachedCerebrasKey())
   const [showKeyModal, setShowKeyModal] = useState(false)
+  const [showOnboarding, setShowOnboarding] = useState(false)
 
   const scrollTo = (id) => {
     const el = document.getElementById(id)
@@ -1283,7 +1386,17 @@ export default function App() {
     } else document.title = 'Dwelling — Property Intelligence'
   }, [result])
 
-  const handleAuth = u => { setUser(u); setUserRecord({ is_pro: u.is_pro, analyses_used: 0 }); loadUserRecord() }
+  const handleAuth = u => {
+    setUser(u)
+    setUserRecord({ is_pro: u.is_pro, analyses_used: 0 })
+    loadUserRecord()
+    // Show key onboarding if they don't have a key yet and haven't seen it this session
+    const alreadySeen = sessionStorage.getItem('dw_key_onboarding_seen')
+    const hasKey = !!getCachedCerebrasKey()
+    if (!hasKey && !alreadySeen) {
+      setTimeout(() => setShowOnboarding(true), 600) // small delay so auth modal fades first
+    }
+  }
   const handleSignOut = () => {
     localSignOut()
     setUser(null); setUserRecord(null); setResult(null)
@@ -1443,7 +1556,8 @@ export default function App() {
   return (
     <div style={{ minHeight: '100vh', background: '#000', display: 'flex', flexDirection: 'column' }}>
         {showTerms && <TermsModal onClose={() => setShowTerms(false)} />}
-      {showKeyModal && <ApiKeyModal currentKey={cerebrasKey} onSave={k => setCerebrasKey(k)} onClose={() => setShowKeyModal(false)} />}
+      {showKeyModal && <ApiKeyModal currentKey={cerebrasKey} onSave={k => setCerebrasKey(k)} onClose={() => setShowKeyModal(false)} isOnboarding={false} />}
+      {showOnboarding && <ApiKeyModal currentKey={cerebrasKey} onSave={k => setCerebrasKey(k)} onClose={() => setShowOnboarding(false)} isOnboarding={true} />}
       {showPaywall && <PaywallModal onClose={() => setShowPaywall(false)} onUpgrade={() => alert('Stripe coming soon! Full refund guaranteed if not satisfied.')} />}
       <Navbar user={user} userRecord={userRecord} analysesLeft={analysesLeft} isInTrial={isInTrial} trialDaysLeft={trialDaysLeft} onSignOut={handleSignOut} onOpenKeyModal={() => setShowKeyModal(true)} hasOwnKey={!!cerebrasKey || !!userRecord?.has_own_key} previewPlan={previewPlan} onTogglePreview={() => setPreviewPlan(p => p === 'pro' ? 'free' : 'pro')}
         onHome={() => { setResult(null); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
