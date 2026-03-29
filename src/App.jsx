@@ -632,7 +632,7 @@ const PRICING_PRO = [
   { text: 'Side-by-side area comparison', highlight: false },
   { text: 'All neighbourhood data', highlight: false },
   { text: 'Priority support', highlight: false },
-  { text: 'PDF report export (coming soon)', highlight: false },
+  { text: 'PDF report export', highlight: false },
 ]
 
 function PricingCard({ plan, price, desc, features, cta, onCta, popular, highlight, priceLabel, annualSavings }) {
@@ -1788,6 +1788,29 @@ export default function App() {
                   onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
                   ↗ Share
                 </button>
+                {userRecord?.is_pro || user?.email === '01dominique.c@gmail.com' ? (
+                  <button
+                    onClick={() => {
+                      const city = result?.geo?.userCity || 'this city'
+                      const prevTitle = document.title
+                      document.title = `Dwelling Report — ${city}`
+                      window.print()
+                      document.title = prevTitle
+                    }}
+                    style={{ borderRadius: 40, padding: '8px 16px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: 'rgba(255,255,255,0.6)', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)', transition: 'opacity 0.15s', display: 'flex', alignItems: 'center', gap: 5 }}
+                    onMouseEnter={e => e.currentTarget.style.opacity = '0.75'}
+                    onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
+                    ⬇ Export PDF
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setShowPaywall(true)}
+                    style={{ borderRadius: 40, padding: '8px 16px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: 'rgba(255,255,255,0.3)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer', background: 'transparent', transition: 'opacity 0.15s', display: 'flex', alignItems: 'center', gap: 5 }}
+                    onMouseEnter={e => e.currentTarget.style.opacity = '0.75'}
+                    onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
+                    ⬇ Export PDF <span style={{ fontSize: 10, color: '#fbbf24', marginLeft: 2 }}>Pro</span>
+                  </button>
+                )}
               </div>
               {/* Admin plan preview switcher */}
               {user?.email === '01dominique.c@gmail.com' && (
