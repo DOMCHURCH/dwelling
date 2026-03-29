@@ -157,6 +157,21 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true })
     }
 
+    // ── get-key (retrieve user's stored Cerebras key) ────────────────────────
+    if (action === 'get-key') {
+      const authHeader = req.headers.authorization
+      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
+      const payload = verify(authHeader.replace('Bearer ', ''))
+      if (!payload) return res.status(401).json({ error: 'Invalid token' })
+
+      const result = await db.execute({ sql: 'SELECT cerebras_key FROM users WHERE email = ?', args: [payload.email] })
+      if (result.rows.length === 0 || !result.rows[0].cerebras_key) {
+        return res.status(200).json({ key: null })
+      }
+      const decoded = Buffer.from(result.rows[0].cerebras_key, 'base64').toString()
+      return res.status(200).json({ key: decoded })
+    }
+
     return res.status(400).json({ error: 'Unknown action' })
   } catch (err) {
     console.error('auth error action=' + (req.body?.action || 'unknown'), err?.message || err)
