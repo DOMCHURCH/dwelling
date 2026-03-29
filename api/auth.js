@@ -13,6 +13,7 @@ function getDb() {
 
 // ─── Init table if it doesn't exist ──────────────────────────────────────────
 async function ensureTable(db) {
+  // Create base table if it doesn't exist
   await db.execute(`
     CREATE TABLE IF NOT EXISTS users (
       email TEXT PRIMARY KEY,
@@ -23,11 +24,18 @@ async function ensureTable(db) {
       analyses_used INTEGER DEFAULT 0,
       analyses_reset_at TEXT,
       cerebras_key TEXT,
-      created_at TEXT,
-      terms_accepted_at TEXT,
-      terms_accepted_ip TEXT
+      created_at TEXT
     )
   `)
+  // Migrate: add new columns if they don't exist yet
+  // SQLite ignores ALTER TABLE errors so we catch individually
+  const migrations = [
+    'ALTER TABLE users ADD COLUMN terms_accepted_at TEXT',
+    'ALTER TABLE users ADD COLUMN terms_accepted_ip TEXT',
+  ]
+  for (const sql of migrations) {
+    try { await db.execute(sql) } catch { /* column already exists, ignore */ }
+  }
 }
 
 // ─── JWT ─────────────────────────────────────────────────────────────────────
@@ -151,7 +159,7 @@ export default async function handler(req, res) {
 
     return res.status(400).json({ error: 'Unknown action' })
   } catch (err) {
-    console.error('auth error:', err)
-    return res.status(500).json({ error: 'Server error' })
+    console.error('auth error action=' + (req.body?.action || 'unknown'), err?.message || err)
+    return res.status(500).json({ error: 'Server error', detail: err?.message || String(err) })
   }
 }
