@@ -371,9 +371,24 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro' }) 
                 <div style={{ fontSize: 11, color: areaRiskScore.color, marginTop: 4, fontFamily: "'Barlow', sans-serif" }}>{areaRiskScore.emoji} {areaRiskScore.label}</div>
               </div>
               <div style={{ flex: 1, minWidth: 140, background: 'rgba(255,255,255,0.04)', borderRadius: 12, padding: '14px 16px', border: '1px solid rgba(255,255,255,0.07)' }}>
-                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Market Temp</div>
-                <div style={{ fontSize: 20, fontFamily: "'Instrument Serif', serif", fontStyle: 'italic', color: marketTemperature?.color || '#ffffff', marginTop: 4 }}>{marketTemperature?.label || '—'}</div>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 4, fontFamily: "'Barlow', sans-serif" }}>Based on {areaMetrics.count} active listings</div>
+                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Market Temperature</div>
+                <div style={{ fontSize: 18, fontFamily: "'Instrument Serif', serif", fontStyle: 'italic', color: marketTemperature?.color || '#ffffff', marginBottom: 8 }}>{marketTemperature?.label || '—'}</div>
+                {/* Gauge bar */}
+                <div style={{ position: 'relative', height: 6, background: 'rgba(255,255,255,0.07)', borderRadius: 6, overflow: 'hidden', marginBottom: 6 }}>
+                  <div style={{
+                    position: 'absolute', left: 0, top: 0, height: '100%', borderRadius: 6,
+                    width: marketTemperature?.label?.toLowerCase().includes('hot') || marketTemperature?.label?.toLowerCase().includes('seller') ? '85%'
+                      : marketTemperature?.label?.toLowerCase().includes('cold') || marketTemperature?.label?.toLowerCase().includes('buyer') ? '20%' : '50%',
+                    background: marketTemperature?.color || 'rgba(255,255,255,0.4)',
+                    transition: 'width 0.8s ease',
+                  }} />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', fontFamily: "'Barlow',sans-serif" }}>Buyer</span>
+                  <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', fontFamily: "'Barlow',sans-serif" }}>Balanced</span>
+                  <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', fontFamily: "'Barlow',sans-serif" }}>Seller</span>
+                </div>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 6, fontFamily: "'Barlow', sans-serif" }}>{areaMetrics.count} active listings</div>
               </div>
             </div>
           )}
@@ -383,7 +398,7 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro' }) 
             {[
               { label: 'Median Price', value: `${sym}${Math.round(areaMetrics.medianPrice / 1000)}k` },
               { label: 'Avg Price', value: `${sym}${Math.round(areaMetrics.avgPrice / 1000)}k` },
-              { label: 'Median DOM', value: areaMetrics.medianDOM != null ? `${areaMetrics.medianDOM} days` : 'N/A', sub: areaMetrics.medianDOM != null ? (areaMetrics.medianDOM < 21 ? '⚡ Fast market' : areaMetrics.medianDOM < 35 ? '✓ Normal pace' : '⏱ Slow market') : null },
+              { label: 'Median DOM', value: areaMetrics.medianDOM != null ? `${areaMetrics.medianDOM} days` : 'N/A', sub: areaMetrics.medianDOM != null ? (() => { const diff = Math.round(((33 - areaMetrics.medianDOM) / 33) * 100); return areaMetrics.medianDOM < 21 ? `⚡ ${Math.abs(diff)}% faster than avg` : areaMetrics.medianDOM < 35 ? `≈ Near national avg (33d)` : `⏱ ${Math.abs(diff)}% slower than avg` })() : null },
               { label: 'Price/sqft', value: areaMetrics.medianPPSF ? `${sym}${areaMetrics.medianPPSF}` : 'N/A' },
             ].map(({ label, value, sub }) => (
               <div key={label} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 10, padding: '10px 12px', border: '1px solid rgba(255,255,255,0.06)' }}>
