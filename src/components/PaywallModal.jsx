@@ -14,6 +14,7 @@ const PRICING_PRO = [
   { text: 'Price trend & market predictions', highlight: true },
   { text: 'Side-by-side area comparison', highlight: false },
   { text: 'All neighbourhood data', highlight: false },
+
   { text: 'Priority support', highlight: false },
 ]
 
