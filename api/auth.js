@@ -147,15 +147,20 @@ export default async function handler(req, res) {
       if (!payload) return res.status(401).json({ error: 'Invalid token' })
 
       const { cerebrasKey } = req.body
-      // Encrypt the key before storing using AUTH_SECRET as cipher key
-      const encrypted = cerebrasKey
-        ? Buffer.from(cerebrasKey).toString('base64') // simple reversible encoding; key is protected by Turso auth
+      const trimmedKey = (cerebrasKey || '').trim()
+      // Validate key format — Cerebras keys start with csk-
+      if (trimmedKey && !trimmedKey.startsWith('csk-')) {
+        return res.status(400).json({ error: 'Invalid key format. Cerebras API keys start with "csk-".' })
+      }
+      const encrypted = trimmedKey
+        ? Buffer.from(trimmedKey).toString('base64')
         : null
 
       await db.execute({
         sql: 'UPDATE users SET cerebras_key = ? WHERE email = ?',
         args: [encrypted, payload.email],
       })
+      console.log('save-key: saved for', payload.email, '— key present:', !!trimmedKey)
       return res.status(200).json({ success: true })
     }
 
