@@ -31,6 +31,51 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Dwelling" />
 
+
+    <!-- Print / PDF styles -->
+    <style>
+      @media print {
+        /* Hide everything except the report */
+        nav, #hero, #how-it-works, #features, #data-sources, #pricing, #faq, footer,
+        button, .liquid-glass[style*="New"], [style*="← New"], [style*="Compare"],
+        [style*="Share"], [style*="Export"], [style*="Admin"] {
+          display: none !important;
+        }
+
+        body { background: #fff !important; color: #000 !important; }
+        * { color: #000 !important; border-color: #ddd !important; background: #fff !important; box-shadow: none !important; backdrop-filter: none !important; }
+
+        /* Report container */
+        .liquid-glass, .liquid-glass-strong {
+          border: 1px solid #e5e5e5 !important;
+          border-radius: 8px !important;
+          break-inside: avoid;
+        }
+
+        /* Header for print */
+        #print-header { display: block !important; }
+
+        /* Make text readable on white */
+        [style*="rgba(255,255,255,0.5)"],
+        [style*="rgba(255,255,255,0.4)"],
+        [style*="rgba(255,255,255,0.3)"] { color: #555 !important; }
+        [style*="rgba(255,255,255,0.6)"],
+        [style*="rgba(255,255,255,0.7)"] { color: #333 !important; }
+
+        /* Accent colours survive */
+        [style*="color: #4ade80"] { color: #16a34a !important; }
+        [style*="color: #f87171"] { color: #dc2626 !important; }
+        [style*="color: #fbbf24"] { color: #d97706 !important; }
+        [style*="color: #38bdf8"] { color: #0284c7 !important; }
+
+        @page {
+          margin: 18mm 14mm;
+          size: A4;
+        }
+      }
+
+      #print-header { display: none; }
+    </style>
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
