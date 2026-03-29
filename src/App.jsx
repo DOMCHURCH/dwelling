@@ -196,50 +196,191 @@ function Navbar({ user, userRecord, analysesLeft, isInTrial, trialDaysLeft, onSi
 // ─── HERO ────────────────────────────────────────────────────────────────────
 function Hero({ onSearch, loading, onShowDemo }) {
   return (
-    <section id="hero" style={{ position: 'relative', overflow: 'hidden', background: 'transparent', minHeight: 'min(1000px, 100svh)', height: 'auto', isolation: 'isolate', contain: 'layout paint', zIndex: 0 }}>
+    <section id="hero" style={{
+      position: 'relative', overflow: 'hidden', background: 'transparent',
+      minHeight: '100svh', isolation: 'isolate', zIndex: 0,
+    }}>
       <GlobalBackground />
-      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 350, background: 'linear-gradient(to top, #000 40%, transparent)', zIndex: 2 }} />
-      <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', maxWidth: 900, margin: '0 auto', padding: 'clamp(100px, 20vw, 150px) 20px 80px' }}>
-        <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 16px', marginBottom: 28 }}>
-          <span style={{ background: '#fff', color: '#000', fontSize: 11, fontFamily: "'Barlow',sans-serif", fontWeight: 600, borderRadius: 20, padding: '2px 8px' }}>New</span>
-          <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>Introducing AI-powered area intelligence.</span>
-        </div>
-        <h1 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(3rem,9vw,6rem)', color: '#fff', lineHeight: 0.88, letterSpacing: '-0.03em', marginBottom: 28 }}>
-          Know Your Neighbourhood Before You Buy.
-        </h1>
-        <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 16, fontFamily: "'Barlow',sans-serif", fontWeight: 300, maxWidth: 540, lineHeight: 1.7, marginBottom: 40 }}>
-          Climate risk. School ratings. Crime data. Investment score. AI verdict. — One search, 30 seconds, any Canadian city.
-        </p>
-        <div style={{ width: '100%', maxWidth: 600 }}>
-          <AddressSearch onSearch={onSearch} loading={loading} />
-        </div>
-        <div style={{ display: 'flex', gap: 10, marginTop: 24, flexWrap: 'wrap', justifyContent: 'center' }}>
-          {[['100k+','Cities'],['50+','Countries'],['10','Free / Month'],['<30s','Analysis time']].map(([val, lbl]) => (
-            <div key={lbl} className="liquid-glass" style={{ borderRadius: 40, padding: '7px 16px', display: 'flex', alignItems: 'center', gap: 7 }}>
-              <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 17, color: '#fff' }}>{val}</span>
-              <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>{lbl}</span>
-            </div>
-          ))}
-        </div>
-        <div style={{ marginTop: 20 }}>
-          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center' }}>
-            <button onClick={onShowDemo} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.4)', textDecoration: 'underline', textUnderlineOffset: 3, padding: '4px 8px', transition: 'color 0.2s' }}
+      {/* Bottom fade */}
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 300, background: 'linear-gradient(to top, #000 30%, transparent)', zIndex: 2, pointerEvents: 'none' }} />
+
+      {/* Two-column layout */}
+      <div style={{
+        position: 'relative', zIndex: 10,
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: 0,
+        minHeight: '100svh',
+        maxWidth: 1400,
+        margin: '0 auto',
+        padding: '0 48px',
+        alignItems: 'center',
+      }}>
+
+        {/* LEFT — headline + search */}
+        <div style={{ paddingTop: 80, paddingBottom: 80, paddingRight: 48 }}>
+
+          {/* Label */}
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 32, border: '1px solid rgba(255,255,255,0.12)', borderRadius: 4, padding: '6px 14px' }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ade80', display: 'inline-block', flexShrink: 0 }} />
+            <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, fontFamily: "'Barlow',sans-serif", fontWeight: 400, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Canadian City Intelligence</span>
+          </div>
+
+          {/* Main headline — big, editorial, left-aligned */}
+          <h1 style={{
+            fontFamily: "'Instrument Serif',serif",
+            fontStyle: 'italic',
+            fontSize: 'clamp(3.2rem,6vw,5.5rem)',
+            color: '#fff',
+            lineHeight: 0.92,
+            letterSpacing: '-0.03em',
+            marginBottom: 28,
+          }}>
+            Know Your<br />
+            Neighbourhood<br />
+            <span style={{ color: 'rgba(255,255,255,0.35)' }}>Before You Buy.</span>
+          </h1>
+
+          {/* Sub */}
+          <p style={{
+            color: 'rgba(255,255,255,0.45)',
+            fontSize: 15,
+            fontFamily: "'Barlow',sans-serif",
+            fontWeight: 300,
+            lineHeight: 1.75,
+            marginBottom: 36,
+            maxWidth: 420,
+          }}>
+            Climate risk. School ratings. Crime data.<br />Investment score. AI verdict — 30 seconds.
+          </p>
+
+          {/* Search */}
+          <div style={{ marginBottom: 24 }}>
+            <AddressSearch onSearch={onSearch} loading={loading} />
+          </div>
+
+          {/* Secondary links */}
+          <div style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
+            <button onClick={onShowDemo} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.35)', textDecoration: 'underline', textUnderlineOffset: 3, padding: 0, transition: 'color 0.2s' }}
               onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.7)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}>
-              or see a sample report →
+              onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.35)'}>
+              See a sample report →
             </button>
-            <button onClick={() => scrollTo('pricing')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.25)', textDecoration: 'underline', textUnderlineOffset: 3, padding: '4px 8px', transition: 'color 0.2s' }}
-              onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.55)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.25)'}>
-              view pricing →
+            <span style={{ color: 'rgba(255,255,255,0.1)', fontSize: 12 }}>·</span>
+            <button onClick={() => scrollTo('pricing')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.2)', textDecoration: 'underline', textUnderlineOffset: 3, padding: 0, transition: 'color 0.2s' }}
+              onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.5)'}
+              onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.2)'}>
+              View pricing
             </button>
           </div>
+
+          {/* Stats row */}
+          <div style={{ display: 'flex', gap: 32, marginTop: 48, paddingTop: 32, borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+            {[['10', 'Free analyses/mo'], ['30s', 'Per report'], ['16+', 'Data sources']].map(([val, lbl]) => (
+              <div key={lbl}>
+                <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 26, color: '#fff', lineHeight: 1 }}>{val}</div>
+                <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11, fontFamily: "'Barlow',sans-serif", fontWeight: 300, marginTop: 4 }}>{lbl}</div>
+              </div>
+            ))}
+          </div>
         </div>
-        <div style={{ position: 'absolute', bottom: 28, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, cursor: 'pointer', opacity: 0.4 }} onClick={() => scrollTo('how-it-works')}>
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 9l5 5 5-5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.12em', textTransform: 'uppercase' }}>Scroll</span>
+
+        {/* RIGHT — contour map visual */}
+        <div style={{
+          position: 'relative',
+          height: '100%',
+          minHeight: 500,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          {/* Contour SVG — topographic map lines like the reference */}
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.7 }}>
+            <svg viewBox="0 0 600 600" style={{ width: '100%', height: '100%', maxWidth: 580 }} xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <radialGradient id="contourFade" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stopColor="rgba(99,102,241,0.0)" />
+                  <stop offset="60%" stopColor="rgba(99,102,241,0.0)" />
+                  <stop offset="100%" stopColor="rgba(0,0,0,1)" />
+                </radialGradient>
+              </defs>
+              {/* Topographic contour rings — tight at center, spreading out */}
+              {[
+                "M300,300 C320,270 360,265 380,290 C400,315 395,355 370,370 C345,385 310,380 290,360 C270,340 275,310 300,300Z",
+                "M300,300 C340,250 400,242 430,278 C460,314 452,375 415,395 C378,415 325,408 295,378 C265,348 255,318 300,300Z",
+                "M300,300 C355,232 418,220 458,265 C498,310 488,390 442,418 C396,446 332,436 295,398 C258,360 238,328 300,300Z",
+                "M300,300 C368,215 435,198 485,250 C535,302 522,402 467,438 C412,474 338,462 295,416 C252,370 222,338 300,300Z",
+                "M300,300 C380,198 450,176 508,235 C566,294 552,415 490,458 C428,501 344,488 296,434 C248,380 208,348 300,300Z",
+                "M300,300 C393,182 464,155 530,220 C596,285 580,428 512,478 C444,528 350,514 296,452 C242,390 195,358 300,300Z",
+                "M300,300 C405,166 478,134 552,205 C626,276 608,440 534,498 C460,556 356,540 296,470 C236,400 182,368 300,300Z",
+                "M300,300 C418,150 492,113 573,190 C654,267 635,454 556,518 C477,582 362,565 296,488 C230,411 169,378 300,300Z",
+              ].map((d, i) => (
+                <path key={i} d={d} fill="none"
+                  stroke={i < 4 ? `rgba(139,92,246,${0.6 - i * 0.08})` : `rgba(99,102,241,${0.5 - (i-4) * 0.08})`}
+                  strokeWidth={i === 0 ? 1.5 : 1}
+                  style={{ filter: i === 0 ? 'drop-shadow(0 0 8px rgba(139,92,246,0.8))' : 'none' }}
+                />
+              ))}
+              {/* Overlay fade to black at edges */}
+              <rect x="0" y="0" width="600" height="600" fill="url(#contourFade)" />
+            </svg>
+          </div>
+
+          {/* Floating data card top-right */}
+          <div style={{
+            position: 'absolute', top: '18%', right: '5%',
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: 16, padding: '14px 18px',
+            backdropFilter: 'blur(12px)',
+            minWidth: 160,
+          }}>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', fontFamily: "'Barlow',sans-serif", textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Stability Score</div>
+            <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 32, color: '#4ade80', lineHeight: 1 }}>84</div>
+            <div style={{ fontSize: 10, color: '#4ade80', marginTop: 4, fontFamily: "'Barlow',sans-serif" }}>↑ Strong Market</div>
+          </div>
+
+          {/* Floating data card bottom-left */}
+          <div style={{
+            position: 'absolute', bottom: '22%', left: '8%',
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: 16, padding: '14px 18px',
+            backdropFilter: 'blur(12px)',
+            minWidth: 150,
+          }}>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', fontFamily: "'Barlow',sans-serif", textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>AI Verdict</div>
+            <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 18, color: '#fff', lineHeight: 1.2 }}>Excellent</div>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 4, fontFamily: "'Barlow',sans-serif" }}>Ottawa, ON</div>
+          </div>
+
+          {/* Center label */}
+          <div style={{
+            position: 'relative', zIndex: 2,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+          }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#818cf8', boxShadow: '0 0 20px rgba(129,140,248,0.8)' }} />
+            <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Any Canadian City</div>
+          </div>
         </div>
       </div>
+
+      {/* Mobile: stack vertically */}
+      <style>{`
+        @media (max-width: 768px) {
+          #hero > div[style*="grid-template-columns"] {
+            grid-template-columns: 1fr !important;
+            padding: 0 24px !important;
+          }
+          #hero > div[style*="grid-template-columns"] > div:last-child {
+            display: none !important;
+          }
+          #hero > div[style*="grid-template-columns"] > div:first-child {
+            padding-right: 0 !important;
+            padding-top: 100px !important;
+          }
+        }
+      `}</style>
     </section>
   )
 }
