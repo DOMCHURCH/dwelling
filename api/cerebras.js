@@ -69,6 +69,7 @@ export default async function handler(req, res) {
 
   // 2. Check for user-provided API key (from header first, then database)
   let userApiKey = req.headers['x-cerebras-key'] || null
+  let keySource = 'header'
 
   // If no key in header, look it up from DB
   if (!userApiKey && !isAdmin) {
@@ -76,17 +77,32 @@ export default async function handler(req, res) {
       const db = getDb()
       const result = await db.execute({ sql: 'SELECT cerebras_key FROM users WHERE email = ?', args: [email] })
       if (result.rows.length > 0 && result.rows[0].cerebras_key) {
-        const decoded = Buffer.from(result.rows[0].cerebras_key, 'base64').toString().trim()
-        if (decoded) userApiKey = decoded
+        const rawKey = result.rows[0].cerebras_key
+        // Check if it's base64 encoded or raw
+        if (rawKey.startsWith('csk-')) {
+          userApiKey = rawKey.trim()
+        } else {
+          try {
+            const decoded = Buffer.from(rawKey, 'base64').toString().trim()
+            if (decoded.startsWith('csk-')) userApiKey = decoded
+          } catch (e) {
+            console.error('cerebras: base64 decode failed for key')
+          }
+        }
+        if (userApiKey) keySource = 'database'
       }
     } catch (e) {
       console.error('cerebras: DB key lookup failed for', email, e.message)
     }
   }
 
-  const apiKey = (userApiKey || '').trim() || (process.env.CEREBRAS_API_KEY || '').trim() || null
+  const platformKey = (process.env.CEREBRAS_API_KEY || '').trim()
+  const apiKey = (userApiKey || '').trim() || platformKey || null
+  
+  if (!userApiKey && platformKey) keySource = 'platform_env'
+
   if (!apiKey) {
-    console.error('cerebras: no API key for', email, '— header:', !!req.headers['x-cerebras-key'], '— env:', !!process.env.CEREBRAS_API_KEY)
+    console.error('cerebras: no API key for', email, '— source:', keySource)
     return res.status(400).json({ error: 'no_key', message: 'Please add your Cerebras API key in Settings (the 🔑 button).' })
   }
 
@@ -97,7 +113,12 @@ export default async function handler(req, res) {
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify(req.body),
     })
-    return res.status(r.status).json(await r.json())
+    const data = await r.json()
+    if (r.status === 401 || (data.error && data.error.code === 'wrong_api_key')) {
+      console.error(`cerebras: ADMIN API key rejected (source: ${keySource})`)
+      return res.status(401).json({ error: 'invalid_key', message: 'The platform or admin API key is invalid.', details: data.error })
+    }
+    return res.status(r.status).json(data)
   }
   // Users with their own key still use it, but we still track + enforce limits for free users
 
@@ -135,7 +156,17 @@ export default async function handler(req, res) {
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
     body: JSON.stringify(req.body),
   })
+  
   const data = await r.json()
+
+  // Handle "Wrong API Key" error from Cerebras
+  if (r.status === 401 || (data.error && data.error.code === 'wrong_api_key')) {
+    console.error(`cerebras: API key rejected (source: ${keySource}) for user ${email}`)
+    const msg = keySource === 'platform_env' 
+      ? 'The platform API key is invalid. Please contact the administrator.'
+      : 'Your Cerebras API key is invalid. Please check your settings.'
+    return res.status(401).json({ error: 'invalid_key', message: msg, details: data.error })
+  }
 
   // 8. Increment counter
   if (r.ok && !user.is_pro && !skipCount) {
