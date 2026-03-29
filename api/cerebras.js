@@ -38,9 +38,26 @@ export default async function handler(req, res) {
 
   // 1. Verify JWT
   const authHeader = req.headers.authorization
-  if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
-  const payload = verifyToken(authHeader.replace('Bearer ', ''))
-  if (!payload) return res.status(401).json({ error: 'Invalid session' })
+  if (!authHeader?.startsWith('Bearer ')) {
+    console.error('cerebras: no Bearer token in request')
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
+  const rawToken = authHeader.replace('Bearer ', '')
+  const payload = verifyToken(rawToken)
+  if (!payload) {
+    // Log why verification failed for debugging
+    try {
+      const parts = rawToken.split('.')
+      if (parts.length !== 3) console.error('cerebras: token malformed, parts:', parts.length)
+      else {
+        const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+        const decoded = JSON.parse(Buffer.from(base64, 'base64').toString())
+        const expired = decoded.exp && Date.now() / 1000 > decoded.exp
+        console.error('cerebras: token invalid — expired:', expired, 'email:', decoded.email, 'exp:', new Date((decoded.exp || 0) * 1000).toISOString())
+      }
+    } catch(e) { console.error('cerebras: token parse error', e.message) }
+    return res.status(401).json({ error: 'Invalid session — please sign out and sign in again.' })
+  }
 
   const email = payload.email
   const isAdmin = ADMIN_EMAILS.includes(email)
