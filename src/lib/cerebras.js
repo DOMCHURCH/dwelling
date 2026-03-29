@@ -655,6 +655,7 @@ End with: READY_FOR_JSON`
   const jsonPrompt = `Based on your detailed analysis above, produce the final property intelligence report as a single JSON object. Every field must be substantive and specific to ${neighbourhood || city}, ${city}. No generic filler text.
 
 FIELD REQUIREMENTS:
+- reportNarrative: 5-6 high-quality sentences. This is for the EXPORTED REPORT. Provide a high-level executive summary of the area's current state, investment potential, and unique character. This must be professional and authoritative.
 - estimatedValueUSD: Your precise point estimate in ${currency}. Integer only.
 - priceContext: 4 sentences minimum. (1) What drives values specifically in ${neighbourhood || city}. (2) Specific comparable evidence or price range for this street/area. (3) How this property fits within that range. (4) Honest caveat about market conditions or uncertainty.
 - neighborhood.character: 4 sentences. (1) Physical character and housing stock. (2) Demographic profile of residents. (3) What makes this neighbourhood distinct from nearby areas. (4) Current trajectory — improving, stable, or changing.
@@ -669,6 +670,7 @@ FIELD REQUIREMENTS:
 - Return ONLY valid raw JSON. No markdown, no backticks, no explanation text outside the JSON.
 
 {
+  "reportNarrative": "<5-6 professional sentences for the exported report>",
   "propertyEstimate": {
     "estimatedValueUSD": <integer in ${currency}>,
     "pricePerSqftUSD": <integer, ${currency} per sqft for this neighbourhood>,
