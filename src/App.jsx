@@ -208,7 +208,7 @@ function Hero({ onSearch, loading, onShowDemo }) {
           Know Your Neighbourhood Before You Buy.
         </h1>
         <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 16, fontFamily: "'Barlow',sans-serif", fontWeight: 300, maxWidth: 540, lineHeight: 1.7, marginBottom: 40 }}>
-          Climate risk. School ratings. Crime data. Investment score. AI verdict. — One search, 30 seconds, any Canadian city.
+          Climate risk. School ratings. Crime data. Investment score. AI verdict. — One search, 30 seconds, any city worldwide.
         </p>
         <div style={{ width: '100%', maxWidth: 600 }}>
           <AddressSearch onSearch={onSearch} loading={loading} />
