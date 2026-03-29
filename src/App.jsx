@@ -289,7 +289,7 @@ const HowItWorks = memo(function HowItWorks() {
       <div style={{ maxWidth: 900, margin: '0 auto', textAlign: 'center' }} id="how-it-works">
         <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>How It Works</div>
         <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2rem,5vw,3.5rem)', color: '#fff', marginBottom: 12, lineHeight: 0.9, letterSpacing: '-0.02em' }}>
-          <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic' }}>"Analyze. Understand. Decide.</span>
+          <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic' }}>Analyze. Understand. Decide.</span>
         </h2>
         <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 15, fontFamily: "'Barlow',sans-serif", fontWeight: 300, maxWidth: 500, lineHeight: 1.7, marginBottom: 56, margin: '0 auto 56px' }}>
           Enter any city or neighbourhood. Our AI instantly processes listing data, demographics, risk scores, and market trends.
@@ -338,7 +338,7 @@ const FeaturesChess = memo(function FeaturesChess() {
           <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>Capabilities</div>
         </div>
         <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2rem,5vw,3.5rem)', color: '#fff', marginBottom: 56, lineHeight: 0.9, letterSpacing: '-0.02em' }}>
-          <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic' }}>"Unrivaled insights. Simplified.</span>
+          <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic' }}>Unrivaled insights. Simplified.</span>
         </h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
           {features.map((f, i) => (
@@ -386,7 +386,7 @@ const FeaturesGrid = memo(function FeaturesGrid() {
           <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>Why Dwelling</div>
         </div>
         <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2rem,5vw,3.5rem)', color: '#fff', marginBottom: 40, lineHeight: 0.9, letterSpacing: '-0.02em' }}>
-          <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic' }}>"The difference is intelligence.</span>
+          <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic' }}>The difference is intelligence.</span>
         </h2>
         <HoverGroupGrid cards={cards} />
       </div>
@@ -451,7 +451,7 @@ const DataPartnerships = memo(function DataPartnerships() {
         </div>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, marginBottom: 40 }}>
           <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2rem,5vw,3.5rem)', color: '#fff', lineHeight: 0.9, letterSpacing: '-0.02em' }}>
-            <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic' }}>"Data you can actually trust.</span>
+            <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic' }}>Data you can actually trust.</span>
           </h2>
           <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 14, color: 'rgba(255,255,255,0.4)', maxWidth: 340, lineHeight: 1.7 }}>
             Every data point is sourced from official providers, real MLS feeds, or government agencies — not scraped blogs or AI guesses.
@@ -750,7 +750,7 @@ const Pricing = memo(function Pricing({ onUpgrade }) {
         <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 20 }}>Pricing</div>
 
         <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2.2rem,5vw,3.8rem)', color: '#fff', marginBottom: 12, lineHeight: 0.95, letterSpacing: '-0.02em' }}>
-          "Know before you move.
+          Know before you move.
         </h2>
         <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 16, color: 'rgba(255,255,255,0.45)', marginBottom: 56, lineHeight: 1.7, maxWidth: 500, margin: '0 auto 56px' }}>
           Start free. Upgrade when you need the full picture — pro pays for itself the moment it helps you avoid the wrong neighbourhood.
@@ -845,7 +845,7 @@ function MortgageCalculator() {
       <div style={{ maxWidth: 860, margin: '0 auto' }}>
         <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>Affordability</div>
         <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2rem,5vw,3.5rem)', color: '#fff', marginBottom: 10, lineHeight: 0.9, letterSpacing: '-0.02em' }}>
-          "Can I afford to live there?
+          Can I afford to live there?
         </h2>
         <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 15, color: 'rgba(255,255,255,0.4)', marginBottom: 36, lineHeight: 1.7 }}>
           Uses the Canadian mortgage stress test (GDS ratio 32%) to calculate real affordability.
@@ -970,7 +970,7 @@ function RentalCalculator() {
       <div style={{ maxWidth:860, margin:'0 auto' }}>
         <div className="liquid-glass" style={{ borderRadius:40, display:'inline-flex', padding:'5px 14px', fontSize:11, color:'rgba(255,255,255,0.5)', fontFamily:"'Barlow',sans-serif", letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:16 }}>Investment</div>
         <h2 style={{ fontFamily:"'Instrument Serif',serif", fontStyle:'italic', fontSize:'clamp(2rem,5vw,3.5rem)', color:'#fff', marginBottom:10, lineHeight:0.9, letterSpacing:'-0.02em' }}>
-          "Is it worth buying to rent?
+          Is it worth buying to rent?
         </h2>
         <p style={{ fontFamily:"'Barlow',sans-serif", fontWeight:300, fontSize:15, color:'rgba(255,255,255,0.4)', marginBottom:36, lineHeight:1.7 }}>
           Estimates gross yield, net yield, and monthly cash flow after mortgage, tax, insurance, and maintenance.
@@ -1167,7 +1167,7 @@ function CTAFooter({ onTermsClick, onScrollToTop, onUpgrade }) {
     <Section>
       <div style={{ maxWidth: 860, margin: '0 auto', textAlign: 'center', padding: 'clamp(60px, 10vw, 128px) 20px 60px' }}>
         <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2.2rem,6vw,4.5rem)', color: '#fff', lineHeight: 0.9, letterSpacing: '-0.03em', marginBottom: 20 }}>
-          <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic' }}>"Your next area decision starts here.</span>
+          <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic' }}>Your next area decision starts here.</span>
         </h2>
         <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 16, color: 'rgba(255,255,255,0.5)', marginBottom: 28, lineHeight: 1.7 }}>
           Free to start. Instant results. No credit card required.
