@@ -1544,15 +1544,18 @@ export default function App() {
     setUser(u)
     setUserRecord({ is_pro: u.is_pro, analyses_used: 0 })
     loadUserRecord()
-    // Load the key for THIS account from Turso — replaces whatever was cached
-    localStorage.removeItem('dw_cerebras_key')
-    setCerebrasKey('')
+    // Load the key for THIS account from Turso — wait for result BEFORE clearing cached key
+    // so there's no window where cerebrasKey is '' and a search fires with no key
     const serverKey = await loadCerebrasKeyFromServer()
     if (serverKey) {
-      // User already has a key saved — restore it silently, no popup
+      // User already has a key saved — restore it, clear any stale cached key from another account
+      localStorage.removeItem('dw_cerebras_key')
       setCerebrasKey(serverKey)
     } else {
-      // No key saved for this account — show onboarding once
+      // No key on server — clear any stale cached key from a different account
+      localStorage.removeItem('dw_cerebras_key')
+      setCerebrasKey('')
+      // Show onboarding once
       const alreadySeen = sessionStorage.getItem('dw_key_onboarding_seen')
       if (!alreadySeen) {
         setTimeout(() => setShowOnboarding(true), 600)
@@ -1624,6 +1627,7 @@ export default function App() {
       setTimeout(() => loadUserRecord(), 800) // wait for Turso write to commit
     } catch (err) {
       if (err.message?.includes('context invalidated')) return
+      if (err.message === 'no_key') { setShowKeyModal(true); return }
       if (err.message?.includes('limit reached') || err.message?.includes('429')) setShowPaywall(true)
       else setError(err.message ?? 'Something went wrong.')
     } finally { setLoading(false) }
@@ -1671,6 +1675,7 @@ export default function App() {
       setComparingMode(false)
       setTimeout(() => loadUserRecord(), 800) // wait for Turso write to commit
     } catch (err) {
+      if (err.message === 'no_key') { setShowKeyModal(true); return }
       if (err.message?.includes('limit reached') || err.message?.includes('429')) setShowPaywall(true)
       else setError(err.message ?? 'Something went wrong.')
     } finally { setLoading(false) }
