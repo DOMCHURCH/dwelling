@@ -21,7 +21,9 @@ function verifyToken(token) {
     const [header, body, sig] = token.split('.')
     const expected = b64url(createHmac('sha256', SECRET).update(`${header}.${body}`).digest())
     if (sig !== expected) return null
-    const payload = JSON.parse(Buffer.from(body, 'base64').toString())
+    // base64url decode — replace url-safe chars back before decoding
+    const base64 = body.replace(/-/g, '+').replace(/_/g, '/')
+    const payload = JSON.parse(Buffer.from(base64, 'base64').toString())
     if (payload.exp && Date.now() / 1000 > payload.exp) return null
     return payload
   } catch { return null }
