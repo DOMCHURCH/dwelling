@@ -1587,11 +1587,10 @@ export default function App() {
       const geocodeInput = isAreaMode ? { street: '', city, state, country } : { street, city, state, country }
       const geo = await geocodeStructured(geocodeInput); setLoadStep(1)
       const postcode = geo.address?.postcode ?? ''
-      const [weather, climate, neighborhoodScores, walkScoreData] = await Promise.all([
+      const [weather, climate, neighborhoodScores] = await Promise.all([
         getCurrentWeather(geo.lat, geo.lon),
         getClimateNormals(geo.lat, geo.lon),
         getNeighborhoodScores(geo.lat, geo.lon),
-        fetch('/api/walkscore', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lat: geo.lat, lon: geo.lon, address: `${city}, ${state || ''}, Canada` }) }).then(r => r.ok ? r.json() : null).catch(() => null),
       ]); setLoadStep(2)
       const [censusData, fmr, floodZone] = await Promise.all([getCensusData(street, city, state, country), getFairMarketRent(postcode), getFloodZone(geo.lat, geo.lon)]); setLoadStep(3)
       const riskData = await getRiskData({ lat: geo.lat, lon: geo.lon, county: geo.address?.county, state, country }).catch(() => null)
@@ -1615,7 +1614,7 @@ export default function App() {
       const areaRiskScore = computeRiskScore(areaMetrics, null) || null
       const marketTemperature = getMarketTemperature(areaMetrics) || null
 
-      const realData = { neighborhoodScores, censusData, fmr, floodZone, riskData, areaMetrics, areaRiskScore, marketTemperature, newsData, isAreaMode, walkScoreData }
+      const realData = { neighborhoodScores, censusData, fmr, floodZone, riskData, areaMetrics, areaRiskScore, marketTemperature, newsData, isAreaMode }
       const ai = await analyzeProperty(geo, weather, climate, knownFacts ?? {}, realData, cerebrasKey); setLoadStep(4)
       const reportData = { geo, weather, climate, ai, knownFacts: knownFacts ?? {}, realData, isAreaMode }
       setResult(reportData)
@@ -1647,11 +1646,10 @@ export default function App() {
       const geocodeInput = isAreaMode ? { street: '', city, state, country } : { street, city, state, country }
       const geo = await geocodeStructured(geocodeInput); setLoadStep(1)
       const postcode = geo.address?.postcode ?? ''
-      const [weather, climate, neighborhoodScores, walkScoreData] = await Promise.all([
+      const [weather, climate, neighborhoodScores] = await Promise.all([
         getCurrentWeather(geo.lat, geo.lon),
         getClimateNormals(geo.lat, geo.lon),
         getNeighborhoodScores(geo.lat, geo.lon),
-        fetch('/api/walkscore', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lat: geo.lat, lon: geo.lon, address: `${city}, ${state || ''}, Canada` }) }).then(r => r.ok ? r.json() : null).catch(() => null),
       ]); setLoadStep(2)
       const [censusData, fmr, floodZone] = await Promise.all([getCensusData(street, city, state, country), getFairMarketRent(postcode), getFloodZone(geo.lat, geo.lon)]); setLoadStep(3)
       const riskData = await fetch('/api/risk', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lat: geo.lat, lon: geo.lon, county: geo.address?.county, state, country }) }).then(r => r.ok ? r.json() : null).catch(() => null)
