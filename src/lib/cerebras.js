@@ -536,7 +536,14 @@ Be specific, honest, and evidence-based. End with: READY_FOR_JSON`
     // Fix neighborhood fields
     const n = areaResult.neighborhood || {}
     n.safetyRating = toNum(n.safetyRating) || 50
+    // Preserve the character field for reports
+    if (areaResult.neighborhood?.character) n.character = areaResult.neighborhood.character
     areaResult.neighborhood = n
+
+    // Preserve narrative fields for exports
+    if (areaResult.reportNarrative) areaResult.reportNarrative = areaResult.reportNarrative
+    if (areaResult.investment?.investmentSummary) areaResult.investmentSummary = areaResult.investment.investmentSummary
+    if (areaResult.costOfLiving?.summary) areaResult.costOfLivingSummary = areaResult.costOfLiving.summary
 
     areaResult.priceHistory = areaResult.priceHistory || {}
     areaResult.priceHistory.currencySymbol = currencySymbol
