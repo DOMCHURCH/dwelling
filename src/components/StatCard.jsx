@@ -10,23 +10,23 @@ export default function StatCard({ label, value, sub, accent, icon, animate = fa
 
   return (
     <div style={{
-      border: '2px solid var(--white)',
-      padding: '16px',
-      background: 'rgba(0,0,0,0.3)',
-      position: 'relative',
-      transition: 'all 0.1s',
+      background: 'rgba(255,255,255,0.04)',
+      border: '1px solid rgba(255,255,255,0.08)',
+      borderRadius: 14,
+      padding: '14px 16px',
+      transition: 'background 0.2s ease, border-color 0.2s ease',
     }}
-      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = accent ?? 'var(--neon-pink)' }}
-      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.3)'; e.currentTarget.style.borderColor = 'var(--white)' }}
+      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.borderColor = accent ? accent + '44' : 'rgba(255,255,255,0.18)' }}
+      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' }}
     >
-      <div style={{ fontSize: 9, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 6, fontFamily: "'Space Mono', monospace", display: 'flex', alignItems: 'center', gap: 5 }}>
+      <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6, fontFamily: "'Barlow', sans-serif", display: 'flex', alignItems: 'center', gap: 5 }}>
         {icon && <span>{icon}</span>}
         {label}
       </div>
-      <div style={{ fontSize: 22, fontWeight: 700, color: accent ?? 'var(--white)', lineHeight: 1.1, fontFamily: "'Space Mono', monospace" }}>
+      <div style={{ fontSize: 22, fontWeight: 600, color: accent ?? '#ffffff', lineHeight: 1.1, fontFamily: "'Instrument Serif', serif", fontStyle: 'italic' }}>
         {displayed}
       </div>
-      {sub && <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 4, fontFamily: "'Space Mono', monospace" }}>{sub}</div>}
+      {sub && <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 4, fontFamily: "'Barlow', sans-serif" }}>{sub}</div>}
     </div>
   )
 }
