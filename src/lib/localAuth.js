@@ -59,14 +59,21 @@ export function signOut() {
 
 export async function getUsage() {
   const token = getToken()
-  if (!token) return { analyses_used: 0, is_pro: false, has_own_key: false }
-  const res = await fetch('/api/auth', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ action: 'usage' }),
-  })
-  if (!res.ok) return { analyses_used: 0, is_pro: false, has_own_key: false }
-  return res.json()
+  // Never send request without a valid token — avoids noisy 401s on the server
+  if (!token || token === 'null' || token === 'undefined' || token.split('.').length !== 3) {
+    return { analyses_used: 0, is_pro: false, has_own_key: false }
+  }
+  try {
+    const res = await fetch('/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ action: 'usage' }),
+    })
+    if (!res.ok) return { analyses_used: 0, is_pro: false, has_own_key: false }
+    return res.json()
+  } catch {
+    return { analyses_used: 0, is_pro: false, has_own_key: false }
+  }
 }
 
 // Save user's Cerebras API key to server (stored in Turso, tied to their account)
