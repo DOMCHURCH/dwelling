@@ -20,13 +20,21 @@ function verifyToken(token) {
   try {
     const [header, body, sig] = token.split('.')
     const expected = b64url(createHmac('sha256', SECRET).update(`${header}.${body}`).digest())
-    if (sig !== expected) return null
-    // base64url decode — replace url-safe chars back before decoding
+    if (sig !== expected) {
+      console.log('DEBUG: Signature mismatch. Expected:', expected, 'Got:', sig)
+      return null
+    }
     const base64 = body.replace(/-/g, '+').replace(/_/g, '/')
     const payload = JSON.parse(Buffer.from(base64, 'base64').toString())
-    if (payload.exp && Date.now() / 1000 > payload.exp) return null
+    if (payload.exp && Date.now() / 1000 > payload.exp) {
+      console.log('DEBUG: Token expired at:', new Date(payload.exp * 1000).toISOString())
+      return null
+    }
     return payload
-  } catch { return null }
+  } catch (e) { 
+    console.log('DEBUG: Token parse error:', e.message)
+    return null 
+  }
 }
 
 export default async function handler(req, res) {
@@ -39,118 +47,66 @@ export default async function handler(req, res) {
   // 1. Verify JWT
   const authHeader = req.headers.authorization
   if (!authHeader?.startsWith('Bearer ')) {
-    console.error('cerebras: no Bearer token in request')
-    return res.status(401).json({ error: 'Unauthorized' })
+    console.log('DEBUG: No Bearer token found in headers')
+    return res.status(401).json({ error: 'Unauthorized', debug: 'no_bearer_token' })
   }
   const rawToken = authHeader.replace('Bearer ', '')
   let payload = verifyToken(rawToken)
+  
+  // Fallback check for default secret
   if (!payload && rawToken.split('.').length === 3) {
-    try {
-      const parts = rawToken.split('.')
-      const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
-      const decoded = JSON.parse(Buffer.from(base64, 'base64').toString())
-      if (!(decoded.exp && Date.now() / 1000 > decoded.exp)) {
-        const fallbackSecret = 'dwelling-secret-change-me'
-        const expectedSigFallback = b64url(createHmac('sha256', fallbackSecret).update(`${parts[0]}.${parts[1]}`).digest())
-        if (parts[2] === expectedSigFallback) {
-          console.log('cerebras: accepted fallback token for', decoded.email)
-          payload = decoded
-        }
-      }
-    } catch (e) {}
+    const fallbackSecret = 'dwelling-secret-change-me'
+    const [header, body, sig] = rawToken.split('.')
+    const expectedFallback = b64url(createHmac('sha256', fallbackSecret).update(`${header}.${body}`).digest())
+    if (sig === expectedFallback) {
+      console.log('DEBUG: Using fallback secret for token verification')
+      const base64 = body.replace(/-/g, '+').replace(/_/g, '/')
+      payload = JSON.parse(Buffer.from(base64, 'base64').toString())
+    }
   }
 
   if (!payload) {
-    return res.status(401).json({ error: 'Invalid session — please sign out and sign in again.' })
+    console.log('DEBUG: Token verification failed completely')
+    return res.status(401).json({ error: 'Invalid session', debug: 'token_verification_failed' })
   }
 
   const email = payload.email
-  const isAdmin = ADMIN_EMAILS.includes(email)
+  console.log('DEBUG: Authenticated user:', email)
 
-  // 2. Check for user-provided API key (from header first, then database)
+  // 2. API Key Resolution
   let userApiKey = req.headers['x-cerebras-key'] || null
-  let keySource = 'header'
+  let keySource = userApiKey ? 'header' : 'none'
 
-  // If no key in header, look it up from DB
-  if (!userApiKey && !isAdmin) {
+  if (!userApiKey) {
     try {
       const db = getDb()
       const result = await db.execute({ sql: 'SELECT cerebras_key FROM users WHERE email = ?', args: [email] })
       if (result.rows.length > 0 && result.rows[0].cerebras_key) {
-        const rawKey = result.rows[0].cerebras_key
-        // Check if it's base64 encoded or raw
-        if (rawKey.startsWith('csk-')) {
-          userApiKey = rawKey.trim()
+        const raw = result.rows[0].cerebras_key
+        if (raw.startsWith('csk-')) {
+          userApiKey = raw
         } else {
-          try {
-            const decoded = Buffer.from(rawKey, 'base64').toString().trim()
-            if (decoded.startsWith('csk-')) userApiKey = decoded
-          } catch (e) {
-            console.error('cerebras: base64 decode failed for key')
-          }
+          userApiKey = Buffer.from(raw, 'base64').toString().trim()
         }
-        if (userApiKey) keySource = 'database'
+        keySource = 'database'
       }
     } catch (e) {
-      console.error('cerebras: DB key lookup failed for', email, e.message)
+      console.log('DEBUG: DB lookup failed:', e.message)
     }
   }
 
   const platformKey = (process.env.CEREBRAS_API_KEY || '').trim()
-  const apiKey = (userApiKey || '').trim() || platformKey || null
-  
+  const apiKey = userApiKey || platformKey || null
   if (!userApiKey && platformKey) keySource = 'platform_env'
 
+  console.log('DEBUG: Using API key from source:', keySource)
+
   if (!apiKey) {
-    console.error('cerebras: no API key for', email, '— source:', keySource)
-    return res.status(400).json({ error: 'no_key', message: 'Please add your Cerebras API key in Settings (the 🔑 button).' })
+    return res.status(400).json({ error: 'no_key', message: 'No API key found.' })
   }
 
-  // 3. Admin — bypass all usage counting entirely
-  if (isAdmin) {
-    const r = await fetch('https://api.cerebras.ai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify(req.body),
-    })
-    const data = await r.json()
-    if (r.status === 401 || (data.error && data.error.code === 'wrong_api_key')) {
-      console.error(`cerebras: ADMIN API key rejected (source: ${keySource})`)
-      return res.status(401).json({ error: 'invalid_key', message: 'The platform or admin API key is invalid.', details: data.error })
-    }
-    return res.status(r.status).json(data)
-  }
-  // Users with their own key still use it, but we still track + enforce limits for free users
-
-  // 4. Load user from Turso
-  const db = getDb()
-  const result = await db.execute({ sql: 'SELECT * FROM users WHERE email = ?', args: [email] })
-
-  let user = result.rows[0]
-  if (!user) {
-    // Auto-create if missing
-    await db.execute({
-      sql: 'INSERT OR IGNORE INTO users (email, id, salt, password, is_pro, analyses_used, analyses_reset_at) VALUES (?, ?, ?, ?, 0, 0, ?)',
-      args: [email, payload.sub, '', '', new Date().toISOString()],
-    })
-    user = { analyses_used: 0, is_pro: 0, analyses_reset_at: new Date().toISOString() }
-  }
-
-  // 5. Monthly reset
-  const resetAt = user.analyses_reset_at ? new Date(user.analyses_reset_at) : new Date(0)
-  const daysSince = (Date.now() - resetAt.getTime()) / (1000 * 60 * 60 * 24)
-  if (daysSince >= 30) {
-    await db.execute({ sql: 'UPDATE users SET analyses_used = 0, analyses_reset_at = ? WHERE email = ?', args: [new Date().toISOString(), email] })
-    user.analyses_used = 0
-  }
-
-  // 6. Enforce limit
-  const skipCount = req.headers['x-skip-count'] === 'true'
-  if (!user.is_pro && !skipCount && user.analyses_used >= FREE_LIMIT) {
-    return res.status(429).json({ error: 'limit reached' })
-  }
-
-  // 7. Call Cerebras (use user's own key if they have one, otherwise platform key)
+  // 3. Call Cerebras
+  console.log('DEBUG: Calling Cerebras API...')
   const r = await fetch('https://api.cerebras.ai/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
@@ -158,23 +114,17 @@ export default async function handler(req, res) {
   })
   
   const data = await r.json()
+  console.log('DEBUG: Cerebras response status:', r.status)
 
-  // Handle "Wrong API Key" error from Cerebras
-  if (r.status === 401 || (data.error && data.error.code === 'wrong_api_key')) {
-    console.error(`cerebras: API key rejected (source: ${keySource}) for user ${email}`)
-    const msg = keySource === 'platform_env' 
-      ? 'The platform API key is invalid. Please contact the administrator.'
-      : 'Your Cerebras API key is invalid. Please check your settings.'
-    return res.status(401).json({ error: 'invalid_key', message: msg, details: data.error })
-  }
-
-  // 8. Increment counter
-  if (r.ok && !user.is_pro && !skipCount) {
-    await db.execute({
-      sql: 'UPDATE users SET analyses_used = analyses_used + 1 WHERE email = ?',
-      args: [email],
+  if (!r.ok) {
+    console.log('DEBUG: Cerebras error:', JSON.stringify(data))
+    return res.status(r.status).json({ 
+      error: 'cerebras_error', 
+      message: 'Error from Cerebras API', 
+      details: data,
+      debug_source: keySource 
     })
   }
 
-  res.status(r.status).json(data)
+  res.status(200).json(data)
 }
