@@ -60,8 +60,8 @@ export default async function handler(req, res) {
   const apiKey = userApiKey || process.env.CEREBRAS_API_KEY
   if (!apiKey) return res.status(500).json({ error: 'No API key configured' })
 
-  // 3. Admin or user with own key — bypass all usage counting
-  if (isAdmin || userApiKey) {
+  // 3. Admin — bypass all usage counting entirely
+  if (isAdmin) {
     const r = await fetch('https://api.cerebras.ai/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
@@ -69,6 +69,7 @@ export default async function handler(req, res) {
     })
     return res.status(r.status).json(await r.json())
   }
+  // Users with their own key still use it, but we still track + enforce limits for free users
 
   // 4. Load user from Turso
   const db = getDb()
@@ -98,10 +99,10 @@ export default async function handler(req, res) {
     return res.status(429).json({ error: 'limit reached' })
   }
 
-  // 7. Call Cerebras
+  // 7. Call Cerebras (use user's own key if they have one, otherwise platform key)
   const r = await fetch('https://api.cerebras.ai/v1/chat/completions', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.CEREBRAS_API_KEY}` },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
     body: JSON.stringify(req.body),
   })
   const data = await r.json()
