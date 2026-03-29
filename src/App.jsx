@@ -15,7 +15,7 @@ import { aggregateListings, computeRiskScore, getMarketTemperature } from './lib
 import { getNeighborhoodScores } from './lib/overpass'
 import { getCensusData } from './lib/census'
 import { getFairMarketRent, getFloodZone } from './lib/hud'
-import { getCurrentUser, getAuthToken, signOut as localSignOut, getUsage, saveCerebrasKey, getCachedCerebrasKey } from './lib/localAuth'
+import { getCurrentUser, getAuthToken, signOut as localSignOut, getUsage, saveCerebrasKey, getCachedCerebrasKey, loadCerebrasKeyFromServer } from './lib/localAuth'
 
 
 const FREE_LIMIT = 10
@@ -1521,7 +1521,13 @@ export default function App() {
 
   useEffect(() => {
     const u = getCurrentUser()
-    if (u) { setUser(u); setUserRecord({ is_pro: u.is_pro, analyses_used: 0 }); loadUserRecord() }
+    if (u) {
+      setUser(u)
+      setUserRecord({ is_pro: u.is_pro, analyses_used: 0 })
+      loadUserRecord()
+      // Restore key from server on page load
+      loadCerebrasKeyFromServer().then(k => { if (k) setCerebrasKey(k) })
+    }
     setAuthLoading(false)
   }, [])
 
@@ -1532,18 +1538,23 @@ export default function App() {
     } else document.title = 'Dwelling — Property Intelligence'
   }, [result])
 
-  const handleAuth = u => {
+  const handleAuth = async u => {
     setUser(u)
     setUserRecord({ is_pro: u.is_pro, analyses_used: 0 })
-    // Clear any previously cached key from a different account
+    loadUserRecord()
+    // Load the key for THIS account from Turso — replaces whatever was cached
     localStorage.removeItem('dw_cerebras_key')
     setCerebrasKey('')
-    // Load usage from server (token is already set in localStorage by signIn/signUp)
-    loadUserRecord()
-    // Show onboarding once per session if they haven't seen it
-    const alreadySeen = sessionStorage.getItem('dw_key_onboarding_seen')
-    if (!alreadySeen) {
-      setTimeout(() => setShowOnboarding(true), 800)
+    const serverKey = await loadCerebrasKeyFromServer()
+    if (serverKey) {
+      // User already has a key saved — restore it silently, no popup
+      setCerebrasKey(serverKey)
+    } else {
+      // No key saved for this account — show onboarding once
+      const alreadySeen = sessionStorage.getItem('dw_key_onboarding_seen')
+      if (!alreadySeen) {
+        setTimeout(() => setShowOnboarding(true), 600)
+      }
     }
   }
   const handleSignOut = () => {
