@@ -16,6 +16,7 @@ import { getNeighborhoodScores } from './lib/overpass'
 import { getCensusData } from './lib/census'
 import { getFairMarketRent, getFloodZone } from './lib/hud'
 import { getCurrentUser, getAuthToken, signOut as localSignOut, getUsage, saveCerebrasKey, getCachedCerebrasKey, loadCerebrasKeyFromServer } from './lib/localAuth'
+import { generateHTMLReport, downloadHTMLReport } from './lib/htmlExport'
 
 
 const FREE_LIMIT = 10
@@ -89,7 +90,7 @@ function TermsModal({ onClose }) {
 
 // ─── FAQ ─────────────────────────────────────────────────────────────────────
 const FAQ_ITEMS = [
-  { q: 'Which cities does Dwelling cover?', a: 'Currently all major Canadian cities — Toronto, Vancouver, Calgary, Ottawa, Montreal, Edmonton, Winnipeg, Halifax, and hundreds more. We started with Canada to build a rock-solid, data-rich pilot before expanding.' },
+  { q: 'Which cities does Dwelling cover?', a: 'We cover 100k+ cities across 50+ countries worldwide — Toronto, Vancouver, London, Sydney, and thousands more. We started with Canada to build a rock-solid, data-rich pilot before expanding globally.' },
   { q: 'Where does the data come from?', a: 'Realtor.ca active MLS listings (200+ per city), Statistics Canada price indices, OpenStreetMap walkability and amenities, Open-Meteo climate normals, and our proprietary AI engine for synthesis.' },
   { q: 'What is the Stability Score?', a: 'A 0–100 score computed from real listing data: median days on market, price volatility (coefficient of variation), inventory levels, and percentage of listings sitting >60 days. Higher = more stable.' },
   { q: 'Is Dwelling free to use?', a: 'Free users get 10 analyses per month. Upgrade to Pro for $19/month (or $152/year — save 33%) for expanded analysis access, full city intelligence, and investment-grade reports. Analysis availability is subject to platform capacity.' },
@@ -632,7 +633,7 @@ const PRICING_PRO = [
   { text: 'Side-by-side area comparison', highlight: false },
   { text: 'All neighbourhood data', highlight: false },
   { text: 'Priority support', highlight: false },
-  { text: 'PDF report export', highlight: false },
+  { text: 'HTML report export', highlight: false },
 ]
 
 function PricingCard({ plan, price, desc, features, cta, onCta, popular, highlight, priceLabel, annualSavings }) {
@@ -1802,16 +1803,15 @@ export default function App() {
                 {userRecord?.is_pro || user?.email === '01dominique.c@gmail.com' ? (
                   <button
                     onClick={() => {
-                      const city = result?.geo?.userCity || 'this city'
-                      const prevTitle = document.title
-                      document.title = `Dwelling Report — ${city}`
-                      window.print()
-                      document.title = prevTitle
+                      const htmlContent = generateHTMLReport(result, result?.geo?.userCity, result?.geo?.userCountry)
+                      if (htmlContent) {
+                        downloadHTMLReport(htmlContent, result?.geo?.userCity || 'dwelling-report')
+                      }
                     }}
                     style={{ borderRadius: 40, padding: '8px 16px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: 'rgba(255,255,255,0.6)', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)', transition: 'opacity 0.15s', display: 'flex', alignItems: 'center', gap: 5 }}
                     onMouseEnter={e => e.currentTarget.style.opacity = '0.75'}
                     onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
-                    ⬇ Export PDF
+                    ⬇ Export Report
                   </button>
                 ) : (
                   <button
@@ -1819,7 +1819,7 @@ export default function App() {
                     style={{ borderRadius: 40, padding: '8px 16px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: 'rgba(255,255,255,0.3)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer', background: 'transparent', transition: 'opacity 0.15s', display: 'flex', alignItems: 'center', gap: 5 }}
                     onMouseEnter={e => e.currentTarget.style.opacity = '0.75'}
                     onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
-                    ⬇ Export PDF <span style={{ fontSize: 10, color: '#fbbf24', marginLeft: 2 }}>Pro</span>
+                    ⬇ Export Report <span style={{ fontSize: 10, color: '#fbbf24', marginLeft: 2 }}>Pro</span>
                   </button>
                 )}
               </div>
