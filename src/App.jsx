@@ -43,28 +43,42 @@ function Section({ children, style = {} }) {
 // ─── TERMS MODAL ─────────────────────────────────────────────────────────────
 function TermsModal({ onClose }) {
   const sections = [
-    { title: '1. Definitions', body: '"Platform" means the Dwelling website. "Company" refers to Dwelling. "User" refers to any individual accessing the Platform.' },
-    { title: '2. Services', body: 'The Platform provides automated property intelligence reports based on publicly available data and AI-generated analysis. All Services are provided on an "as-is" basis.' },
-    { title: '3. No Professional Advice', body: 'ALL CONTENT IS FOR INFORMATIONAL PURPOSES ONLY. Nothing constitutes financial, real estate, investment, legal, or tax advice. Always consult a qualified licensed professional before making any property-related decision.' },
-    { title: '4. Data Accuracy', body: 'The Company makes no warranties regarding accuracy, completeness, or timeliness of any Content. Property valuations are algorithmic estimates only.' },
-    { title: '5. User Obligations', body: 'You agree to use the Platform lawfully and not scrape or redistribute Content at scale.' },
-    { title: '6. Intellectual Property', body: 'All Platform technology, design, and Content are the exclusive property of the Company.' },
-    { title: '7. Limitation of Liability', body: 'TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE COMPANY SHALL NOT BE LIABLE FOR ANY DAMAGES. TOTAL LIABILITY SHALL NOT EXCEED CAD $100.00.' },
-    { title: '8. Governing Law', body: 'These Terms are governed by the laws of Ontario, Canada.' },
+    { title: '1. Acceptance of Terms', body: 'By creating an account or accessing Dwelling (the "Platform"), you agree to be legally bound by these Terms and Conditions ("Terms"). If you do not agree to all of these Terms, you must not use the Platform. These Terms constitute a binding legal agreement between you ("User") and Dwelling ("Company"). We reserve the right to modify these Terms at any time. Continued use of the Platform after modifications constitutes acceptance of the revised Terms.' },
+    { title: '2. No Professional or Financial Advice', body: 'ALL CONTENT PROVIDED BY THE PLATFORM IS FOR INFORMATIONAL AND EDUCATIONAL PURPOSES ONLY. Nothing on the Platform constitutes financial advice, real estate advice, investment advice, legal advice, tax advice, or any other professional advice. You should consult with a qualified and licensed professional before making any financial or real estate decision. The Company is not a licensed real estate brokerage, financial institution, or investment dealer.' },
+    { title: '3. Accuracy and Reliability of Data', body: 'THE COMPANY MAKES NO REPRESENTATIONS OR WARRANTIES REGARDING THE ACCURACY, COMPLETENESS, RELIABILITY, OR AVAILABILITY OF ANY DATA, REPORT, SCORE, ESTIMATE, OR ANALYSIS PROVIDED BY THE PLATFORM. Market conditions, property values, and all other data may be inaccurate, incomplete, or outdated. Algorithmic estimates and AI verdicts are approximations only and may differ materially from actual conditions. The Company expressly disclaims all liability arising from reliance on Platform content.' },
+    { title: '4. AI-Generated Content Disclaimer', body: 'The Platform uses artificial intelligence to generate reports, analyses, verdicts, and scores. AI-generated content may contain errors, hallucinations, or outdated information. AI verdicts and investment scores are NOT predictive of future market performance. You acknowledge that AI-generated content is experimental and should not be relied upon as a sole basis for any decision. The Company is not liable for any loss resulting from AI-generated content.' },
+    { title: '5. Limitation of Liability', body: 'TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL THE COMPANY BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES. THE TOTAL CUMULATIVE LIABILITY OF THE COMPANY TO YOU SHALL NOT EXCEED THE GREATER OF: (A) THE TOTAL AMOUNT PAID BY YOU IN THE THREE MONTHS PRECEDING THE CLAIM; OR (B) TWENTY-FIVE CANADIAN DOLLARS (CAD $25.00).' },
+    { title: '6. No Warranty', body: 'THE PLATFORM IS PROVIDED ON AN "AS IS" AND "AS AVAILABLE" BASIS WITHOUT ANY WARRANTIES OF ANY KIND. THE COMPANY EXPRESSLY DISCLAIMS ALL WARRANTIES INCLUDING IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. THE COMPANY DOES NOT WARRANT THAT THE PLATFORM WILL BE UNINTERRUPTED OR ERROR-FREE.' },
+    { title: '7. User Obligations and Prohibited Conduct', body: 'You agree to use the Platform only for lawful purposes. You shall not: scrape or systematically extract data without permission; reproduce or sell Platform content; reverse engineer the Platform; impersonate any person or entity; or interfere with Platform integrity. Violation may result in immediate account termination and legal action.' },
+    { title: '8. Intellectual Property', body: 'The Platform and all content, features, and functionality are owned by the Company or its licensors and are protected by Canadian and international intellectual property laws. You are granted a limited, non-exclusive, non-transferable, revocable licence to access the Platform for personal non-commercial use only.' },
+    { title: '9. Privacy and Data Collection', body: 'By using the Platform, you consent to collection and processing of your email address, account activity, and usage data to provide and improve the Platform. Search queries are processed in real time and not retained beyond report generation. We do not sell your personal information to third parties. Your Cerebras AI API key, if provided, is stored in encrypted form and used solely to forward requests to Cerebras AI on your behalf.' },
+    { title: '10. Third-Party Services and Data Sources', body: 'The Platform integrates with third-party providers including Realtor.ca/CREA, Statistics Canada, OpenStreetMap, Open-Meteo, Cerebras AI, Turso, and Vercel. The Company is not responsible for the accuracy or availability of any third-party service. The Company is not affiliated with or endorsed by any of these third parties.' },
+    { title: '11. Subscription, Billing, and Refunds', body: 'Paid subscriptions are charged in advance in Canadian dollars. Subscriptions renew automatically unless cancelled. Analysis availability under paid plans is subject to platform capacity and fair use limitations and does not constitute a guarantee of any specific volume. Refund eligibility is at the sole discretion of the Company.' },
+    { title: '12. Account Termination', body: 'The Company may suspend or terminate your account at any time, with or without notice, for any reason including breach of these Terms. Upon termination, your right to use the Platform ceases immediately.' },
+    { title: '13. Indemnification', body: 'You agree to defend, indemnify, and hold harmless the Company and its officers, directors, employees, and agents from any claims, liabilities, damages, and costs arising from your violation of these Terms or your use of the Platform, including reliance on Platform content for any financial or real estate decision.' },
+    { title: '14. Dispute Resolution and Governing Law', body: 'These Terms are governed by the laws of the Province of Ontario and the federal laws of Canada. Disputes shall first be subject to good-faith negotiation, then binding arbitration under the Arbitration Act, 1991 (Ontario) in Ottawa, Ontario. You waive any right to participate in any class action lawsuit or class-wide arbitration against the Company.' },
+    { title: '15. Severability and Entire Agreement', body: 'If any provision of these Terms is found invalid or unenforceable, it shall be modified to the minimum extent necessary and the remaining provisions shall continue in force. These Terms constitute the entire agreement between you and the Company regarding the Platform.' },
+    { title: '16. Contact Information', body: 'For questions regarding these Terms, contact us at: 01dominique.c@gmail.com with the subject line "Legal Notice — Dwelling." These Terms were last updated on March 28, 2026.' },
   ]
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <div onClick={e => e.stopPropagation()}
-        className="liquid-glass-strong" style={{ borderRadius: 24, maxWidth: 700, width: '100%', height: '80vh', display: 'flex', flexDirection: 'column' }}>
+        className="liquid-glass-strong" style={{ borderRadius: 24, maxWidth: 700, width: '100%', height: '82vh', display: 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 28px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
-          <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 22, color: '#fff' }}>Terms & Conditions</span>
+          <div>
+            <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 22, color: '#fff' }}>Terms & Conditions</span>
+            <span style={{ marginLeft: 12, fontFamily: "'Barlow',sans-serif", fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Last updated: March 28, 2026</span>
+          </div>
           <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#fff', fontFamily: "'Barlow',sans-serif", fontSize: 12, padding: '6px 14px', cursor: 'pointer' }}>✕ Close</button>
         </div>
         <div style={{ flex: 1, overflowY: 'scroll', padding: '28px' }}>
+          <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.7, marginBottom: 24, padding: '12px 16px', background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.15)', borderRadius: 10 }}>
+            ⚠ This document is provided for informational purposes. These Terms govern your use of the Dwelling platform. By using the platform you agree to be bound by them.
+          </div>
           {sections.map(({ title, body }) => (
-            <div key={title} style={{ marginBottom: 24 }}>
-              <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 17, color: '#fff', marginBottom: 8 }}>{title}</div>
-              <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.8 }}>{body}</p>
+            <div key={title} style={{ marginBottom: 24, paddingBottom: 24, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+              <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 16, color: '#fff', marginBottom: 8 }}>{title}</div>
+              <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.85 }}>{body}</p>
             </div>
           ))}
         </div>
@@ -1524,17 +1538,13 @@ export default function App() {
     // Clear any previously cached key from a different account
     localStorage.removeItem('dw_cerebras_key')
     setCerebrasKey('')
-    loadUserRecord().then(() => {
-      // After loading user record, check if they have a server-side key
-      // The onboarding will show if they have no key at all
-      const alreadySeen = sessionStorage.getItem('dw_key_onboarding_seen')
-      if (!alreadySeen) {
-        setTimeout(() => setShowOnboarding(true), 600)
-      }
-    }).catch(() => {
-      const alreadySeen = sessionStorage.getItem('dw_key_onboarding_seen')
-      if (!alreadySeen) setTimeout(() => setShowOnboarding(true), 600)
-    })
+    // Load usage from server (token is already set in localStorage by signIn/signUp)
+    loadUserRecord()
+    // Show onboarding once per session if they haven't seen it
+    const alreadySeen = sessionStorage.getItem('dw_key_onboarding_seen')
+    if (!alreadySeen) {
+      setTimeout(() => setShowOnboarding(true), 800)
+    }
   }
   const handleSignOut = () => {
     localSignOut()
