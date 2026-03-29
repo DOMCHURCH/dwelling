@@ -33,8 +33,8 @@ async function cerebrasChat(messages, json = false, skipCount = false, userApiKe
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
     if (res.status === 401) {
-      // Token expired or invalid — clear it so user gets prompted to sign in
-      localStorage.removeItem('dw_token')
+      // Don't clear the token here — a 401 can be transient (server restart, env issue)
+      // Clearing it logs the user out permanently on any hiccup. Let them sign in again manually if needed.
       throw new Error('Session expired. Please sign in again.')
     }
     if (res.status === 429) throw new Error('limit reached')
