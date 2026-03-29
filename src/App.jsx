@@ -1498,6 +1498,7 @@ export default function App() {
   const [userRecord, setUserRecord] = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
   const [showDemo, setShowDemo] = useState(false)
+  const [showAuthModal, setShowAuthModal] = useState(false)
   const [guestResult, setGuestResult] = useState(null) // first search result shown to non-logged-in users
   const [teaserCity, setTeaserCity] = useState(null)
   const [compareResult, setCompareResult] = useState(null)
@@ -1581,6 +1582,7 @@ export default function App() {
   const handleSearch = async ({ street, city, state, country: _country, knownFacts }) => {
     const country = 'Canada' // Canada-only pilot
     if (loading) return
+    if (!user) { setShowAuthModal(true); return }
     setLoading(true); setError(null); setResult(null); setLoadStep(0)
     const isAreaMode = !street.trim()
     try {
@@ -1640,6 +1642,7 @@ export default function App() {
 
   const handleCompareSearch = async ({ street, city, state, country }) => {
     if (loading) return
+    if (!user) { setShowAuthModal(true); return }
     setLoading(true); setError(null); setLoadStep(0)
     const isAreaMode = !street.trim()
     try {
@@ -1751,6 +1754,11 @@ export default function App() {
       {showKeyModal && <ApiKeyModal currentKey={cerebrasKey} onSave={k => setCerebrasKey(k)} onClose={() => setShowKeyModal(false)} isOnboarding={false} />}
       {showOnboarding && <ApiKeyModal currentKey={cerebrasKey} onSave={k => setCerebrasKey(k)} onClose={() => setShowOnboarding(false)} isOnboarding={true} />}
       {showPaywall && <PaywallModal onClose={() => setShowPaywall(false)} onUpgrade={() => { window.location.href = 'mailto:01dominique.c@gmail.com?subject=Dwelling Pro Upgrade&body=Hi, I want to upgrade to Dwelling Pro ($19/month). Please send payment details.' }} />}
+      {showAuthModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}>
+          <AuthModal onAuth={u => { handleAuth(u); setShowAuthModal(false) }} onDemo={() => setShowAuthModal(false)} />
+        </div>
+      )}
       <Navbar user={user} userRecord={userRecord} analysesLeft={analysesLeft} isInTrial={isInTrial} trialDaysLeft={trialDaysLeft} onSignOut={handleSignOut} onOpenKeyModal={() => setShowKeyModal(true)} hasOwnKey={!!cerebrasKey || !!userRecord?.has_own_key} previewPlan={previewPlan} onTogglePreview={() => setPreviewPlan(p => p === 'pro' ? 'free' : 'pro')}
         onHome={() => { setResult(null); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
         onScrollTo={scrollTo} />
