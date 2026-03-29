@@ -1498,6 +1498,7 @@ export default function App() {
   const [userRecord, setUserRecord] = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
   const [showDemo, setShowDemo] = useState(false)
+  const [guestResult, setGuestResult] = useState(null) // first search result shown to non-logged-in users
   const [teaserCity, setTeaserCity] = useState(null)
   const [compareResult, setCompareResult] = useState(null)
   const [comparingMode, setComparingMode] = useState(false)
@@ -1616,7 +1617,9 @@ export default function App() {
 
       const realData = { neighborhoodScores, censusData, fmr, floodZone, riskData, areaMetrics, areaRiskScore, marketTemperature, newsData, isAreaMode, walkScoreData }
       const ai = await analyzeProperty(geo, weather, climate, knownFacts ?? {}, realData, cerebrasKey); setLoadStep(4)
-      setResult({ geo, weather, climate, ai, knownFacts: knownFacts ?? {}, realData, isAreaMode })
+      const reportData = { geo, weather, climate, ai, knownFacts: knownFacts ?? {}, realData, isAreaMode }
+      setResult(reportData)
+      if (!user) setGuestResult(reportData) // track that guest has used their free search
       setTimeout(() => loadUserRecord(), 800) // wait for Turso write to commit
     } catch (err) {
       if (err.message?.includes('context invalidated')) return
@@ -1685,7 +1688,7 @@ export default function App() {
   )
 
   // Allow unauthenticated users to view the demo
-  if (!user && !showDemo) return <AuthModal onAuth={handleAuth} onDemo={() => setShowDemo(true)} />
+  if (!user && !showDemo && !guestResult) return <AuthModal onAuth={handleAuth} onDemo={() => setShowDemo(true)} />
 
   if (showDemo) return (
     <div style={{ minHeight: '100vh', background: '#000', display: 'flex', flexDirection: 'column' }}>
@@ -1721,6 +1724,32 @@ export default function App() {
   return (
     <div style={{ minHeight: '100vh', background: '#000', display: 'flex', flexDirection: 'column' }}>
         {showTerms && <TermsModal onClose={() => setShowTerms(false)} />}
+      {/* Guest signup prompt — shown after first free search */}
+      {!user && guestResult && result && (
+        <div style={{
+          position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 200,
+          background: 'linear-gradient(135deg, rgba(15,15,15,0.97), rgba(20,20,30,0.97))',
+          borderTop: '1px solid rgba(255,255,255,0.1)',
+          backdropFilter: 'blur(20px)',
+          padding: '16px 24px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12,
+        }}>
+          <div>
+            <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 18, color: '#fff', marginBottom: 2 }}>You've used your 1 free report.</div>
+            <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>Sign up free to get 10 analyses/month — no credit card required.</div>
+          </div>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <button onClick={() => { setGuestResult(null); setResult(null) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontSize: 13, color: 'rgba(255,255,255,0.3)', padding: '8px 12px' }}>
+              Maybe later
+            </button>
+            <button onClick={() => { setGuestResult(null); setResult(null) }} style={{ background: '#fff', border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13, color: '#000', borderRadius: 40, padding: '10px 24px', transition: 'opacity 0.15s' }}
+              onMouseEnter={e => e.currentTarget.style.opacity = '0.88'}
+              onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
+              Create free account →
+            </button>
+          </div>
+        </div>
+      )}
       {showKeyModal && <ApiKeyModal currentKey={cerebrasKey} onSave={k => setCerebrasKey(k)} onClose={() => setShowKeyModal(false)} isOnboarding={false} />}
       {showOnboarding && <ApiKeyModal currentKey={cerebrasKey} onSave={k => setCerebrasKey(k)} onClose={() => setShowOnboarding(false)} isOnboarding={true} />}
       {showPaywall && <PaywallModal onClose={() => setShowPaywall(false)} onUpgrade={() => { window.location.href = 'mailto:01dominique.c@gmail.com?subject=Dwelling Pro Upgrade&body=Hi, I want to upgrade to Dwelling Pro ($19/month). Please send payment details.' }} />}
