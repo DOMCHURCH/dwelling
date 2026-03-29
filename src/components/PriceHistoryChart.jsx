@@ -4,11 +4,15 @@ export default function PriceHistoryChart({ priceHistory }) {
   const canvasRef = useRef(null)
 
   useEffect(() => {
-    if (!priceHistory?.data || !canvasRef.current) return
+    if (!priceHistory?.data || !priceHistory.data.length || !canvasRef.current) return
     const canvas = canvasRef.current
     const ctx = canvas.getContext('2d')
     const dpr = window.devicePixelRatio || 1
     const rect = canvas.getBoundingClientRect()
+    
+    // Ensure canvas has dimensions
+    if (rect.width === 0 || rect.height === 0) return
+
     canvas.width = rect.width * dpr
     canvas.height = rect.height * dpr
     ctx.scale(dpr, dpr)
@@ -19,10 +23,12 @@ export default function PriceHistoryChart({ priceHistory }) {
     const chartH = H - pad.top - pad.bottom
 
     const data = priceHistory.data
-    const values = data.map(d => d.value)
+    const values = data.map(d => Number(d.value) || 0)
+    if (values.length === 0) return
+    
     const minVal = Math.min(...values) * 0.92
     const maxVal = Math.max(...values) * 1.05
-    const years = data.map(d => d.year)
+    const range = maxVal - minVal || 1 // Avoid division by zero
 
     const xPos = (i) => pad.left + (i / (data.length - 1)) * chartW
     const yPos = (v) => pad.top + chartH - ((v - minVal) / (maxVal - minVal)) * chartH
