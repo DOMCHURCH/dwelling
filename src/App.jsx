@@ -1606,7 +1606,7 @@ export default function App() {
       const realData = { neighborhoodScores, censusData, fmr, floodZone, riskData, areaMetrics, areaRiskScore, marketTemperature, newsData, isAreaMode, walkScoreData }
       const ai = await analyzeProperty(geo, weather, climate, knownFacts ?? {}, realData, cerebrasKey); setLoadStep(4)
       setResult({ geo, weather, climate, ai, knownFacts: knownFacts ?? {}, realData, isAreaMode })
-      loadUserRecord() // refresh usage counter after analysis
+      setTimeout(() => loadUserRecord(), 800) // wait for Turso write to commit
     } catch (err) {
       if (err.message?.includes('context invalidated')) return
       if (err.message?.includes('limit reached') || err.message?.includes('429')) setShowPaywall(true)
@@ -1654,7 +1654,7 @@ export default function App() {
       const ai = await analyzeProperty(geo, weather, climate, {}, realData, cerebrasKey); setLoadStep(4)
       setCompareResult({ geo, weather, climate, ai, knownFacts: {}, realData, isAreaMode })
       setComparingMode(false)
-      loadUserRecord() // refresh usage counter
+      setTimeout(() => loadUserRecord(), 800) // wait for Turso write to commit
     } catch (err) {
       if (err.message?.includes('limit reached') || err.message?.includes('429')) setShowPaywall(true)
       else setError(err.message ?? 'Something went wrong.')
