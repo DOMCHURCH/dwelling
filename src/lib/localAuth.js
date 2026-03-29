@@ -95,3 +95,23 @@ export async function saveCerebrasKey(cerebrasKey) {
 export function getCachedCerebrasKey() {
   return localStorage.getItem('dw_cerebras_key') || ''
 }
+
+// Fetch the user's Cerebras key from Turso and cache it locally
+export async function loadCerebrasKeyFromServer() {
+  const token = getToken()
+  if (!token || token.split('.').length !== 3) return null
+  try {
+    const res = await fetch('/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ action: 'get-key' }),
+    })
+    if (!res.ok) return null
+    const data = await res.json()
+    if (data.key) {
+      localStorage.setItem('dw_cerebras_key', data.key)
+      return data.key
+    }
+    return null
+  } catch { return null }
+}
