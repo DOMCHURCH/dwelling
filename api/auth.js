@@ -148,10 +148,14 @@ export default async function handler(req, res) {
 
       const { cerebrasKey } = req.body
       const trimmedKey = (cerebrasKey || '').trim()
-      // Validate key format — Cerebras keys start with csk-
-      if (trimmedKey && !trimmedKey.startsWith('csk-')) {
-        return res.status(400).json({ error: 'Invalid key format. Cerebras API keys start with "csk-".' })
+      
+      // Relaxed validation: Just check for length or common patterns, 
+      // but don't block users if Cerebras changes their key format.
+      if (trimmedKey && trimmedKey.length < 10) {
+        return res.status(400).json({ error: 'API key seems too short. Please check your Cerebras dashboard.' })
       }
+
+      // Store the key. We'll store it as-is (base64 encoded for basic obfuscation in DB)
       const encrypted = trimmedKey
         ? Buffer.from(trimmedKey).toString('base64')
         : null
