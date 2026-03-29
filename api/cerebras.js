@@ -45,15 +45,27 @@ export default async function handler(req, res) {
   const rawToken = authHeader.replace('Bearer ', '')
   const payload = verifyToken(rawToken)
   if (!payload) {
-    // Log why verification failed for debugging
     try {
       const parts = rawToken.split('.')
-      if (parts.length !== 3) console.error('cerebras: token malformed, parts:', parts.length)
-      else {
+      if (parts.length !== 3) {
+        console.error('cerebras: token malformed, parts:', parts.length)
+      } else {
         const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
         const decoded = JSON.parse(Buffer.from(base64, 'base64').toString())
         const expired = decoded.exp && Date.now() / 1000 > decoded.exp
-        console.error('cerebras: token invalid — expired:', expired, 'email:', decoded.email, 'exp:', new Date((decoded.exp || 0) * 1000).toISOString())
+        const expectedSig = b64url(createHmac('sha256', SECRET).update(`${parts[0]}.${parts[1]}`).digest())
+        const sigOk = parts[2] === expectedSig
+        const secretHint = SECRET.length > 8
+          ? `${SECRET.slice(0, 4)}...${SECRET.slice(-4)} (len=${SECRET.length})`
+          : `(len=${SECRET.length})`
+        console.error('cerebras: token invalid —',
+          'sig_ok:', sigOk,
+          'expired:', expired,
+          'email:', decoded.email,
+          'exp:', new Date((decoded.exp || 0) * 1000).toISOString(),
+          'secret_hint:', secretHint,
+          'using_fallback:', !process.env.AUTH_SECRET
+        )
       }
     } catch(e) { console.error('cerebras: token parse error', e.message) }
     return res.status(401).json({ error: 'Invalid session — please sign out and sign in again.' })
@@ -65,19 +77,25 @@ export default async function handler(req, res) {
   // 2. Check for user-provided API key (from header first, then database)
   let userApiKey = req.headers['x-cerebras-key'] || null
 
-  // If no key in header, check if user has one stored in DB
+  // If no key in header, look it up from DB
   if (!userApiKey && !isAdmin) {
     try {
       const db = getDb()
       const result = await db.execute({ sql: 'SELECT cerebras_key FROM users WHERE email = ?', args: [email] })
       if (result.rows.length > 0 && result.rows[0].cerebras_key) {
-        userApiKey = Buffer.from(result.rows[0].cerebras_key, 'base64').toString()
+        const decoded = Buffer.from(result.rows[0].cerebras_key, 'base64').toString().trim()
+        if (decoded) userApiKey = decoded
       }
-    } catch {}
+    } catch (e) {
+      console.error('cerebras: DB key lookup failed for', email, e.message)
+    }
   }
 
-  const apiKey = userApiKey || process.env.CEREBRAS_API_KEY
-  if (!apiKey) return res.status(500).json({ error: 'No API key configured' })
+  const apiKey = (userApiKey || '').trim() || (process.env.CEREBRAS_API_KEY || '').trim() || null
+  if (!apiKey) {
+    console.error('cerebras: no API key for', email, '— header:', !!req.headers['x-cerebras-key'], '— env:', !!process.env.CEREBRAS_API_KEY)
+    return res.status(400).json({ error: 'no_key', message: 'Please add your Cerebras API key in Settings (the 🔑 button).' })
+  }
 
   // 3. Admin — bypass all usage counting entirely
   if (isAdmin) {
