@@ -16,7 +16,7 @@ import { getNeighborhoodScores } from './lib/overpass'
 import { getCensusData } from './lib/census'
 import { getFairMarketRent, getFloodZone } from './lib/hud'
 import { getCurrentUser, getAuthToken, signOut as localSignOut, getUsage, saveCerebrasKey, getCachedCerebrasKey, loadCerebrasKeyFromServer } from './lib/localAuth'
-import { generateHTMLReport, downloadHTMLReport } from './lib/htmlExport'
+
 
 
 const FREE_LIMIT = 10
