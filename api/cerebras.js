@@ -6,7 +6,7 @@ const SECRET = process.env.AUTH_SECRET
 if (!SECRET) throw new Error('FATAL: AUTH_SECRET env var is not set. Refusing to start.')
 
 const FREE_LIMIT = 10
-const ADMIN_EMAILS = ['01dominique.c@gmail.com']
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '01dominique.c@gmail.com').split(',')
 const ALLOWED_ORIGIN = 'https://dwelling-three.vercel.app'
 
 function getDb() {
@@ -97,7 +97,7 @@ export default async function handler(req, res) {
         }
       }
     } catch (e) {
-      console.error('cerebras: DB key lookup failed for', email, e.message)
+      console.error('cerebras: DB key lookup failed')
     }
   }
 
@@ -141,8 +141,9 @@ export default async function handler(req, res) {
   }
 
   // 6. Enforce limit
-  const skipCount = req.headers['x-skip-count'] === 'true'
-  if (!user.is_pro && !skipCount && user.analyses_used >= FREE_LIMIT) {
+  // X-Skip-Count is only honoured for pro users — never trust a free user's header
+  const skipCount = req.headers['x-skip-count'] === 'true' && !!user.is_pro
+  if (!user.is_pro && user.analyses_used >= FREE_LIMIT) {
     return res.status(429).json({ error: 'limit reached' })
   }
 
