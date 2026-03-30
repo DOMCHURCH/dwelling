@@ -90,7 +90,7 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
   const isSection = trigger && SECTION_COPY[trigger]
   const sectionCopy = isSection ? SECTION_COPY[trigger] : null
 
-  const headerEmoji = sectionCopy ? sectionCopy.emoji : trigger === 'limit' ? '📊' : '⚡'
+  const headerEmoji = sectionCopy ? sectionCopy.emoji : trigger === 'limit' ? null : '⚡'
   const headerTitle = sectionCopy
     ? sectionCopy.title
     : trigger === 'limit'
@@ -119,7 +119,7 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
 
           {/* Header */}
           <div style={{ textAlign: 'center', marginBottom: 28 }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>{headerEmoji}</div>
+            {headerEmoji && <div style={{ fontSize: 40, marginBottom: 12 }}>{headerEmoji}</div>}
             <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 26, color: '#fff', marginBottom: 8, lineHeight: 1.1 }}>
               {headerTitle}
             </div>
@@ -236,7 +236,7 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
 
           <div style={{ textAlign: 'center', marginBottom: 6 }}>
             <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 12, color: 'rgba(74,222,128,0.7)', fontWeight: 300 }}>
-              ✓ Full refund if not satisfied · Cancel anytime
+              ✓ Cancel anytime · No long-term commitment
             </span>
           </div>
 
