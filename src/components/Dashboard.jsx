@@ -580,7 +580,18 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro' }) 
       {/* Price History */}
       {ai.priceHistory && (
         <SectionCard title="Price History & Projection" icon="📊" delay={275}>
-          <PriceHistoryChart priceHistory={ai.priceHistory} />
+          <div style={{ position: 'relative' }}>
+            <div style={{ filter: isLocked('pricehistory') ? 'blur(6px)' : 'none', userSelect: isLocked('pricehistory') ? 'none' : 'auto', pointerEvents: isLocked('pricehistory') ? 'none' : 'auto' }}>
+              <PriceHistoryChart priceHistory={ai.priceHistory} />
+            </div>
+            {isLocked('pricehistory') && (
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <div style={{ fontSize: 22 }}>📊</div>
+                <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 16, color: '#fff' }}>Pro Feature</div>
+                <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 12, color: 'rgba(255,255,255,0.45)', textAlign: 'center' }}>Price history & projections are available on the Pro plan.</div>
+              </div>
+            )}
+          </div>
         </SectionCard>
       )}
 
@@ -613,6 +624,8 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro' }) 
       {/* Environmental Risk */}
       {risk && (
         <SectionCard title="Environmental Risk" icon="🛡" delay={290} className="gsap-reveal-risk">
+          <div style={{ position: 'relative' }}>
+          <div style={{ filter: isLocked('risk') ? 'blur(6px)' : 'none', userSelect: isLocked('risk') ? 'none' : 'auto', pointerEvents: isLocked('risk') ? 'none' : 'auto' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 16 }}>
             {[
               { label: 'Flood', value: risk.detailedRisk?.floodRisk || 'Low', icon: '🌊' },
@@ -661,6 +674,15 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro' }) 
               Note: FEMA and EPA data are currently limited to US locations. Seismic risk is global.
             </div>
           )}
+          </div>
+          {isLocked('risk') && (
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <div style={{ fontSize: 22 }}>🛡</div>
+              <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 16, color: '#fff' }}>Pro Feature</div>
+              <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 12, color: 'rgba(255,255,255,0.45)', textAlign: 'center' }}>Environmental & flood risk data are available on the Pro plan.</div>
+            </div>
+          )}
+          </div>
         </SectionCard>
       )}
 
