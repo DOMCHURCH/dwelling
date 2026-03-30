@@ -11,8 +11,8 @@ if (!ENCRYPTION_KEY_HEX) throw new Error('FATAL: CEREBRAS_ENCRYPTION_KEY env var
 const ENCRYPTION_KEY = Buffer.from(ENCRYPTION_KEY_HEX, 'hex')
 if (ENCRYPTION_KEY.length !== 32) throw new Error('FATAL: CEREBRAS_ENCRYPTION_KEY must be 64 hex chars (32 bytes).')
 
-const ADMIN_EMAILS = ['01dominique.c@gmail.com']
-const BASE_URL = 'https://dwelling-three.vercel.app'
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '01dominique.c@gmail.com').split(',')
+const BASE_URL = process.env.BASE_URL || `https://${process.env.VERCEL_URL}` || 'https://dwelling-three.vercel.app'
 const ALLOWED_ORIGIN = 'https://dwelling-three.vercel.app'
 
 // ─── Rate limiting (simple in-memory for Vercel serverless) ──────────────────
@@ -233,7 +233,7 @@ export default async function handler(req, res) {
         // Migrate to PBKDF2 on next login
         passwordOk = true
         await db.execute({ sql: 'UPDATE users SET password = ? WHERE email = ?', args: [newHash, key] })
-        console.log('auth: migrated password hash for', key)
+        console.log('auth: migrated password hash')
       }
 
       if (!passwordOk) return res.status(401).json({ error: 'Incorrect email or password.' })
