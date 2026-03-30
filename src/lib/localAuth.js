@@ -87,13 +87,14 @@ export async function saveCerebrasKey(cerebrasKey) {
   })
   if (!res.ok) throw new Error('Failed to save key')
   // Also cache locally so it's available immediately without a round trip
-  if (cerebrasKey) localStorage.setItem('dw_cerebras_key', cerebrasKey)
-  else localStorage.removeItem('dw_cerebras_key')
+  // Use sessionStorage instead of localStorage — key is not persisted to disk between sessions
+  if (cerebrasKey) sessionStorage.setItem('dw_cerebras_key', cerebrasKey)
+  else sessionStorage.removeItem('dw_cerebras_key')
 }
 
 // Get locally cached key (fallback before server responds)
 export function getCachedCerebrasKey() {
-  return localStorage.getItem('dw_cerebras_key') || ''
+  return sessionStorage.getItem('dw_cerebras_key') || ''
 }
 
 // Fetch the user's Cerebras key from Turso and cache it locally
@@ -109,7 +110,7 @@ export async function loadCerebrasKeyFromServer() {
     if (!res.ok) return null
     const data = await res.json()
     if (data.key) {
-      localStorage.setItem('dw_cerebras_key', data.key)
+      sessionStorage.setItem('dw_cerebras_key', data.key)
       return data.key
     }
     return null
