@@ -18,7 +18,6 @@ import { getFairMarketRent, getFloodZone } from './lib/hud'
 import { getCurrentUser, getAuthToken, signOut as localSignOut, getUsage, saveCerebrasKey, getCachedCerebrasKey, loadCerebrasKeyFromServer } from './lib/localAuth'
 
 
-
 const FREE_LIMIT = 10
 const TRIAL_DAYS = 7
 
@@ -44,22 +43,22 @@ function Section({ children, style = {} }) {
 // ─── TERMS MODAL ─────────────────────────────────────────────────────────────
 function TermsModal({ onClose }) {
   const sections = [
-    { title: '1. Acceptance and Modification of Terms', body: 'By accessing or using the Dwelling platform, including any associated websites, applications, and services (collectively, the "Platform"), you signify your unequivocal agreement to be legally bound by these comprehensive Terms and Conditions ("Terms"). These Terms constitute a legally binding agreement between you, the individual or entity accessing or using the Platform ("User" or "you"), and Dwelling ("Company," "we," "us," or "our"). If you do not agree with any part of these Terms, you are expressly prohibited from using the Platform. We reserve the right to amend, modify, or replace these Terms at any time, at our sole discretion. We will provide reasonable notice of any material changes where required by applicable law. Your continued use of the Platform following the posting of any changes constitutes your binding acceptance of those changes. It is your responsibility to periodically review these Terms for updates.' },
-    { title: '2. Nature of Service and Disclaimer of Professional Advice', body: 'THE PLATFORM IS PROVIDED SOLELY FOR GENERAL INFORMATIONAL AND EDUCATIONAL PURPOSES. ALL CONTENT, INCLUDING BUT NOT LIMITED TO REPORTS, ANALYSES, SCORES, ESTIMATES, AI-GENERATED VERDICTS, AND MARKET DATA, IS NOT INTENDED TO CONSTITUTE, AND MUST NOT BE CONSTRUED AS, FINANCIAL ADVICE, REAL ESTATE ADVICE, INVESTMENT ADVICE, LEGAL ADVICE, TAX ADVICE, OR ANY OTHER FORM OF PROFESSIONAL ADVICE. Dwelling is not a licensed real estate brokerage, financial institution, investment advisor, or legal firm. We do not provide personalized recommendations or endorsements. You are solely responsible for conducting your own due diligence and consulting with qualified, licensed professionals (e.g., real estate agents, financial advisors, lawyers, accountants) before making any financial, real estate, or investment decisions. Reliance on any information provided by the Platform is strictly at your own risk.' },
-    { title: '3. Accuracy, Completeness, and Reliability of Data', body: 'WHILE WE STRIVE TO PROVIDE ACCURATE AND TIMELY INFORMATION, THE COMPANY MAKES NO REPRESENTATIONS, WARRANTIES, OR GUARANTEES, EXPRESS OR IMPLIED, REGARDING THE ACCURACY, COMPLETENESS, CURRENCY, RELIABILITY, OR AVAILABILITY OF ANY DATA, REPORT, SCORE, ESTIMATE, OR ANALYSIS PRESENTED ON THE PLATFORM. Real estate markets are inherently dynamic and subject to rapid change. Data may be sourced from third parties, including government entities and Multiple Listing Services (MLS), which may contain errors, omissions, or be outdated. You acknowledge that Dwelling is not responsible for any decisions made based on inaccurate, incomplete, or outdated third-party data. Algorithmic estimates and AI-generated verdicts are predictive models based on available data and are inherently approximations; they may differ materially from actual market conditions or professional appraisals. The Company explicitly disclaims all liability for any errors, inaccuracies, or omissions in the Platform content, and for any loss or damage arising from your reliance on such content.' },
-    { title: '4. AI-Generated Content Disclaimer', body: 'The Platform utilizes advanced artificial intelligence (AI) technologies to generate textual reports, analyses, property valuations, and market insights. You acknowledge that AI-generated content is experimental and prone to errors, inaccuracies, or "hallucinations." AI verdicts and investment scores are statistical probabilities and NOT predictive guarantees of future market performance. You expressly acknowledge that AI-generated content should not be considered a substitute for human professional judgment or a sole basis for any critical decision. The Company shall not be liable for any loss arising from your use of or reliance on any AI-generated content.' },
-    { title: '5. Limitation of Liability', body: 'TO THE FULLEST EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL THE COMPANY, ITS AFFILIATES, DIRECTORS, OFFICERS, EMPLOYEES, AGENTS, SUPPLIERS, OR LICENSORS BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, PUNITIVE, OR EXEMPLARY DAMAGES, INCLUDING BUT NOT LIMITED TO, DAMAGES FOR LOSS OF PROFITS, GOODWILL, USE, DATA, OR OTHER INTANGIBLE LOSSES, ARISING OUT OF OR IN CONNECTION WITH YOUR ACCESS TO, USE OF, OR INABILITY TO USE THE PLATFORM. EXCEPT WHERE PROHIBITED BY APPLICABLE LAW (INCLUDING CASES OF GROSS NEGLIGENCE OR WILLFUL MISCONDUCT), THE TOTAL CUMULATIVE LIABILITY OF THE COMPANY TO YOU FOR ALL CLAIMS ARISING OUT OF OR RELATING TO THESE TERMS OR YOUR USE OF THE PLATFORM SHALL NOT EXCEED THE GREATER OF: (A) THE TOTAL AMOUNT PAID BY YOU TO THE COMPANY IN THE THREE (3) MONTHS IMMEDIATELY PRECEDING THE EVENT GIVING RISE TO THE CLAIM; OR (B) FIFTY CANADIAN DOLLARS (CAD $50.00).' },
-    { title: '6. Disclaimer of Warranties and Experimental Features', body: 'THE PLATFORM IS PROVIDED ON AN "AS IS" AND "AS AVAILABLE" BASIS, WITHOUT ANY WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED. THE COMPANY EXPRESSLY DISCLAIMS ALL WARRANTIES, INCLUDING, BUT NOT LIMITED TO, IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. CERTAIN FEATURES OF THE PLATFORM MAY BE DESIGNATED AS "BETA," "EXPERIMENTAL," OR "PREVIEW" AND ARE SUBJECT TO CHANGE OR REMOVAL WITHOUT NOTICE. THE COMPANY DOES NOT WARRANT THAT THE PLATFORM WILL BE UNINTERRUPTED, ERROR-FREE, SECURE, OR FREE OF VIRUSES OR OTHER HARMFUL COMPONENTS. WE DO NOT WARRANT THAT THE RESULTS OBTAINED FROM THE USE OF THE PLATFORM WILL BE ACCURATE OR RELIABLE.' },
-    { title: '7. User Obligations and Prohibited Conduct', body: 'You agree to use the Platform strictly for lawful purposes. You are solely responsible for maintaining the confidentiality of your account credentials. You shall not: (a) engage in any activity that disrupts the Platform; (b) attempt to gain unauthorized access to any portion of the Platform; (c) scrape or systematically extract data from the Platform without express written permission; (d) reproduce, duplicate, or sell any portion of the Platform for commercial purposes; (e) reverse engineer or disassemble any aspect of the Platform; (f) impersonate any person or entity. Any violation of these provisions may result in immediate termination of your account and potential legal action.' },
-    { title: '8. Intellectual Property Rights', body: 'The Platform and all its original content, features, and functionality are owned by Dwelling, its licensors, or other providers and are protected by Canadian and international intellectual property laws. These Terms grant you a limited, non-exclusive, non-transferable, revocable license to access and use the Platform for your personal, non-commercial use only. Any unauthorized use of the Platform\'s content or intellectual property is strictly prohibited and may result in legal action.' },
-    { title: '9. Privacy Policy, Cookies, and Data Rights', body: 'Your privacy is paramount. By using the Platform, you consent to the collection and use of your personal information, including your email address and usage data, as described in our Privacy Policy. We utilize cookies and similar technologies to enhance user experience and analyze Platform performance. Search queries are processed in real-time and not retained beyond report generation. We do not sell your personal information to third parties. In accordance with Canadian privacy laws (including PIPEDA), you have the right to request access to, correction of, or deletion of your personal data. We retain personal information only as long as necessary to provide our services or as required by law. For any data-related requests, please contact us at the address provided in Section 16.' },
-    { title: '10. Third-Party Services and Force Majeure', body: 'The Platform integrates with various third-party services and data sources (e.g., Realtor.ca, Statistics Canada, Cerebras AI). The Company is not responsible for the accuracy, availability, or privacy practices of any third-party service. Furthermore, the Company shall not be liable for any failure or delay in performance resulting from causes beyond its reasonable control, including but not limited to API failures, internet outages, natural disasters, acts of God, labor disputes, or government actions (Force Majeure).' },
-    { title: '11. Subscription, Billing, and Refund Policy', body: 'Access to certain features may require a paid subscription. All subscriptions are charged in advance in Canadian dollars. Subscriptions automatically renew unless cancelled prior to the renewal date. Analysis availability is subject to platform capacity and fair use limitations. All payments are non-refundable, except at the sole discretion of the Company or as required by applicable law.' },
-    { title: '12. Account Suspension and Termination', body: 'The Company reserves the right to suspend or terminate your account and access to the Platform at any time, with or without notice, for any reason, including breach of these Terms. Upon termination, your right to use the Platform will immediately cease. Provisions regarding ownership, warranty disclaimers, indemnity, and limitations of liability shall survive termination.' },
-    { title: '13. Indemnification', body: 'You agree to defend, indemnify, and hold harmless the Company, its affiliates, and its and their respective officers, directors, and employees from and against any claims, liabilities, damages, or costs (including reasonable legal fees) arising out of or relating to your violation of these Terms or your use of the Platform, including your reliance on any Platform content for financial or real estate decisions.' },
-    { title: '14. Governing Law and Dispute Resolution', body: 'These Terms are governed by the laws of the Province of Ontario and the federal laws of Canada. Any dispute arising from these Terms shall first be subject to good-faith negotiation. If negotiation fails, disputes shall be resolved by binding arbitration in Ottawa, Ontario, in accordance with the Arbitration Act, 1991 (Ontario). If the parties cannot agree on an arbitrator within 30 days, either party may apply to the Superior Court of Justice in Ottawa to appoint one. You expressly waive any right to participate in any class action lawsuit or class-wide arbitration against the Company.' },
-    { title: '15. Severability and Entire Agreement', body: 'If any provision of these Terms is found to be invalid or unenforceable, such provision shall be limited or eliminated to the minimum extent necessary so that the remaining provisions of the Terms will continue in full force and effect. These Terms constitute the entire agreement between you and Dwelling regarding the Platform and supersede all prior understandings.' },
-    { title: '16. Contact Information', body: 'For any questions, concerns, or legal notices regarding these Terms, please contact us at: 01dominique.c@gmail.com with the subject line "Legal Notice — Dwelling." These Terms were last updated on March 29, 2026.' }
+    { title: '1. Acceptance of Terms', body: 'By creating an account or accessing Dwelling (the "Platform"), you agree to be legally bound by these Terms and Conditions ("Terms"). If you do not agree to all of these Terms, you must not use the Platform. These Terms constitute a binding legal agreement between you ("User") and Dwelling ("Company"). We reserve the right to modify these Terms at any time. Continued use of the Platform after modifications constitutes acceptance of the revised Terms.' },
+    { title: '2. No Professional or Financial Advice', body: 'ALL CONTENT PROVIDED BY THE PLATFORM IS FOR INFORMATIONAL AND EDUCATIONAL PURPOSES ONLY. Nothing on the Platform constitutes financial advice, real estate advice, investment advice, legal advice, tax advice, or any other professional advice. You should consult with a qualified and licensed professional before making any financial or real estate decision. The Company is not a licensed real estate brokerage, financial institution, or investment dealer.' },
+    { title: '3. Accuracy and Reliability of Data', body: 'THE COMPANY MAKES NO REPRESENTATIONS OR WARRANTIES REGARDING THE ACCURACY, COMPLETENESS, RELIABILITY, OR AVAILABILITY OF ANY DATA, REPORT, SCORE, ESTIMATE, OR ANALYSIS PROVIDED BY THE PLATFORM. Market conditions, property values, and all other data may be inaccurate, incomplete, or outdated. Algorithmic estimates and AI verdicts are approximations only and may differ materially from actual conditions. The Company expressly disclaims all liability arising from reliance on Platform content.' },
+    { title: '4. AI-Generated Content Disclaimer', body: 'The Platform uses artificial intelligence to generate reports, analyses, verdicts, and scores. AI-generated content may contain errors, hallucinations, or outdated information. AI verdicts and investment scores are NOT predictive of future market performance. You acknowledge that AI-generated content is experimental and should not be relied upon as a sole basis for any decision. The Company is not liable for any loss resulting from AI-generated content.' },
+    { title: '5. Limitation of Liability', body: 'TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL THE COMPANY BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES. THE TOTAL CUMULATIVE LIABILITY OF THE COMPANY TO YOU SHALL NOT EXCEED THE GREATER OF: (A) THE TOTAL AMOUNT PAID BY YOU IN THE THREE MONTHS PRECEDING THE CLAIM; OR (B) TWENTY-FIVE CANADIAN DOLLARS (CAD $25.00).' },
+    { title: '6. No Warranty', body: 'THE PLATFORM IS PROVIDED ON AN "AS IS" AND "AS AVAILABLE" BASIS WITHOUT ANY WARRANTIES OF ANY KIND. THE COMPANY EXPRESSLY DISCLAIMS ALL WARRANTIES INCLUDING IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. THE COMPANY DOES NOT WARRANT THAT THE PLATFORM WILL BE UNINTERRUPTED OR ERROR-FREE.' },
+    { title: '7. User Obligations and Prohibited Conduct', body: 'You agree to use the Platform only for lawful purposes. You shall not: scrape or systematically extract data without permission; reproduce or sell Platform content; reverse engineer the Platform; impersonate any person or entity; or interfere with Platform integrity. Violation may result in immediate account termination and legal action.' },
+    { title: '8. Intellectual Property', body: 'The Platform and all content, features, and functionality are owned by the Company or its licensors and are protected by Canadian and international intellectual property laws. You are granted a limited, non-exclusive, non-transferable, revocable licence to access the Platform for personal non-commercial use only.' },
+    { title: '9. Privacy and Data Collection', body: 'By using the Platform, you consent to collection and processing of your email address, account activity, and usage data to provide and improve the Platform. Search queries are processed in real time and not retained beyond report generation. We do not sell your personal information to third parties. Your Cerebras AI API key, if provided, is stored in encrypted form and used solely to forward requests to Cerebras AI on your behalf.' },
+    { title: '10. Third-Party Services and Data Sources', body: 'The Platform integrates with third-party providers including Realtor.ca/CREA, Statistics Canada, OpenStreetMap, Open-Meteo, Cerebras AI, Turso, and Vercel. The Company is not responsible for the accuracy or availability of any third-party service. The Company is not affiliated with or endorsed by any of these third parties.' },
+    { title: '11. Subscription, Billing, and Refunds', body: 'Paid subscriptions are charged in advance in Canadian dollars. Subscriptions renew automatically unless cancelled. Analysis availability under paid plans is subject to platform capacity and fair use limitations and does not constitute a guarantee of any specific volume. Refund eligibility is at the sole discretion of the Company.' },
+    { title: '12. Account Termination', body: 'The Company may suspend or terminate your account at any time, with or without notice, for any reason including breach of these Terms. Upon termination, your right to use the Platform ceases immediately.' },
+    { title: '13. Indemnification', body: 'You agree to defend, indemnify, and hold harmless the Company and its officers, directors, employees, and agents from any claims, liabilities, damages, and costs arising from your violation of these Terms or your use of the Platform, including reliance on Platform content for any financial or real estate decision.' },
+    { title: '14. Dispute Resolution and Governing Law', body: 'These Terms are governed by the laws of the Province of Ontario and the federal laws of Canada. Disputes shall first be subject to good-faith negotiation, then binding arbitration under the Arbitration Act, 1991 (Ontario) in Ottawa, Ontario. You waive any right to participate in any class action lawsuit or class-wide arbitration against the Company.' },
+    { title: '15. Severability and Entire Agreement', body: 'If any provision of these Terms is found invalid or unenforceable, it shall be modified to the minimum extent necessary and the remaining provisions shall continue in force. These Terms constitute the entire agreement between you and the Company regarding the Platform.' },
+    { title: '16. Contact Information', body: 'For questions regarding these Terms, contact us at: 01dominique.c@gmail.com with the subject line "Legal Notice — Dwelling." These Terms were last updated on March 28, 2026.' },
   ]
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
@@ -90,7 +89,7 @@ function TermsModal({ onClose }) {
 
 // ─── FAQ ─────────────────────────────────────────────────────────────────────
 const FAQ_ITEMS = [
-  { q: 'Which cities does Dwelling cover?', a: 'Currently, we cover 81 Canadian cities across all provinces and territories, with support for global cities including London, Sydney, and many more. We built our foundation with Canada to ensure rock-solid, data-rich analysis before expanding.' },
+  { q: 'Which cities does Dwelling cover?', a: 'Currently all major Canadian cities — Toronto, Vancouver, Calgary, Ottawa, Montreal, Edmonton, Winnipeg, Halifax, and hundreds more. We started with Canada to build a rock-solid, data-rich pilot before expanding.' },
   { q: 'Where does the data come from?', a: 'Realtor.ca active MLS listings (200+ per city), Statistics Canada price indices, OpenStreetMap walkability and amenities, Open-Meteo climate normals, and our proprietary AI engine for synthesis.' },
   { q: 'What is the Stability Score?', a: 'A 0–100 score computed from real listing data: median days on market, price volatility (coefficient of variation), inventory levels, and percentage of listings sitting >60 days. Higher = more stable.' },
   { q: 'Is Dwelling free to use?', a: 'Free users get 10 analyses per month. Upgrade to Pro for $19/month (or $152/year — save 33%) for expanded analysis access, full city intelligence, and investment-grade reports. Analysis availability is subject to platform capacity.' },
@@ -209,13 +208,13 @@ function Hero({ onSearch, loading, onShowDemo }) {
           Know Your Neighbourhood Before You Buy.
         </h1>
         <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 16, fontFamily: "'Barlow',sans-serif", fontWeight: 300, maxWidth: 540, lineHeight: 1.7, marginBottom: 40 }}>
-          Climate risk. School ratings. Crime data. Investment score. AI verdict. — One search, 30 seconds, any city worldwide.
+          Climate risk. School ratings. Crime data. Investment score. AI verdict. — One search, 30 seconds, any Canadian city.
         </p>
         <div style={{ width: '100%', maxWidth: 600 }}>
           <AddressSearch onSearch={onSearch} loading={loading} />
         </div>
         <div style={{ display: 'flex', gap: 10, marginTop: 24, flexWrap: 'wrap', justifyContent: 'center' }}>
-          {[["81+","Cities"],["50+","Countries"],["10","Free / Month"],["<30s","Analysis time"]].map(([val, lbl]) => (
+          {[['100k+','Cities'],['50+','Countries'],['10','Free / Month'],['<30s','Analysis time']].map(([val, lbl]) => (
             <div key={lbl} className="liquid-glass" style={{ borderRadius: 40, padding: '7px 16px', display: 'flex', alignItems: 'center', gap: 7 }}>
               <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 17, color: '#fff' }}>{val}</span>
               <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>{lbl}</span>
@@ -567,7 +566,7 @@ const Stats = memo(function Stats() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 28, textAlign: 'center' }}>
             {[
               { target: 16, suffix: '+', label: 'Data sources per report' },
-              { target: 81, suffix: '+', label: 'Cities covered' },
+              { target: 100, suffix: 'k+', label: 'Cities covered' },
               { target: 10, suffix: '', label: 'Free analyses / month' },
               { target: 30, prefix: '<', suffix: 's', label: 'Avg analysis time' },
             ].map(({ target, suffix, prefix, label }) => (
@@ -633,7 +632,7 @@ const PRICING_PRO = [
   { text: 'Side-by-side area comparison', highlight: false },
   { text: 'All neighbourhood data', highlight: false },
   { text: 'Priority support', highlight: false },
-
+  { text: 'PDF report export', highlight: false },
 ]
 
 function PricingCard({ plan, price, desc, features, cta, onCta, popular, highlight, priceLabel, annualSavings }) {
@@ -1800,7 +1799,29 @@ export default function App() {
                   onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
                   ↗ Share
                 </button>
-
+                {userRecord?.is_pro || user?.email === '01dominique.c@gmail.com' ? (
+                  <button
+                    onClick={() => {
+                      const city = result?.geo?.userCity || 'this city'
+                      const prevTitle = document.title
+                      document.title = `Dwelling Report — ${city}`
+                      window.print()
+                      document.title = prevTitle
+                    }}
+                    style={{ borderRadius: 40, padding: '8px 16px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: 'rgba(255,255,255,0.6)', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)', transition: 'opacity 0.15s', display: 'flex', alignItems: 'center', gap: 5 }}
+                    onMouseEnter={e => e.currentTarget.style.opacity = '0.75'}
+                    onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
+                    ⬇ Export PDF
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setShowPaywall(true)}
+                    style={{ borderRadius: 40, padding: '8px 16px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: 'rgba(255,255,255,0.3)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer', background: 'transparent', transition: 'opacity 0.15s', display: 'flex', alignItems: 'center', gap: 5 }}
+                    onMouseEnter={e => e.currentTarget.style.opacity = '0.75'}
+                    onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
+                    ⬇ Export PDF <span style={{ fontSize: 10, color: '#fbbf24', marginLeft: 2 }}>Pro</span>
+                  </button>
+                )}
               </div>
               {/* Admin plan preview switcher */}
               {user?.email === '01dominique.c@gmail.com' && (
@@ -1844,7 +1865,7 @@ export default function App() {
               onClearB={() => { setCompareResult(null); setComparingMode(true) }}
             />
           )}
-          {result && !loading && !compareResult && <Suspense fallback={<LoadingState step={0} />}><Dashboard data={result} onRecalculate={handleRecalculate} previewPlan={user?.email === '01dominique.c@gmail.com' ? previewPlan : 'pro'} /></Suspense>}
+          {result && !loading && !compareResult && <Suspense fallback={<LoadingState step={0} />}><Dashboard data={result} onRecalculate={handleRecalculate} previewPlan={user?.email === '01dominique.c@gmail.com' ? previewPlan : userRecord?.is_pro ? 'pro' : 'free'} /></Suspense>}
         </div>
       ) : (
         <div style={{ position: 'relative', zIndex: 1 }}>
