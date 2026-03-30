@@ -82,8 +82,8 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
   const [hovUpgrade, setHovUpgrade] = useState(false)
   const [showStripe, setShowStripe] = useState(false)
 
-  const monthlyPrice = 19
-  const annualPrice = 152
+  const monthlyPrice = 29
+  const annualPrice = 226
   const displayPrice = annual ? Math.round(annualPrice / 12) : monthlyPrice
 
   // Determine header copy based on trigger
@@ -152,7 +152,7 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
             </button>
             <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 13, color: annual ? '#fff' : 'rgba(255,255,255,0.35)' }}>
               Annual
-              <span style={{ marginLeft: 6, background: 'rgba(56,189,248,0.15)', border: '1px solid rgba(56,189,248,0.3)', borderRadius: 20, padding: '2px 8px', fontSize: 11, color: '#38bdf8' }}>Save 33%</span>
+              <span style={{ marginLeft: 6, background: 'rgba(56,189,248,0.15)', border: '1px solid rgba(56,189,248,0.3)', borderRadius: 20, padding: '2px 8px', fontSize: 11, color: '#38bdf8' }}>Save 35%</span>
             </span>
           </div>
 
@@ -195,7 +195,7 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
               }}>Most Popular</div>
               <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 20, color: '#fff', marginBottom: 2 }}>Pro</div>
               <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 14 }}>
-                {annual ? 'Billed $152/year' : 'Full intelligence'}
+                {annual ? 'Billed $226/year' : 'Full intelligence'}
               </div>
               <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
                 <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 32, color: '#fff' }}>${displayPrice}</span>
@@ -231,7 +231,7 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
               marginBottom: 10,
             }}
           >
-            {annual ? `Upgrade to Pro — $152/year →` : `Upgrade to Pro — $19/month →`}
+            {annual ? `Upgrade to Pro — $226/year →` : `Upgrade to Pro — $29/month →`}
           </button>
 
           <div style={{ textAlign: 'center', marginBottom: 6 }}>
