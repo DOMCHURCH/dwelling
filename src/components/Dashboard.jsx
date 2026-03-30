@@ -534,11 +534,12 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
               </div>
             </div>
             {isLocked('neighborhood') && (
-              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', borderRadius: 12, gap: 10 }}>
-                <span style={{ fontSize: 24 }}>🔒</span>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 15, color: '#fff', marginBottom: 4 }}>Neighborhood Analysis</div>
-                  <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 10 }}>Upgrade to Pro to see walkability, transit, schools & safety scores</div>
+              <div onClick={() => onUpgrade('neighborhood')} style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.65)', borderRadius: 12, gap: 10, cursor: 'pointer' }}>
+                <span style={{ fontSize: 28 }}>🔒</span>
+                <div style={{ textAlign: 'center', padding: '0 16px' }}>
+                  <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 17, color: '#fff', marginBottom: 6 }}>Neighbourhood Analysis</div>
+                  <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.55)', marginBottom: 14, lineHeight: 1.5 }}>Walkability, transit, schools & safety scores are Pro only.</div>
+                  <div style={{ display: 'inline-block', background: '#fff', color: '#000', borderRadius: 40, padding: '8px 20px', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13 }}>Upgrade to Pro →</div>
                 </div>
               </div>
             )}
@@ -585,10 +586,13 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
               <PriceHistoryChart priceHistory={ai.priceHistory} />
             </div>
             {isLocked('pricehistory') && (
-              <div onClick={onUpgrade} style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer' }}>
-                <div style={{ fontSize: 22 }}>📊</div>
-                <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 16, color: '#fff' }}>Pro Feature</div>
-                <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 12, color: 'rgba(255,255,255,0.45)', textAlign: 'center' }}>Price history & projections are available on the Pro plan.</div>
+              <div onClick={() => onUpgrade('pricehistory')} style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.65)', borderRadius: 12, gap: 10, cursor: 'pointer' }}>
+                <span style={{ fontSize: 28 }}>🔒</span>
+                <div style={{ textAlign: 'center', padding: '0 16px' }}>
+                  <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 17, color: '#fff', marginBottom: 6 }}>Price History & Projections</div>
+                  <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.55)', marginBottom: 14, lineHeight: 1.5 }}>Market trends & price projections are Pro only.</div>
+                  <div style={{ display: 'inline-block', background: '#fff', color: '#000', borderRadius: 40, padding: '8px 20px', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13 }}>Upgrade to Pro →</div>
+                </div>
               </div>
             )}
           </div>
@@ -676,10 +680,13 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
           )}
           </div>
           {isLocked('risk') && (
-            <div onClick={onUpgrade} style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer' }}>
-              <div style={{ fontSize: 22 }}>🛡</div>
-              <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 16, color: '#fff' }}>Pro Feature</div>
-              <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 12, color: 'rgba(255,255,255,0.45)', textAlign: 'center' }}>Environmental & flood risk data are available on the Pro plan.</div>
+            <div onClick={() => onUpgrade('risk')} style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.65)', borderRadius: 12, gap: 10, cursor: 'pointer' }}>
+              <span style={{ fontSize: 28 }}>🔒</span>
+              <div style={{ textAlign: 'center', padding: '0 16px' }}>
+                <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 17, color: '#fff', marginBottom: 6 }}>Environmental & Flood Risk</div>
+                <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.55)', marginBottom: 14, lineHeight: 1.5 }}>Detailed risk & hazard data are Pro only.</div>
+                <div style={{ display: 'inline-block', background: '#fff', color: '#000', borderRadius: 40, padding: '8px 20px', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13 }}>Upgrade to Pro →</div>
+              </div>
             </div>
           )}
           </div>
@@ -704,11 +711,12 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
             <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow', sans-serif", fontWeight: 300, lineHeight: 1.7 }}>{investment.investmentSummary}</p>
           </div>
           {isLocked('investment') && (
-            <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', borderRadius: 12, gap: 10 }}>
-              <span style={{ fontSize: 24 }}>🔒</span>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 15, color: '#fff', marginBottom: 4 }}>Investment Analysis</div>
-                <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 10 }}>Upgrade to Pro to see rent yield, investment score & outlook</div>
+            <div onClick={() => onUpgrade('investment')} style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.65)', borderRadius: 12, gap: 10, cursor: 'pointer' }}>
+              <span style={{ fontSize: 28 }}>🔒</span>
+              <div style={{ textAlign: 'center', padding: '0 16px' }}>
+                <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 17, color: '#fff', marginBottom: 6 }}>Investment Analysis</div>
+                <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.55)', marginBottom: 14, lineHeight: 1.5 }}>Rent yield, investment score & outlook are Pro only.</div>
+                <div style={{ display: 'inline-block', background: '#fff', color: '#000', borderRadius: 40, padding: '8px 20px', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13 }}>Upgrade to Pro →</div>
               </div>
             </div>
           )}
