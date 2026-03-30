@@ -1,20 +1,21 @@
 import { useState } from 'react'
 
 const PRICING_FREE = [
-  'Area intelligence reports',
-  'Neighbourhood & walkability scores',
+  '10 analyses / month',
+  'Area Verdict & Market Intelligence',
+  'Cost of Living breakdown',
   'Climate & weather data',
-  'Risk & hazard overview',
+  'Local Market News',
+  'Area Market Estimate',
 ]
 
 const PRICING_PRO = [
-  { text: 'High-volume analysis access', highlight: false },
-  { text: 'Full investment-grade AI analysis', highlight: true },
-  { text: 'Hidden risk & hazard detection', highlight: true },
-  { text: 'Price trend & market predictions', highlight: true },
-  { text: 'Side-by-side area comparison', highlight: false },
-  { text: 'All neighbourhood data', highlight: false },
-
+  { text: 'Unlimited analyses', highlight: false },
+  { text: 'Full Neighbourhood & walkability data', highlight: true },
+  { text: 'Investment Analysis & score', highlight: true },
+  { text: 'Environmental & flood risk detection', highlight: true },
+  { text: 'Price history & market projections', highlight: true },
+  { text: 'Side-by-side city comparison', highlight: false },
   { text: 'Priority support', highlight: false },
 ]
 
