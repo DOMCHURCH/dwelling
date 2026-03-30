@@ -1494,6 +1494,7 @@ export default function App() {
   const [error, setError] = useState(null)
   const [showTerms, setShowTerms] = useState(false)
   const [showPaywall, setShowPaywall] = useState(false)
+  const [paywallTrigger, setPaywallTrigger] = useState('limit') // 'limit' | 'pricing' | 'section' | section name
   const [user, setUser] = useState(null)
   const [userRecord, setUserRecord] = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
@@ -1628,7 +1629,7 @@ export default function App() {
     } catch (err) {
       if (err.message?.includes('context invalidated')) return
       if (err.message === 'no_key') { setShowKeyModal(true); return }
-      if (err.message?.includes('limit reached') || err.message?.includes('429')) setShowPaywall(true)
+      if (err.message?.includes('limit reached') || err.message?.includes('429')) { setPaywallTrigger('limit'); setShowPaywall(true) }
       else setError(err.message ?? 'Something went wrong.')
     } finally { setLoading(false) }
   }
@@ -1676,7 +1677,7 @@ export default function App() {
       setTimeout(() => loadUserRecord(), 800) // wait for Turso write to commit
     } catch (err) {
       if (err.message === 'no_key') { setShowKeyModal(true); return }
-      if (err.message?.includes('limit reached') || err.message?.includes('429')) setShowPaywall(true)
+      if (err.message?.includes('limit reached') || err.message?.includes('429')) { setPaywallTrigger('limit'); setShowPaywall(true) }
       else setError(err.message ?? 'Something went wrong.')
     } finally { setLoading(false) }
   }
@@ -1758,7 +1759,7 @@ export default function App() {
       )}
       {showKeyModal && <ApiKeyModal currentKey={cerebrasKey} onSave={k => setCerebrasKey(k)} onClose={() => setShowKeyModal(false)} isOnboarding={false} />}
       {showOnboarding && <ApiKeyModal currentKey={cerebrasKey} onSave={k => setCerebrasKey(k)} onClose={() => setShowOnboarding(false)} isOnboarding={true} />}
-      {showPaywall && <PaywallModal onClose={() => setShowPaywall(false)} onUpgrade={() => { window.location.href = 'mailto:01dominique.c@gmail.com?subject=Dwelling Pro Upgrade&body=Hi, I want to upgrade to Dwelling Pro ($19/month). Please send payment details.' }} />}
+      {showPaywall && <PaywallModal trigger={paywallTrigger} onClose={() => setShowPaywall(false)} />}
       {showAuthModal && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}>
           <AuthModal onAuth={u => { handleAuth(u); setShowAuthModal(false) }} onDemo={() => setShowAuthModal(false)} />
@@ -1799,27 +1800,13 @@ export default function App() {
                   onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
                   ↗ Share
                 </button>
-                {userRecord?.is_pro || user?.email === '01dominique.c@gmail.com' ? (
+                {!(userRecord?.is_pro || user?.email === '01dominique.c@gmail.com') && (
                   <button
-                    onClick={() => {
-                      const city = result?.geo?.userCity || 'this city'
-                      const prevTitle = document.title
-                      document.title = `Dwelling Report — ${city}`
-                      window.print()
-                      document.title = prevTitle
-                    }}
-                    style={{ borderRadius: 40, padding: '8px 16px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: 'rgba(255,255,255,0.6)', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)', transition: 'opacity 0.15s', display: 'flex', alignItems: 'center', gap: 5 }}
-                    onMouseEnter={e => e.currentTarget.style.opacity = '0.75'}
-                    onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
-                    ⬇ Export PDF
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => setShowPaywall(true)}
+                    onClick={() => { setPaywallTrigger('pricing'); setShowPaywall(true) }}
                     style={{ borderRadius: 40, padding: '8px 16px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: 'rgba(255,255,255,0.3)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer', background: 'transparent', transition: 'opacity 0.15s', display: 'flex', alignItems: 'center', gap: 5 }}
                     onMouseEnter={e => e.currentTarget.style.opacity = '0.75'}
                     onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
-                    ⬇ Export PDF <span style={{ fontSize: 10, color: '#fbbf24', marginLeft: 2 }}>Pro</span>
+                    ★ Upgrade to Pro
                   </button>
                 )}
               </div>
@@ -1865,7 +1852,7 @@ export default function App() {
               onClearB={() => { setCompareResult(null); setComparingMode(true) }}
             />
           )}
-          {result && !loading && !compareResult && <Suspense fallback={<LoadingState step={0} />}><Dashboard data={result} onRecalculate={handleRecalculate} previewPlan={user?.email === '01dominique.c@gmail.com' ? previewPlan : userRecord?.is_pro ? 'pro' : 'free'} onUpgrade={() => setShowPaywall(true)} /></Suspense>}
+          {result && !loading && !compareResult && <Suspense fallback={<LoadingState step={0} />}><Dashboard data={result} onRecalculate={handleRecalculate} previewPlan={user?.email === '01dominique.c@gmail.com' ? previewPlan : userRecord?.is_pro ? 'pro' : 'free'} onUpgrade={(section) => { setPaywallTrigger(section || 'section'); setShowPaywall(true) }} /></Suspense>}
         </div>
       ) : (
         <div style={{ position: 'relative', zIndex: 1 }}>
@@ -1878,12 +1865,12 @@ export default function App() {
           <RentalCalculator />
           <DataPartnerships />
           <Stats />
-          <Pricing onUpgrade={() => setShowPaywall(true)} />
+          <Pricing onUpgrade={() => { setPaywallTrigger('pricing'); setShowPaywall(true) }} />
           <FAQ />
           <CTAFooter
             onTermsClick={() => setShowTerms(true)}
             onScrollToTop={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            onUpgrade={() => setShowPaywall(true)}
+            onUpgrade={() => { setPaywallTrigger('pricing'); setShowPaywall(true) }}
           />
         </div>
       )}
