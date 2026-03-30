@@ -194,7 +194,7 @@ const DISPLAY_CURRENCIES = [
   { code: 'ZAR', label: 'South African Rand' }, { code: 'AED', label: 'UAE Dirham' },
 ]
 
-export default function Dashboard({ data, onRecalculate, previewPlan = 'pro' }) {
+export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', onUpgrade }) {
   const { geo, weather, climate, ai, knownFacts, realData, isAreaMode } = data
   const { areaMetrics, areaRiskScore, marketTemperature, newsData } = realData || {}
   const { propertyEstimate, costOfLiving, neighborhood, investment, localInsights, areaIntelligence, riskData: aiRiskData } = ai
@@ -585,7 +585,7 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro' }) 
               <PriceHistoryChart priceHistory={ai.priceHistory} />
             </div>
             {isLocked('pricehistory') && (
-              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <div onClick={onUpgrade} style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer' }}>
                 <div style={{ fontSize: 22 }}>📊</div>
                 <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 16, color: '#fff' }}>Pro Feature</div>
                 <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 12, color: 'rgba(255,255,255,0.45)', textAlign: 'center' }}>Price history & projections are available on the Pro plan.</div>
@@ -676,7 +676,7 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro' }) 
           )}
           </div>
           {isLocked('risk') && (
-            <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            <div onClick={onUpgrade} style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer' }}>
               <div style={{ fontSize: 22 }}>🛡</div>
               <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 16, color: '#fff' }}>Pro Feature</div>
               <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 12, color: 'rgba(255,255,255,0.45)', textAlign: 'center' }}>Environmental & flood risk data are available on the Pro plan.</div>
