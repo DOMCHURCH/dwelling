@@ -1,8 +1,10 @@
 import { createHash, createHmac, randomBytes } from 'crypto'
 import { createClient } from '@libsql/client'
+import { Resend } from 'resend'
 
 const SECRET = process.env.AUTH_SECRET || 'dwelling-secret-change-me'
 const ADMIN_EMAILS = ['01dominique.c@gmail.com']
+const BASE_URL = 'https://dwelling-three.vercel.app'
 
 function getDb() {
   return createClient({
@@ -11,9 +13,7 @@ function getDb() {
   })
 }
 
-// ─── Init table if it doesn't exist ──────────────────────────────────────────
 async function ensureTable(db) {
-  // Create base table if it doesn't exist
   await db.execute(`
     CREATE TABLE IF NOT EXISTS users (
       email TEXT PRIMARY KEY,
@@ -27,18 +27,17 @@ async function ensureTable(db) {
       created_at TEXT
     )
   `)
-  // Migrate: add new columns if they don't exist yet
-  // SQLite ignores ALTER TABLE errors so we catch individually
   const migrations = [
     'ALTER TABLE users ADD COLUMN terms_accepted_at TEXT',
     'ALTER TABLE users ADD COLUMN terms_accepted_ip TEXT',
+    'ALTER TABLE users ADD COLUMN reset_token TEXT',
+    'ALTER TABLE users ADD COLUMN reset_token_expires TEXT',
   ]
   for (const sql of migrations) {
-    try { await db.execute(sql) } catch { /* column already exists, ignore */ }
+    try { await db.execute(sql) } catch { /* column already exists */ }
   }
 }
 
-// ─── JWT ─────────────────────────────────────────────────────────────────────
 function b64url(buf) {
   return buf.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
 }
@@ -55,7 +54,6 @@ function verify(token) {
     const [header, body, sig] = token.split('.')
     const expected = b64url(createHmac('sha256', SECRET).update(`${header}.${body}`).digest())
     if (sig !== expected) return null
-    // base64url decode — replace url-safe chars back before decoding
     const base64 = body.replace(/-/g, '+').replace(/_/g, '/')
     const payload = JSON.parse(Buffer.from(base64, 'base64').toString())
     if (payload.exp && Date.now() / 1000 > payload.exp) return null
@@ -65,6 +63,44 @@ function verify(token) {
 
 function hashPassword(password, salt) {
   return createHash('sha256').update(password + salt + SECRET).digest('hex')
+}
+
+async function sendResetEmail(toEmail, resetToken) {
+  const resend = new Resend(process.env.RESEND_API_KEY)
+  const resetUrl = `${BASE_URL}?reset_token=${resetToken}`
+
+  await resend.emails.send({
+    from: 'Dwelling <onboarding@resend.dev>',
+    to: toEmail,
+    subject: 'Reset your Dwelling password',
+    html: `
+      <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px; background: #000; color: #fff;">
+        <h1 style="font-size: 28px; font-style: italic; margin-bottom: 8px;">DW<span style="opacity:0.4">.</span>ELLING</h1>
+        <p style="color: rgba(255,255,255,0.6); margin-bottom: 32px;">Canadian City Intelligence</p>
+
+        <h2 style="font-size: 20px; margin-bottom: 12px;">Reset your password</h2>
+        <p style="color: rgba(255,255,255,0.7); line-height: 1.6; margin-bottom: 28px;">
+          Someone requested a password reset for your Dwelling account. If that was you, click the button below.
+          This link expires in <strong>1 hour</strong>.
+        </p>
+
+        <a href="${resetUrl}" style="display: inline-block; background: #fff; color: #000; padding: 14px 28px; border-radius: 40px; font-weight: 600; font-size: 15px; text-decoration: none; margin-bottom: 28px;">
+          Reset Password →
+        </a>
+
+        <p style="color: rgba(255,255,255,0.35); font-size: 12px; line-height: 1.6;">
+          If you didn't request this, you can safely ignore this email. Your password will not change.<br><br>
+          If the button doesn't work, copy this link into your browser:<br>
+          <span style="color: rgba(255,255,255,0.5);">${resetUrl}</span>
+        </p>
+
+        <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 28px 0;" />
+        <p style="color: rgba(255,255,255,0.2); font-size: 11px;">
+          Dwelling · Ottawa, Canada · This is an automated message, please do not reply.
+        </p>
+      </div>
+    `,
+  })
 }
 
 // ─── Handler ─────────────────────────────────────────────────────────────────
@@ -121,6 +157,72 @@ export default async function handler(req, res) {
       return res.status(200).json({ token, userId: user.id, email: key, is_pro: !!user.is_pro })
     }
 
+    // ── forgot-password ─────────────────────────────────────────────────────
+    if (action === 'forgot-password') {
+      const { email } = req.body
+      if (!email) return res.status(400).json({ error: 'Email is required.' })
+
+      const key = email.toLowerCase().trim()
+
+      // Always return success — don't reveal if email exists (security)
+      const result = await db.execute({ sql: 'SELECT email FROM users WHERE email = ?', args: [key] })
+      if (result.rows.length === 0) {
+        return res.status(200).json({ success: true })
+      }
+
+      // Generate secure token — expires in 1 hour
+      const token = randomBytes(32).toString('hex')
+      const expires = new Date(Date.now() + 60 * 60 * 1000).toISOString()
+
+      await db.execute({
+        sql: 'UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE email = ?',
+        args: [token, expires, key],
+      })
+
+      try {
+        await sendResetEmail(key, token)
+      } catch (e) {
+        console.error('Reset email failed:', e.message)
+        return res.status(500).json({ error: 'Failed to send reset email. Please try again.' })
+      }
+
+      return res.status(200).json({ success: true })
+    }
+
+    // ── reset-password ──────────────────────────────────────────────────────
+    if (action === 'reset-password') {
+      const { token, password } = req.body
+      if (!token || !password) return res.status(400).json({ error: 'Missing token or password.' })
+      if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters.' })
+
+      const result = await db.execute({
+        sql: 'SELECT * FROM users WHERE reset_token = ?',
+        args: [token],
+      })
+
+      if (result.rows.length === 0) {
+        return res.status(400).json({ error: 'Invalid or expired reset link. Please request a new one.' })
+      }
+
+      const user = result.rows[0]
+
+      // Check expiry
+      if (!user.reset_token_expires || new Date(user.reset_token_expires) < new Date()) {
+        return res.status(400).json({ error: 'This reset link has expired. Please request a new one.' })
+      }
+
+      // Update password and clear token
+      const salt = randomBytes(16).toString('hex')
+      await db.execute({
+        sql: 'UPDATE users SET password = ?, salt = ?, reset_token = NULL, reset_token_expires = NULL WHERE email = ?',
+        args: [hashPassword(password, salt), salt, user.email],
+      })
+
+      // Sign them in automatically
+      const jwtToken = sign({ sub: user.id, email: user.email, is_pro: !!user.is_pro, exp: Math.floor(Date.now() / 1000) + 30 * 86400 })
+      return res.status(200).json({ token: jwtToken, userId: user.id, email: user.email, is_pro: !!user.is_pro })
+    }
+
     // ── usage ───────────────────────────────────────────────────────────────
     if (action === 'usage') {
       const authHeader = req.headers.authorization
@@ -139,7 +241,7 @@ export default async function handler(req, res) {
       })
     }
 
-    // ── save-key (store user's Cerebras API key encrypted server-side) ──────
+    // ── save-key ────────────────────────────────────────────────────────────
     if (action === 'save-key') {
       const authHeader = req.headers.authorization
       if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
@@ -148,27 +250,21 @@ export default async function handler(req, res) {
 
       const { cerebrasKey } = req.body
       const trimmedKey = (cerebrasKey || '').trim()
-      
-      // Relaxed validation: Just check for length or common patterns, 
-      // but don't block users if Cerebras changes their key format.
+
       if (trimmedKey && trimmedKey.length < 10) {
         return res.status(400).json({ error: 'API key seems too short. Please check your Cerebras dashboard.' })
       }
 
-      // Store the key. We'll store it as-is (base64 encoded for basic obfuscation in DB)
-      const encrypted = trimmedKey
-        ? Buffer.from(trimmedKey).toString('base64')
-        : null
+      const encrypted = trimmedKey ? Buffer.from(trimmedKey).toString('base64') : null
 
       await db.execute({
         sql: 'UPDATE users SET cerebras_key = ? WHERE email = ?',
         args: [encrypted, payload.email],
       })
-      console.log('save-key: saved for', payload.email, '— key present:', !!trimmedKey)
       return res.status(200).json({ success: true })
     }
 
-    // ── get-key (retrieve user's stored Cerebras key) ────────────────────────
+    // ── get-key ─────────────────────────────────────────────────────────────
     if (action === 'get-key') {
       const authHeader = req.headers.authorization
       if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
