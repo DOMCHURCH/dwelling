@@ -618,21 +618,21 @@ const Testimonials = memo(function Testimonials() {
 
 // ─── PRICING ─────────────────────────────────────────────────────────────────
 const PRICING_FREE = [
-  '10 analyses/month',
-  'Area intelligence reports',
-  'Neighbourhood & walkability scores',
+  '10 analyses / month',
+  'Area Verdict & Market Intelligence',
+  'Cost of Living breakdown',
   'Climate & weather data',
-  'Risk & hazard overview',
+  'Local Market News',
+  'Area Market Estimate',
 ]
 const PRICING_PRO = [
-  { text: 'High-volume analysis access', highlight: false },
-  { text: 'Full investment-grade AI analysis', highlight: true },
-  { text: 'Hidden risk & hazard detection', highlight: true },
-  { text: 'Price trend & market predictions', highlight: true },
-  { text: 'Side-by-side area comparison', highlight: false },
-  { text: 'All neighbourhood data', highlight: false },
+  { text: 'Unlimited analyses', highlight: false },
+  { text: 'Full Neighbourhood & walkability data', highlight: true },
+  { text: 'Investment Analysis & score', highlight: true },
+  { text: 'Environmental & flood risk detection', highlight: true },
+  { text: 'Price history & market projections', highlight: true },
+  { text: 'Side-by-side city comparison', highlight: false },
   { text: 'Priority support', highlight: false },
-  { text: 'PDF report export', highlight: false },
 ]
 
 function PricingCard({ plan, price, desc, features, cta, onCta, popular, highlight, priceLabel, annualSavings }) {
@@ -1865,7 +1865,7 @@ export default function App() {
               onClearB={() => { setCompareResult(null); setComparingMode(true) }}
             />
           )}
-          {result && !loading && !compareResult && <Suspense fallback={<LoadingState step={0} />}><Dashboard data={result} onRecalculate={handleRecalculate} previewPlan={user?.email === '01dominique.c@gmail.com' ? previewPlan : userRecord?.is_pro ? 'pro' : 'free'} /></Suspense>}
+          {result && !loading && !compareResult && <Suspense fallback={<LoadingState step={0} />}><Dashboard data={result} onRecalculate={handleRecalculate} previewPlan={user?.email === '01dominique.c@gmail.com' ? previewPlan : userRecord?.is_pro ? 'pro' : 'free'} onUpgrade={() => setShowPaywall(true)} /></Suspense>}
         </div>
       ) : (
         <div style={{ position: 'relative', zIndex: 1 }}>
