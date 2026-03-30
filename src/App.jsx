@@ -807,21 +807,30 @@ const Pricing = memo(function Pricing({ onUpgrade }) {
 
 
 // ─── MORTGAGE CALCULATOR ──────────────────────────────────────────────────────
-function MortgageCalculator() {
+function MortgageCalculator({ activeCity }) {
   const [income, setIncome] = useState(120000)
   const [downPct, setDownPct] = useState(20)
   const [rate, setRate] = useState(5.5)
-  const [city, setCity] = useState('Ottawa')
-
-  // Canadian median prices per city (2025 estimates)
-  const CITY_PRICES = {
+  const CITY_PRICES_MC = {
     'Ottawa': 620000, 'Toronto': 1080000, 'Vancouver': 1320000,
     'Calgary': 630000, 'Edmonton': 430000, 'Montreal': 540000,
     'Hamilton': 710000, 'Waterloo': 700000, 'Victoria': 880000,
     'Halifax': 530000, 'Winnipeg': 360000, 'Saskatoon': 360000,
   }
+  // Auto-select the city the user just searched if it exists in our list
+  const matchCity = activeCity ? Object.keys(CITY_PRICES_MC).find(c => activeCity.toLowerCase().includes(c.toLowerCase())) : null
+  const [city, setCity] = useState(matchCity || 'Ottawa')
+  // Update city when a new analysis runs
+  const prevActiveCity = useRef(activeCity)
+  useEffect(() => {
+    if (activeCity && activeCity !== prevActiveCity.current) {
+      const match = Object.keys(CITY_PRICES_MC).find(c => activeCity.toLowerCase().includes(c.toLowerCase()))
+      if (match) setCity(match)
+      prevActiveCity.current = activeCity
+    }
+  }, [activeCity])
 
-  const medianPrice = CITY_PRICES[city] || 600000
+  const medianPrice = CITY_PRICES_MC[city] || 600000
   const downPayment = medianPrice * (downPct / 100)
   const principal = medianPrice - downPayment
 
@@ -858,7 +867,7 @@ function MortgageCalculator() {
             <div>
               <label style={labelStyle}>City</label>
               <select value={city} onChange={e => setCity(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}>
-                {Object.keys(CITY_PRICES).map(c => <option key={c} value={c} style={{ background: '#111' }}>{c}</option>)}
+                {Object.keys(CITY_PRICES_MC).map(c => <option key={c} value={c} style={{ background: '#111' }}>{c}</option>)}
               </select>
             </div>
             <div>
@@ -928,10 +937,20 @@ function MortgageCalculator() {
 
 
 // ─── RENTAL YIELD CALCULATOR ──────────────────────────────────────────────────
-function RentalCalculator() {
-  const [city, setCity] = useState('Ottawa')
+function RentalCalculator({ activeCity }) {
+  const CITY_DATA_KEYS = ['Ottawa','Toronto','Vancouver','Calgary','Edmonton','Montreal','Hamilton','Waterloo','Victoria','Halifax','Winnipeg','Saskatoon']
+  const matchCityR = activeCity ? CITY_DATA_KEYS.find(c => activeCity.toLowerCase().includes(c.toLowerCase())) : null
+  const [city, setCity] = useState(matchCityR || 'Ottawa')
   const [downPct, setDownPct] = useState(20)
   const [rate, setRate] = useState(5.5)
+  const prevActiveCityR = useRef(activeCity)
+  useEffect(() => {
+    if (activeCity && activeCity !== prevActiveCityR.current) {
+      const match = CITY_DATA_KEYS.find(c => activeCity.toLowerCase().includes(c.toLowerCase()))
+      if (match) setCity(match)
+      prevActiveCityR.current = activeCity
+    }
+  }, [activeCity])
   const [mgmt, setMgmt] = useState(8) // property mgmt %
   const [vacancy, setVacancy] = useState(5) // vacancy %
 
@@ -1867,8 +1886,8 @@ export default function App() {
           <HowItWorks />
           <FeaturesChess />
           <FeaturesGrid />
-          <MortgageCalculator />
-          <RentalCalculator />
+          <MortgageCalculator activeCity={result?.geo?.userCity || null} />
+          <RentalCalculator activeCity={result?.geo?.userCity || null} />
           <DataPartnerships />
           <Stats />
           <Pricing onUpgrade={() => { setPaywallTrigger('pricing'); setShowPaywall(true) }} />
