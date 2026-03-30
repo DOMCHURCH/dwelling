@@ -61,7 +61,7 @@ async function fetchRedfinComps({ street, city, state, lat, lon }) {
       if (match.id?.startsWith('listing_')) listingId = match.id.replace('listing_', '')
     }
   } catch (e) {
-    console.warn('Redfin search failed:', e.message)
+
   }
 
   // Step 2: If we found the property, get nearby sold comps
@@ -91,7 +91,7 @@ async function fetchRedfinComps({ street, city, state, lat, lon }) {
         })
       }
     } catch (e) {
-      console.warn('Redfin belowTheFold failed:', e.message)
+
     }
 
     // Step 3: Get nearby sold comparables
@@ -120,7 +120,7 @@ async function fetchRedfinComps({ street, city, state, lat, lon }) {
         })
       }
     } catch (e) {
-      console.warn('Redfin similars failed:', e.message)
+
     }
   }
 
@@ -151,7 +151,7 @@ async function fetchRedfinComps({ street, city, state, lat, lon }) {
         }
       }
     } catch (e) {
-      console.warn('Redfin CSV fallback failed:', e.message)
+
     }
   }
 
@@ -265,7 +265,7 @@ async function fetchRealtorCaComps({ city, state, lat, lon }) {
         }
         if (listings.length < 50) break // no more pages
       } catch (e) {
-        console.warn(`Realtor.ca ${endpoint} page ${page} failed:`, e.message)
+
         break
       }
     }
@@ -394,7 +394,7 @@ async function fetchRedfinBulk(city, state) {
     const listings = parseRedfinCSV(csvText)
     return { listings, source: 'redfin_bulk', city, count: listings.length }
   } catch (err) {
-    console.warn('[comps bulk] Redfin failed:', err.message)
+
     return { listings: [], source: 'redfin_bulk_failed', error: err.message }
   }
 }
@@ -500,7 +500,7 @@ async function fetchRealtorCaBulk(city, state) {
 
     return { listings, source: 'realtorca_bulk', city, count: listings.length }
   } catch (err) {
-    console.warn('[comps bulk] Realtor.ca failed:', err.message)
+
     return { listings: [], source: 'realtorca_bulk_failed', error: err.message }
   }
 }
