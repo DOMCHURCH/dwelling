@@ -94,7 +94,7 @@ const FAQ_ITEMS = [
   { q: 'Which cities does Dwelling cover?', a: 'Currently all major Canadian cities — Toronto, Vancouver, Calgary, Ottawa, Montreal, Edmonton, Winnipeg, Halifax, and hundreds more. We started with Canada to build a rock-solid, data-rich pilot before expanding.' },
   { q: 'Where does the data come from?', a: 'Realtor.ca active MLS listings (200+ per city), Statistics Canada price indices, OpenStreetMap walkability and amenities, Open-Meteo climate normals, and our proprietary AI engine for synthesis.' },
   { q: 'What is the Stability Score?', a: 'A 0–100 score computed from real listing data: median days on market, price volatility (coefficient of variation), inventory levels, and percentage of listings sitting >60 days. Higher = more stable.' },
-  { q: 'Is Dwelling free to use?', a: 'Free users get 10 analyses per month. Upgrade to Pro for $19/month (or $152/year — save 33%) for expanded analysis access, full city intelligence, and investment-grade reports. Analysis availability is subject to platform capacity.' },
+  { q: 'Is Dwelling free to use?', a: 'Free users get 10 analyses per month. Upgrade to Pro for $29/month (or $226/year — save 35%) for expanded analysis access, full city intelligence, and investment-grade reports. Analysis availability is subject to platform capacity.' },
   { q: 'Can I use the results to make a real estate decision?', a: 'No. All outputs are informational only and do not constitute financial, legal, or real estate advice. Always consult a qualified professional.' },
   { q: 'Does Dwelling store my searches?', a: 'No. Searches are processed in real time and discarded immediately. We store only your usage count to enforce free-tier limits.' },
   { q: 'Why Canada only right now?', a: 'Depth over breadth. Starting with one country lets us build a genuinely reliable product — accurate data partnerships, verified sources, Canada-specific context — before expanding internationally.' },
@@ -731,8 +731,8 @@ function PricingCard({ plan, price, desc, features, cta, onCta, popular, highlig
 
 const Pricing = memo(function Pricing({ onUpgrade }) {
   const [annual, setAnnual] = useState(false)
-  const monthlyPrice = 19
-  const annualPrice = 152
+  const monthlyPrice = 29
+  const annualPrice = 226
   const displayPrice = annual ? Math.round(annualPrice / 12) : monthlyPrice
   const displaySuffix = annual ? '/mo · billed yearly' : '/month'
 
@@ -777,7 +777,7 @@ const Pricing = memo(function Pricing({ onUpgrade }) {
           </button>
           <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 13, color: annual ? '#fff' : 'rgba(255,255,255,0.35)', fontWeight: 400 }}>
             Annual
-            <span style={{ marginLeft: 6, background: 'rgba(56,189,248,0.15)', border: '1px solid rgba(56,189,248,0.3)', borderRadius: 20, padding: '2px 8px', fontSize: 11, color: '#38bdf8' }}>Save 33%</span>
+            <span style={{ marginLeft: 6, background: 'rgba(56,189,248,0.15)', border: '1px solid rgba(56,189,248,0.3)', borderRadius: 20, padding: '2px 8px', fontSize: 11, color: '#38bdf8' }}>Save 35%</span>
           </span>
         </div>
 
@@ -790,10 +790,10 @@ const Pricing = memo(function Pricing({ onUpgrade }) {
             popular={false}
           />
           <PricingCard
-            plan="Pro" price={String(displayPrice)} desc={annual ? "Billed $152/year — cancel anytime" : "Full intelligence for every location decision"}
+            plan="Pro" price={String(displayPrice)} desc={annual ? "Billed $226/year — cancel anytime" : "Full intelligence for every location decision"}
             priceLabel={annual ? '/mo · billed yearly' : '/month'}
             features={PRICING_PRO}
-            cta={annual ? `Get Pro — $152/year →` : "Upgrade to Pro →"}
+            cta={annual ? `Get Pro — $226/year →` : "Upgrade to Pro →"}
             onCta={onUpgrade}
             popular={true}
             annualSavings={annual}
