@@ -1575,11 +1575,11 @@ export default function App() {
     const serverKey = await loadCerebrasKeyFromServer()
     if (serverKey) {
       // User already has a key saved — restore it, clear any stale cached key from another account
-      localStorage.removeItem('dw_cerebras_key')
+      sessionStorage.removeItem('dw_cerebras_key')
       setCerebrasKey(serverKey)
     } else {
       // No key on server — clear any stale cached key from a different account
-      localStorage.removeItem('dw_cerebras_key')
+      sessionStorage.removeItem('dw_cerebras_key')
       setCerebrasKey('')
       // Show onboarding once
       const alreadySeen = sessionStorage.getItem('dw_key_onboarding_seen')
@@ -1591,7 +1591,7 @@ export default function App() {
   const handleSignOut = () => {
     localSignOut()
     // Clear API key from localStorage so it doesn't leak to next account
-    localStorage.removeItem('dw_cerebras_key')
+    sessionStorage.removeItem('dw_cerebras_key')
     setCerebrasKey('')
     setUser(null); setUserRecord(null); setResult(null)
   }
