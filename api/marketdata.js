@@ -213,7 +213,7 @@ function findCity(cityName, dataset) {
 // ─── VERCEL HANDLER ──────────────────────────────────────────────────────────
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Origin', process.env.ALLOWED_ORIGIN || 'https://dwelling-three.vercel.app')
   res.setHeader('Cache-Control', 'public, s-maxage=3600')
 
   const { city, country } = req.method === 'POST' ? req.body : req.query
