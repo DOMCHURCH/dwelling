@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, memo, lazy, Suspense } from 'react'
+import { useScrollReveal, useCountUp } from './hooks/useScrollReveal'
 import { motion, AnimatePresence } from 'framer-motion'
 import AddressSearch from './components/AddressSearch'
 import LoadingState from './components/LoadingState'
@@ -112,7 +113,7 @@ const FAQ = memo(function FAQ() {
       </h2>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {FAQ_ITEMS.map((item, i) => (
-          <div key={i} className="liquid-glass" style={{ borderRadius: 18, overflow: 'hidden' }}>
+          <div key={i} className="liquid-glass how-step" style={{ borderRadius: 18, overflow: 'hidden' }}>
             <button onClick={() => setOpen(open === i ? null : i)}
               style={{ width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 22px', background: 'transparent', border: 'none', cursor: 'pointer' }}>
               <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 400, fontSize: 14, color: '#fff', flex: 1, paddingRight: 16 }}>{item.q}</span>
@@ -411,15 +412,17 @@ function Hero({ onSearch, loading, onShowDemo }) {
 // ─── PARTNERS ────────────────────────────────────────────────────────────────
 const Partners = memo(function Partners() {
   const partners = ['Realtor.ca', 'StatCan', 'Open-Meteo', 'OpenStreetMap', 'Fraser Institute', 'Dwelling AI']
+  const sectionRef = useScrollReveal({ y: 24, opacity: 0, duration: 0.8 })
+  const partnersRef = useScrollReveal({ y: 0, opacity: 0, duration: 0.6, stagger: 0.07, selector: 'span.partner-name' })
   return (
     <section style={{ padding: '64px 24px' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <div ref={sectionRef} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <div className="liquid-glass" style={{ borderRadius: 40, padding: '4px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 28 }}>
           Powered by 16+ official data sources
         </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 32 }}>
+        <div ref={partnersRef} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 32 }}>
           {partners.map(name => (
-            <span key={name} style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 26, color: 'rgba(255,255,255,0.7)', transition: 'color 0.2s', cursor: 'default' }}
+            <span key={name} className="partner-name" style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 26, color: 'rgba(255,255,255,0.7)', transition: 'color 0.2s', cursor: 'default' }}
               onMouseEnter={e => e.currentTarget.style.color = '#fff'}
               onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.7)'}>{name}</span>
           ))}
@@ -448,17 +451,23 @@ const HowItWorks = memo(function HowItWorks() {
     { num: '02', icon: '⚡', title: 'We pull 16+ live data sources', desc: 'MLS listings, days on market, census demographics, climate risk, school ratings, crime data, walkability, and investment signals — all in real time.' },
     { num: '03', icon: '🧠', title: 'AI builds your intelligence report', desc: 'Our AI synthesizes everything into a stability score, AI verdict, investment outlook, school ratings, crime data, and climate risk — in under 30 seconds.' },
   ]
+  const headRef = useScrollReveal({ y: 32, opacity: 0, duration: 0.9, ease: 'power3.out' })
+  const stepsRef = useScrollReveal({ y: 40, opacity: 0, duration: 0.7, stagger: 0.15, selector: '.how-step', delay: 0.1 })
   return (
     <Section style={{ minHeight: 'auto', padding: 'clamp(60px, 10vw, 128px) 20px' }}>
       <div style={{ maxWidth: 900, margin: '0 auto', textAlign: 'center' }} id="how-it-works">
-        <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>How It Works</div>
-        <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2rem,5vw,3.5rem)', color: '#fff', marginBottom: 12, lineHeight: 0.9, letterSpacing: '-0.02em' }}>
-          <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic' }}>Analyze. Understand. Decide.</span>
-        </h2>
-        <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 15, fontFamily: "'Barlow',sans-serif", fontWeight: 300, maxWidth: 500, lineHeight: 1.7, marginBottom: 56, margin: '0 auto 56px' }}>
-          Enter any city or neighbourhood. Our AI instantly processes listing data, demographics, risk scores, and market trends.
-        </p>
-        <HoverGroup steps={steps} />
+        <div ref={headRef}>
+          <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>How It Works</div>
+          <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2rem,5vw,3.5rem)', color: '#fff', marginBottom: 12, lineHeight: 0.9, letterSpacing: '-0.02em' }}>
+            <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic' }}>Analyze. Understand. Decide.</span>
+          </h2>
+          <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 15, fontFamily: "'Barlow',sans-serif", fontWeight: 300, maxWidth: 500, lineHeight: 1.7, marginBottom: 56, margin: '0 auto 56px' }}>
+            Enter any city or neighbourhood. Our AI instantly processes listing data, demographics, risk scores, and market trends.
+          </p>
+        </div>
+        <div ref={stepsRef}>
+          <HoverGroup steps={steps} />
+        </div>
       </div>
     </Section>
   )
@@ -466,6 +475,7 @@ const HowItWorks = memo(function HowItWorks() {
 
 // ─── FEATURES ────────────────────────────────────────────────────────────────
 const FeaturesChess = memo(function FeaturesChess() {
+  const revealRef = useScrollReveal({ y: 0, opacity: 0, duration: 0.6, stagger: 0.12, selector: '.feature-chess-item' })
   const features = [
     {
       title: 'City stability scored. Not guessed.',
@@ -496,7 +506,7 @@ const FeaturesChess = memo(function FeaturesChess() {
     },
   ]
   return (
-    <section id="features" style={{ padding: '96px 24px' }}>
+    <section ref={revealRef} id="features" style={{ padding: '96px 24px' }}>
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
         <div>
           <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>Capabilities</div>
@@ -537,6 +547,7 @@ const FeaturesChess = memo(function FeaturesChess() {
 })
 
 const FeaturesGrid = memo(function FeaturesGrid() {
+  const gridRef = useScrollReveal({ y: 28, opacity: 0, duration: 0.6, stagger: 0.08, selector: '.feature-grid-card' })
   const cards = [
     { icon: '🍁', title: 'Canada-First', desc: 'Built specifically for Canadian cities. Realtor.ca MLS data, Statistics Canada demographics, and Canadian market context baked in.' },
     { icon: '📊', title: 'Real MLS Data', desc: 'Active listings from Realtor.ca, StatCan NHPI price indices, and Open-Meteo climate normals. No made-up numbers.' },
@@ -609,7 +620,7 @@ const DataPartnerships = memo(function DataPartnerships() {
 
   return (
     <section style={{ padding: '80px 24px' }}>
-      <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+      <div ref={gridRef} style={{ maxWidth: 1100, margin: '0 auto' }}>
         <div>
           <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>Data Sources</div>
         </div>
@@ -675,7 +686,7 @@ function HoverGroup({ steps }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 14, textAlign: 'left' }}>
       {steps.map((s, i) => (
-        <div key={i} className="liquid-glass"
+        <div key={i} className="liquid-glass how-step"
           onMouseEnter={() => setHovered(i)}
           onMouseLeave={() => setHovered(null)}
           style={{
@@ -701,7 +712,7 @@ function HoverGroupGrid({ cards }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 14 }}>
       {cards.map((card, i) => (
-        <div key={i} className="liquid-glass"
+        <div key={i} className="liquid-glass how-step"
           onMouseEnter={() => setHovered(i)}
           onMouseLeave={() => setHovered(null)}
           style={{
@@ -892,6 +903,8 @@ function PricingCard({ plan, price, desc, features, cta, onCta, popular, highlig
 }
 
 const Pricing = memo(function Pricing({ onUpgrade }) {
+  const headRef = useScrollReveal({ y: 28, opacity: 0, duration: 0.85, ease: 'power3.out' })
+  const cardsRef = useScrollReveal({ y: 40, opacity: 0, duration: 0.7, stagger: 0.15, selector: '.pricing-card-anim' })
   const [annual, setAnnual] = useState(false)
   const monthlyPrice = 29
   const annualPrice = 226
@@ -1350,9 +1363,10 @@ function AnimatedTestimonials() {
 
 // ─── CTA + FOOTER ────────────────────────────────────────────────────────────
 function CTAFooter({ onTermsClick, onScrollToTop, onUpgrade }) {
+  const ctaRef = useScrollReveal({ y: 36, opacity: 0, duration: 1.0, ease: 'power3.out' })
   return (
     <Section>
-      <div style={{ maxWidth: 860, margin: '0 auto', textAlign: 'center', padding: 'clamp(60px, 10vw, 128px) 20px 60px' }}>
+      <div ref={ctaRef} style={{ maxWidth: 860, margin: '0 auto', textAlign: 'center', padding: 'clamp(60px, 10vw, 128px) 20px 60px' }}>
         <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2.2rem,6vw,4.5rem)', color: '#fff', lineHeight: 0.9, letterSpacing: '-0.03em', marginBottom: 20 }}>
           <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic' }}>Your next area decision starts here.</span>
         </h2>
@@ -1685,6 +1699,17 @@ export default function App() {
   const [user, setUser] = useState(null)
   const [userRecord, setUserRecord] = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
+
+  // ── Lenis smooth scroll ──────────────────────────────────────────────────
+  useEffect(() => {
+    let lenis
+    import('lenis').then(({ default: Lenis }) => {
+      lenis = new Lenis({ lerp: 0.08, smoothWheel: true })
+      function raf(time) { lenis.raf(time); requestAnimationFrame(raf) }
+      requestAnimationFrame(raf)
+    })
+    return () => lenis?.destroy()
+  }, [])
   const [showDemo, setShowDemo] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [guestResult, setGuestResult] = useState(null) // first search result shown to non-logged-in users
