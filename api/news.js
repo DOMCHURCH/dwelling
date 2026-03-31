@@ -6,7 +6,7 @@ const _cache = new Map()
 const CACHE_TTL = 1000 * 60 * 60 * 2
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Origin', process.env.ALLOWED_ORIGIN || 'https://dwelling-three.vercel.app')
   res.setHeader('Cache-Control', 's-maxage=7200')
   if (req.method === 'OPTIONS') return res.status(204).end()
 
