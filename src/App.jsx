@@ -196,10 +196,95 @@ function Navbar({ user, userRecord, analysesLeft, isInTrial, trialDaysLeft, onSi
 }
 
 // ─── HERO ────────────────────────────────────────────────────────────────────
+function WindowFrame() {
+  // A modern floor-to-ceiling condo window — dark steel frame, frosted glass panes
+  // Sits between the particle background and the hero content
+  const frameColor = 'rgba(20,20,22,0.95)'
+  const frameW = 6  // px thickness of frame members
+  const paneGlass = 'rgba(255,255,255,0.03)'
+  const paneBlur = 'blur(2px)'
+
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, zIndex: 1,
+      pointerEvents: 'none',
+      display: 'grid',
+      // 3 columns: narrow left, wide center, narrow right
+      gridTemplateColumns: '1fr 2.2fr 1fr',
+      gridTemplateRows: '1fr',
+      gap: 0,
+    }}>
+      {/* Left pane group — 2 vertical panes */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: frameW, padding: frameW, background: frameColor }}>
+        <div style={{ background: paneGlass, backdropFilter: paneBlur, WebkitBackdropFilter: paneBlur,
+          boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.04), inset 2px 2px 8px rgba(255,255,255,0.02)' }} />
+        <div style={{ background: paneGlass, backdropFilter: paneBlur, WebkitBackdropFilter: paneBlur,
+          boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.04), inset 2px 2px 8px rgba(255,255,255,0.02)' }} />
+      </div>
+
+      {/* Center — wide open pane (hero content lives here, just a subtle frame border) */}
+      <div style={{
+        background: 'rgba(255,255,255,0.015)',
+        backdropFilter: 'blur(0.5px)',
+        WebkitBackdropFilter: 'blur(0.5px)',
+        borderLeft: `${frameW}px solid ${frameColor}`,
+        borderRight: `${frameW}px solid ${frameColor}`,
+        borderTop: `${frameW}px solid ${frameColor}`,
+        boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.03)',
+      }} />
+
+      {/* Right pane group — 2 vertical panes */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: frameW, padding: frameW, background: frameColor }}>
+        <div style={{ background: paneGlass, backdropFilter: paneBlur, WebkitBackdropFilter: paneBlur,
+          boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.04), inset 2px 2px 8px rgba(255,255,255,0.02)' }} />
+        <div style={{ background: paneGlass, backdropFilter: paneBlur, WebkitBackdropFilter: paneBlur,
+          boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.04), inset 2px 2px 8px rgba(255,255,255,0.02)' }} />
+      </div>
+
+      {/* Horizontal crossbar — sits across the middle of the frame */}
+      <div style={{
+        position: 'absolute',
+        top: '42%', left: 0, right: 0,
+        height: frameW,
+        background: frameColor,
+        zIndex: 2,
+      }} />
+
+      {/* Top frame bar */}
+      <div style={{
+        position: 'absolute',
+        top: 0, left: 0, right: 0,
+        height: frameW * 2,
+        background: frameColor,
+        zIndex: 2,
+      }} />
+
+      {/* Subtle glare on left side panes */}
+      <div style={{
+        position: 'absolute',
+        top: 0, left: 0,
+        width: '25%', height: '42%',
+        background: 'linear-gradient(135deg, rgba(255,255,255,0.04) 0%, transparent 60%)',
+        pointerEvents: 'none',
+        zIndex: 3,
+      }} />
+      <div style={{
+        position: 'absolute',
+        top: '42%', left: 0,
+        width: '25%', height: '58%',
+        background: 'linear-gradient(135deg, rgba(255,255,255,0.02) 0%, transparent 50%)',
+        pointerEvents: 'none',
+        zIndex: 3,
+      }} />
+    </div>
+  )
+}
+
 function Hero({ onSearch, loading, onShowDemo }) {
   return (
     <section id="hero" style={{ position: 'relative', overflow: 'hidden', background: 'transparent', minHeight: 'min(1000px, 100svh)', height: 'auto', isolation: 'isolate', contain: 'layout paint', zIndex: 0 }}>
       <GlobalBackground />
+      <WindowFrame />
       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 350, background: 'linear-gradient(to top, #000 40%, transparent)', zIndex: 2 }} />
       <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', maxWidth: 900, margin: '0 auto', padding: 'clamp(100px, 20vw, 150px) 20px 80px' }}>
         <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 16px', marginBottom: 28 }}>
