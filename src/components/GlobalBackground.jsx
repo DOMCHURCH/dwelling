@@ -1,10 +1,9 @@
 import { useEffect, useRef } from 'react'
 
-const NUM_LINES = 40000
+const NUM_LINES = 18000 // reduced from 40000 for better performance
 
 export default function GlobalBackground() {
   const containerRef = useRef(null)
-  const stateRef = useRef(null)
 
   useEffect(() => {
     const container = containerRef.current
@@ -19,7 +18,6 @@ export default function GlobalBackground() {
     const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl')
     if (!gl) return
 
-    // ── Resize ───────────────────────────────────────────────────────────────
     let cw, ch
     function resize() {
       cw = container.offsetWidth
@@ -80,8 +78,8 @@ export default function GlobalBackground() {
     const right2 = top2 * ar, left2 = -right2
     const pa = (right2 + left2) / (right2 - left2)
     const pb = (top2 + bottom2) / (top2 - bottom2)
-    const pc = (far + near) / (far - near)  // corrected sign
-    const pd = (2 * far * near) / (far - near)  // corrected sign
+    const pc = (far + near) / (far - near)
+    const pd = (2 * far * near) / (far - near)
     const px2 = (2 * near) / (right2 - left2)
     const py2 = (2 * near) / (top2 - bottom2)
     const perspMatrix = new Float32Array([px2,0,pa,0, 0,py2,pb,0, 0,0,pc,pd, 0,0,-1,0])
@@ -111,9 +109,9 @@ export default function GlobalBackground() {
       vertices[bp + 3] = vertices[bp]
       vertices[bp + 4] = vertices[bp + 1]
       vertices[bp + 5] = 1.83
-      thetaArr[i]    = theta
-      velThetaArr[i] = vt
-      velRadArr[i]   = rad
+      thetaArr[i]      = theta
+      velThetaArr[i]   = vt
+      velRadArr[i]     = rad
       randomTargetX[i] = (Math.random() * 2 - 1) * (cw / ch)
       randomTargetY[i] = Math.random() * 2 - 1
     }
@@ -123,21 +121,68 @@ export default function GlobalBackground() {
     gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.DYNAMIC_DRAW)
     gl.vertexAttribPointer(vertexPosition, 3, gl.FLOAT, false, 0, 0)
 
+    // ── Cursor state ──────────────────────────────────────────────────────────
+    // cursorTarget: WebGL normalized coords (-1 to 1 range matching particle space)
+    let cursorTarget = null // null = not attracting
+    let attracting = false
+
+    function screenToWebGL(clientX, clientY) {
+      const rect = canvas.getBoundingClientRect()
+      // Map to -1..1 then scale to match particle coord space
+      const nx = ((clientX - rect.left) / rect.width * 2 - 1) * (cw / ch)
+      const ny = -((clientY - rect.top) / rect.height * 2 - 1)
+      return { x: nx, y: ny }
+    }
+
+    function handleClick(e) {
+      cursorTarget = screenToWebGL(e.clientX, e.clientY)
+      attracting = true
+      // Release after 2.5 seconds — particles drift back to normal mode
+      if (releaseTimer) clearTimeout(releaseTimer)
+      releaseTimer = setTimeout(() => {
+        attracting = false
+        cursorTarget = null
+      }, 2500)
+    }
+
+    // Also attract on hold (mousedown/touchstart)
+    function handleMouseDown(e) { handleClick(e) }
+    function handleTouchStart(e) {
+      if (e.touches[0]) handleClick(e.touches[0])
+    }
+
+    let releaseTimer = null
+    window.addEventListener('click', handleClick)
+    window.addEventListener('mousedown', handleMouseDown)
+    window.addEventListener('touchstart', handleTouchStart)
+
     // ── Draw modes ────────────────────────────────────────────────────────────
     let drawType = 2
     let cn = 0
+    // Throttle: only update every other frame for perf
+    let frameSkip = 0
+
+    function drawAttract() {
+      // Pull all particles toward cursor position
+      const tx = cursorTarget.x
+      const ty = cursorTarget.y
+      for (let i = 0; i < NUM_LINES; i++) {
+        const bp = i * 6
+        vertices[bp]     = vertices[bp + 3]
+        vertices[bp + 1] = vertices[bp + 4]
+        const speed = Math.random() * 0.08 + 0.04
+        vertices[bp + 3] += (tx - vertices[bp + 3]) * speed
+        vertices[bp + 4] += (ty - vertices[bp + 4]) * speed
+      }
+    }
 
     function draw0() {
       for (let i = 0; i < NUM_LINES; i++) {
         const bp = i * 6
         vertices[bp]     = vertices[bp + 3]
         vertices[bp + 1] = vertices[bp + 4]
-        let px = vertices[bp + 3]
-        let py = vertices[bp + 4]
-        px += (randomTargetX[i] - px) * (Math.random() * 0.04 + 0.06)
-        py += (randomTargetY[i] - py) * (Math.random() * 0.04 + 0.06)
-        vertices[bp + 3] = px
-        vertices[bp + 4] = py
+        vertices[bp + 3] += (randomTargetX[i] - vertices[bp + 3]) * (Math.random() * 0.04 + 0.06)
+        vertices[bp + 4] += (randomTargetY[i] - vertices[bp + 4]) * (Math.random() * 0.04 + 0.06)
       }
     }
 
@@ -149,12 +194,8 @@ export default function GlobalBackground() {
         thetaArr[i] += velThetaArr[i]
         const tx = velRadArr[i] * Math.cos(thetaArr[i])
         const ty = velRadArr[i] * Math.sin(thetaArr[i])
-        let px = vertices[bp + 3]
-        let py = vertices[bp + 4]
-        px += (tx - px) * (Math.random() * 0.1 + 0.1)
-        py += (ty - py) * (Math.random() * 0.1 + 0.1)
-        vertices[bp + 3] = px
-        vertices[bp + 4] = py
+        vertices[bp + 3] += (tx - vertices[bp + 3]) * (Math.random() * 0.1 + 0.1)
+        vertices[bp + 4] += (ty - vertices[bp + 4]) * (Math.random() * 0.1 + 0.1)
       }
     }
 
@@ -176,11 +217,21 @@ export default function GlobalBackground() {
 
     function renderLoop() {
       animId = requestAnimationFrame(renderLoop)
-      switch (drawType) {
-        case 0: draw0(); break
-        case 1: draw1(); break
-        case 2: draw2(); break
+
+      // Skip every other frame to reduce CPU load
+      frameSkip = (frameSkip + 1) % 2
+      if (frameSkip !== 0) return
+
+      if (attracting && cursorTarget) {
+        drawAttract()
+      } else {
+        switch (drawType) {
+          case 0: draw0(); break
+          case 1: draw1(); break
+          case 2: draw2(); break
+        }
       }
+
       gl.lineWidth(1)
       gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.DYNAMIC_DRAW)
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
@@ -189,19 +240,21 @@ export default function GlobalBackground() {
     }
 
     function cycleMode() {
-      drawType = (drawType + 1) % 3
+      if (!attracting) drawType = (drawType + 1) % 3
       timerHandle = setTimeout(cycleMode, 1500)
     }
 
     renderLoop()
     timerHandle = setTimeout(cycleMode, 1500)
 
-    stateRef.current = { animId, timerHandle }
-
     return () => {
       if (animId) cancelAnimationFrame(animId)
       if (timerHandle) clearTimeout(timerHandle)
+      if (releaseTimer) clearTimeout(releaseTimer)
       window.removeEventListener('resize', resize)
+      window.removeEventListener('click', handleClick)
+      window.removeEventListener('mousedown', handleMouseDown)
+      window.removeEventListener('touchstart', handleTouchStart)
       gl.deleteBuffer(buf)
       gl.deleteProgram(program)
       if (container.contains(canvas)) container.removeChild(canvas)
