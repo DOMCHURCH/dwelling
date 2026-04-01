@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 const PRICING_FREE = [
   '10 analyses / month',
@@ -86,6 +86,13 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
   const monthlyPrice = 29
   const annualPrice = 226
   const displayPrice = annual ? Math.round(annualPrice / 12) : monthlyPrice
+
+  // Lock body scroll while modal is open
+  useEffect(() => {
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prev }
+  }, [])
 
   // Determine header copy based on trigger
   const isSection = trigger && SECTION_COPY[trigger]
