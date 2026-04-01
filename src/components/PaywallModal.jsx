@@ -7,11 +7,12 @@ const PRICING_FREE = [
   'Climate & weather data',
   'Local Market News',
   'Area Market Estimate',
+  'Walkability & school scores',
 ]
 
 const PRICING_PRO = [
   { text: 'Unlimited analyses', highlight: false },
-  { text: 'Full Neighbourhood & walkability data', highlight: true },
+  { text: 'Full Neighbourhood detail & safety', highlight: true },
   { text: 'Investment Analysis & score', highlight: true },
   { text: 'Environmental & flood risk detection', highlight: true },
   { text: 'Price history & market projections', highlight: true },
@@ -23,8 +24,8 @@ const PRICING_PRO = [
 const SECTION_COPY = {
   neighborhood: {
     emoji: '🏘',
-    title: "Oops — that's a Pro section",
-    subtitle: 'Neighbourhood walkability, transit, school ratings & safety scores are only available on Pro.',
+    title: 'Unlock full neighbourhood detail',
+    subtitle: 'You can already see walk & school scores. Upgrade to Pro for neighbourhood character, pros & cons, safety breakdown, and best-for analysis.',
   },
   investment: {
     emoji: '📈',
@@ -100,7 +101,7 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
     ? sectionCopy.subtitle
     : trigger === 'limit'
       ? "You've used all 10 free analyses this month. Upgrade to keep going."
-      : 'Get investment-grade city intelligence — neighbourhood data, risk analysis, price history & more.'
+      : 'Get investment-grade city intelligence — full neighbourhood detail, risk analysis, price history & investment score.'
 
   return (
     <>
