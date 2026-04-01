@@ -572,6 +572,7 @@ const FeaturesGrid = memo(function FeaturesGrid() {
 
 // ─── DATA PARTNERSHIPS ───────────────────────────────────────────────────────
 const DataPartnerships = memo(function DataPartnerships() {
+  const dpRef = useScrollReveal({ y: 28, opacity: 0, duration: 0.7, stagger: 0.1, selector: '.data-source-card' })
   const partners = [
     {
       icon: '🏛️',
@@ -620,7 +621,7 @@ const DataPartnerships = memo(function DataPartnerships() {
 
   return (
     <section style={{ padding: '80px 24px' }}>
-      <div ref={gridRef} style={{ maxWidth: 1100, margin: '0 auto' }}>
+      <div ref={dpRef} style={{ maxWidth: 1100, margin: '0 auto' }}>
         <div>
           <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>Data Sources</div>
         </div>
