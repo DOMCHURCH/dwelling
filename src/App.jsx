@@ -800,10 +800,11 @@ const PRICING_FREE = [
   'Climate & weather data',
   'Local Market News',
   'Area Market Estimate',
+  'Walkability & school scores',
 ]
 const PRICING_PRO = [
   { text: 'Unlimited analyses', highlight: false },
-  { text: 'Full Neighbourhood & walkability data', highlight: true },
+  { text: 'Full Neighbourhood detail & safety', highlight: true },
   { text: 'Investment Analysis & score', highlight: true },
   { text: 'Environmental & flood risk detection', highlight: true },
   { text: 'Price history & market projections', highlight: true },
