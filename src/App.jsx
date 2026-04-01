@@ -379,7 +379,7 @@ function Hero({ onSearch, loading, onShowDemo }) {
           <AddressSearch onSearch={onSearch} loading={loading} />
         </div>
         <div style={{ display: 'flex', gap: 10, marginTop: 24, flexWrap: 'wrap', justifyContent: 'center' }}>
-          {[['100k+','Cities'],['50+','Countries'],['10','Free / Month'],['<30s','Analysis time']].map(([val, lbl]) => (
+          {[['1,737+','Canadian Cities'],['10','Free / Month'],['<30s','Analysis time']].map(([val, lbl]) => (
             <div key={lbl} className="liquid-glass" style={{ borderRadius: 40, padding: '7px 16px', display: 'flex', alignItems: 'center', gap: 7 }}>
               <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 17, color: '#fff' }}>{val}</span>
               <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>{lbl}</span>
@@ -742,7 +742,7 @@ const Stats = memo(function Stats() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 28, textAlign: 'center' }}>
             {[
               { target: 16, suffix: '+', label: 'Data sources per report' },
-              { target: 100, suffix: 'k+', label: 'Cities covered' },
+              { target: 1737, suffix: '+', label: 'Canadian cities covered' },
               { target: 10, suffix: '', label: 'Free analyses / month' },
               { target: 30, prefix: '<', suffix: 's', label: 'Avg analysis time' },
             ].map(({ target, suffix, prefix, label }) => (
@@ -2089,3 +2089,4 @@ export default function App() {
     </div>
   )
 }
+    
