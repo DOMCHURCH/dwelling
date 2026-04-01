@@ -5,19 +5,19 @@ import { useEffect, useRef } from 'react'
 
 const IMAGES = [
   {
-    src: '/images/toronto-aerial.jpg',
+    src: '/ChatGPT%20Image%2031%20mars%202026%2C%2020%20h%2028%20min%2015%20s.png',
     alt: 'Toronto aerial night',
     caption: 'Any Canadian city.',
     sub: 'From Halifax to Victoria — live intelligence in 30 seconds.',
   },
   {
-    src: '/images/topo-map.jpg',
+    src: '/ChatGPT%20Image%2031%20mars%202026%2C%2020%20h%2028%20min%2047%20s.png',
     alt: 'Topographic data map',
     caption: 'Real data. Not guesses.',
     sub: '16+ official sources. Climate, demographics, flood risk, market data.',
   },
   {
-    src: '/images/neighbourhood.jpg',
+    src: '/ChatGPT%20Image%2031%20mars%202026%2C%2020%20h%2029%20min%2018%20s.png',
     alt: 'Canadian neighbourhood',
     caption: 'Know before you buy.',
     sub: 'Investment score, neighbourhood safety, school ratings — all in one report.',
