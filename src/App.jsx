@@ -7,6 +7,7 @@ const Dashboard = lazy(() => import('./components/Dashboard'))
 import AuthModal from './components/AuthModal'
 import PaywallModal from './components/PaywallModal'
 import GlobalBackground from './components/GlobalBackground'
+import ImageScrollStack from './components/ImageScrollStack'
 import CompareView from './components/CompareView'
 import CountUp from './components/CountUp'
 import { geocodeStructured } from './lib/nominatim'
@@ -358,32 +359,9 @@ function CityscapeSilhouette() {
   )
 }
 
-function HeroParallaxBg() {
-  const ref = useParallax({ speed: 0.25, scale: 1.18 })
-  return (
-    <div style={{ position: 'absolute', inset: 0, zIndex: 0, overflow: 'hidden', pointerEvents: 'none' }}>
-      <img
-        ref={ref}
-        src="/images/toronto-aerial.jpg"
-        alt=""
-        style={{
-          width: '100%', height: '120%', objectFit: 'cover',
-          objectPosition: 'center 30%',
-          position: 'absolute', top: '-10%', left: 0,
-          willChange: 'transform',
-        }}
-      />
-      {/* Dark overlay — lets particles show through */}
-      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.55) 50%, rgba(0,0,0,0.85) 100%)' }} />
-    </div>
-  )
-}
-
 function Hero({ onSearch, loading, onShowDemo }) {
-  const contentRef = useScrubReveal({ fromY: 0, fromScale: 1 })
   return (
-    <section id="hero" style={{ position: 'relative', overflow: 'hidden', background: '#000', minHeight: 'min(1000px, 100svh)', height: 'auto', isolation: 'isolate', zIndex: 0 }}>
-      <HeroParallaxBg />
+    <section id="hero" style={{ position: 'relative', overflow: 'hidden', background: 'transparent', minHeight: 'min(1000px, 100svh)', height: 'auto', isolation: 'isolate', contain: 'layout paint', zIndex: 0 }}>
       <GlobalBackground />
       <CityscapeSilhouette />
       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 350, background: 'linear-gradient(to top, #000 40%, transparent)', zIndex: 2 }} />
@@ -476,20 +454,9 @@ const HowItWorks = memo(function HowItWorks() {
   ]
   const headRef = useScrollReveal({ y: 32, opacity: 0, duration: 0.9, ease: 'power3.out' })
   const stepsRef = useScrollReveal({ y: 40, opacity: 0, duration: 0.7, stagger: 0.15, selector: '.how-step', delay: 0.1 })
-  const neighbourhoodRef = useParallax({ speed: 0.3, scale: 1.12 })
   return (
-    <Section style={{ minHeight: 'auto', padding: 'clamp(60px, 10vw, 128px) 20px', position: 'relative', overflow: 'hidden' }}>
-      {/* Neighbourhood parallax background */}
-      <div style={{ position: 'absolute', inset: 0, zIndex: 0, overflow: 'hidden', pointerEvents: 'none' }}>
-        <img
-          ref={neighbourhoodRef}
-          src="/images/neighbourhood.jpg"
-          alt=""
-          style={{ width: '100%', height: '120%', objectFit: 'cover', objectPosition: 'center', position: 'absolute', top: '-10%', left: 0, willChange: 'transform' }}
-        />
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.78) 50%, rgba(0,0,0,0.92) 100%)' }} />
-      </div>
-      <div style={{ maxWidth: 900, margin: '0 auto', textAlign: 'center', position: 'relative', zIndex: 2 }} id="how-it-works">
+    <Section style={{ minHeight: 'auto', padding: 'clamp(60px, 10vw, 128px) 20px' }}>
+      <div style={{ maxWidth: 900, margin: '0 auto', textAlign: 'center' }} id="how-it-works">
         <div ref={headRef}>
           <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>How It Works</div>
           <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2rem,5vw,3.5rem)', color: '#fff', marginBottom: 12, lineHeight: 0.9, letterSpacing: '-0.02em' }}>
@@ -567,20 +534,9 @@ const FeaturesChess = memo(function FeaturesChess() {
       ],
     },
   ]
-  const topoRef = useParallax({ speed: 0.2, scale: 1.1 })
   return (
-    <section id="features" style={{ padding: '96px 24px', position: 'relative', overflow: 'hidden' }}>
-      {/* Topo map parallax background */}
-      <div style={{ position: 'absolute', inset: 0, zIndex: 0, overflow: 'hidden', pointerEvents: 'none' }}>
-        <img
-          ref={topoRef}
-          src="/images/topo-map.jpg"
-          alt=""
-          style={{ width: '100%', height: '120%', objectFit: 'cover', position: 'absolute', top: '-10%', left: 0, willChange: 'transform', opacity: 0.35 }}
-        />
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, #000 0%, rgba(0,0,0,0.6) 30%, rgba(0,0,0,0.6) 70%, #000 100%)' }} />
-      </div>
-      <div ref={revealRef} style={{ maxWidth: 1100, margin: '0 auto', position: 'relative', zIndex: 2 }}>
+    <section ref={revealRef} id="features" style={{ padding: '96px 24px' }}>
+      <div style={{ maxWidth: 1100, margin: '0 auto' }}>
         <div>
           <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>Capabilities</div>
         </div>
@@ -2122,6 +2078,7 @@ export default function App() {
       ) : (
         <div style={{ position: 'relative', zIndex: 1 }}>
           <Hero onSearch={handleSearch} loading={loading} onShowDemo={() => setShowDemo(true)} />
+          <ImageScrollStack />
           <Partners />
           <HowItWorks />
           <FeaturesChess />
