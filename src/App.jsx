@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, memo, lazy, Suspense } from 'react'
-import { useScrollReveal, useCountUp, useParallax, useScrubReveal } from './hooks/useScrollReveal'
+import { useScrollReveal, useCountUp } from './hooks/useScrollReveal'
 import { motion, AnimatePresence } from 'framer-motion'
 import AddressSearch from './components/AddressSearch'
 import LoadingState from './components/LoadingState'
@@ -7,7 +7,6 @@ const Dashboard = lazy(() => import('./components/Dashboard'))
 import AuthModal from './components/AuthModal'
 import PaywallModal from './components/PaywallModal'
 import GlobalBackground from './components/GlobalBackground'
-import ImageScrollStack from './components/ImageScrollStack'
 import CompareView from './components/CompareView'
 import CountUp from './components/CountUp'
 import { geocodeStructured } from './lib/nominatim'
@@ -475,34 +474,6 @@ const HowItWorks = memo(function HowItWorks() {
 })
 
 // ─── FEATURES ────────────────────────────────────────────────────────────────
-// ─── FEATURE ROW with scrub-in animation ─────────────────────────────────────
-function FeatureRow({ i, f }) {
-  const rowRef = useScrubReveal({ fromY: 50, fromScale: 0.97 })
-  return (
-    <div ref={rowRef} style={{ paddingBottom: 48, paddingTop: i > 0 ? 48 : 0, borderBottom: i < 2 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'center' }}>
-        <div style={{ order: i % 2 === 0 ? 0 : 1 }}>
-          <h3 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(1.4rem,3vw,1.9rem)', color: '#fff', marginBottom: 14, lineHeight: 1.1 }}>{f.title}</h3>
-          <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 14, color: 'rgba(255,255,255,0.5)', lineHeight: 1.8, marginBottom: 22 }}>{f.desc}</p>
-          <button onClick={() => {}} style={{ borderRadius: 40, padding: '10px 20px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: '#fff', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', transition: 'opacity 0.15s' }}
-            onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
-            onMouseLeave={e => e.currentTarget.style.opacity = '1'}>Get started →</button>
-        </div>
-        <div style={{ order: i % 2 === 0 ? 1 : 0 }}>
-          <div className="liquid-glass" style={{ borderRadius: 18, padding: 32, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
-            {f.stats.map((s, j) => (
-              <div key={j} style={{ textAlign: 'center' }}>
-                <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(1.4rem,2.5vw,2rem)', color: '#fff', lineHeight: 1, marginBottom: 6 }}>{s.val}</div>
-                <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.35)', lineHeight: 1.4 }}>{s.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 const FeaturesChess = memo(function FeaturesChess() {
   const revealRef = useScrollReveal({ y: 0, opacity: 0, duration: 0.6, stagger: 0.12, selector: '.feature-chess-item' })
   const features = [
@@ -545,7 +516,29 @@ const FeaturesChess = memo(function FeaturesChess() {
         </h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
           {features.map((f, i) => (
-            <FeatureRow key={i} i={i} f={f} />
+            <div key={i} style={{ paddingBottom: 48, paddingTop: i > 0 ? 48 : 0, borderBottom: i < features.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'center' }}>
+                <div>
+                  <div>
+                    <h3 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(1.4rem,3vw,1.9rem)', color: '#fff', marginBottom: 14, lineHeight: 1.1 }}>{f.title}</h3>
+                    <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 14, color: 'rgba(255,255,255,0.5)', lineHeight: 1.8, marginBottom: 22 }}>{f.desc}</p>
+                    <button onClick={() => scrollTo('pricing')} style={{ borderRadius: 40, padding: '10px 20px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: '#fff', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', transition: 'transform 0.15s' }}
+                      onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+                      onMouseLeave={e => e.currentTarget.style.opacity = '1'}>Get started →</button>
+                  </div>
+                </div>
+                <div>
+                  <div className="liquid-glass" style={{ borderRadius: 18, padding: 32, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+                    {f.stats.map((s, j) => (
+                      <div key={j} style={{ textAlign: 'center' }}>
+                        <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(1.4rem,2.5vw,2rem)', color: '#fff', lineHeight: 1, marginBottom: 6 }}>{s.val}</div>
+                        <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.35)', lineHeight: 1.4 }}>{s.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
           ))}
         </div>
       </div>
@@ -742,10 +735,9 @@ function HoverGroupGrid({ cards }) {
 
 // ─── STATS ───────────────────────────────────────────────────────────────────
 const Stats = memo(function Stats() {
-  const statsRef = useScrubReveal({ fromY: 40, fromScale: 0.97 })
   return (
     <Section style={{ padding: 'clamp(60px, 10vw, 128px) 20px' }}>
-      <div ref={statsRef} style={{ maxWidth: 1000, margin: '0 auto' }}>
+      <div style={{ maxWidth: 1000, margin: '0 auto' }}>
         <div className="liquid-glass" style={{ borderRadius: 26, padding: '44px 28px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 28, textAlign: 'center' }}>
             {[
@@ -2078,7 +2070,6 @@ export default function App() {
       ) : (
         <div style={{ position: 'relative', zIndex: 1 }}>
           <Hero onSearch={handleSearch} loading={loading} onShowDemo={() => setShowDemo(true)} />
-          <ImageScrollStack />
           <Partners />
           <HowItWorks />
           <FeaturesChess />
