@@ -1059,8 +1059,6 @@ function MortgageCalculator({ activeCity }) {
                 }}
                 onFocus={e => e.target.select()}
                 onBlur={e => { if (!e.target.value || income === 0) setIncome(120000) }}
-                onFocus={e => e.target.select()}
-                onBlur={e => { if (!e.target.value || income === 0) setIncome(120000) }}
                 placeholder="e.g. 120,000"
                 style={inputStyle}
               />
@@ -1072,7 +1070,7 @@ function MortgageCalculator({ activeCity }) {
             </div>
             <div>
               <label style={labelStyle}>Rate % (5yr fixed)</label>
-              <input type="number" value={rate} onChange={e => setRate(Number(e.target.value))} onFocus={e => e.target.select()} onBlur={e => { if (!e.target.value) setRate(5.5) }} style={inputStyle} onFocus={e => e.target.select()} onBlur={e => { if (!e.target.value) setRate(5.5) }} step={0.05} min={1} max={12} />
+              <input type="number" value={rate} onChange={e => setRate(Number(e.target.value))} onFocus={e => e.target.select()} onBlur={e => { if (!e.target.value) setRate(5.5) }} style={inputStyle} step={0.05} min={1} max={12} />
             </div>
           </div>
 
@@ -1192,7 +1190,7 @@ function RentalCalculator({ activeCity }) {
             </div>
             <div>
               <label style={label}>Rate % (5yr)</label>
-              <input type="number" value={rate} onChange={e=>setRate(Number(e.target.value))} onFocus={e=>e.target.select()} onBlur={e=>{ if(!e.target.value) setRate(5.5) }} style={inputStyle} onFocus={e => e.target.select()} onBlur={e => { if (!e.target.value) setRate(5.5) }} step={0.05} min={1} max={12} />
+              <input type="number" value={rate} onChange={e=>setRate(Number(e.target.value))} onFocus={e=>e.target.select()} onBlur={e=>{ if(!e.target.value) setRate(5.5) }} style={inputStyle} step={0.05} min={1} max={12} />
             </div>
             <div>
               <label style={label}>Mgmt fee % / Vacancy %</label>
