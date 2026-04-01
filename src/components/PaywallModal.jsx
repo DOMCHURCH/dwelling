@@ -109,13 +109,16 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
       <div style={{
         position: 'fixed', inset: 0, zIndex: 1000,
         background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(12px)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+        overflowY: 'auto',
+        display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+        padding: '24px 20px 40px',
       }}>
         <div className="liquid-glass-strong" style={{
           borderRadius: 24, maxWidth: 560, width: '100%',
           padding: 36, animation: 'fadeUp 0.3s ease',
-          maxHeight: '92vh', overflowY: 'auto',
           border: '1px solid rgba(255,255,255,0.1)',
+          marginTop: 'auto', marginBottom: 'auto',
+          flexShrink: 0,
         }}>
 
           {/* Header */}
