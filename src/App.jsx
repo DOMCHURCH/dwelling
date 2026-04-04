@@ -74,10 +74,49 @@ function TermsModal({ onClose }) {
           </div>
           <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#fff', fontFamily: "'Barlow',sans-serif", fontSize: 12, padding: '6px 14px', cursor: 'pointer' }}>✕ Close</button>
         </div>
-        <div style={{ flex: 1, overflowY: 'scroll', padding: '28px' }}>
+        <div className="scroll-container" style={{ flex: 1, overflowY: 'scroll', padding: '28px', overscrollBehavior: 'contain' }}>
           <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.7, marginBottom: 24, padding: '12px 16px', background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.15)', borderRadius: 10 }}>
             ⚠ This document is provided for informational purposes. These Terms govern your use of the Dwelling platform. By using the platform you agree to be bound by them.
           </div>
+          {sections.map(({ title, body }) => (
+            <div key={title} style={{ marginBottom: 24, paddingBottom: 24, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+              <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 16, color: '#fff', marginBottom: 8 }}>{title}</div>
+              <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.85 }}>{body}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── PRIVACY POLICY MODAL ───────────────────────────────────────────────────
+function PrivacyModal({ onClose }) {
+  const sections = [
+    { title: '1. Information We Collect', body: 'When you create an account, we collect your email address, a hashed version of your password (we never store plaintext passwords), and your IP address at the time of registration for Terms acceptance records. When you use the platform, we record your analysis count to enforce free-tier limits. If you save a Cerebras API key, it is encrypted with AES-256-GCM before storage.' },
+    { title: '2. Information We Do NOT Collect', body: 'We do not store your search queries. City searches are processed in real time and discarded immediately — they are not logged, retained, or associated with your account. We do not collect location data, device fingerprints, browsing history, or any data beyond what is described in this policy.' },
+    { title: '3. How We Use Your Information', body: 'Your email is used for account authentication, password reset emails, and (only if you opt in) product updates. Your analysis count is used solely to enforce the free-tier limit of 10 analyses per month. Your encrypted API key is used only to forward AI inference requests to Cerebras on your behalf.' },
+    { title: '4. Data Storage and Security', body: 'Account data is stored in Turso (a SQLite-based database) hosted in secure data centres. Passwords are hashed using PBKDF2 with 100,000 iterations and per-user salts. API keys are encrypted with AES-256-GCM using a server-side encryption key that is never exposed to the client. All data in transit is encrypted via HTTPS/TLS.' },
+    { title: '5. Third-Party Services', body: 'We use the following third-party services to operate the platform: Vercel (hosting and serverless functions), Turso (database), Resend (transactional email for password resets), Cerebras (AI inference), and various free public APIs (OpenStreetMap, Open-Meteo, Statistics Canada, FEMA, EPA, USGS, Google News RSS). We do not share your personal information with any of these services except as necessary to provide the service (e.g., your email to Resend for password reset emails).' },
+    { title: '6. Data Retention', body: 'Your account data is retained for as long as your account is active. If you delete your account, all associated data (email, hashed password, usage count, encrypted API key) is permanently deleted within 30 days. Search queries are never retained.' },
+    { title: '7. Your Rights', body: 'You have the right to: (a) access the personal data we hold about you; (b) request correction of inaccurate data; (c) request deletion of your account and all associated data; (d) withdraw consent for email communications at any time. To exercise any of these rights, contact us at 01dominique.c@gmail.com with the subject line "Privacy Request".' },
+    { title: '8. Cookies and Tracking', body: 'Dwelling does not use cookies for tracking or advertising. We use localStorage to store your authentication token (a JWT) for session persistence. No third-party tracking scripts, analytics tools, or advertising pixels are loaded on the platform.' },
+    { title: '9. Children\'s Privacy', body: 'Dwelling is not intended for use by individuals under 18 years of age. We do not knowingly collect personal information from children. If we become aware that a child has provided us with personal data, we will delete it promptly.' },
+    { title: '10. Changes to This Policy', body: 'We may update this Privacy Policy from time to time. Changes will be posted on the platform with a revised effective date. Your continued use of the platform after changes constitutes acceptance of the updated policy.' },
+    { title: '11. Contact', body: 'For privacy-related inquiries: 01dominique.c@gmail.com. Subject line: "Privacy Request — Dwelling". We will respond within 10 business days. This policy was last updated on April 4, 2026.' },
+  ]
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div onClick={e => e.stopPropagation()}
+        className="liquid-glass-strong" style={{ borderRadius: 24, maxWidth: 700, width: '100%', height: '82vh', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 28px', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
+          <div>
+            <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 22, color: '#fff' }}>Privacy Policy</span>
+            <span style={{ marginLeft: 12, fontFamily: "'Barlow',sans-serif", fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Last updated: April 4, 2026</span>
+          </div>
+          <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#fff', fontFamily: "'Barlow',sans-serif", fontSize: 12, padding: '6px 14px', cursor: 'pointer' }}>✕ Close</button>
+        </div>
+        <div className="scroll-container" style={{ flex: 1, overflowY: 'scroll', padding: '28px', overscrollBehavior: 'contain' }}>
           {sections.map(({ title, body }) => (
             <div key={title} style={{ marginBottom: 24, paddingBottom: 24, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
               <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 16, color: '#fff', marginBottom: 8 }}>{title}</div>
@@ -1362,7 +1401,7 @@ function AnimatedTestimonials() {
 }
 
 // ─── CTA + FOOTER ────────────────────────────────────────────────────────────
-function CTAFooter({ onTermsClick, onScrollToTop, onUpgrade }) {
+function CTAFooter({ onTermsClick, onPrivacyClick, onScrollToTop, onUpgrade }) {
   const ctaRef = useScrollReveal({ y: 36, opacity: 0, duration: 1.0, ease: 'power3.out' })
   return (
     <Section>
@@ -1391,6 +1430,9 @@ function CTAFooter({ onTermsClick, onScrollToTop, onUpgrade }) {
             <button onClick={onTermsClick} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.3)', textDecoration: 'underline', padding: 0, transition: 'color 0.2s' }}
               onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.6)'}
               onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.3)'}>Terms & Conditions</button>
+            <button onClick={onPrivacyClick} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.3)', textDecoration: 'underline', padding: 0, transition: 'color 0.2s' }}
+              onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.6)'}
+              onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.3)'}>Privacy Policy</button>
             <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>Not financial advice</span>
           </div>
         </div>
@@ -1694,6 +1736,7 @@ export default function App() {
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
   const [showTerms, setShowTerms] = useState(false)
+  const [showPrivacy, setShowPrivacy] = useState(false)
   const [showPaywall, setShowPaywall] = useState(false)
   const [paywallTrigger, setPaywallTrigger] = useState('limit') // 'limit' | 'pricing' | 'section' | section name
   const [user, setUser] = useState(null)
@@ -1943,6 +1986,7 @@ export default function App() {
   return (
     <div style={{ minHeight: '100vh', background: '#000', display: 'flex', flexDirection: 'column' }}>
         {showTerms && <TermsModal onClose={() => setShowTerms(false)} />}
+        {showPrivacy && <PrivacyModal onClose={() => setShowPrivacy(false)} />}
       {/* Guest signup prompt — shown after first free search */}
       {!user && guestResult && result && (
         <div style={{
@@ -2081,6 +2125,7 @@ export default function App() {
           <FAQ />
           <CTAFooter
             onTermsClick={() => setShowTerms(true)}
+            onPrivacyClick={() => setShowPrivacy(true)}
             onScrollToTop={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
             onUpgrade={() => { setPaywallTrigger('pricing'); setShowPaywall(true) }}
           />
@@ -2089,4 +2134,3 @@ export default function App() {
     </div>
   )
 }
-    
