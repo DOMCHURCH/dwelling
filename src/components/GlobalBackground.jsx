@@ -1,234 +1,358 @@
 import { useEffect, useRef } from 'react'
+import {
+  BackSide, BoxGeometry, Clock, Mesh, MeshLambertMaterial, MeshStandardMaterial,
+  PerspectiveCamera, Scene, WebGLRenderer, SRGBColorSpace, MathUtils,
+  Vector2, Vector3, MeshPhysicalMaterial, Color, Object3D, InstancedMesh,
+  PMREMGenerator, SphereGeometry, AmbientLight, PointLight, ACESFilmicToneMapping,
+  Raycaster, Plane,
+} from 'three'
 
-const isMobile = typeof navigator !== 'undefined' && /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)
-const prefersReduced = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
-const NUM_LINES = isMobile ? 3000 : 6000
+// ── RoomEnvironment inlined (avoids three/examples import issues) ────────────
+function createAreaLightMaterial(intensity) {
+  return new MeshLambertMaterial({ color: 0x000000, emissive: 0xffffff, emissiveIntensity: intensity })
+}
 
+class RoomEnvironment extends Scene {
+  constructor() {
+    super()
+    this.name = 'RoomEnvironment'
+    this.position.y = -3.5
+
+    const geometry = new BoxGeometry()
+    geometry.deleteAttribute('uv')
+
+    const roomMaterial = new MeshStandardMaterial({ side: BackSide })
+    const boxMaterial  = new MeshStandardMaterial()
+
+    const mainLight = new PointLight(0xffffff, 900, 28, 2)
+    mainLight.position.set(0.418, 16.199, 0.300)
+    this.add(mainLight)
+
+    const room = new Mesh(geometry, roomMaterial)
+    room.position.set(-0.757, 13.219, 0.717)
+    room.scale.set(31.713, 28.305, 28.591)
+    this.add(room)
+
+    const boxes = new InstancedMesh(geometry, boxMaterial, 6)
+    const t = new Object3D()
+    const boxDefs = [
+      [[-10.906, 2.009, 1.846],   [0,-0.195,0], [2.328,7.905,4.651]],
+      [[ -5.607,-0.754,-0.758],   [0, 0.994,0], [1.970,1.534,3.955]],
+      [[  6.167, 0.857, 7.803],   [0, 0.561,0], [3.927,6.285,3.687]],
+      [[ -2.017, 0.018, 6.124],   [0, 0.333,0], [2.002,4.566,2.064]],
+      [[  2.291,-0.756,-2.621],   [0,-0.286,0], [1.546,1.552,1.496]],
+      [[ -2.193,-0.369,-5.547],   [0, 0.516,0], [3.875,3.487,2.986]],
+    ]
+    boxDefs.forEach(([p, r, s], i) => {
+      t.position.set(...p); t.rotation.set(...r); t.scale.set(...s); t.updateMatrix()
+      boxes.setMatrixAt(i, t.matrix)
+    })
+    this.add(boxes)
+
+    const lights = [
+      [[-16.116,14.370, 8.208], [0.1,2.428,2.739], 50],
+      [[-16.109,18.021,-8.207], [0.1,2.425,2.751], 50],
+      [[ 14.904,12.198,-1.832], [0.15,4.265,6.331], 17],
+      [[ -0.462, 8.890,14.520], [4.38,5.441,0.088], 43],
+      [[  3.235,11.486,-12.541],[2.5, 2.0,  0.1  ], 20],
+      [[  0.000,20.000, 0.000], [1.0, 0.1,  1.0  ], 100],
+    ]
+    lights.forEach(([pos, scale, intensity]) => {
+      const m = new Mesh(geometry, createAreaLightMaterial(intensity))
+      m.position.set(...pos); m.scale.set(...scale)
+      this.add(m)
+    })
+  }
+}
+
+// ── Three.js scene manager ───────────────────────────────────────────────────
+class ThreeBase {
+  #resizeObserver; #intersectionObserver; #resizeTimer
+  #animationFrameId = 0; #clock = new Clock()
+  #animationState = { elapsed: 0, delta: 0 }
+  #isAnimating = false; #isVisible = false
+
+  onBeforeRender = () => {}
+  onAfterResize  = () => {}
+  size = { width: 0, height: 0, wWidth: 0, wHeight: 0, ratio: 0 }
+
+  constructor({ canvas }) {
+    this.canvas   = canvas
+    this.camera   = new PerspectiveCamera(50, 1, 0.1, 100)
+    this.scene    = new Scene()
+    this.renderer = new WebGLRenderer({ canvas, powerPreference: 'high-performance', alpha: true, antialias: true })
+    this.renderer.outputColorSpace = SRGBColorSpace
+    canvas.style.display = 'block'
+    this.#initObservers()
+    this.resize()
+  }
+
+  #initObservers() {
+    const parent = this.canvas.parentNode
+    if (parent) {
+      this.#resizeObserver = new ResizeObserver(this.#onResize.bind(this))
+      this.#resizeObserver.observe(parent)
+    } else {
+      window.addEventListener('resize', this.#onResize.bind(this))
+    }
+    this.#intersectionObserver = new IntersectionObserver(this.#onIntersection.bind(this), { threshold: 0 })
+    this.#intersectionObserver.observe(this.canvas)
+    document.addEventListener('visibilitychange', this.#onVisibilityChange.bind(this))
+  }
+
+  #onResize() {
+    clearTimeout(this.#resizeTimer)
+    this.#resizeTimer = setTimeout(this.resize.bind(this), 100)
+  }
+
+  resize() {
+    const parent = this.canvas.parentNode
+    const w = parent ? parent.offsetWidth  : window.innerWidth
+    const h = parent ? parent.offsetHeight : window.innerHeight
+    Object.assign(this.size, { width: w, height: h, ratio: w / h })
+    this.camera.aspect = this.size.ratio
+    this.camera.updateProjectionMatrix()
+    const fovRad = (this.camera.fov * Math.PI) / 180
+    this.size.wHeight = 2 * Math.tan(fovRad / 2) * this.camera.position.z
+    this.size.wWidth  = this.size.wHeight * this.camera.aspect
+    this.renderer.setSize(w, h)
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    this.onAfterResize(this.size)
+  }
+
+  #onIntersection(entries) {
+    this.#isAnimating = entries[0].isIntersecting
+    this.#isAnimating ? this.#startAnimation() : this.#stopAnimation()
+  }
+
+  #onVisibilityChange() {
+    if (this.#isAnimating) document.hidden ? this.#stopAnimation() : this.#startAnimation()
+  }
+
+  #startAnimation() {
+    if (this.#isVisible) return
+    this.#isVisible = true
+    this.#clock.start()
+    const loop = () => {
+      this.#animationFrameId = requestAnimationFrame(loop)
+      this.#animationState.delta    = this.#clock.getDelta()
+      this.#animationState.elapsed += this.#animationState.delta
+      this.onBeforeRender(this.#animationState)
+      this.renderer.render(this.scene, this.camera)
+    }
+    loop()
+  }
+
+  #stopAnimation() {
+    if (!this.#isVisible) return
+    cancelAnimationFrame(this.#animationFrameId)
+    this.#isVisible = false
+    this.#clock.stop()
+  }
+
+  dispose() {
+    this.#stopAnimation()
+    this.#resizeObserver?.disconnect()
+    this.#intersectionObserver?.disconnect()
+    window.removeEventListener('resize', this.#onResize.bind(this))
+    document.removeEventListener('visibilitychange', this.#onVisibilityChange.bind(this))
+    this.scene.clear()
+    this.renderer.dispose()
+  }
+}
+
+// ── Physics engine ───────────────────────────────────────────────────────────
+class Physics {
+  center = new Vector3()
+
+  constructor(config) {
+    this.config       = config
+    this.positionData = new Float32Array(3 * config.count)
+    this.velocityData = new Float32Array(3 * config.count)
+    this.sizeData     = new Float32Array(config.count)
+    this.#init()
+    this.setSizes()
+  }
+
+  #init() {
+    const { count, maxX, maxY, maxZ } = this.config
+    this.center.toArray(this.positionData, 0)
+    for (let i = 1; i < count; i++) {
+      const idx = 3 * i
+      this.positionData[idx]     = MathUtils.randFloatSpread(2 * maxX)
+      this.positionData[idx + 1] = MathUtils.randFloatSpread(2 * maxY)
+      this.positionData[idx + 2] = MathUtils.randFloatSpread(2 * maxZ)
+    }
+  }
+
+  setSizes() {
+    const { count, size0, minSize, maxSize } = this.config
+    this.sizeData[0] = size0
+    for (let i = 1; i < count; i++) this.sizeData[i] = MathUtils.randFloat(minSize, maxSize)
+  }
+
+  update({ delta }) {
+    const { config, center, positionData: pd, velocityData: vd, sizeData: sd } = this
+
+    if (config.controlSphere0) {
+      new Vector3().fromArray(pd, 0).lerp(center, 0.1).toArray(pd, 0)
+    }
+
+    for (let i = config.controlSphere0 ? 1 : 0; i < config.count; i++) {
+      const b   = 3 * i
+      const pos = new Vector3().fromArray(pd, b)
+      const vel = new Vector3().fromArray(vd, b)
+
+      vel.y -= delta * config.gravity * sd[i]
+      vel.multiplyScalar(config.friction)
+      vel.clampLength(0, config.maxVelocity)
+      pos.add(vel)
+
+      for (let j = i + 1; j < config.count; j++) {
+        const ob   = 3 * j
+        const oPos = new Vector3().fromArray(pd, ob)
+        const diff = new Vector3().subVectors(oPos, pos)
+        const dist = diff.length()
+        const sumR = sd[i] + sd[j]
+        if (dist < sumR) {
+          const overlap = (sumR - dist) * 0.5
+          diff.normalize()
+          pos.addScaledVector(diff, -overlap)
+          oPos.addScaledVector(diff,  overlap)
+          oPos.toArray(pd, ob)
+        }
+      }
+
+      if (Math.abs(pos.x) + sd[i] > config.maxX) { pos.x = Math.sign(pos.x) * (config.maxX - sd[i]); vel.x *= -config.wallBounce }
+      if (pos.y - sd[i] < -config.maxY)           { pos.y = -config.maxY + sd[i];                      vel.y *= -config.wallBounce }
+      if (Math.abs(pos.z) + sd[i] > config.maxZ)  { pos.z = Math.sign(pos.z) * (config.maxZ - sd[i]); vel.z *= -config.wallBounce }
+
+      pos.toArray(pd, b)
+      vel.toArray(vd, b)
+    }
+  }
+}
+
+// ── Instanced sphere cloud ───────────────────────────────────────────────────
+const _dummy = new Object3D()
+
+class SphereCloud extends InstancedMesh {
+  constructor(renderer, params) {
+    const pmrem      = new PMREMGenerator(renderer)
+    const envTexture = pmrem.fromScene(new RoomEnvironment()).texture
+    pmrem.dispose()
+
+    super(
+      new SphereGeometry(1, 20, 20),
+      new MeshPhysicalMaterial({ envMap: envTexture, ...params.materialParams }),
+      params.count,
+    )
+
+    this.config  = params
+    this.physics = new Physics(params)
+
+    const ambient = new AmbientLight(0xffffff, params.ambientIntensity)
+    this.add(ambient)
+    this.light = new PointLight(0xffffff, params.lightIntensity, 100, 1)
+    this.add(this.light)
+
+    this.setColors(params.colors)
+  }
+
+  setColors(colors) {
+    if (!Array.isArray(colors) || !colors.length) return
+    const parsed = colors.map(c => c instanceof Color ? c : new Color(c))
+    for (let i = 0; i < this.count; i++) this.setColorAt(i, parsed[i % parsed.length])
+    if (this.instanceColor) this.instanceColor.needsUpdate = true
+  }
+
+  update(deltaInfo) {
+    this.physics.update(deltaInfo)
+    for (let i = 0; i < this.count; i++) {
+      _dummy.position.fromArray(this.physics.positionData, 3 * i)
+      _dummy.scale.setScalar(this.physics.sizeData[i])
+      _dummy.updateMatrix()
+      this.setMatrixAt(i, _dummy.matrix)
+    }
+    this.instanceMatrix.needsUpdate = true
+    if (this.config.controlSphere0) this.light.position.fromArray(this.physics.positionData, 0)
+  }
+}
+
+// ── Pointer tracking ─────────────────────────────────────────────────────────
+const pointer = new Vector2()
+
+// ── Component ────────────────────────────────────────────────────────────────
 export default function GlobalBackground() {
-  const containerRef = useRef(null)
+  const canvasRef = useRef(null)
 
   useEffect(() => {
-    if (prefersReduced) return
+    const canvas = canvasRef.current
+    if (!canvas) return
 
-    const container = containerRef.current
-    if (!container) return
-
-    const canvas = document.createElement('canvas')
-    canvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;display:block;'
-    container.appendChild(canvas)
-
-    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl')
-    if (!gl) return
-
-    let cw, ch
-    function resize() {
-      cw = container.offsetWidth || 800
-      ch = container.offsetHeight || 600
-      const dpr = Math.min(window.devicePixelRatio || 1, 2)
-      canvas.width = cw * dpr
-      canvas.height = ch * dpr
-      gl.viewport(0, 0, canvas.width, canvas.height)
+    const config = {
+      count: 100,
+      materialParams: { metalness: 0.9, roughness: 0.15, clearcoat: 1, clearcoatRoughness: 0.1 },
+      colors: ['#0a0a0a', '#111111', '#1a1a1a', '#0f0f0f', '#141414', '#080808', '#161616', '#0d0d0d'],
+      minSize: 0.25, maxSize: 0.65, size0: 0.9,
+      gravity: 0.35, friction: 0.995, wallBounce: 0.3, maxVelocity: 0.08,
+      maxX: 10, maxY: 10, maxZ: 8,
+      controlSphere0: true,
+      lightIntensity: 4, ambientIntensity: 1.2,
     }
-    resize()
 
-    const ro = new ResizeObserver(resize)
-    ro.observe(container)
+    const three = new ThreeBase({ canvas })
+    three.renderer.toneMapping = ACESFilmicToneMapping
+    three.camera.position.set(0, 0, 20)
 
-    const vsSrc = `
-      attribute vec3 vertexPosition;
-      uniform mat4 modelViewMatrix;
-      uniform mat4 perspectiveMatrix;
-      void main(void) {
-        gl_Position = perspectiveMatrix * modelViewMatrix * vec4(vertexPosition, 1.0);
+    const spheres = new SphereCloud(three.renderer, config)
+    three.scene.add(spheres)
+
+    const raycaster    = new Raycaster()
+    const plane        = new Plane(new Vector3(0, 0, 1), 0)
+    const intersection = new Vector3()
+
+    function onPointerMove(e) {
+      pointer.set(
+        (e.clientX / window.innerWidth)  *  2 - 1,
+       -(e.clientY / window.innerHeight) *  2 + 1,
+      )
+    }
+    window.addEventListener('pointermove', onPointerMove, { passive: true })
+
+    three.onBeforeRender = (deltaInfo) => {
+      raycaster.setFromCamera(pointer, three.camera)
+      if (raycaster.ray.intersectPlane(plane, intersection)) {
+        spheres.physics.center.copy(intersection)
       }
-    `
-    const fsSrc = `
-      #ifdef GL_ES
-      precision mediump float;
-      #endif
-      void main(void) {
-        gl_FragColor = vec4(0.18, 0.28, 0.44, 0.7);
-      }
-    `
-
-    function compileShader(type, src) {
-      const s = gl.createShader(type)
-      gl.shaderSource(s, src)
-      gl.compileShader(s)
-      return s
+      spheres.update(deltaInfo)
     }
 
-    const program = gl.createProgram()
-    gl.attachShader(program, compileShader(gl.VERTEX_SHADER, vsSrc))
-    gl.attachShader(program, compileShader(gl.FRAGMENT_SHADER, fsSrc))
-    gl.linkProgram(program)
-    gl.useProgram(program)
-
-    const vertexPosition = gl.getAttribLocation(program, 'vertexPosition')
-    gl.enableVertexAttribArray(vertexPosition)
-
-    gl.clearColor(0.0, 0.0, 0.0, 0.0)
-    gl.enable(gl.BLEND)
-    gl.disable(gl.DEPTH_TEST)
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE)
-
-    const fov = 30.0, near = 1.0, far = 10000.0
-    const top2 = near * Math.tan(fov * Math.PI / 360.0)
-    const bottom2 = -top2
-    const right2 = top2, left2 = -right2
-    const pa = (right2 + left2) / (right2 - left2)
-    const pb = (top2 + bottom2) / (top2 - bottom2)
-    const pc = (far + near) / (far - near)
-    const pd = (2 * far * near) / (far - near)
-    const px2 = (2 * near) / (right2 - left2)
-    const py2 = (2 * near) / (top2 - bottom2)
-    const perspMatrix = new Float32Array([px2,0,pa,0, 0,py2,pb,0, 0,0,pc,pd, 0,0,-1,0])
-    const mvMatrix = new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1])
-
-    const uMV = gl.getUniformLocation(program, 'modelViewMatrix')
-    const uP  = gl.getUniformLocation(program, 'perspectiveMatrix')
-    gl.uniformMatrix4fv(uMV, false, perspMatrix)
-    gl.uniformMatrix4fv(uP,  false, mvMatrix)
-
-    const vertices    = new Float32Array(NUM_LINES * 2 * 3)
-    const thetaArr    = new Float32Array(NUM_LINES)
-    const velThetaArr = new Float32Array(NUM_LINES)
-    const velRadArr   = new Float32Array(NUM_LINES)
-    const targetX     = new Float32Array(NUM_LINES)
-    const targetY     = new Float32Array(NUM_LINES)
-
-    for (let i = 0; i < NUM_LINES; i++) {
-      const rad   = 0.1 + 0.2 * Math.random()
-      const theta = Math.random() * Math.PI * 2
-      const vt    = Math.random() * Math.PI * 2 / 30
-      const bp    = i * 6
-      vertices[bp]     = rad * Math.cos(theta)
-      vertices[bp + 1] = rad * Math.sin(theta)
-      vertices[bp + 2] = 1.83
-      vertices[bp + 3] = vertices[bp]
-      vertices[bp + 4] = vertices[bp + 1]
-      vertices[bp + 5] = 1.83
-      thetaArr[i]    = theta
-      velThetaArr[i] = vt
-      velRadArr[i]   = rad
-      targetX[i] = (Math.random() * 2 - 1)
-      targetY[i] = Math.random() * 2 - 1
+    three.onAfterResize = (size) => {
+      spheres.physics.config.maxX = size.wWidth  / 2
+      spheres.physics.config.maxY = size.wHeight / 2
+      spheres.physics.config.maxZ = size.wWidth  / 4
     }
-
-    const buf = gl.createBuffer()
-    gl.bindBuffer(gl.ARRAY_BUFFER, buf)
-    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.DYNAMIC_DRAW)
-    gl.vertexAttribPointer(vertexPosition, 3, gl.FLOAT, false, 0, 0)
-
-    // Smooth passive cursor attraction — no click needed
-    let cursorX = 0, cursorY = 0, hasCursor = false
-
-    function handleMouseMove(e) {
-      const rect = canvas.getBoundingClientRect()
-      cursorX = (e.clientX - rect.left) / rect.width * 2 - 1
-      cursorY = -(((e.clientY - rect.top) / rect.height) * 2 - 1)
-      hasCursor = true
-    }
-    function handleMouseLeave() { hasCursor = false }
-
-    window.addEventListener('mousemove', handleMouseMove, { passive: true })
-    window.addEventListener('mouseleave', handleMouseLeave, { passive: true })
-
-    let drawType = 2
-    let cn = 0
-    let frameCount = 0
-
-    function draw0() {
-      for (let i = 0; i < NUM_LINES; i++) {
-        const bp = i * 6
-        vertices[bp]     = vertices[bp + 3]
-        vertices[bp + 1] = vertices[bp + 4]
-        const pull = hasCursor ? 0.25 : 0
-        const tx = targetX[i] * (1 - pull) + cursorX * pull
-        const ty = targetY[i] * (1 - pull) + cursorY * pull
-        vertices[bp + 3] += (tx - vertices[bp + 3]) * 0.025
-        vertices[bp + 4] += (ty - vertices[bp + 4]) * 0.025
-      }
-    }
-
-    function draw1() {
-      for (let i = 0; i < NUM_LINES; i++) {
-        const bp = i * 6
-        vertices[bp]     = vertices[bp + 3]
-        vertices[bp + 1] = vertices[bp + 4]
-        thetaArr[i] += velThetaArr[i]
-        const bx = velRadArr[i] * Math.cos(thetaArr[i])
-        const by = velRadArr[i] * Math.sin(thetaArr[i])
-        const pull = hasCursor ? 0.35 : 0
-        vertices[bp + 3] += ((bx * (1 - pull) + cursorX * pull) - vertices[bp + 3]) * 0.06
-        vertices[bp + 4] += ((by * (1 - pull) + cursorY * pull) - vertices[bp + 4]) * 0.06
-      }
-    }
-
-    function draw2() {
-      cn += 0.06
-      for (let i = 0; i < NUM_LINES; i++) {
-        const bp = i * 6
-        vertices[bp]     = vertices[bp + 3]
-        vertices[bp + 1] = vertices[bp + 4]
-        thetaArr[i] += velThetaArr[i]
-        const pull = hasCursor ? 0.002 : 0
-        vertices[bp + 3] += velRadArr[i] * Math.cos(thetaArr[i]) * 0.1 + (cursorX - vertices[bp + 3]) * pull
-        vertices[bp + 4] += velRadArr[i] * Math.sin(thetaArr[i]) * 0.1 + (cursorY - vertices[bp + 4]) * pull
-      }
-    }
-
-    let animId = null
-    let timerHandle = null
-
-    function renderLoop() {
-      animId = requestAnimationFrame(renderLoop)
-      frameCount++
-      if (frameCount % 2 !== 0) return
-
-      switch (drawType) {
-        case 0: draw0(); break
-        case 1: draw1(); break
-        default: draw2(); break
-      }
-
-      gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.DYNAMIC_DRAW)
-      gl.clear(gl.COLOR_BUFFER_BIT)
-      gl.drawArrays(gl.LINES, 0, NUM_LINES)
-      gl.flush()
-    }
-
-    function cycleMode() {
-      drawType = (drawType + 1) % 3
-      timerHandle = setTimeout(cycleMode, 6000)
-    }
-
-    renderLoop()
-    timerHandle = setTimeout(cycleMode, 6000)
 
     return () => {
-      cancelAnimationFrame(animId)
-      clearTimeout(timerHandle)
-      ro.disconnect()
-      window.removeEventListener('mousemove', handleMouseMove)
-      window.removeEventListener('mouseleave', handleMouseLeave)
-      gl.deleteBuffer(buf)
-      gl.deleteProgram(program)
-      if (container.contains(canvas)) container.removeChild(canvas)
+      window.removeEventListener('pointermove', onPointerMove)
+      three.dispose()
     }
   }, [])
 
   return (
-    <div
-      ref={containerRef}
+    <canvas
+      ref={canvasRef}
       style={{
         position: 'absolute',
         inset: 0,
+        width: '100%',
+        height: '100%',
         zIndex: 1,
         pointerEvents: 'none',
-        overflow: 'hidden',
-        WebkitMaskImage: 'linear-gradient(to bottom, black 35%, transparent 90%)',
-        maskImage: 'linear-gradient(to bottom, black 35%, transparent 90%)',
+        display: 'block',
+        WebkitMaskImage: 'linear-gradient(to bottom, black 40%, transparent 90%)',
+        maskImage:       'linear-gradient(to bottom, black 40%, transparent 90%)',
       }}
     />
   )
