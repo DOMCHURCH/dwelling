@@ -38,9 +38,14 @@ export function useScrollReveal({
       if (reduced()) { gsap.set(targets, { opacity: 1, y: 0, x: 0, scale: 1 }); return }
       gsap.set(targets, { opacity, y, x, scale })
       ctx = gsap.context(() => {
+        // Reduce stagger for better performance
+        const adjustedStagger = Math.min(stagger, 0.05)
         gsap.to(targets, {
           opacity: 1, y: 0, x: 0, scale: 1,
-          duration, delay, ease, stagger,
+          duration: Math.min(duration, 0.6), 
+          delay, 
+          ease, 
+          stagger: adjustedStagger,
           scrollTrigger: { trigger: el, start: 'top 88%', toggleActions: 'play none none none' },
         })
       })
@@ -50,7 +55,7 @@ export function useScrollReveal({
   return ref
 }
 
-// ─── useParallax — scrub-based image parallax ─────────────────────────────────
+// ─── useParallax — scrub-based image parallax ─────────────────────────────
 // speed: 0 = no movement, 0.3 = slow (bg), 0.6 = mid, 1 = matches scroll
 export function useParallax({ speed = 0.3, scale = 1.15 } = {}) {
   const ref = useRef(null)
@@ -70,7 +75,7 @@ export function useParallax({ speed = 0.3, scale = 1.15 } = {}) {
             trigger: el.parentElement,
             start: 'top bottom',
             end: 'bottom top',
-            scrub: true,
+            scrub: 0.5, // Reduced from true for better performance
           },
         })
       })
@@ -95,7 +100,7 @@ export function useCountUp({ end = 100, duration = 1.8, prefix = '', suffix = ''
           if (ran.current) return
           ran.current = true
           gsap.to(obj, {
-            val: end, duration, ease: 'power2.out',
+            val: end, duration: Math.min(duration, 1.5), ease: 'power2.out',
             onUpdate: () => { if (el) el.textContent = prefix + Math.round(obj.val).toLocaleString() + suffix },
           })
         },
@@ -123,7 +128,7 @@ export function useScrubReveal({ fromY = 60, fromScale = 0.96 } = {}) {
             trigger: el,
             start: 'top 90%',
             end: 'top 55%',
-            scrub: 0.8,
+            scrub: 0.5, // Reduced from 0.8 for better performance
           },
         })
       })
