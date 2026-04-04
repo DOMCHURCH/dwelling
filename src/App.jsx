@@ -244,7 +244,7 @@ function CityscapeSilhouette() {
       position: 'absolute',
       bottom: 0, left: 0, right: 0,
       height: '38%',
-      zIndex: 3,
+      zIndex: 4,
       pointerEvents: 'none',
     }}>
       <svg
@@ -399,10 +399,10 @@ function CityscapeSilhouette() {
 
 function Hero({ onSearch, loading, onShowDemo }) {
   return (
-    <section id="hero" style={{ position: 'relative', overflow: 'hidden', background: 'transparent', minHeight: 'min(1000px, 100svh)', height: 'auto', isolation: 'isolate', contain: 'layout paint', zIndex: 0 }}>
+    <section id="hero" style={{ position: 'relative', overflow: 'hidden', background: 'transparent', minHeight: 'min(1000px, 100svh)', height: 'auto', zIndex: 0 }}>
       <GlobalBackground />
       <CityscapeSilhouette />
-      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 350, background: 'linear-gradient(to top, #000 40%, transparent)', zIndex: 2 }} />
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 350, background: 'linear-gradient(to top, #000 40%, transparent)', zIndex: 3 }} />
       <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', maxWidth: 900, margin: '0 auto', padding: 'clamp(100px, 20vw, 150px) 20px 80px' }}>
         <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 16px', marginBottom: 28 }}>
           <span style={{ background: '#fff', color: '#000', fontSize: 11, fontFamily: "'Barlow',sans-serif", fontWeight: 600, borderRadius: 20, padding: '2px 8px' }}>New</span>
@@ -1746,12 +1746,25 @@ export default function App() {
   // ── Lenis smooth scroll ──────────────────────────────────────────────────
   useEffect(() => {
     let lenis
+    let rafId
     import('lenis').then(({ default: Lenis }) => {
-      lenis = new Lenis({ lerp: 0.12, smoothWheel: true, wheelMultiplier: 0.9, touchMultiplier: 1.5 })
-      function raf(time) { lenis.raf(time); requestAnimationFrame(raf) }
-      requestAnimationFrame(raf)
+      lenis = new Lenis({
+        lerp: 0.1,
+        smoothWheel: true,
+        wheelMultiplier: 1.0,
+        touchMultiplier: 1.8,
+        infinite: false,
+      })
+      function raf(time) {
+        lenis.raf(time)
+        rafId = requestAnimationFrame(raf)
+      }
+      rafId = requestAnimationFrame(raf)
     })
-    return () => lenis?.destroy()
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId)
+      lenis?.destroy()
+    }
   }, [])
   const [showDemo, setShowDemo] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
