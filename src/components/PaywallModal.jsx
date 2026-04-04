@@ -3,21 +3,21 @@ import { useState, useEffect } from 'react'
 const PRICING_FREE = [
   '10 analyses / month',
   'Area Verdict & Market Intelligence',
-  'Investment Score & Analysis',
-  'Full Neighbourhood detail & safety',
   'Cost of Living breakdown',
   'Climate & weather data',
-  'Local Market News & walkability',
+  'Local Market News',
+  'Area Market Estimate',
+  'Walkability & school scores',
 ]
 
 const PRICING_PRO = [
   { text: 'Unlimited analyses', highlight: false },
-  { text: 'Price history charts & projections', highlight: true },
+  { text: 'Full Neighbourhood detail & safety', highlight: true },
+  { text: 'Investment Analysis & score', highlight: true },
   { text: 'Environmental & flood risk detection', highlight: true },
-  { text: 'Full hazard breakdown (fire, seismic, wind)', highlight: true },
+  { text: 'Price history & market projections', highlight: true },
   { text: 'Side-by-side city comparison', highlight: false },
   { text: 'Priority support', highlight: false },
-  { text: 'Early access to new features', highlight: false },
 ]
 
 // Per-section copy when a free user clicks a locked section
@@ -29,18 +29,18 @@ const SECTION_COPY = {
   },
   investment: {
     emoji: '📈',
-    title: 'Investment analysis included',
-    subtitle: 'Investment score and rent yield are available on the free plan. Upgrade to Pro for price history charts and projected appreciation.',
+    title: "Oops — that's a Pro section",
+    subtitle: 'Rent yield, investment score & market outlook are only available on Pro.',
   },
   pricehistory: {
     emoji: '📊',
-    title: "Price history — Pro feature",
-    subtitle: 'Historical price charts and market projections are only available on Pro.',
+    title: "Oops — that's a Pro section",
+    subtitle: 'Price history charts & market projections are only available on Pro.',
   },
   risk: {
     emoji: '🛡',
-    title: "Detailed risk data — Pro feature",
-    subtitle: 'Environmental hazard breakdown, flood zone detail, and air quality percentiles are only available on Pro.',
+    title: "Oops — that's a Pro section",
+    subtitle: 'Environmental risk, flood zone & hazard data are only available on Pro.',
   },
 }
 
@@ -113,10 +113,10 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
   return (
     <>
       {showStripe && <StripeComingSoon onClose={() => setShowStripe(false)} />}
-      <div className="scroll-container" style={{
+      <div style={{
         position: 'fixed', inset: 0, zIndex: 1000,
         background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(12px)',
-        overflowY: 'auto', overscrollBehavior: 'contain',
+        overflowY: 'auto',
         display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
         padding: '24px 20px 40px',
       }}>
