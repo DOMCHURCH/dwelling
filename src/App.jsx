@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, memo, lazy, Suspense } from 'react'
-import { useScrollReveal } from './hooks/useScrollReveal'
+import { useScrollReveal } from '../hooks/useScrollReveal'
 import { motion, AnimatePresence } from 'framer-motion'
 import AddressSearch from './components/AddressSearch'
 import LoadingState from './components/LoadingState'
