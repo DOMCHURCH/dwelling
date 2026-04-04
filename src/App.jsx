@@ -493,7 +493,7 @@ const HowItWorks = memo(function HowItWorks() {
   const headRef = useScrollReveal({ y: 32, opacity: 0, duration: 0.9, ease: 'power3.out' })
   const stepsRef = useScrollReveal({ y: 40, opacity: 0, duration: 0.7, stagger: 0.15, selector: '.how-step', delay: 0.1 })
   return (
-    <Section style={{ minHeight: 'auto', padding: 'clamp(60px, 10vw, 128px) 20px' }}>
+    <Section style={{ minHeight: 'auto', padding: 'clamp(60px, 10vw, 128px) 20px', background: 'transparent' }}>
       <div style={{ maxWidth: 900, margin: '0 auto', textAlign: 'center' }} id="how-it-works">
         <div ref={headRef}>
           <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>How It Works</div>
@@ -775,7 +775,7 @@ function HoverGroupGrid({ cards }) {
 // ─── STATS ───────────────────────────────────────────────────────────────────
 const Stats = memo(function Stats() {
   return (
-    <section style={{ padding: 'clamp(60px, 10vw, 128px) 20px', background: 'transparent' }}>
+    <Section style={{ padding: 'clamp(60px, 10vw, 128px) 20px', background: 'transparent' }}>
       <div style={{ maxWidth: 1000, margin: '0 auto' }}>
         <div className="liquid-glass" style={{ borderRadius: 26, padding: '44px 28px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 28, textAlign: 'center' }}>
@@ -953,7 +953,7 @@ const Pricing = memo(function Pricing({ onUpgrade }) {
   const displaySuffix = annual ? '/mo · billed yearly' : '/month'
 
   return (
-    <section id="pricing" style={{ position: 'relative', overflow: 'hidden', padding: 'clamp(80px, 10vw, 120px) 20px' }}>
+    <section id="pricing" style={{ position: 'relative', overflow: 'hidden', padding: 'clamp(80px, 10vw, 120px) 20px', background: 'transparent' }}>
       {/* Video background */}
       <video autoPlay muted loop playsInline
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.1, zIndex: 0 }}>
