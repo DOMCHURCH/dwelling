@@ -8,10 +8,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@libsql/client": "^0.14.0",
+    "framer-motion": "^11.18.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "resend": "^3.2.0"
+    "hls.js": "^1.5.15",
+    "@libsql/client": "^0.14.0",
+    "resend": "^3.2.0",
+    "gsap": "^3.12.5",
+    "lenis": "^1.1.14"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.1",
