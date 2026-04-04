@@ -4,23 +4,6 @@
   padding: 0;
 }
 
-/* ─── SCROLL CONTAINMENT ─── */
-/* Prevent inner scrollable containers from chaining to page scroll */
-html {
-  overscroll-behavior: none;
-  scroll-behavior: smooth;
-}
-body.modal-open {
-  overflow: hidden;
-  touch-action: none;
-}
-/* Any scrollable panel/modal inner — apply via class or inline */
-.scroll-container {
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
-  touch-action: pan-y;
-}
-
 :root {
   --background: #000000;
   --foreground: #ffffff;
@@ -55,15 +38,8 @@ body.modal-open {
 }
 
 html {
+  scroll-behavior: smooth;
   background: #000;
-  overscroll-behavior: none;
-}
-
-/* GPU-accelerate the WebGL canvas and animations */
-canvas {
-  will-change: transform;
-  transform: translateZ(0);
-  contain: strict;
 }
 
 body {
@@ -75,7 +51,6 @@ body {
   font-size: 15px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
-  -webkit-text-size-adjust: 100%;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -113,7 +88,6 @@ button, input, select, textarea {
     0 1px 4px rgba(0,0,0,0.3);
   position: relative;
   overflow: hidden;
-  contain: layout style;
 }
 .liquid-glass::before {
   content: '';
@@ -160,7 +134,6 @@ button, input, select, textarea {
     0 0 0 0.5px rgba(255,255,255,0.08);
   position: relative;
   overflow: hidden;
-  contain: layout style;
 }
 .liquid-glass-strong::before {
   content: '';
@@ -255,6 +228,8 @@ input[type="range"] {
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 4px 20px rgba(0,0,0,0.4);
 }
 
+
+
 /* ─── SCROLL-REVEAL (replaces framer whileInView) ─── */
 .reveal { opacity: 1; transform: none; }
 .reveal.in-view { opacity: 1; transform: none; }
@@ -268,6 +243,8 @@ input[type="range"] {
 .reveal-d2 { transition-delay: 0.16s; }
 .reveal-d3 { transition-delay: 0.24s; }
 
+
+
 @media (prefers-reduced-motion: reduce) {
   .reveal, .reveal-left, .reveal-right { opacity: 1; transform: none; transition: none; }
   * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
@@ -280,11 +257,6 @@ nav {
 }
 section {
   contain: layout;
-}
-
-/* Optimize hero section */
-#hero {
-  contain: layout style;
 }
 
 /* ─── MOBILE RESPONSIVE ─── */
