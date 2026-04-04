@@ -283,7 +283,7 @@ export default function AuthModal({ onAuth, onDemo }) {
               </div>
               <button onClick={() => setShowTerms(false)} style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#fff', fontFamily: "'Barlow',sans-serif", fontSize: 12, padding: '6px 12px', cursor: 'pointer' }}>✕</button>
             </div>
-            <div onScroll={handleTermsScroll} className="scroll-container" style={{ flex: 1, overflowY: 'scroll', padding: '24px 28px', overscrollBehavior: 'contain' }}>
+            <div onScroll={handleTermsScroll} style={{ flex: 1, overflowY: 'scroll', padding: '24px 28px' }}>
               <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 400, fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7, marginBottom: 24, padding: '12px 16px', background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.15)', borderRadius: 10 }}>
                 ⚠ Please read these Terms carefully before creating an account.
               </div>
