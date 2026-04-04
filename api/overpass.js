@@ -17,12 +17,10 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'POST') return res.status(405).end()
 
-  const { lat, lon } = req.body || {}
-  const sLat = typeof lat === 'number' && isFinite(lat) && lat >= -90 && lat <= 90 ? lat : null
-  const sLon = typeof lon === 'number' && isFinite(lon) && lon >= -180 && lon <= 180 ? lon : null
-  if (!sLat || !sLon) return res.status(400).json({ error: 'Valid lat/lon required' })
+  const { lat, lon } = req.body
+  if (!lat || !lon) return res.status(400).json({ error: 'Missing lat/lon' })
 
-  const cacheKey = `${Math.round(sLat * 1000) / 1000},${Math.round(sLon * 1000) / 1000}`
+  const cacheKey = `${Math.round(lat * 1000) / 1000},${Math.round(lon * 1000) / 1000}`
   const cached = cache.get(cacheKey)
   if (cached && Date.now() - cached.ts < CACHE_TTL) {
     return res.status(200).json(cached.data)
@@ -31,14 +29,14 @@ export default async function handler(req, res) {
   const query = `
     [out:json][timeout:20];
     (
-      node["amenity"~"school|supermarket|restaurant|cafe|fast_food|pharmacy|hospital|bank|gym"](around:2000,${sLat},${sLon});
-      way["amenity"~"school|supermarket|restaurant|cafe|fast_food|pharmacy|hospital|bank|gym"](around:2000,${sLat},${sLon});
-      node["leisure"="park"](around:2000,${sLat},${sLon});
-      node["shop"~"supermarket|grocery|convenience"](around:2000,${sLat},${sLon});
-      node["public_transport"="station"](around:2000,${sLat},${sLon});
-      node["highway"="bus_stop"](around:2000,${sLat},${sLon});
-      node["railway"~"station|subway_entrance"](around:2000,${sLat},${sLon});
-      way["building"](around:50,${sLat},${sLon});
+      node["amenity"~"school|supermarket|restaurant|cafe|fast_food|pharmacy|hospital|bank|gym"](around:2000,${lat},${lon});
+      way["amenity"~"school|supermarket|restaurant|cafe|fast_food|pharmacy|hospital|bank|gym"](around:2000,${lat},${lon});
+      node["leisure"="park"](around:2000,${lat},${lon});
+      node["shop"~"supermarket|grocery|convenience"](around:2000,${lat},${lon});
+      node["public_transport"="station"](around:2000,${lat},${lon});
+      node["highway"="bus_stop"](around:2000,${lat},${lon});
+      node["railway"~"station|subway_entrance"](around:2000,${lat},${lon});
+      way["building"](around:50,${lat},${lon});
     );
     out body;
   `
