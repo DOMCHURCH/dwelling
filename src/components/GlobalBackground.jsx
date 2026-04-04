@@ -15,7 +15,7 @@ function CSSBackground() {
         @keyframes dw-drift2 { 0%,100%{transform:translate(0,0) scale(1.02)} 33%{transform:translate(-50px,40px) scale(0.96)} 66%{transform:translate(60px,-20px) scale(1.04)} }
         @keyframes dw-drift3 { 0%,100%{transform:translate(0,0) scale(0.98)} 50%{transform:translate(30px,50px) scale(1.03)} }
         @keyframes dw-pulse  { 0%,100%{opacity:0.4} 50%{opacity:0.7} }
-        .dw-orb { position:absolute; border-radius:50%; filter:blur(80px); }
+        .dw-orb { position:absolute; border-radius:50%; filter:blur(80px); will-change: transform; }
       `}</style>
       <div className="dw-orb" style={{ width:600,height:600,top:'-15%',left:'-10%',background:'radial-gradient(circle,rgba(40,40,60,0.9) 0%,transparent 70%)',animation:'dw-drift1 18s ease-in-out infinite,dw-pulse 8s ease-in-out infinite' }} />
       <div className="dw-orb" style={{ width:500,height:500,top:'10%',right:'-5%',background:'radial-gradient(circle,rgba(30,35,55,0.85) 0%,transparent 70%)',animation:'dw-drift2 22s ease-in-out infinite,dw-pulse 10s ease-in-out infinite 2s' }} />
@@ -34,13 +34,21 @@ function ThreeBackground({ onFail }) {
     const canvas = canvasRef.current
     if (!canvas) return
 
-    let rafId, resizeTimer, resizeObserver, renderer, io
+    let rafId, resizeTimer, resizeObserver, renderer, io, scene, mesh
 
     // Give the canvas a real size before Three tries to get a context
     canvas.width  = canvas.parentNode?.offsetWidth  || window.innerWidth
     canvas.height = canvas.parentNode?.offsetHeight || window.innerHeight
 
+    // Timeout to prevent hanging if Three.js import takes too long
+    const importTimeout = setTimeout(() => {
+      console.warn('[Dwelling] Three.js import timeout. Falling back to CSS.')
+      onFail()
+    }, 5000)
+
     import('three').then((THREE) => {
+      clearTimeout(importTimeout)
+      
       const {
         BackSide, BoxGeometry, Clock, Mesh, MeshLambertMaterial, MeshStandardMaterial,
         PerspectiveCamera, Scene, WebGLRenderer, SRGBColorSpace, MathUtils,
@@ -61,6 +69,7 @@ function ThreeBackground({ onFail }) {
           precision: 'lowp',
           logarithmicDepthBuffer: false,
           stencil: false,
+          failIfMajorPerformanceCaveat: true,
         })
         rendererCreated = true
       } catch (e) {
@@ -79,6 +88,7 @@ function ThreeBackground({ onFail }) {
             precision: 'lowp',
             logarithmicDepthBuffer: false,
             stencil: false,
+            failIfMajorPerformanceCaveat: false,
           })
           rendererCreated = true
         } catch (e) {
@@ -95,7 +105,8 @@ function ThreeBackground({ onFail }) {
       }
 
       // Double-check context was actually created
-      if (!renderer.getContext()) {
+      const ctx = renderer.getContext()
+      if (!ctx) {
         renderer.dispose()
         console.warn('[Dwelling] WebGL context exists but is null. Falling back to CSS background.')
         onFail()
@@ -140,7 +151,7 @@ function ThreeBackground({ onFail }) {
             [[3.235,11.486,-12.541],[2.5,2.0,0.1],20],
             [[0.000,20.000,0.000],[1.0,0.1,1.0],100],
           ].forEach(([pos,sc,intensity])=>{
-            const m = new Mesh(geo, new MeshLambertMaterial({ color:0,emissive:0xffffff,emissiveIntensity:intensity }))
+            const m = new Mesh(geo, new MeshLambertMaterial({ color:0, emissive:0xffffff,emissiveIntensity:intensity }))
             m.position.set(...pos); m.scale.set(...sc); this.add(m)
           })
         }
@@ -149,7 +160,7 @@ function ThreeBackground({ onFail }) {
       // ── Scene setup ─────────────────────────────────────────────────────────
       const camera = new PerspectiveCamera(50, 1, 0.1, 100)
       camera.position.set(0, 0, 20)
-      const scene = new Scene()
+      scene = new Scene()
 
       const pmrem = new PMREMGenerator(renderer)
       const envTex = pmrem.fromScene(new RoomEnvironment()).texture; pmrem.dispose()
@@ -157,7 +168,7 @@ function ThreeBackground({ onFail }) {
       const COUNT = 100
       const colors = ['#0a0a0a','#111111','#1a1a1a','#0f0f0f','#141414','#080808','#161616','#0d0d0d'].map(c=>new Color(c))
       const mat = new MeshPhysicalMaterial({ envMap:envTex, metalness:0.9, roughness:0.15, clearcoat:1, clearcoatRoughness:0.1 })
-      const mesh = new InstancedMesh(new SphereGeometry(1,20,20), mat, COUNT)
+      mesh = new InstancedMesh(new SphereGeometry(1,20,20), mat, COUNT)
       for (let i=0;i<COUNT;i++) mesh.setColorAt(i, colors[i%colors.length])
       mesh.instanceColor.needsUpdate = true
       const ptLight = new PointLight(0xffffff, 4, 100, 1)
@@ -246,11 +257,13 @@ function ThreeBackground({ onFail }) {
       canvas._dwCleanup = () => window.removeEventListener('pointermove', onMove)
 
     }).catch((err) => {
+      clearTimeout(importTimeout)
       console.warn('[Dwelling] Failed to load Three.js:', err.message)
       onFail()
     })
 
     return () => {
+      clearTimeout(importTimeout)
       cancelAnimationFrame(rafId)
       clearTimeout(resizeTimer)
       resizeObserver?.disconnect()
@@ -258,7 +271,7 @@ function ThreeBackground({ onFail }) {
       renderer?.dispose()
       canvas._dwCleanup?.()
     }
-  }, [])
+  }, [onFail])
 
   return (
     <canvas
@@ -268,6 +281,8 @@ function ThreeBackground({ onFail }) {
         zIndex:1, pointerEvents:'none', display:'block',
         WebkitMaskImage:'linear-gradient(to bottom, black 40%, transparent 90%)',
         maskImage:'linear-gradient(to bottom, black 40%, transparent 90%)',
+        willChange: 'transform',
+        transform: 'translateZ(0)',
       }}
     />
   )
