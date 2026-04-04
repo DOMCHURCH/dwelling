@@ -13,8 +13,10 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  const { lat, lon, county, state, country } = req.body
-  if (!lat || !lon) return res.status(400).json({ error: 'lat and lon required' })
+  const { lat, lon, county, state, country } = req.body || {}
+  const sLat = typeof lat === 'number' && isFinite(lat) && lat >= -90 && lat <= 90 ? lat : null
+  const sLon = typeof lon === 'number' && isFinite(lon) && lon >= -180 && lon <= 180 ? lon : null
+  if (!sLat || !sLon) return res.status(400).json({ error: 'Valid lat and lon required' })
 
   // Only run FEMA/EPA/USGS for US addresses — these are US-specific APIs
   const isUS = !country || country.toLowerCase().includes('united states') ||
