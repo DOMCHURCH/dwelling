@@ -4,6 +4,22 @@
   padding: 0;
 }
 
+/* ─── SCROLL CONTAINMENT ─── */
+/* Prevent inner scrollable containers from chaining to page scroll */
+html {
+  overscroll-behavior: none;
+}
+body.modal-open {
+  overflow: hidden;
+  touch-action: none;
+}
+/* Any scrollable panel/modal inner — apply via class or inline */
+.scroll-container {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}
+
 :root {
   --background: #000000;
   --foreground: #ffffff;
