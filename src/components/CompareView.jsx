@@ -3,6 +3,13 @@ import ScoreRing from './ScoreRing'
 import { getCurrencySymbol, getCurrencyFromCountry } from '../lib/currency'
 
 const fmt = (n) => (n != null && n !== 0) ? n.toLocaleString('en-US', { maximumFractionDigits: 0 }) : '—'
+const fmtPrice = (n, sym) => {
+  if (n == null || n === 0) return '—'
+  const s = sym || '$'
+  if (n >= 1000000) return `${s}${(n / 1000000).toFixed(n % 1000000 === 0 ? 0 : 1)}M`
+  if (n >= 1000) return `${s}${Math.round(n / 1000)}K`
+  return `${s}${n}`
+}
 
 function verdictColor(verdict) {
   if (!verdict) return 'rgba(255,255,255,0.6)'
@@ -74,8 +81,8 @@ function CompareColumn({ data, side }) {
         <div className="liquid-glass" style={{ borderRadius: 14, padding: '16px 18px' }}>
           <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12, fontFamily: "'Barlow',sans-serif" }}>Pricing</div>
           {[
-            { label: 'Median Price', value: `${sym}${Math.round((areaMetrics.medianPrice || 0) / 1000)}k` },
-            { label: 'Avg Price', value: `${sym}${Math.round((areaMetrics.avgPrice || 0) / 1000)}k` },
+            { label: 'Median Price', value: fmtPrice(areaMetrics.medianPrice, sym) },
+            { label: 'Avg Price', value: fmtPrice(areaMetrics.avgPrice, sym) },
             { label: 'Median DOM', value: areaMetrics.medianDOM != null ? `${areaMetrics.medianDOM} days` : '—' },
             { label: 'Listings', value: fmt(areaMetrics.count) },
           ].map(({ label, value }) => (
