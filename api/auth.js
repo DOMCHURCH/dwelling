@@ -11,7 +11,7 @@ if (!ENCRYPTION_KEY_HEX) throw new Error('FATAL: CEREBRAS_ENCRYPTION_KEY env var
 const ENCRYPTION_KEY = Buffer.from(ENCRYPTION_KEY_HEX, 'hex')
 if (ENCRYPTION_KEY.length !== 32) throw new Error('FATAL: CEREBRAS_ENCRYPTION_KEY must be 64 hex chars (32 bytes).')
 
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '').split(',').filter(Boolean)
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '01dominique.c@gmail.com').split(',')
 const BASE_URL = process.env.BASE_URL || `https://${process.env.VERCEL_URL}` || 'https://dwelling-three.vercel.app'
 const ALLOWED_ORIGIN = 'https://dwelling-three.vercel.app'
 
@@ -204,7 +204,7 @@ export default async function handler(req, res) {
         args: [key, id, salt, hashed, is_pro, new Date().toISOString(), new Date().toISOString(), new Date().toISOString(), clientIp],
       })
 
-      const token = sign({ sub: id, email: key, is_pro: !!is_pro, exp: Math.floor(Date.now() / 1000) + 7 * 86400 })
+      const token = sign({ sub: id, email: key, is_pro: !!is_pro, exp: Math.floor(Date.now() / 1000) + 30 * 86400 })
       return res.status(200).json({ token, userId: id, email: key, is_pro: !!is_pro })
     }
 
@@ -238,7 +238,7 @@ export default async function handler(req, res) {
 
       if (!passwordOk) return res.status(401).json({ error: 'Incorrect email or password.' })
 
-      const token = sign({ sub: user.id, email: key, is_pro: !!user.is_pro, exp: Math.floor(Date.now() / 1000) + 7 * 86400 })
+      const token = sign({ sub: user.id, email: key, is_pro: !!user.is_pro, exp: Math.floor(Date.now() / 1000) + 30 * 86400 })
       return res.status(200).json({ token, userId: user.id, email: key, is_pro: !!user.is_pro })
     }
 
@@ -297,7 +297,7 @@ export default async function handler(req, res) {
         args: [hashed, salt, user.email],
       })
 
-      const jwtToken = sign({ sub: user.id, email: user.email, is_pro: !!user.is_pro, exp: Math.floor(Date.now() / 1000) + 7 * 86400 })
+      const jwtToken = sign({ sub: user.id, email: user.email, is_pro: !!user.is_pro, exp: Math.floor(Date.now() / 1000) + 30 * 86400 })
       return res.status(200).json({ token: jwtToken, userId: user.id, email: user.email, is_pro: !!user.is_pro })
     }
 
@@ -373,30 +373,9 @@ export default async function handler(req, res) {
       return res.status(200).json({ key })
     }
 
-    // ── delete-account ──────────────────────────────────────────────────────
-    if (action === 'delete-account') {
-      const authHeader = req.headers.authorization
-      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
-      const payload = verify(authHeader.replace('Bearer ', ''))
-      if (!payload) return res.status(401).json({ error: 'Invalid token' })
-
-      // Rate limit: 3 deletion attempts per IP per hour
-      if (!rateLimit(`delete:${clientIp}`, 3, 3600000)) {
-        return res.status(429).json({ error: 'Too many requests. Please wait.' })
-      }
-
-      const { confirmEmail } = req.body
-      if (!confirmEmail || confirmEmail.toLowerCase().trim() !== payload.email) {
-        return res.status(400).json({ error: 'Please confirm your email address to delete your account.' })
-      }
-
-      await db.execute({ sql: 'DELETE FROM users WHERE email = ?', args: [payload.email] })
-      return res.status(200).json({ success: true, message: 'Account and all associated data have been permanently deleted.' })
-    }
-
     return res.status(400).json({ error: 'Unknown action' })
   } catch (err) {
     console.error('auth error action=' + (req.body?.action || 'unknown'), err?.message || err)
-    return res.status(500).json({ error: 'Server error' })
+    return res.status(500).json({ error: 'Server error', detail: err?.message || String(err) })
   }
 }
