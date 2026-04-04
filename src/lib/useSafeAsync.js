@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react'
-import AsyncManager from '../lib/asyncManager'
+import AsyncManager from './asyncManager'
 
 /**
  * Hook personnalisé pour gérer les opérations asynchrones de manière sûre
