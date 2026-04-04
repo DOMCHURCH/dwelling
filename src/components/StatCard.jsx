@@ -1,4 +1,4 @@
-import { useCountUp } from '../hooks/useCountUp'
+import { useCountUp } from '../../hooks/useCountUp'
 
 export default function StatCard({ label, value, sub, accent, icon, animate = false }) {
   const isNumeric = animate && value != null && !isNaN(parseFloat(String(value).replace(/[^0-9.]/g, '')))
