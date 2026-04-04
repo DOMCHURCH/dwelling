@@ -10,19 +10,28 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  const { street, city, state, country, lat, lon, postcode, mode } = req.body
+  const { street, city, state, country, lat, lon, postcode, mode } = req.body || {}
   if (!city || !country) return res.status(400).json({ error: 'Missing required fields' })
 
-  const isCanada = country.toLowerCase().includes('canada')
+  // Input sanitization — prevent injection via URL params
+  const sanitize = (s) => typeof s === 'string' ? s.replace(/[<>"'`;{}()\\\/$]/g, '').slice(0, 200) : ''
+  const sCity = sanitize(city)
+  const sState = sanitize(state)
+  const sCountry = sanitize(country)
+  const sStreet = sanitize(street)
+  const sLat = typeof lat === 'number' && isFinite(lat) ? lat : null
+  const sLon = typeof lon === 'number' && isFinite(lon) ? lon : null
+
+  const isCanada = sCountry.toLowerCase().includes('canada')
   // Area mode: fetch bulk listings for aggregation (no street needed)
-  const isAreaMode = mode === 'area' || !street
+  const isAreaMode = mode === 'area' || !sStreet
 
   try {
     if (isCanada) {
-      const data = await fetchRealtorCaComps({ city, state, lat, lon })
+      const data = await fetchRealtorCaComps({ city: sCity, state: sState, lat: sLat, lon: sLon })
       return res.status(200).json(data)
     } else {
-      const data = await fetchRedfinComps({ street, city, state, lat, lon })
+      const data = await fetchRedfinComps({ street: sStreet, city: sCity, state: sState, lat: sLat, lon: sLon })
       return res.status(200).json(data)
     }
   } catch (err) {
