@@ -5,9 +5,8 @@ function CSSBackground() {
   return (
     <div
       style={{
-        position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none', overflow: 'hidden',
-        WebkitMaskImage: 'linear-gradient(to bottom, black 40%, transparent 90%)',
-        maskImage: 'linear-gradient(to bottom, black 40%, transparent 90%)',
+        position: 'fixed', inset: 0, zIndex: -1, pointerEvents: 'none', overflow: 'hidden',
+        background: '#000',
       }}
     >
       <style>{`
@@ -17,11 +16,12 @@ function CSSBackground() {
         @keyframes dw-pulse  { 0%,100%{opacity:0.4} 50%{opacity:0.7} }
         .dw-orb { position:absolute; border-radius:50%; filter:blur(80px); will-change: transform; }
       `}</style>
-      <div className="dw-orb" style={{ width:600,height:600,top:'-15%',left:'-10%',background:'radial-gradient(circle,rgba(40,40,60,0.9) 0%,transparent 70%)',animation:'dw-drift1 18s ease-in-out infinite,dw-pulse 8s ease-in-out infinite' }} />
-      <div className="dw-orb" style={{ width:500,height:500,top:'10%',right:'-5%',background:'radial-gradient(circle,rgba(30,35,55,0.85) 0%,transparent 70%)',animation:'dw-drift2 22s ease-in-out infinite,dw-pulse 10s ease-in-out infinite 2s' }} />
-      <div className="dw-orb" style={{ width:400,height:400,top:'40%',left:'30%',background:'radial-gradient(circle,rgba(20,25,45,0.8) 0%,transparent 70%)',animation:'dw-drift3 15s ease-in-out infinite,dw-pulse 12s ease-in-out infinite 4s' }} />
-      <div className="dw-orb" style={{ width:350,height:350,bottom:'5%',left:'10%',background:'radial-gradient(circle,rgba(35,30,50,0.75) 0%,transparent 70%)',animation:'dw-drift1 20s ease-in-out infinite reverse,dw-pulse 9s ease-in-out infinite 1s' }} />
-      <div style={{ position:'absolute',inset:0,backgroundImage:'linear-gradient(rgba(255,255,255,0.015) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.015) 1px,transparent 1px)',backgroundSize:'80px 80px',opacity:0.6 }} />
+      <div className="dw-orb" style={{ width:600,height:600,top:'-15%',left:'-10%',background:'radial-gradient(circle,rgba(60,60,100,0.8) 0%,transparent 70%)',animation:'dw-drift1 18s ease-in-out infinite,dw-pulse 8s ease-in-out infinite' }} />
+      <div className="dw-orb" style={{ width:500,height:500,top:'10%',right:'-5%',background:'radial-gradient(circle,rgba(50,60,90,0.75) 0%,transparent 70%)',animation:'dw-drift2 22s ease-in-out infinite,dw-pulse 10s ease-in-out infinite 2s' }} />
+      <div className="dw-orb" style={{ width:400,height:400,top:'40%',left:'30%',background:'radial-gradient(circle,rgba(40,50,80,0.7) 0%,transparent 70%)',animation:'dw-drift3 15s ease-in-out infinite,dw-pulse 12s ease-in-out infinite 4s' }} />
+      <div className="dw-orb" style={{ width:350,height:350,bottom:'5%',left:'10%',background:'radial-gradient(circle,rgba(55,50,85,0.65) 0%,transparent 70%)',animation:'dw-drift1 20s ease-in-out infinite reverse,dw-pulse 9s ease-in-out infinite 1s' }} />
+      <div style={{ position:'absolute',inset:0,backgroundImage:'linear-gradient(rgba(255,255,255,0.015) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.015) 1px,transparent 1px)',backgroundSize:'80px 80px',opacity:0.4 }} />
+      <div style={{ position:'absolute', inset:0, background: 'linear-gradient(to bottom, transparent 40%, #000 90%)' }} />
     </div>
   )
 }
@@ -40,7 +40,14 @@ function ThreeBackground({ onFail }) {
     canvas.width  = canvas.parentNode?.offsetWidth  || window.innerWidth
     canvas.height = canvas.parentNode?.offsetHeight || window.innerHeight
 
-    // Timeout to prevent hanging if Three.js import takes too long
+    // Immediate WebGL check before heavy import
+    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl')
+    if (!gl) {
+      console.warn('[Dwelling] WebGL not supported by browser. Falling back to CSS.')
+      onFail()
+      return
+    }
+
     const importTimeout = setTimeout(() => {
       console.warn('[Dwelling] Three.js import timeout. Falling back to CSS.')
       onFail()
@@ -57,28 +64,17 @@ function ThreeBackground({ onFail }) {
         ACESFilmicToneMapping, Raycaster, Plane,
       } = THREE
 
-      // Try creating the renderer — if this throws, fall back to CSS
-      let rendererCreated = false
       try {
-        // First attempt: try high-performance WebGL2
         renderer = new WebGLRenderer({ 
           canvas, 
           powerPreference: 'high-performance', 
           alpha: true, 
           antialias: false,
           precision: 'lowp',
-          logarithmicDepthBuffer: false,
           stencil: false,
           failIfMajorPerformanceCaveat: true,
         })
-        rendererCreated = true
       } catch (e) {
-        console.warn('[Dwelling] WebGL high-performance creation failed:', e.message)
-        rendererCreated = false
-      }
-
-      // Fallback: try with lower-performance settings
-      if (!rendererCreated) {
         try {
           renderer = new WebGLRenderer({ 
             canvas, 
@@ -86,45 +82,27 @@ function ThreeBackground({ onFail }) {
             alpha: true, 
             antialias: false,
             precision: 'lowp',
-            logarithmicDepthBuffer: false,
             stencil: false,
-            failIfMajorPerformanceCaveat: false,
           })
-          rendererCreated = true
-        } catch (e) {
-          console.warn('[Dwelling] WebGL low-power creation failed:', e.message)
-          rendererCreated = false
+        } catch (e2) {
+          onFail()
+          return
         }
       }
 
-      // Final fallback: if WebGL still fails, use CSS
-      if (!rendererCreated) {
-        console.warn('[Dwelling] WebGL context creation failed entirely. Falling back to CSS background.')
+      if (!renderer || !renderer.getContext()) {
         onFail()
         return
       }
 
-      // Double-check context was actually created
-      const ctx = renderer.getContext()
-      if (!ctx) {
-        renderer.dispose()
-        console.warn('[Dwelling] WebGL context exists but is null. Falling back to CSS background.')
-        onFail()
-        return
-      }
-
-      // Listen for context loss
       canvas.addEventListener('webglcontextlost', (e) => {
         e.preventDefault()
-        console.warn('[Dwelling] WebGL context lost. Falling back to CSS background.')
-        renderer?.dispose()
         onFail()
       }, false)
 
       renderer.outputColorSpace = SRGBColorSpace
       renderer.toneMapping = ACESFilmicToneMapping
 
-      // ── Inline RoomEnvironment ──────────────────────────────────────────────
       class RoomEnvironment extends Scene {
         constructor() {
           super(); this.position.y = -3.5
@@ -157,7 +135,6 @@ function ThreeBackground({ onFail }) {
         }
       }
 
-      // ── Scene setup ─────────────────────────────────────────────────────────
       const camera = new PerspectiveCamera(50, 1, 0.1, 100)
       camera.position.set(0, 0, 20)
       scene = new Scene()
@@ -175,7 +152,6 @@ function ThreeBackground({ onFail }) {
       mesh.add(new AmbientLight(0xffffff, 1.2)); mesh.add(ptLight)
       scene.add(mesh)
 
-      // ── Physics ─────────────────────────────────────────────────────────────
       const cfg = { count:COUNT, size0:0.9, minSize:0.25, maxSize:0.65, gravity:0.35, friction:0.995, wallBounce:0.3, maxVelocity:0.08, maxX:10, maxY:10, maxZ:8 }
       const posData = new Float32Array(3*COUNT)
       const velData = new Float32Array(3*COUNT)
@@ -215,7 +191,6 @@ function ThreeBackground({ onFail }) {
         ptLight.position.fromArray(posData,0)
       }
 
-      // ── Resize ───────────────────────────────────────────────────────────────
       function resize() {
         const par = canvas.parentNode
         const w = par ? par.offsetWidth : window.innerWidth
@@ -230,12 +205,10 @@ function ThreeBackground({ onFail }) {
       resizeObserver = new ResizeObserver(()=>{ clearTimeout(resizeTimer); resizeTimer=setTimeout(resize,100) })
       if (canvas.parentNode) resizeObserver.observe(canvas.parentNode)
 
-      // ── Pointer ───────────────────────────────────────────────────────────────
       const pointer=new Vector2(), raycaster=new Raycaster(), plane=new Plane(new Vector3(0,0,1),0), hit=new Vector3()
       function onMove(e) { pointer.set((e.clientX/window.innerWidth)*2-1,-(e.clientY/window.innerHeight)*2+1) }
       window.addEventListener('pointermove', onMove, {passive:true})
 
-      // ── Loop ─────────────────────────────────────────────────────────────────
       const clock = new Clock(); let visible=false
       io = new IntersectionObserver(([e])=>{
         visible=e.isIntersecting
@@ -253,12 +226,10 @@ function ThreeBackground({ onFail }) {
         renderer.render(scene,camera)
       }
 
-      // Store pointer cleanup ref
       canvas._dwCleanup = () => window.removeEventListener('pointermove', onMove)
 
     }).catch((err) => {
       clearTimeout(importTimeout)
-      console.warn('[Dwelling] Failed to load Three.js:', err.message)
       onFail()
     })
 
@@ -277,12 +248,11 @@ function ThreeBackground({ onFail }) {
     <canvas
       ref={canvasRef}
       style={{
-        position:'absolute', inset:0, width:'100%', height:'100%',
-        zIndex:1, pointerEvents:'none', display:'block',
-        WebkitMaskImage:'linear-gradient(to bottom, black 40%, transparent 90%)',
-        maskImage:'linear-gradient(to bottom, black 40%, transparent 90%)',
+        position:'fixed', inset:0, width:'100%', height:'100%',
+        zIndex:-1, pointerEvents:'none', display:'block',
         willChange: 'transform',
         transform: 'translateZ(0)',
+        background: '#000',
       }}
     />
   )
