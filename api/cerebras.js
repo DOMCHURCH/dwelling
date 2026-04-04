@@ -6,7 +6,7 @@ const SECRET = process.env.AUTH_SECRET
 if (!SECRET) throw new Error('FATAL: AUTH_SECRET env var is not set. Refusing to start.')
 
 const FREE_LIMIT = 10
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '01dominique.c@gmail.com').split(',')
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '').split(',').filter(Boolean)
 const ALLOWED_ORIGIN = 'https://dwelling-three.vercel.app'
 
 function getDb() {
