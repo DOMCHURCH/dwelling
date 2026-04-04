@@ -10,9 +10,14 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 's-maxage=7200')
   if (req.method === 'OPTIONS') return res.status(204).end()
 
-  const { city, state, country } = req.method === 'POST' ? req.body : req.query
+  const raw = req.method === 'POST' ? req.body : req.query
+  const sanitize = (s) => typeof s === 'string' ? s.replace(/[<>"'`;{}()\\\/$]/g, '').slice(0, 100) : ''
+  const city = sanitize(raw?.city)
+  const state = sanitize(raw?.state)
+  const country = sanitize(raw?.country)
   if (!city) return res.status(400).json({ error: 'city required' })
 
+  const isCanada = (country || '').toLowerCase().includes('canada')
   const key = `${city},${state || ''},${country || ''}`.toLowerCase()
   const cached = _cache.get(key)
   if (cached && Date.now() - cached.ts < CACHE_TTL) {
@@ -22,7 +27,10 @@ export default async function handler(req, res) {
   try {
     const location = [city, state, country].filter(Boolean).join(' ')
     const query = encodeURIComponent(`housing market real estate ${location}`)
-    const url = `https://news.google.com/rss/search?q=${query}&hl=en-US&gl=US&ceid=US:en`
+    const gl = isCanada ? 'CA' : 'US'
+    const hl = isCanada ? 'en-CA' : 'en-US'
+    const ceid = isCanada ? 'CA:en' : 'US:en'
+    const url = `https://news.google.com/rss/search?q=${query}&hl=${hl}&gl=${gl}&ceid=${ceid}`
 
     const response = await fetch(url, {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; DwellingApp/1.0)' },
