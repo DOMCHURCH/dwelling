@@ -49,13 +49,6 @@ import { getCurrencySymbol, getCurrencyName, fetchExchangeRates, convertCurrency
 
 const fmt = (n) => (n != null && n !== 0) ? n.toLocaleString('en-US', { maximumFractionDigits: 0 }) : '—'
 const fmtUSD = (n, sym) => (n != null && n !== 0) ? `${sym || '$'}${n.toLocaleString('en-US', { maximumFractionDigits: 0 })}` : '—'
-const fmtPrice = (n, sym) => {
-  if (n == null || n === 0) return '—'
-  const s = sym || '$'
-  if (n >= 1000000) return `${s}${(n / 1000000).toFixed(n % 1000000 === 0 ? 0 : 1)}M`
-  if (n >= 1000) return `${s}${Math.round(n / 1000)}K`
-  return `${s}${n}`
-}
 const pct = (n) => (n != null && n !== 0 && !isNaN(n)) ? `${Math.round(n)}%` : '—'
 
 function Tag({ children, color = 'default' }) {
@@ -140,11 +133,11 @@ function IncomeSlider({ costOfLiving, sym }) {
           <span style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow', sans-serif", fontWeight: 300 }}>Your {mode} income</span>
           <span style={{ fontFamily: "'Instrument Serif', serif", fontStyle: 'italic', fontSize: 20, color: '#ffffff' }}>{fmtUSD(income, sym)}</span>
         </div>
-        <input type="range" min={mode === 'monthly' ? 1000 : 12000} max={mode === 'monthly' ? 50000 : 600000} step={mode === 'monthly' ? 100 : 1000}
+        <input type="range" min={mode === 'monthly' ? 1000 : 12000} max={mode === 'monthly' ? 30000 : 360000} step={mode === 'monthly' ? 100 : 1000}
           value={income} onChange={e => setIncome(Number(e.target.value))} style={{ width: '100%', accentColor: 'rgba(255,255,255,0.7)' }} />
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 4 }}>
           <span>{fmtUSD(mode === 'monthly' ? 1000 : 12000, sym)}</span>
-          <span>{fmtUSD(mode === 'monthly' ? 50000 : 600000, sym)}</span>
+          <span>{fmtUSD(mode === 'monthly' ? 30000 : 360000, sym)}</span>
         </div>
       </div>
 
@@ -238,9 +231,8 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
   // Plan-based visibility helper
   const isLocked = (feature) => {
     if (previewPlan === 'pro') return false
-    // Free: only price history chart and detailed risk/hazard data locked
-    // Investment analysis, neighbourhood detail, cost of living — all visible on free
-    const freeHidden = ['pricehistory', 'risk']
+    // Free: investment, risk, pricehistory locked. neighborhood shows basic scores only (neighborhooddetail locked)
+    const freeHidden = ['investment', 'risk', 'pricehistory', 'costoflivingdetail', 'neighborhooddetail']
     return freeHidden.includes(feature)
   }
 
@@ -251,7 +243,7 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
         <div style={{ borderRadius: 14, padding: '12px 18px', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 14 }}>⚠️</span>
           <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(251,191,36,0.9)' }}>
-            Previewing <strong>Free plan</strong> — most features visible; price history charts and detailed environmental risk data are Pro only.
+            Previewing <strong>Free plan</strong> — basic neighbourhood scores visible; full neighbourhood detail, investment analysis, risk, and price history are Pro only.
           </span>
         </div>
       )}
@@ -404,8 +396,8 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
           {/* Price Stats */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 8, marginBottom: 14 }}>
             {[
-              { label: 'Median Price', value: fmtPrice(areaMetrics.medianPrice, sym) },
-              { label: 'Avg Price', value: fmtPrice(areaMetrics.avgPrice, sym) },
+              { label: 'Median Price', value: `${sym}${Math.round(areaMetrics.medianPrice / 1000)}k` },
+              { label: 'Avg Price', value: `${sym}${Math.round(areaMetrics.avgPrice / 1000)}k` },
               { label: 'Median DOM', value: areaMetrics.medianDOM != null ? `${areaMetrics.medianDOM} days` : 'N/A', sub: areaMetrics.medianDOM != null ? (() => { const diff = Math.round(((33 - areaMetrics.medianDOM) / 33) * 100); return areaMetrics.medianDOM < 21 ? `⚡ ${Math.abs(diff)}% faster than avg` : areaMetrics.medianDOM < 35 ? `≈ Near national avg (33d)` : `⏱ ${Math.abs(diff)}% slower than avg` })() : null },
               { label: 'Price/sqft', value: areaMetrics.medianPPSF ? `${sym}${areaMetrics.medianPPSF}` : 'N/A' },
             ].map(({ label, value, sub }) => (
@@ -430,7 +422,7 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
               </div>
             )}
             <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20, padding: '4px 12px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow', sans-serif" }}>
-              Price range: {fmtPrice(areaMetrics.priceRange?.low, sym)} – {fmtPrice(areaMetrics.priceRange?.high, sym)}
+              Price range: {sym}{Math.round((areaMetrics.priceRange?.low || 0) / 1000)}k – {sym}{Math.round((areaMetrics.priceRange?.high || 0) / 1000)}k
             </div>
           </div>
 
