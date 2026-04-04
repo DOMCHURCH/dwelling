@@ -54,8 +54,15 @@ body.modal-open {
 }
 
 html {
-  scroll-behavior: smooth;
+  /* scroll-behavior is managed by Lenis — do not set smooth here */
   background: #000;
+  overscroll-behavior: none;
+}
+
+/* GPU-accelerate the WebGL canvas */
+canvas {
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 body {
