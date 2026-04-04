@@ -1,13 +1,4 @@
-import { useCountUp } from '../hooks/useCountUp'
-
 export default function StatCard({ label, value, sub, accent, icon, animate = false }) {
-  const isNumeric = animate && value != null && !isNaN(parseFloat(String(value).replace(/[^0-9.]/g, '')))
-  const prefix = animate && typeof value === 'string' && value.startsWith('$') ? '$' : ''
-  const suffix = animate && typeof value === 'string' && value.endsWith('%') ? '%' : ''
-  const rawNum = isNumeric ? parseFloat(String(value).replace(/[^0-9.]/g, '')) : null
-  const animated = useCountUp(isNumeric ? rawNum : null, 1200, prefix, suffix)
-  const displayed = isNumeric ? animated : value
-
   return (
     <div style={{
       background: 'rgba(255,255,255,0.04)',
@@ -24,7 +15,7 @@ export default function StatCard({ label, value, sub, accent, icon, animate = fa
         {label}
       </div>
       <div style={{ fontSize: 22, fontWeight: 600, color: accent ?? '#ffffff', lineHeight: 1.1, fontFamily: "'Instrument Serif', serif", fontStyle: 'italic' }}>
-        {displayed}
+        {value}
       </div>
       {sub && <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 4, fontFamily: "'Barlow', sans-serif" }}>{sub}</div>}
     </div>
