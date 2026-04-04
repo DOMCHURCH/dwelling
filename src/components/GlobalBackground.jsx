@@ -1,11 +1,17 @@
 import { useEffect, useRef } from 'react'
 
-const NUM_LINES = 18000 // reduced from 40000 for better performance
+// Detect mobile or low-power devices
+const isMobile = typeof navigator !== 'undefined' && /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)
+const prefersReduced = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+const NUM_LINES = isMobile ? 4000 : 8000
 
 export default function GlobalBackground() {
   const containerRef = useRef(null)
 
   useEffect(() => {
+    // Skip entirely on reduced-motion or very small screens
+    if (prefersReduced) return
+
     const container = containerRef.current
     if (!container) return
 
