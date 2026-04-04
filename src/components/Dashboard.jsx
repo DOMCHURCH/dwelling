@@ -238,8 +238,9 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
   // Plan-based visibility helper
   const isLocked = (feature) => {
     if (previewPlan === 'pro') return false
-    // Free: investment, risk, pricehistory locked. neighborhood shows basic scores only (neighborhooddetail locked)
-    const freeHidden = ['investment', 'risk', 'pricehistory', 'costoflivingdetail', 'neighborhooddetail']
+    // Free: only price history chart and detailed risk/hazard data locked
+    // Investment analysis, neighbourhood detail, cost of living — all visible on free
+    const freeHidden = ['pricehistory', 'risk']
     return freeHidden.includes(feature)
   }
 
@@ -250,7 +251,7 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
         <div style={{ borderRadius: 14, padding: '12px 18px', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 14 }}>⚠️</span>
           <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(251,191,36,0.9)' }}>
-            Previewing <strong>Free plan</strong> — basic neighbourhood scores visible; full neighbourhood detail, investment analysis, risk, and price history are Pro only.
+            Previewing <strong>Free plan</strong> — most features visible; price history charts and detailed environmental risk data are Pro only.
           </span>
         </div>
       )}
