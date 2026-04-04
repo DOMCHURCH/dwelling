@@ -50,9 +50,46 @@ function ThreeBackground({ onFail }) {
       } = THREE
 
       // Try creating the renderer — if this throws, fall back to CSS
+      let rendererCreated = false
       try {
-        renderer = new WebGLRenderer({ canvas, powerPreference: 'high-performance', alpha: true, antialias: false })
+        // First attempt: try high-performance WebGL2
+        renderer = new WebGLRenderer({ 
+          canvas, 
+          powerPreference: 'high-performance', 
+          alpha: true, 
+          antialias: false,
+          precision: 'lowp',
+          logarithmicDepthBuffer: false,
+          stencil: false,
+        })
+        rendererCreated = true
       } catch (e) {
+        console.warn('[Dwelling] WebGL high-performance creation failed:', e.message)
+        rendererCreated = false
+      }
+
+      // Fallback: try with lower-performance settings
+      if (!rendererCreated) {
+        try {
+          renderer = new WebGLRenderer({ 
+            canvas, 
+            powerPreference: 'low-power', 
+            alpha: true, 
+            antialias: false,
+            precision: 'lowp',
+            logarithmicDepthBuffer: false,
+            stencil: false,
+          })
+          rendererCreated = true
+        } catch (e) {
+          console.warn('[Dwelling] WebGL low-power creation failed:', e.message)
+          rendererCreated = false
+        }
+      }
+
+      // Final fallback: if WebGL still fails, use CSS
+      if (!rendererCreated) {
+        console.warn('[Dwelling] WebGL context creation failed entirely. Falling back to CSS background.')
         onFail()
         return
       }
@@ -60,9 +97,18 @@ function ThreeBackground({ onFail }) {
       // Double-check context was actually created
       if (!renderer.getContext()) {
         renderer.dispose()
+        console.warn('[Dwelling] WebGL context exists but is null. Falling back to CSS background.')
         onFail()
         return
       }
+
+      // Listen for context loss
+      canvas.addEventListener('webglcontextlost', (e) => {
+        e.preventDefault()
+        console.warn('[Dwelling] WebGL context lost. Falling back to CSS background.')
+        renderer?.dispose()
+        onFail()
+      }, false)
 
       renderer.outputColorSpace = SRGBColorSpace
       renderer.toneMapping = ACESFilmicToneMapping
@@ -199,7 +245,10 @@ function ThreeBackground({ onFail }) {
       // Store pointer cleanup ref
       canvas._dwCleanup = () => window.removeEventListener('pointermove', onMove)
 
-    }).catch(() => onFail())
+    }).catch((err) => {
+      console.warn('[Dwelling] Failed to load Three.js:', err.message)
+      onFail()
+    })
 
     return () => {
       cancelAnimationFrame(rafId)
