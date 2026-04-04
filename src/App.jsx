@@ -134,7 +134,7 @@ const FAQ_ITEMS = [
   { q: 'Which cities does Dwelling cover?', a: 'Currently all major Canadian cities — Toronto, Vancouver, Calgary, Ottawa, Montreal, Edmonton, Winnipeg, Halifax, and hundreds more. We started with Canada to build a rock-solid, data-rich pilot before expanding.' },
   { q: 'Where does the data come from?', a: 'Realtor.ca active MLS listings (200+ per city), Statistics Canada price indices, OpenStreetMap walkability and amenities, Open-Meteo climate normals, and our proprietary AI engine for synthesis.' },
   { q: 'What is the Stability Score?', a: 'A 0–100 score computed from real listing data: median days on market, price volatility (coefficient of variation), inventory levels, and percentage of listings sitting >60 days. Higher = more stable.' },
-  { q: 'Is Dwelling free to use?', a: 'Free users get 10 analyses per month. Upgrade to Pro for $29/month (or $226/year — save 35%) for expanded analysis access, full city intelligence, and investment-grade reports. Analysis availability is subject to platform capacity.' },
+  { q: 'Is Dwelling free to use?', a: 'Free users get 10 analyses per month with access to the full verdict, investment score, neighbourhood detail, cost of living, and market intelligence. Upgrade to Pro for $29/month (or $226/year — save 35%) for price history charts, detailed environmental risk data, and unlimited analyses.' },
   { q: 'Can I use the results to make a real estate decision?', a: 'No. All outputs are informational only and do not constitute financial, legal, or real estate advice. Always consult a qualified professional.' },
   { q: 'Does Dwelling store my searches?', a: 'No. Searches are processed in real time and discarded immediately. We store only your usage count to enforce free-tier limits.' },
   { q: 'Why Canada only right now?', a: 'Depth over breadth. Starting with one country lets us build a genuinely reliable product — accurate data partnerships, verified sources, Canada-specific context — before expanding internationally.' },
@@ -835,20 +835,20 @@ const Testimonials = memo(function Testimonials() {
 const PRICING_FREE = [
   '10 analyses / month',
   'Area Verdict & Market Intelligence',
+  'Investment Score & Analysis',
+  'Full Neighbourhood detail & safety',
   'Cost of Living breakdown',
   'Climate & weather data',
-  'Local Market News',
-  'Area Market Estimate',
-  'Walkability & school scores',
+  'Local Market News & walkability',
 ]
 const PRICING_PRO = [
   { text: 'Unlimited analyses', highlight: false },
-  { text: 'Full Neighbourhood detail & safety', highlight: true },
-  { text: 'Investment Analysis & score', highlight: true },
+  { text: 'Price history charts & projections', highlight: true },
   { text: 'Environmental & flood risk detection', highlight: true },
-  { text: 'Price history & market projections', highlight: true },
+  { text: 'Full hazard breakdown (fire, seismic, wind)', highlight: true },
   { text: 'Side-by-side city comparison', highlight: false },
   { text: 'Priority support', highlight: false },
+  { text: 'Early access to new features', highlight: false },
 ]
 
 function PricingCard({ plan, price, desc, features, cta, onCta, popular, highlight, priceLabel, annualSavings }) {
@@ -1747,7 +1747,7 @@ export default function App() {
   useEffect(() => {
     let lenis
     import('lenis').then(({ default: Lenis }) => {
-      lenis = new Lenis({ lerp: 0.08, smoothWheel: true })
+      lenis = new Lenis({ lerp: 0.12, smoothWheel: true, wheelMultiplier: 0.9, touchMultiplier: 1.5 })
       function raf(time) { lenis.raf(time); requestAnimationFrame(raf) }
       requestAnimationFrame(raf)
     })
@@ -1949,8 +1949,8 @@ export default function App() {
     </div>
   )
 
-  // Allow unauthenticated users to view the demo
-  if (!user && !showDemo && !guestResult) return <AuthModal onAuth={handleAuth} onDemo={() => setShowDemo(true)} />
+  // No longer force auth gate — everyone sees the landing page
+  // Auth modal is triggered lazily when they try to search
 
   if (showDemo) return (
     <div style={{ minHeight: '100vh', background: '#000', display: 'flex', flexDirection: 'column' }}>
