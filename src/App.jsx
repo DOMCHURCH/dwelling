@@ -34,7 +34,7 @@ function scrollTo(id) {
 
 function Section({ children, style = {} }) {
   return (
-    <section style={{ position: 'relative', overflow: 'hidden', background: '#000', contain: 'layout', ...style }}>
+    <section style={{ position: 'relative', overflow: 'hidden', background: 'transparent', contain: 'layout', ...style }}>
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'rgba(255,255,255,0.04)' }} />
       <div style={{ position: 'relative', zIndex: 10 }}>{children}</div>
     </section>
@@ -143,7 +143,7 @@ const FAQ_ITEMS = [
 const FAQ = memo(function FAQ() {
   const [open, setOpen] = useState(null)
   return (
-    <section id="faq" style={{ padding: 'clamp(56px, 8vw, 96px) 20px', maxWidth: 780, margin: '0 auto' }}>
+    <section id="faq" style={{ padding: 'clamp(56px, 8vw, 96px) 20px', maxWidth: 780, margin: '0 auto', background: 'transparent' }}>
       <div>
         <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>Support</div>
       </div>
@@ -399,7 +399,7 @@ function CityscapeSilhouette() {
 
 function Hero({ onSearch, loading, onShowDemo }) {
   return (
-    <section id="hero" style={{ position: 'relative', overflow: 'hidden', background: 'transparent', minHeight: 'min(1000px, 100svh)', height: 'auto', zIndex: 0 }}>
+    <section id="hero" style={{ position: 'relative', overflow: 'hidden', background: 'transparent', minHeight: 'min(1000px, 100svh)', height: 'auto', zIndex: 1 }}>
       <GlobalBackground />
       <CityscapeSilhouette />
       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 350, background: 'linear-gradient(to top, #000 40%, transparent)', zIndex: 3 }} />
@@ -454,7 +454,7 @@ const Partners = memo(function Partners() {
   const sectionRef = useScrollReveal({ y: 24, opacity: 0, duration: 0.8 })
   const partnersRef = useScrollReveal({ y: 0, opacity: 0, duration: 0.6, stagger: 0.07, selector: 'span.partner-name' })
   return (
-    <section style={{ padding: '64px 24px' }}>
+    <section style={{ padding: '64px 24px', background: 'transparent' }}>
       <div ref={sectionRef} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <div className="liquid-glass" style={{ borderRadius: 40, padding: '4px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 28 }}>
           Powered by 16+ official data sources
@@ -545,7 +545,7 @@ const FeaturesChess = memo(function FeaturesChess() {
     },
   ]
   return (
-    <section ref={revealRef} id="features" style={{ padding: '96px 24px' }}>
+    <section ref={revealRef} id="features" style={{ padding: '96px 24px', background: 'transparent' }}>
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
         <div>
           <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>Capabilities</div>
@@ -594,7 +594,7 @@ const FeaturesGrid = memo(function FeaturesGrid() {
     { icon: '🔒', title: 'Secure & Private', desc: 'Your searches are never stored. Bank-grade encryption. Searches processed in real time and never retained.' },
   ]
   return (
-    <section style={{ padding: '80px 24px' }}>
+    <section style={{ padding: '80px 24px', background: 'transparent' }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
         <div>
           <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>Why Dwelling</div>
@@ -659,7 +659,7 @@ const DataPartnerships = memo(function DataPartnerships() {
   ]
 
   return (
-    <section style={{ padding: '80px 24px' }}>
+    <section style={{ padding: '80px 24px', background: 'transparent' }}>
       <div ref={dpRef} style={{ maxWidth: 1100, margin: '0 auto' }}>
         <div>
           <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>Data Sources</div>
@@ -775,7 +775,7 @@ function HoverGroupGrid({ cards }) {
 // ─── STATS ───────────────────────────────────────────────────────────────────
 const Stats = memo(function Stats() {
   return (
-    <Section style={{ padding: 'clamp(60px, 10vw, 128px) 20px' }}>
+    <section style={{ padding: 'clamp(60px, 10vw, 128px) 20px', background: 'transparent' }}>
       <div style={{ maxWidth: 1000, margin: '0 auto' }}>
         <div className="liquid-glass" style={{ borderRadius: 26, padding: '44px 28px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 28, textAlign: 'center' }}>
@@ -802,7 +802,7 @@ const Stats = memo(function Stats() {
 // ─── WHY WE BUILT THIS ───────────────────────────────────────────────────────
 const Testimonials = memo(function Testimonials() {
   return (
-    <section style={{ padding: '96px 24px' }}>
+    <section style={{ padding: '96px 24px', background: 'transparent' }}>
       <div style={{ maxWidth: 860, margin: '0 auto', textAlign: 'center' }}>
         <div>
           <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 24 }}>Why we built this</div>
@@ -1068,7 +1068,7 @@ function MortgageCalculator({ activeCity }) {
   const labelStyle = { fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6, display: 'block' }
 
   return (
-    <section style={{ padding: 'clamp(60px,8vw,96px) 20px' }}>
+    <section style={{ padding: 'clamp(60px,8vw,96px) 20px', background: 'transparent' }}>
       <div style={{ maxWidth: 860, margin: '0 auto' }}>
         <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>Affordability</div>
         <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2rem,5vw,3.5rem)', color: '#fff', marginBottom: 10, lineHeight: 0.9, letterSpacing: '-0.02em' }}>
@@ -1205,7 +1205,7 @@ function RentalCalculator({ activeCity }) {
   const label = { display:'block', fontFamily:"'Barlow',sans-serif", fontSize:11, color:'rgba(255,255,255,0.4)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:6 }
 
   return (
-    <section style={{ padding:'clamp(60px,8vw,96px) 20px' }}>
+    <section style={{ padding:'clamp(60px,8vw,96px) 20px', background: 'transparent' }}>
       <div style={{ maxWidth:860, margin:'0 auto' }}>
         <div className="liquid-glass" style={{ borderRadius:40, display:'inline-flex', padding:'5px 14px', fontSize:11, color:'rgba(255,255,255,0.5)', fontFamily:"'Barlow',sans-serif", letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:16 }}>Investment</div>
         <h2 style={{ fontFamily:"'Instrument Serif',serif", fontStyle:'italic', fontSize:'clamp(2rem,5vw,3.5rem)', color:'#fff', marginBottom:10, lineHeight:0.9, letterSpacing:'-0.02em' }}>
