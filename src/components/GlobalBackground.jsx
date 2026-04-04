@@ -1,24 +1,20 @@
 import { useEffect, useRef } from 'react'
 
-// Detect mobile or low-power devices
 const isMobile = typeof navigator !== 'undefined' && /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)
 const prefersReduced = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
-const NUM_LINES = isMobile ? 4000 : 8000
+const NUM_LINES = isMobile ? 3000 : 6000
 
 export default function GlobalBackground() {
   const containerRef = useRef(null)
 
   useEffect(() => {
-    // Skip entirely on reduced-motion or very small screens
     if (prefersReduced) return
 
     const container = containerRef.current
     if (!container) return
 
     const canvas = document.createElement('canvas')
-    canvas.style.width = '100%'
-    canvas.style.height = '100%'
-    canvas.style.display = 'block'
+    canvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;display:block;'
     container.appendChild(canvas)
 
     const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl')
@@ -26,16 +22,18 @@ export default function GlobalBackground() {
 
     let cw, ch
     function resize() {
-      cw = container.offsetWidth
-      ch = container.offsetHeight
-      canvas.width = cw
-      canvas.height = ch
-      gl.viewport(0, 0, cw, ch)
+      cw = container.offsetWidth || 800
+      ch = container.offsetHeight || 600
+      const dpr = Math.min(window.devicePixelRatio || 1, 2)
+      canvas.width = cw * dpr
+      canvas.height = ch * dpr
+      gl.viewport(0, 0, canvas.width, canvas.height)
     }
     resize()
-    window.addEventListener('resize', resize)
 
-    // ── Shaders ───────────────────────────────────────────────────────────────
+    const ro = new ResizeObserver(resize)
+    ro.observe(container)
+
     const vsSrc = `
       attribute vec3 vertexPosition;
       uniform mat4 modelViewMatrix;
@@ -46,10 +44,10 @@ export default function GlobalBackground() {
     `
     const fsSrc = `
       #ifdef GL_ES
-      precision highp float;
+      precision mediump float;
       #endif
       void main(void) {
-        gl_FragColor = vec4(0.18, 0.28, 0.42, 0.85);
+        gl_FragColor = vec4(0.18, 0.28, 0.44, 0.7);
       }
     `
 
@@ -60,11 +58,9 @@ export default function GlobalBackground() {
       return s
     }
 
-    const vs = compileShader(gl.VERTEX_SHADER, vsSrc)
-    const fs = compileShader(gl.FRAGMENT_SHADER, fsSrc)
     const program = gl.createProgram()
-    gl.attachShader(program, vs)
-    gl.attachShader(program, fs)
+    gl.attachShader(program, compileShader(gl.VERTEX_SHADER, vsSrc))
+    gl.attachShader(program, compileShader(gl.FRAGMENT_SHADER, fsSrc))
     gl.linkProgram(program)
     gl.useProgram(program)
 
@@ -76,12 +72,10 @@ export default function GlobalBackground() {
     gl.disable(gl.DEPTH_TEST)
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE)
 
-    // ── Perspective ───────────────────────────────────────────────────────────
     const fov = 30.0, near = 1.0, far = 10000.0
     const top2 = near * Math.tan(fov * Math.PI / 360.0)
     const bottom2 = -top2
-    const ar = canvas.width / canvas.height
-    const right2 = top2 * ar, left2 = -right2
+    const right2 = top2, left2 = -right2
     const pa = (right2 + left2) / (right2 - left2)
     const pb = (top2 + bottom2) / (top2 - bottom2)
     const pc = (far + near) / (far - near)
@@ -96,13 +90,12 @@ export default function GlobalBackground() {
     gl.uniformMatrix4fv(uMV, false, perspMatrix)
     gl.uniformMatrix4fv(uP,  false, mvMatrix)
 
-    // ── Particle data ─────────────────────────────────────────────────────────
-    const vertices     = new Float32Array(NUM_LINES * 2 * 3)
-    const thetaArr     = new Float32Array(NUM_LINES)
-    const velThetaArr  = new Float32Array(NUM_LINES)
-    const velRadArr    = new Float32Array(NUM_LINES)
-    const randomTargetX = new Float32Array(NUM_LINES)
-    const randomTargetY = new Float32Array(NUM_LINES)
+    const vertices    = new Float32Array(NUM_LINES * 2 * 3)
+    const thetaArr    = new Float32Array(NUM_LINES)
+    const velThetaArr = new Float32Array(NUM_LINES)
+    const velRadArr   = new Float32Array(NUM_LINES)
+    const targetX     = new Float32Array(NUM_LINES)
+    const targetY     = new Float32Array(NUM_LINES)
 
     for (let i = 0; i < NUM_LINES; i++) {
       const rad   = 0.1 + 0.2 * Math.random()
@@ -115,11 +108,11 @@ export default function GlobalBackground() {
       vertices[bp + 3] = vertices[bp]
       vertices[bp + 4] = vertices[bp + 1]
       vertices[bp + 5] = 1.83
-      thetaArr[i]      = theta
-      velThetaArr[i]   = vt
-      velRadArr[i]     = rad
-      randomTargetX[i] = (Math.random() * 2 - 1) * (cw / ch)
-      randomTargetY[i] = Math.random() * 2 - 1
+      thetaArr[i]    = theta
+      velThetaArr[i] = vt
+      velRadArr[i]   = rad
+      targetX[i] = (Math.random() * 2 - 1)
+      targetY[i] = Math.random() * 2 - 1
     }
 
     const buf = gl.createBuffer()
@@ -127,68 +120,34 @@ export default function GlobalBackground() {
     gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.DYNAMIC_DRAW)
     gl.vertexAttribPointer(vertexPosition, 3, gl.FLOAT, false, 0, 0)
 
-    // ── Cursor state ──────────────────────────────────────────────────────────
-    // cursorTarget: WebGL normalized coords (-1 to 1 range matching particle space)
-    let cursorTarget = null // null = not attracting
-    let attracting = false
+    // Smooth passive cursor attraction — no click needed
+    let cursorX = 0, cursorY = 0, hasCursor = false
 
-    function screenToWebGL(clientX, clientY) {
+    function handleMouseMove(e) {
       const rect = canvas.getBoundingClientRect()
-      // Map to -1..1 then scale to match particle coord space
-      const nx = ((clientX - rect.left) / rect.width * 2 - 1) * (cw / ch)
-      const ny = -((clientY - rect.top) / rect.height * 2 - 1)
-      return { x: nx, y: ny }
+      cursorX = (e.clientX - rect.left) / rect.width * 2 - 1
+      cursorY = -(((e.clientY - rect.top) / rect.height) * 2 - 1)
+      hasCursor = true
     }
+    function handleMouseLeave() { hasCursor = false }
 
-    function handleClick(e) {
-      cursorTarget = screenToWebGL(e.clientX, e.clientY)
-      attracting = true
-      // Release after 2.5 seconds — particles drift back to normal mode
-      if (releaseTimer) clearTimeout(releaseTimer)
-      releaseTimer = setTimeout(() => {
-        attracting = false
-        cursorTarget = null
-      }, 2500)
-    }
+    window.addEventListener('mousemove', handleMouseMove, { passive: true })
+    window.addEventListener('mouseleave', handleMouseLeave, { passive: true })
 
-    // Also attract on hold (mousedown/touchstart)
-    function handleMouseDown(e) { handleClick(e) }
-    function handleTouchStart(e) {
-      if (e.touches[0]) handleClick(e.touches[0])
-    }
-
-    let releaseTimer = null
-    window.addEventListener('click', handleClick)
-    window.addEventListener('mousedown', handleMouseDown)
-    window.addEventListener('touchstart', handleTouchStart)
-
-    // ── Draw modes ────────────────────────────────────────────────────────────
     let drawType = 2
     let cn = 0
-    // Throttle: only update every other frame for perf
-    let frameSkip = 0
-
-    function drawAttract() {
-      // Pull all particles toward cursor position
-      const tx = cursorTarget.x
-      const ty = cursorTarget.y
-      for (let i = 0; i < NUM_LINES; i++) {
-        const bp = i * 6
-        vertices[bp]     = vertices[bp + 3]
-        vertices[bp + 1] = vertices[bp + 4]
-        const speed = Math.random() * 0.08 + 0.04
-        vertices[bp + 3] += (tx - vertices[bp + 3]) * speed
-        vertices[bp + 4] += (ty - vertices[bp + 4]) * speed
-      }
-    }
+    let frameCount = 0
 
     function draw0() {
       for (let i = 0; i < NUM_LINES; i++) {
         const bp = i * 6
         vertices[bp]     = vertices[bp + 3]
         vertices[bp + 1] = vertices[bp + 4]
-        vertices[bp + 3] += (randomTargetX[i] - vertices[bp + 3]) * (Math.random() * 0.04 + 0.06)
-        vertices[bp + 4] += (randomTargetY[i] - vertices[bp + 4]) * (Math.random() * 0.04 + 0.06)
+        const pull = hasCursor ? 0.25 : 0
+        const tx = targetX[i] * (1 - pull) + cursorX * pull
+        const ty = targetY[i] * (1 - pull) + cursorY * pull
+        vertices[bp + 3] += (tx - vertices[bp + 3]) * 0.025
+        vertices[bp + 4] += (ty - vertices[bp + 4]) * 0.025
       }
     }
 
@@ -198,69 +157,61 @@ export default function GlobalBackground() {
         vertices[bp]     = vertices[bp + 3]
         vertices[bp + 1] = vertices[bp + 4]
         thetaArr[i] += velThetaArr[i]
-        const tx = velRadArr[i] * Math.cos(thetaArr[i])
-        const ty = velRadArr[i] * Math.sin(thetaArr[i])
-        vertices[bp + 3] += (tx - vertices[bp + 3]) * (Math.random() * 0.1 + 0.1)
-        vertices[bp + 4] += (ty - vertices[bp + 4]) * (Math.random() * 0.1 + 0.1)
+        const bx = velRadArr[i] * Math.cos(thetaArr[i])
+        const by = velRadArr[i] * Math.sin(thetaArr[i])
+        const pull = hasCursor ? 0.35 : 0
+        vertices[bp + 3] += ((bx * (1 - pull) + cursorX * pull) - vertices[bp + 3]) * 0.06
+        vertices[bp + 4] += ((by * (1 - pull) + cursorY * pull) - vertices[bp + 4]) * 0.06
       }
     }
 
     function draw2() {
-      cn += 0.1
+      cn += 0.06
       for (let i = 0; i < NUM_LINES; i++) {
         const bp = i * 6
         vertices[bp]     = vertices[bp + 3]
         vertices[bp + 1] = vertices[bp + 4]
         thetaArr[i] += velThetaArr[i]
-        vertices[bp + 3] += velRadArr[i] * Math.cos(thetaArr[i]) * 0.1
-        vertices[bp + 4] += velRadArr[i] * Math.sin(thetaArr[i]) * 0.1
+        const pull = hasCursor ? 0.002 : 0
+        vertices[bp + 3] += velRadArr[i] * Math.cos(thetaArr[i]) * 0.1 + (cursorX - vertices[bp + 3]) * pull
+        vertices[bp + 4] += velRadArr[i] * Math.sin(thetaArr[i]) * 0.1 + (cursorY - vertices[bp + 4]) * pull
       }
     }
 
-    // ── Animation loop ────────────────────────────────────────────────────────
     let animId = null
     let timerHandle = null
 
     function renderLoop() {
       animId = requestAnimationFrame(renderLoop)
+      frameCount++
+      if (frameCount % 2 !== 0) return
 
-      // Skip every other frame to reduce CPU load
-      frameSkip = (frameSkip + 1) % 2
-      if (frameSkip !== 0) return
-
-      if (attracting && cursorTarget) {
-        drawAttract()
-      } else {
-        switch (drawType) {
-          case 0: draw0(); break
-          case 1: draw1(); break
-          case 2: draw2(); break
-        }
+      switch (drawType) {
+        case 0: draw0(); break
+        case 1: draw1(); break
+        default: draw2(); break
       }
 
-      gl.lineWidth(1)
       gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.DYNAMIC_DRAW)
-      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+      gl.clear(gl.COLOR_BUFFER_BIT)
       gl.drawArrays(gl.LINES, 0, NUM_LINES)
       gl.flush()
     }
 
     function cycleMode() {
-      if (!attracting) drawType = (drawType + 1) % 3
-      timerHandle = setTimeout(cycleMode, 1500)
+      drawType = (drawType + 1) % 3
+      timerHandle = setTimeout(cycleMode, 6000)
     }
 
     renderLoop()
-    timerHandle = setTimeout(cycleMode, 1500)
+    timerHandle = setTimeout(cycleMode, 6000)
 
     return () => {
-      if (animId) cancelAnimationFrame(animId)
-      if (timerHandle) clearTimeout(timerHandle)
-      if (releaseTimer) clearTimeout(releaseTimer)
-      window.removeEventListener('resize', resize)
-      window.removeEventListener('click', handleClick)
-      window.removeEventListener('mousedown', handleMouseDown)
-      window.removeEventListener('touchstart', handleTouchStart)
+      cancelAnimationFrame(animId)
+      clearTimeout(timerHandle)
+      ro.disconnect()
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('mouseleave', handleMouseLeave)
       gl.deleteBuffer(buf)
       gl.deleteProgram(program)
       if (container.contains(canvas)) container.removeChild(canvas)
@@ -273,11 +224,11 @@ export default function GlobalBackground() {
       style={{
         position: 'absolute',
         inset: 0,
-        zIndex: -1,
+        zIndex: 1,
         pointerEvents: 'none',
         overflow: 'hidden',
-        WebkitMaskImage: 'linear-gradient(to bottom, black 40%, transparent 100%)',
-        maskImage: 'linear-gradient(to bottom, black 40%, transparent 100%)',
+        WebkitMaskImage: 'linear-gradient(to bottom, black 35%, transparent 90%)',
+        maskImage: 'linear-gradient(to bottom, black 35%, transparent 90%)',
       }}
     />
   )
