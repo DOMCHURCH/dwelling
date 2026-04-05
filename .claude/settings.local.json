@@ -16,7 +16,15 @@
       "WebSearch",
       "Bash(git add:*)",
       "Bash(git commit -m ':*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(du:*)",
+      "Bash(where magick:*)",
+      "Bash(where convert:*)",
+      "Bash(where ffmpeg:*)",
+      "Bash(cp hero-near-opt.jpg hero-near.jpg)",
+      "Bash(cp hero-sky-opt.jpg hero-sky.jpg)",
+      "Bash(cp hero-far-opt.webp hero-far.webp)",
+      "Bash(rm hero-near-opt.jpg hero-sky-opt.jpg hero-far-opt.png hero-far-opt.webp)"
     ]
   },
   "hooks": {
