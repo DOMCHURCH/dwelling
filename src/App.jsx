@@ -5,7 +5,7 @@ import LoadingState from './components/LoadingState'
 const Dashboard = lazy(() => import('./components/Dashboard'))
 import AuthModal from './components/AuthModal'
 import PaywallModal from './components/PaywallModal'
-const ScrollScene = lazy(() => import('./components/ScrollScene'))
+const CursorTrail = lazy(() => import('./components/CursorTrail'))
 import CompareView from './components/CompareView'
 import CountUp from './components/CountUp'
 import { geocodeStructured } from './lib/nominatim'
@@ -2073,8 +2073,8 @@ export default function App() {
         </div>
       ) : (
         <div style={{ position: 'relative', zIndex: 1 }}>
-          {/* 3D scroll scene — fixed canvas behind the landing page */}
-          <Suspense fallback={null}><ScrollScene /></Suspense>
+          {/* Neon cursor trail — fixed canvas, pointer-events: none */}
+          <Suspense fallback={null}><CursorTrail /></Suspense>
           <Hero onSearch={handleSearch} loading={loading} onShowDemo={() => setShowDemo(true)} />
           <Partners />
           <HowItWorks />
