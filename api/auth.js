@@ -1,6 +1,7 @@
 import { createHash, createHmac, randomBytes, createCipheriv, createDecipheriv } from 'crypto'
 import { createClient } from '@libsql/client'
 import { Resend } from 'resend'
+import { signupLimiter, signinLimiter, resetLimiter, applyLimit } from './_ratelimit.js'
 
 // ─── Startup validation — refuse to run with missing critical secrets ─────────
 const SECRET = process.env.AUTH_SECRET
@@ -15,18 +16,7 @@ const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim
 const BASE_URL = process.env.BASE_URL || `https://${process.env.VERCEL_URL}` || 'https://dwelling-three.vercel.app'
 const ALLOWED_ORIGIN = 'https://dwelling-three.vercel.app'
 
-// ─── Rate limiting (simple in-memory for Vercel serverless) ──────────────────
-// Upstash Redis is ideal but requires extra setup — this covers the basics
-const rateLimitStore = new Map()
-function rateLimit(key, maxRequests = 10, windowMs = 60000) {
-  const now = Date.now()
-  const windowStart = now - windowMs
-  const attempts = (rateLimitStore.get(key) || []).filter(t => t > windowStart)
-  if (attempts.length >= maxRequests) return false
-  attempts.push(now)
-  rateLimitStore.set(key, attempts)
-  return true
-}
+// Rate limiting handled by Upstash Redis via api/_ratelimit.js
 
 function getDb() {
   return createClient({
@@ -177,10 +167,7 @@ export default async function handler(req, res) {
 
     // ── signup ──────────────────────────────────────────────────────────────
     if (action === 'signup') {
-      // Rate limit: 5 signups per IP per hour
-      if (!rateLimit(`signup:${clientIp}`, 5, 3600000)) {
-        return res.status(429).json({ error: 'Too many signup attempts. Please try again later.' })
-      }
+      if (await applyLimit(signupLimiter, clientIp, res)) return
 
       const { email, password } = req.body
       if (!email || !password) return res.status(400).json({ error: 'Missing email or password' })
@@ -211,10 +198,7 @@ export default async function handler(req, res) {
 
     // ── signin ──────────────────────────────────────────────────────────────
     if (action === 'signin') {
-      // Rate limit: 10 attempts per IP per 15 minutes
-      if (!rateLimit(`signin:${clientIp}`, 10, 900000)) {
-        return res.status(429).json({ error: 'Too many sign-in attempts. Please wait 15 minutes.' })
-      }
+      if (await applyLimit(signinLimiter, clientIp, res)) return
 
       const { email, password } = req.body
       if (!email || !password) return res.status(400).json({ error: 'Missing email or password' })
@@ -246,10 +230,7 @@ export default async function handler(req, res) {
 
     // ── forgot-password ─────────────────────────────────────────────────────
     if (action === 'forgot-password') {
-      // Rate limit: 3 reset requests per IP per hour
-      if (!rateLimit(`forgot:${clientIp}`, 3, 3600000)) {
-        return res.status(429).json({ error: 'Too many reset requests. Please wait an hour.' })
-      }
+      if (await applyLimit(resetLimiter, clientIp, res)) return
 
       const { email } = req.body
       if (!email) return res.status(400).json({ error: 'Email is required.' })
