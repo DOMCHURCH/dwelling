@@ -5,7 +5,7 @@ import LoadingState from './components/LoadingState'
 const Dashboard = lazy(() => import('./components/Dashboard'))
 import AuthModal from './components/AuthModal'
 import PaywallModal from './components/PaywallModal'
-const CursorTrail = lazy(() => import('./components/CursorTrail'))
+import CursorTrail from './components/CursorTrail'
 import CompareView from './components/CompareView'
 import CountUp from './components/CountUp'
 import { geocodeStructured } from './lib/nominatim'
@@ -1947,6 +1947,7 @@ export default function App() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#000', display: 'flex', flexDirection: 'column' }}>
+      <CursorTrail />
         {showTerms && <TermsModal onClose={() => setShowTerms(false)} />}
       {/* Guest signup prompt — shown after first free search */}
       {!user && guestResult && result && (
@@ -2073,8 +2074,6 @@ export default function App() {
         </div>
       ) : (
         <div style={{ position: 'relative', zIndex: 1 }}>
-          {/* Neon cursor trail — fixed canvas, pointer-events: none */}
-          <Suspense fallback={null}><CursorTrail /></Suspense>
           <Hero onSearch={handleSearch} loading={loading} onShowDemo={() => setShowDemo(true)} />
           <Partners />
           <HowItWorks />

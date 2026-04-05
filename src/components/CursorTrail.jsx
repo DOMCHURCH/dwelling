@@ -21,8 +21,9 @@ export default function CursorTrail() {
 
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
-    // Only run where there is a fine pointer (mouse). Touch-only devices have no cursor.
-    if (!window.matchMedia('(pointer: fine)').matches) return
+    // Only run where a fine pointer (mouse) exists. Use any-pointer so Windows
+    // touchscreen machines with a mouse still get the effect.
+    if (!window.matchMedia('(any-pointer: fine)').matches) return
 
     const canvas = canvasRef.current
     if (!canvas) return
@@ -120,7 +121,7 @@ export default function CursorTrail() {
     <canvas
       ref={canvasRef}
       aria-hidden="true"
-      style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}
+      style={{ position: 'fixed', inset: 0, zIndex: 9999, pointerEvents: 'none' }}
     />
   )
 }
