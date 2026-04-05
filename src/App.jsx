@@ -6,6 +6,7 @@ const Dashboard = lazy(() => import('./components/Dashboard'))
 import AuthModal from './components/AuthModal'
 import PaywallModal from './components/PaywallModal'
 import CursorTrail from './components/CursorTrail'
+import CookieBanner from './components/CookieBanner'
 import CompareView from './components/CompareView'
 import CountUp from './components/CountUp'
 import { geocodeStructured } from './lib/nominatim'
@@ -2108,6 +2109,7 @@ export default function App() {
           />
         </div>
       )}
+      <CookieBanner />
     </div>
   )
 }
