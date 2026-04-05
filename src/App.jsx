@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, memo, lazy, Suspense, forwardRef } from 'react'
 import { useScrollReveal, getGSAP } from '../hooks/useScrollReveal'
 import AddressSearch from './components/AddressSearch'
-import GlobalBackground from './components/GlobalBackground'
 import LoadingState from './components/LoadingState'
 const Dashboard = lazy(() => import('./components/Dashboard'))
 import AuthModal from './components/AuthModal'
@@ -369,86 +368,20 @@ function CityscapeSilhouette({ backRef, frontRef }) {
 }
 
 function Hero({ onSearch, loading, onShowDemo }) {
-  const skyRef  = useRef(null)
-  const farRef  = useRef(null)
-  const nearRef = useRef(null)
-  const textRef = useRef(null)
-  const sceneRef = useRef(null)
-
-  // Scroll parallax — direct window.scroll, no GSAP/Lenis dependency
-  useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
-    const heroEl = document.getElementById('hero')
-    function onScroll() {
-      const p = Math.min(window.scrollY / (heroEl?.offsetHeight || window.innerHeight), 1)
-      if (skyRef.current)  skyRef.current.style.transform  = `translateY(${p * 12}px)`
-      if (farRef.current)  farRef.current.style.transform  = `translateY(${-p * 50}px)`
-      if (nearRef.current) nearRef.current.style.transform = `translateY(${-p * 100}px)`
-      if (textRef.current) textRef.current.style.transform = `translateY(${-p * 22}px)`
-    }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
-
-  // Mouse parallax — moves entire scene subtly, no transform conflict
-  useEffect(() => {
-    if (window.innerWidth <= 768) return
-    let mx = 0, my = 0, cx = 0, cy = 0, id
-    const onMove = e => {
-      mx = (e.clientX / window.innerWidth  - 0.5) * 2
-      my = (e.clientY / window.innerHeight - 0.5) * 2
-    }
-    window.addEventListener('mousemove', onMove, { passive: true })
-    function loop() {
-      cx += (mx - cx) * 0.06
-      cy += (my - cy) * 0.06
-      if (sceneRef.current)
-        sceneRef.current.style.transform = `translate(${cx * 10}px, ${cy * 5}px)`
-      id = requestAnimationFrame(loop)
-    }
-    id = requestAnimationFrame(loop)
-    return () => { cancelAnimationFrame(id); window.removeEventListener('mousemove', onMove) }
-  }, [])
-
   return (
     <section id="hero" style={{ position: 'relative', overflow: 'hidden', background: '#060d1c', minHeight: 'min(1000px, 100svh)', height: 'auto', zIndex: 0 }}>
 
-      {/* Scene wrapper — mouse parallax shifts this whole layer */}
-      <div ref={sceneRef} style={{ position: 'absolute', inset: '-5% -3%', pointerEvents: 'none' }}>
-
-        {/* Layer 1: Sky — amber glow, barely moves */}
-        <div ref={skyRef} style={{
-          position: 'absolute', inset: 0,
-          backgroundImage: 'url(/hero-sky.jpg)',
-          backgroundSize: 'cover', backgroundPosition: 'center 60%',
-          willChange: 'transform',
-        }} />
-
-        {/* Layer 2: Far city silhouette — multiply blend makes white transparent */}
-        <div ref={farRef} style={{
-          position: 'absolute', bottom: 0, left: '-5%', right: '-5%', height: '55%',
-          backgroundImage: 'url(/hero-far.png)',
-          backgroundSize: '80% auto', backgroundPosition: 'center bottom',
-          backgroundRepeat: 'no-repeat',
-          mixBlendMode: 'multiply',
-          willChange: 'transform',
-        }} />
-
-        {/* Layer 3: Toronto skyline — near, moves fastest */}
-        <div ref={nearRef} style={{
-          position: 'absolute', bottom: 0, left: '-5%', right: '-5%', height: '65%',
-          backgroundImage: 'url(/hero-near.jpg)',
-          backgroundSize: 'cover', backgroundPosition: 'center bottom',
-          backgroundRepeat: 'no-repeat',
-          willChange: 'transform',
-        }} />
-
+      {/* Static city background layers */}
+      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+        <div style={{ position: 'absolute', inset: 0, backgroundImage: 'url(/hero-sky.jpg)', backgroundSize: 'cover', backgroundPosition: 'center 60%' }} />
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '55%', backgroundImage: 'url(/hero-far.png)', backgroundSize: '80% auto', backgroundPosition: 'center bottom', backgroundRepeat: 'no-repeat', mixBlendMode: 'multiply' }} />
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '65%', backgroundImage: 'url(/hero-near.jpg)', backgroundSize: 'cover', backgroundPosition: 'center bottom' }} />
       </div>
 
-      {/* Bottom gradient — fades scene into page */}
+      {/* Bottom gradient — fades into page */}
       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 280, background: 'linear-gradient(to top, #000 30%, transparent)', zIndex: 2, pointerEvents: 'none' }} />
 
-      <div ref={textRef} style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', maxWidth: 900, margin: '0 auto', padding: 'clamp(100px, 20vw, 150px) 20px 80px', willChange: 'transform' }}>
+      <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', maxWidth: 900, margin: '0 auto', padding: 'clamp(100px, 20vw, 150px) 20px 80px' }}>
         <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 16px', marginBottom: 28 }}>
           <span style={{ background: '#fff', color: '#000', fontSize: 11, fontFamily: "'Barlow',sans-serif", fontWeight: 600, borderRadius: 20, padding: '2px 8px' }}>New</span>
           <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>Introducing AI-powered area intelligence.</span>
@@ -535,30 +468,11 @@ const HowItWorks = memo(function HowItWorks() {
     { num: '02', icon: '⚡', title: 'We pull 16+ live data sources', desc: 'MLS listings, days on market, census demographics, climate risk, school ratings, crime data, walkability, and investment signals — all in real time.' },
     { num: '03', icon: '🧠', title: 'AI builds your intelligence report', desc: 'Our AI synthesizes everything into a stability score, AI verdict, investment outlook, school ratings, crime data, and climate risk — in under 30 seconds.' },
   ]
-  const sectionRef = useRef(null)
   const headRef = useScrollReveal({ y: 32, opacity: 0, duration: 0.9, ease: 'power3.out' })
   const stepsRef = useScrollReveal({ y: 40, opacity: 0, duration: 0.7, stagger: 0.15, selector: '.how-step', delay: 0.1 })
 
-  useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
-    const el = sectionRef.current
-    if (!el) return
-    el.style.transform = 'scale(0.93)'
-    el.style.opacity = '0.4'
-    el.style.transition = 'transform 0.9s cubic-bezier(0.16,1,0.3,1), opacity 0.9s ease'
-    const obs = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        el.style.transform = 'scale(1)'
-        el.style.opacity = '1'
-        obs.disconnect()
-      }
-    }, { threshold: 0.15 })
-    obs.observe(el)
-    return () => obs.disconnect()
-  }, [])
-
   return (
-    <Section ref={sectionRef} style={{ minHeight: 'auto', padding: 'clamp(60px, 10vw, 128px) 20px' }}>
+    <Section style={{ minHeight: 'auto', padding: 'clamp(60px, 10vw, 128px) 20px' }}>
       <div style={{ maxWidth: 900, margin: '0 auto', textAlign: 'center' }} id="how-it-works">
         <div ref={headRef}>
           <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>How It Works</div>
@@ -1807,10 +1721,8 @@ export default function App() {
   // ── Lenis smooth scroll ──────────────────────────────────────────────────
   useEffect(() => {
     let lenis
-    import('lenis').then(async ({ default: Lenis }) => {
+    import('lenis').then(({ default: Lenis }) => {
       lenis = new Lenis({ lerp: 0.08, smoothWheel: true })
-      const { ScrollTrigger } = await getGSAP()
-      lenis.on('scroll', ScrollTrigger.update)
       function raf(time) { lenis.raf(time); requestAnimationFrame(raf) }
       requestAnimationFrame(raf)
     })
