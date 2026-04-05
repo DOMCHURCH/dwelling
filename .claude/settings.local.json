@@ -4,7 +4,10 @@
       "Bash(node:*)",
       "Bash(notepad:*)",
       "Bash(claude --system-file claude/skills/coding-helper.md --append-file claude/skills/parallax-3d-ui.md)",
-      "Bash(claude --system-prompt-file claude/skills/coding-helper.md --append-system-prompt-file claude/skills/parallax-3d-ui.md)"
+      "Bash(claude --system-prompt-file claude/skills/coding-helper.md --append-system-prompt-file claude/skills/parallax-3d-ui.md)",
+      "Bash(mkdir -p \"C:\\\\Users\\\\Dominique\\\\dwelling\\\\.claude\\\\skills\")",
+      "Bash(cp \"C:\\\\Users\\\\Dominique\\\\dwelling\\\\claude/skills/coding-helper.md\" \"C:\\\\Users\\\\Dominique\\\\dwelling\\\\.claude\\\\skills/\")",
+      "Bash(cp \"C:\\\\Users\\\\Dominique\\\\dwelling\\\\claude/skills/parallax-3d-ui.md\" \"C:\\\\Users\\\\Dominique\\\\dwelling\\\\.claude\\\\skills/\")"
     ]
   },
   "hooks": {
