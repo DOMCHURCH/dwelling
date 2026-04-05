@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef, memo, lazy, Suspense } from 'react'
+import { useState, useEffect, useRef, memo, lazy, Suspense, forwardRef } from 'react'
 import { useScrollReveal, getGSAP } from '../hooks/useScrollReveal'
 import AddressSearch from './components/AddressSearch'
+import GlobalBackground from './components/GlobalBackground'
 import LoadingState from './components/LoadingState'
 const Dashboard = lazy(() => import('./components/Dashboard'))
 import AuthModal from './components/AuthModal'
@@ -31,14 +32,14 @@ function scrollTo(id) {
 }
 
 
-function Section({ children, style = {} }) {
+const Section = forwardRef(function Section({ children, style = {} }, ref) {
   return (
-    <section style={{ position: 'relative', overflow: 'hidden', background: '#000', contain: 'layout', ...style }}>
+    <section ref={ref} style={{ position: 'relative', overflow: 'hidden', background: '#000', contain: 'layout', ...style }}>
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'rgba(255,255,255,0.04)' }} />
       <div style={{ position: 'relative', zIndex: 10 }}>{children}</div>
     </section>
   )
-}
+})
 
 // ─── TERMS MODAL ─────────────────────────────────────────────────────────────
 function TermsModal({ onClose }) {
@@ -211,7 +212,6 @@ function CityscapeSilhouette({ backRef, frontRef }) {
       position: 'absolute',
       bottom: 0, left: 0, right: 0,
       height: '38%',
-      zIndex: 3,
       pointerEvents: 'none',
     }}>
       <svg
@@ -367,32 +367,65 @@ function CityscapeSilhouette({ backRef, frontRef }) {
 function Hero({ onSearch, loading, onShowDemo }) {
   const backCityRef = useRef(null)
   const frontCityRef = useRef(null)
+  const textRef = useRef(null)
+  const cityWrapperRef = useRef(null)
 
   useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || window.innerWidth <= 768) return
     let ctx
     getGSAP().then(({ gsap, ScrollTrigger }) => {
-      const trigger = '#hero'
-      const base = { trigger, start: 'top top', end: 'bottom top', scrub: 1.2 }
+      const base = { trigger: '#hero', start: 'top top', end: 'bottom top', scrub: 1.2 }
       ctx = gsap.context(() => {
         if (backCityRef.current) {
           gsap.set(backCityRef.current, { willChange: 'transform' })
-          gsap.to(backCityRef.current, { y: -18, ease: 'none', scrollTrigger: base })
+          gsap.to(backCityRef.current, { y: -30, ease: 'none', scrollTrigger: base })
         }
         if (frontCityRef.current) {
           gsap.set(frontCityRef.current, { willChange: 'transform' })
-          gsap.to(frontCityRef.current, { y: -48, ease: 'none', scrollTrigger: base })
+          gsap.to(frontCityRef.current, { y: -75, scale: 1.04, ease: 'none', scrollTrigger: base })
+        }
+        if (textRef.current) {
+          gsap.set(textRef.current, { willChange: 'transform' })
+          gsap.to(textRef.current, { y: -20, ease: 'none', scrollTrigger: base })
         }
       })
     })
     return () => ctx?.revert()
   }, [])
 
+  // Mouse parallax — single RAF loop, separate from scroll parallax
+  useEffect(() => {
+    if (window.innerWidth <= 768) return
+    let mx = 0, my = 0, cx = 0, cy = 0, id
+    const onMove = e => {
+      mx = (e.clientX / window.innerWidth - 0.5) * 2
+      my = (e.clientY / window.innerHeight - 0.5) * 2
+    }
+    window.addEventListener('mousemove', onMove, { passive: true })
+    function loop() {
+      cx += (mx - cx) * 0.08
+      cy += (my - cy) * 0.08
+      if (cityWrapperRef.current) {
+        cityWrapperRef.current.style.transform = `translate(${cx * 6}px, ${cy * 3}px)`
+      }
+      id = requestAnimationFrame(loop)
+    }
+    id = requestAnimationFrame(loop)
+    return () => {
+      cancelAnimationFrame(id)
+      window.removeEventListener('mousemove', onMove)
+      if (cityWrapperRef.current) cityWrapperRef.current.style.transform = ''
+    }
+  }, [])
+
   return (
     <section id="hero" style={{ position: 'relative', overflow: 'hidden', background: 'transparent', minHeight: 'min(1000px, 100svh)', height: 'auto', isolation: 'isolate', contain: 'layout paint', zIndex: 0 }}>
-      <CityscapeSilhouette backRef={backCityRef} frontRef={frontCityRef} />
+      <GlobalBackground />
+      <div ref={cityWrapperRef} style={{ position: 'absolute', inset: 0, zIndex: 3, pointerEvents: 'none', willChange: 'transform' }}>
+        <CityscapeSilhouette backRef={backCityRef} frontRef={frontCityRef} />
+      </div>
       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 350, background: 'linear-gradient(to top, #000 40%, transparent)', zIndex: 2 }} />
-      <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', maxWidth: 900, margin: '0 auto', padding: 'clamp(100px, 20vw, 150px) 20px 80px' }}>
+      <div ref={textRef} style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', maxWidth: 900, margin: '0 auto', padding: 'clamp(100px, 20vw, 150px) 20px 80px', willChange: 'transform' }}>
         <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 16px', marginBottom: 28 }}>
           <span style={{ background: '#fff', color: '#000', fontSize: 11, fontFamily: "'Barlow',sans-serif", fontWeight: 600, borderRadius: 20, padding: '2px 8px' }}>New</span>
           <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>Introducing AI-powered area intelligence.</span>
@@ -479,10 +512,35 @@ const HowItWorks = memo(function HowItWorks() {
     { num: '02', icon: '⚡', title: 'We pull 16+ live data sources', desc: 'MLS listings, days on market, census demographics, climate risk, school ratings, crime data, walkability, and investment signals — all in real time.' },
     { num: '03', icon: '🧠', title: 'AI builds your intelligence report', desc: 'Our AI synthesizes everything into a stability score, AI verdict, investment outlook, school ratings, crime data, and climate risk — in under 30 seconds.' },
   ]
+  const sectionRef = useRef(null)
   const headRef = useScrollReveal({ y: 32, opacity: 0, duration: 0.9, ease: 'power3.out' })
   const stepsRef = useScrollReveal({ y: 40, opacity: 0, duration: 0.7, stagger: 0.15, selector: '.how-step', delay: 0.1 })
+
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    let ctx
+    getGSAP().then(({ gsap }) => {
+      const el = sectionRef.current
+      if (!el) return
+      ctx = gsap.context(() => {
+        gsap.from(el, {
+          scale: 0.93,
+          opacity: 0.4,
+          ease: 'power2.out',
+          scrollTrigger: {
+            trigger: el,
+            start: 'top 85%',
+            end: 'top 35%',
+            scrub: 0.9,
+          }
+        })
+      })
+    })
+    return () => ctx?.revert()
+  }, [])
+
   return (
-    <Section style={{ minHeight: 'auto', padding: 'clamp(60px, 10vw, 128px) 20px' }}>
+    <Section ref={sectionRef} style={{ minHeight: 'auto', padding: 'clamp(60px, 10vw, 128px) 20px' }}>
       <div style={{ maxWidth: 900, margin: '0 auto', textAlign: 'center' }} id="how-it-works">
         <div ref={headRef}>
           <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>How It Works</div>
@@ -1731,8 +1789,10 @@ export default function App() {
   // ── Lenis smooth scroll ──────────────────────────────────────────────────
   useEffect(() => {
     let lenis
-    import('lenis').then(({ default: Lenis }) => {
+    import('lenis').then(async ({ default: Lenis }) => {
       lenis = new Lenis({ lerp: 0.08, smoothWheel: true })
+      const { ScrollTrigger } = await getGSAP()
+      lenis.on('scroll', ScrollTrigger.update)
       function raf(time) { lenis.raf(time); requestAnimationFrame(raf) }
       requestAnimationFrame(raf)
     })
