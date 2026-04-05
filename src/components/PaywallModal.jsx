@@ -113,7 +113,7 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
   return (
     <>
       {showStripe && <StripeComingSoon onClose={() => setShowStripe(false)} />}
-      <div data-lenis-prevent style={{
+      <div role="dialog" aria-modal="true" aria-labelledby="paywall-title" data-lenis-prevent style={{
         position: 'fixed', inset: 0, zIndex: 1000,
         background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(12px)',
         overflowY: 'auto', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch',
@@ -131,7 +131,7 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
           {/* Header */}
           <div style={{ textAlign: 'center', marginBottom: 28 }}>
             {headerEmoji && <div style={{ fontSize: 40, marginBottom: 12 }}>{headerEmoji}</div>}
-            <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 26, color: '#fff', marginBottom: 8, lineHeight: 1.1 }}>
+            <div id="paywall-title" style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 26, color: '#fff', marginBottom: 8, lineHeight: 1.1 }}>
               {headerTitle}
             </div>
             <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 14, color: 'rgba(255,255,255,0.5)', lineHeight: 1.6, marginBottom: 4 }}>
@@ -149,6 +149,8 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
             <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 13, color: annual ? 'rgba(255,255,255,0.35)' : '#fff' }}>Monthly</span>
             <button
               onClick={() => setAnnual(a => !a)}
+              aria-label="Toggle annual billing"
+              aria-pressed={annual}
               style={{
                 width: 48, height: 26, borderRadius: 13, border: 'none', cursor: 'pointer', position: 'relative',
                 background: annual ? 'linear-gradient(90deg, #38bdf8, #818cf8)' : 'rgba(255,255,255,0.15)',
@@ -253,6 +255,7 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
 
           <button
             onClick={onClose}
+            aria-label="Close upgrade prompt"
             style={{
               display: 'block', width: '100%', padding: '10px', background: 'none', border: 'none',
               cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13,

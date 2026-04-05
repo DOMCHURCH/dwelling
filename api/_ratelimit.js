@@ -4,7 +4,7 @@ import { Ratelimit } from '@upstash/ratelimit'
 import { Redis } from '@upstash/redis'
 
 let redis
-function getRedis() {
+export function getRedis() {
   if (!redis) redis = Redis.fromEnv() // reads UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN
   return redis
 }

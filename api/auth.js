@@ -1,7 +1,8 @@
 import { createHash, createHmac, randomBytes, createCipheriv, createDecipheriv } from 'crypto'
 import { createClient } from '@libsql/client'
 import { Resend } from 'resend'
-import { signupLimiter, signinLimiter, resetLimiter, applyLimit } from './_ratelimit.js'
+import { hash as argon2Hash, verify as argon2Verify } from '@node-rs/argon2'
+import { signupLimiter, signinLimiter, resetLimiter, applyLimit, getRedis } from './_ratelimit.js'
 
 // ─── Startup validation — refuse to run with missing critical secrets ─────────
 const SECRET = process.env.AUTH_SECRET
@@ -77,22 +78,43 @@ function decryptKey(encryptedHex, ivHex) {
   } catch { return null }
 }
 
-// ─── PBKDF2 password hashing (replaces SHA-256) ──────────────────────────────
+// ─── Password hashing (Argon2id, with PBKDF2 + SHA-256 legacy fallback) ───────
 import { pbkdf2 as _pbkdf2 } from 'crypto'
 import { promisify } from 'util'
-const pbkdf2 = promisify(_pbkdf2)
+const _pbkdf2Async = promisify(_pbkdf2)
 
-async function hashPassword(password, salt) {
-  const key = await pbkdf2(password + SECRET, salt, 100000, 64, 'sha512')
+// New: Argon2id — salt is embedded in the hash string, no separate salt needed
+async function hashPassword(password) {
+  return argon2Hash(password + SECRET, { memoryCost: 65536, timeCost: 3, parallelism: 1 })
+}
+
+// Legacy PBKDF2 — kept for verifying old accounts on login (then migrated)
+async function hashPasswordPbkdf2(password, salt) {
+  const key = await _pbkdf2Async(password + SECRET, salt, 100000, 64, 'sha512')
   return key.toString('hex')
 }
 
-// Legacy SHA-256 check for existing accounts during migration
-function hashPasswordLegacy(password, salt) {
+// Legacy SHA-256 — oldest accounts before PBKDF2 migration
+function hashPasswordSha256(password, salt) {
   return createHash('sha256').update(password + salt + SECRET).digest('hex')
 }
 
+// Unified verify: handles Argon2id, PBKDF2, and SHA-256 formats.
+// Returns { ok, needsMigration } so callers can upgrade the stored hash.
+async function verifyPassword(password, storedHash, salt) {
+  if (storedHash?.startsWith('$argon2')) {
+    return { ok: await argon2Verify(storedHash, password + SECRET), needsMigration: false }
+  }
+  const pbkdf2Hash = await hashPasswordPbkdf2(password, salt)
+  if (storedHash === pbkdf2Hash) return { ok: true, needsMigration: true }
+  if (storedHash === hashPasswordSha256(password, salt)) return { ok: true, needsMigration: true }
+  return { ok: false, needsMigration: false }
+}
+
 // ─── JWT ─────────────────────────────────────────────────────────────────────
+const ACCESS_TOKEN_TTL = 15 * 60       // 15 minutes
+const REFRESH_TOKEN_TTL = 7 * 24 * 3600 // 7 days
+
 function b64url(buf) {
   return buf.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
 }
@@ -102,6 +124,21 @@ function sign(payload) {
   const body = b64url(Buffer.from(JSON.stringify(payload)))
   const sig = b64url(createHmac('sha256', SECRET).update(`${header}.${body}`).digest())
   return `${header}.${body}.${sig}`
+}
+
+// Issues a short-lived access token + a 7-day refresh token stored in Redis.
+// Fails open — if Redis is unavailable, returns the access token without a refresh token.
+async function issueTokenPair(claims) {
+  const accessToken = sign({ ...claims, exp: Math.floor(Date.now() / 1000) + ACCESS_TOKEN_TTL })
+  let refreshToken = null
+  try {
+    refreshToken = randomBytes(32).toString('hex')
+    await getRedis().set(`rt:${refreshToken}`, JSON.stringify(claims), { ex: REFRESH_TOKEN_TTL })
+  } catch (e) {
+    console.error('auth: Redis unavailable, issuing without refresh token:', e.message)
+    refreshToken = null
+  }
+  return { accessToken, refreshToken }
 }
 
 function verify(token) {
@@ -181,10 +218,10 @@ export default async function handler(req, res) {
       const existing = await db.execute({ sql: 'SELECT email FROM users WHERE email = ?', args: [key] })
       if (existing.rows.length > 0) return res.status(409).json({ error: 'An account with this email already exists. Try signing in instead.' })
 
-      const salt = randomBytes(16).toString('hex')
+      const salt = randomBytes(16).toString('hex') // kept for DB column; Argon2id embeds its own salt
       const id = randomBytes(16).toString('hex')
       const is_pro = ADMIN_EMAILS.includes(key) ? 1 : 0
-      const hashed = await hashPassword(password, salt)
+      const hashed = await hashPassword(password)
 
       await db.execute({
         sql: 'INSERT INTO users (email, id, salt, password, is_pro, analyses_used, analyses_reset_at, created_at, terms_accepted_at, terms_accepted_ip) VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?)',
@@ -192,8 +229,8 @@ export default async function handler(req, res) {
       })
 
       const is_admin = ADMIN_EMAILS.includes(key)
-      const token = sign({ sub: id, email: key, is_pro: !!is_pro, is_admin, exp: Math.floor(Date.now() / 1000) + 30 * 86400 })
-      return res.status(200).json({ token, userId: id, email: key, is_pro: !!is_pro, is_admin })
+      const { accessToken, refreshToken } = await issueTokenPair({ sub: id, email: key, is_pro: !!is_pro, is_admin })
+      return res.status(200).json({ token: accessToken, refreshToken, userId: id, email: key, is_pro: !!is_pro, is_admin })
     }
 
     // ── signin ──────────────────────────────────────────────────────────────
@@ -209,23 +246,18 @@ export default async function handler(req, res) {
 
       const user = result.rows[0]
 
-      // Try new PBKDF2 hash first, fall back to legacy SHA-256 and migrate
-      let passwordOk = false
-      const newHash = await hashPassword(password, user.salt)
-      if (user.password === newHash) {
-        passwordOk = true
-      } else if (user.password === hashPasswordLegacy(password, user.salt)) {
-        // Migrate to PBKDF2 on next login
-        passwordOk = true
-        await db.execute({ sql: 'UPDATE users SET password = ? WHERE email = ?', args: [newHash, key] })
-        console.log('auth: migrated password hash')
-      }
-
+      const { ok: passwordOk, needsMigration } = await verifyPassword(password, user.password, user.salt)
       if (!passwordOk) return res.status(401).json({ error: 'Incorrect email or password.' })
 
+      // Silently migrate old PBKDF2/SHA-256 hashes to Argon2id
+      if (needsMigration) {
+        const upgraded = await hashPassword(password)
+        await db.execute({ sql: 'UPDATE users SET password = ? WHERE email = ?', args: [upgraded, key] })
+      }
+
       const is_admin = ADMIN_EMAILS.includes(key)
-      const token = sign({ sub: user.id, email: key, is_pro: !!user.is_pro, is_admin, exp: Math.floor(Date.now() / 1000) + 30 * 86400 })
-      return res.status(200).json({ token, userId: user.id, email: key, is_pro: !!user.is_pro, is_admin })
+      const { accessToken, refreshToken } = await issueTokenPair({ sub: user.id, email: key, is_pro: !!user.is_pro, is_admin })
+      return res.status(200).json({ token: accessToken, refreshToken, userId: user.id, email: key, is_pro: !!user.is_pro, is_admin })
     }
 
     // ── forgot-password ─────────────────────────────────────────────────────
@@ -273,7 +305,7 @@ export default async function handler(req, res) {
       }
 
       const salt = randomBytes(16).toString('hex')
-      const hashed = await hashPassword(password, salt)
+      const hashed = await hashPassword(password)
 
       await db.execute({
         sql: 'UPDATE users SET password = ?, salt = ?, reset_token = NULL, reset_token_expires = NULL WHERE email = ?',
@@ -281,8 +313,8 @@ export default async function handler(req, res) {
       })
 
       const is_admin = ADMIN_EMAILS.includes(user.email)
-      const jwtToken = sign({ sub: user.id, email: user.email, is_pro: !!user.is_pro, is_admin, exp: Math.floor(Date.now() / 1000) + 30 * 86400 })
-      return res.status(200).json({ token: jwtToken, userId: user.id, email: user.email, is_pro: !!user.is_pro, is_admin })
+      const { accessToken, refreshToken } = await issueTokenPair({ sub: user.id, email: user.email, is_pro: !!user.is_pro, is_admin })
+      return res.status(200).json({ token: accessToken, refreshToken, userId: user.id, email: user.email, is_pro: !!user.is_pro, is_admin })
     }
 
     // ── usage ───────────────────────────────────────────────────────────────
@@ -364,20 +396,50 @@ export default async function handler(req, res) {
       const payload = verify(authHeader.replace('Bearer ', ''))
       if (!payload) return res.status(401).json({ error: 'Invalid token' })
 
-      const { password } = req.body
+      const { password, refreshToken: clientRt } = req.body
       if (!password) return res.status(400).json({ error: 'Password is required to delete your account.' })
 
       const result = await db.execute({ sql: 'SELECT * FROM users WHERE email = ?', args: [payload.email] })
       if (result.rows.length === 0) return res.status(404).json({ error: 'Account not found.' })
 
       const user = result.rows[0]
-      const hash = await hashPassword(password, user.salt)
-      const legacyHash = hashPasswordLegacy(password, user.salt)
-      if (user.password !== hash && user.password !== legacyHash) {
-        return res.status(401).json({ error: 'Incorrect password.' })
-      }
+      const { ok } = await verifyPassword(password, user.password, user.salt)
+      if (!ok) return res.status(401).json({ error: 'Incorrect password.' })
 
       await db.execute({ sql: 'DELETE FROM users WHERE email = ?', args: [payload.email] })
+      // Revoke refresh token if provided
+      if (clientRt) { try { await getRedis().del(`rt:${clientRt}`) } catch {} }
+      return res.status(200).json({ success: true })
+    }
+
+    // ── refresh ─────────────────────────────────────────────────────────────
+    if (action === 'refresh') {
+      const { refreshToken } = req.body
+      if (!refreshToken) return res.status(400).json({ error: 'Refresh token required.' })
+
+      let stored
+      try {
+        stored = await getRedis().get(`rt:${refreshToken}`)
+      } catch (e) {
+        console.error('auth: Redis unavailable during refresh:', e.message)
+        return res.status(503).json({ error: 'Session service temporarily unavailable. Please try again.' })
+      }
+
+      if (!stored) return res.status(401).json({ error: 'Session expired. Please sign in again.' })
+
+      // Rotate: delete old refresh token, issue new pair
+      await getRedis().del(`rt:${refreshToken}`)
+      const claims = typeof stored === 'string' ? JSON.parse(stored) : stored
+      const { accessToken, refreshToken: newRt } = await issueTokenPair(claims)
+      return res.status(200).json({ token: accessToken, refreshToken: newRt })
+    }
+
+    // ── signout ─────────────────────────────────────────────────────────────
+    if (action === 'signout') {
+      const { refreshToken } = req.body
+      if (refreshToken) {
+        try { await getRedis().del(`rt:${refreshToken}`) } catch {}
+      }
       return res.status(200).json({ success: true })
     }
 

@@ -211,10 +211,14 @@ function findCity(cityName, dataset) {
 }
 
 // ─── VERCEL HANDLER ──────────────────────────────────────────────────────────
+import { apiLimiter, applyLimit } from './_ratelimit.js'
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', process.env.ALLOWED_ORIGIN || 'https://dwelling-three.vercel.app')
   res.setHeader('Cache-Control', 'public, s-maxage=3600')
+
+  const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown'
+  if (await applyLimit(apiLimiter, clientIp, res)) return
 
   const { city, country } = req.method === 'POST' ? req.body : req.query
   if (!city) return res.status(400).json({ error: 'city param required' })

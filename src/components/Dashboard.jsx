@@ -354,11 +354,11 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
             </p>
           )}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
-            {(areaIntelligence.upsides || []).map((u, i) => (
-              <span key={i} style={{ fontSize: 11, color: '#4ade80', background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)', borderRadius: 20, padding: '4px 12px', fontFamily: "'Barlow', sans-serif" }}>+ {u}</span>
+            {(areaIntelligence.upsides || []).map((u) => (
+              <span key={u} style={{ fontSize: 11, color: '#4ade80', background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)', borderRadius: 20, padding: '4px 12px', fontFamily: "'Barlow', sans-serif" }}>+ {u}</span>
             ))}
-            {(areaIntelligence.risks || []).map((r, i) => (
-              <span key={i} style={{ fontSize: 11, color: '#f87171', background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', borderRadius: 20, padding: '4px 12px', fontFamily: "'Barlow', sans-serif" }}>− {r}</span>
+            {(areaIntelligence.risks || []).map((r) => (
+              <span key={r} style={{ fontSize: 11, color: '#f87171', background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', borderRadius: 20, padding: '4px 12px', fontFamily: "'Barlow', sans-serif" }}>− {r}</span>
             ))}
           </div>
           {areaIntelligence.bestFor && (
@@ -440,8 +440,8 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
           {areaRiskScore?.factors?.length > 0 && (
             <div>
               <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>Risk Factors</div>
-              {areaRiskScore.factors.filter(f => f.impact !== 0).map((f, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
+              {areaRiskScore.factors.filter(f => f.impact !== 0).map((f) => (
+                <div key={f.icon} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
                   <span style={{ fontSize: 12 }}>{f.icon}</span>
                   <span style={{ fontSize: 11, color: f.impact < 0 ? '#f87171' : '#4ade80', fontFamily: "'Barlow', sans-serif", flex: 1 }}>{f.label}</span>
                   <span style={{ fontSize: 10, color: f.impact < 0 ? '#f87171' : '#4ade80', fontFamily: "'Barlow', sans-serif" }}>{f.impact > 0 ? '+' : ''}{f.impact}</span>
@@ -456,8 +456,8 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
       {newsData?.articles?.length > 0 && (
         <SectionCard title="Local Market News" icon="📰" delay={48}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {newsData.articles.slice(0, 5).map((article, i) => (
-              <a key={i} href={article.url} target="_blank" rel="noopener noreferrer"
+            {newsData.articles.slice(0, 5).map((article) => (
+              <a key={article.url} href={article.url} target="_blank" rel="noopener noreferrer"
                 style={{ display: 'flex', gap: 10, padding: '10px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.06)', textDecoration: 'none', transition: 'background 0.15s' }}
                 onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}>
@@ -538,8 +538,8 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
               <div style={{ filter: isLocked('neighborhooddetail') ? 'blur(5px)' : 'none', userSelect: isLocked('neighborhooddetail') ? 'none' : 'auto', pointerEvents: isLocked('neighborhooddetail') ? 'none' : 'auto' }}>
                 <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginBottom: 14, fontFamily: "'Barlow', sans-serif", fontWeight: 300, lineHeight: 1.7 }}>{neighborhood.character}</p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
-                  {neighborhood.pros.map((p, i) => <Tag key={i} color="green">+ {p}</Tag>)}
-                  {neighborhood.cons.map((c, i) => <Tag key={i} color="red">− {c}</Tag>)}
+                  {neighborhood.pros.map((p) => <Tag key={p} color="green">+ {p}</Tag>)}
+                  {neighborhood.cons.map((c) => <Tag key={c} color="red">− {c}</Tag>)}
                 </div>
                 <div style={{ fontSize: 13, fontFamily: "'Barlow', sans-serif", fontWeight: 300 }}>
                   <span style={{ color: 'rgba(255,255,255,0.4)' }}>Best for: </span>
@@ -576,7 +576,7 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
                   const date = new Date(day)
                   const label = i === 0 ? 'Today' : date.toLocaleDateString('en', { weekday: 'short' })
                   return (
-                    <div key={i} className={i === 0 ? 'liquid-glass-strong' : 'liquid-glass'}
+                    <div key={day} className={i === 0 ? 'liquid-glass-strong' : 'liquid-glass'}
                       style={{ flex: '0 0 auto', textAlign: 'center', padding: '8px 12px', borderRadius: 12, minWidth: 54 }}>
                       <div style={{ fontSize: 10, color: i === 0 ? '#ffffff' : 'rgba(255,255,255,0.4)', marginBottom: 5, fontFamily: "'Barlow', sans-serif" }}>{label}</div>
                       <div style={{ fontSize: 14, fontFamily: "'Instrument Serif', serif", fontStyle: 'italic', color: '#ffffff' }}>{Math.round(weather.daily.temperature_2m_max[i])}°</div>
@@ -652,8 +652,8 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
               { label: 'Pollution', value: risk.detailedRisk?.pollutionRisk || 'Low', icon: '💨' },
               { label: 'Noise', value: risk.detailedRisk?.noiseRisk || 'Moderate', icon: '🔊' },
               { label: 'Crime', value: risk.detailedRisk?.crimeRisk || 'Low-Moderate', icon: '👮' },
-            ].map((r, i) => (
-              <div key={i} className="liquid-glass" style={{ borderRadius: 14, padding: '12px 14px' }}>
+            ].map((r) => (
+              <div key={r.label} className="liquid-glass" style={{ borderRadius: 14, padding: '12px 14px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                   <span style={{ fontSize: 12 }}>{r.icon}</span>
                   <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: "'Barlow', sans-serif" }}>{r.label}</div>
@@ -682,8 +682,8 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
           
           {risk.nationalRiskIndex?.topRisks?.length > 0 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {risk.nationalRiskIndex.topRisks.map((r, i) => (
-                <Tag key={i} color="red">⚠️ {r.name}</Tag>
+              {risk.nationalRiskIndex.topRisks.map((r) => (
+                <Tag key={r.name} color="red">⚠️ {r.name}</Tag>
               ))}
             </div>
           )}
@@ -746,7 +746,7 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
           <div>
             <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12, fontFamily: "'Barlow', sans-serif" }}>Top Attractions</div>
             {localInsights.topAttractions.map((a, i) => (
-              <div key={i} className="liquid-glass" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 12, marginBottom: 6, fontSize: 13 }}>
+              <div key={a.name || i} className="liquid-glass" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 12, marginBottom: 6, fontSize: 13 }}>
                 <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11, fontFamily: "'Instrument Serif', serif", fontStyle: 'italic' }}>{String(i + 1).padStart(2, '0')}</span>
                 <span style={{ color: 'rgba(255,255,255,0.7)', fontFamily: "'Barlow', sans-serif", fontWeight: 300 }}>{a}</span>
               </div>

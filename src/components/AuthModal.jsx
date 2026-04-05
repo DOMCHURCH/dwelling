@@ -160,12 +160,12 @@ export default function AuthModal({ onAuth, onDemo }) {
 
   return (
     <>
-      <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div role="dialog" aria-modal="true" aria-label="Sign in or create account" style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
         <div className="liquid-glass-strong" style={{ borderRadius: 24, maxWidth: 440, width: '100%', padding: 32, animation: 'fadeUp 0.35s ease' }}>
 
           {/* Logo */}
           <div style={{ textAlign: 'center', marginBottom: 28 }}>
-            <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 28, color: '#fff', marginBottom: 4 }}>
+            <div id="auth-title" style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 28, color: '#fff', marginBottom: 4 }}>
               DW<span style={{ opacity: 0.4 }}>.</span>ELLING
             </div>
             <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>
@@ -282,13 +282,13 @@ export default function AuthModal({ onAuth, onDemo }) {
       {/* Terms modal */}
       {showTerms && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(0,0,0,0.95)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={() => setShowTerms(false)}>
-          <div onClick={e => e.stopPropagation()} className="liquid-glass-strong" style={{ borderRadius: 20, maxWidth: 680, width: '100%', height: '82vh', display: 'flex', flexDirection: 'column' }}>
+          <div role="dialog" aria-modal="true" aria-labelledby="terms-title" onClick={e => e.stopPropagation()} className="liquid-glass-strong" style={{ borderRadius: 20, maxWidth: 680, width: '100%', height: '82vh', display: 'flex', flexDirection: 'column' }}>
             <div style={{ padding: '18px 28px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
               <div>
-                <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 20, color: '#fff' }}>Terms & Conditions</span>
+                <span id="terms-title" style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 20, color: '#fff' }}>Terms & Conditions</span>
                 <span style={{ marginLeft: 12, fontFamily: "'Barlow',sans-serif", fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Last updated: March 30, 2026</span>
               </div>
-              <button onClick={() => setShowTerms(false)} style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#fff', fontFamily: "'Barlow',sans-serif", fontSize: 12, padding: '6px 12px', cursor: 'pointer' }}>✕</button>
+              <button onClick={() => setShowTerms(false)} aria-label="Close terms" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#fff', fontFamily: "'Barlow',sans-serif", fontSize: 12, padding: '6px 12px', cursor: 'pointer' }}>✕</button>
             </div>
             <div onScroll={handleTermsScroll} data-lenis-prevent style={{ flex: 1, overflowY: 'scroll', padding: '24px 28px', overscrollBehavior: 'contain' }}>
               <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 400, fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7, marginBottom: 24, padding: '12px 16px', background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.15)', borderRadius: 10 }}>

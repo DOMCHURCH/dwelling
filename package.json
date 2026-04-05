@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@libsql/client": "^0.14.0",
+    "@node-rs/argon2": "^2.0.2",
     "@sentry/react": "^10.47.0",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.37.0",
