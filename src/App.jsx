@@ -78,7 +78,7 @@ function TermsModal({ onClose }) {
           </div>
           <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#fff', fontFamily: "'Barlow',sans-serif", fontSize: 12, padding: '6px 14px', cursor: 'pointer' }}>✕ Close</button>
         </div>
-        <div style={{ flex: 1, overflowY: 'scroll', padding: '28px', overscrollBehavior: 'contain' }}>
+        <div data-lenis-prevent style={{ flex: 1, overflowY: 'scroll', padding: '28px', overscrollBehavior: 'contain' }}>
           <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.7, marginBottom: 24, padding: '12px 16px', background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.15)', borderRadius: 10 }}>
             ⚠ This document is provided for informational purposes. These Terms govern your use of the Dwelling platform. By using the platform you agree to be bound by them.
           </div>

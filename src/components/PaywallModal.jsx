@@ -113,10 +113,10 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
   return (
     <>
       {showStripe && <StripeComingSoon onClose={() => setShowStripe(false)} />}
-      <div style={{
+      <div data-lenis-prevent style={{
         position: 'fixed', inset: 0, zIndex: 1000,
         background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(12px)',
-        overflowY: 'auto', overscrollBehavior: 'contain',
+        overflowY: 'auto', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch',
         display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
         padding: '24px 20px 40px',
       }}>
