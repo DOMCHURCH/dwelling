@@ -8,7 +8,8 @@
       "Bash(mkdir -p \"C:\\\\Users\\\\Dominique\\\\dwelling\\\\.claude\\\\skills\")",
       "Bash(cp \"C:\\\\Users\\\\Dominique\\\\dwelling\\\\claude/skills/coding-helper.md\" \"C:\\\\Users\\\\Dominique\\\\dwelling\\\\.claude\\\\skills/\")",
       "Bash(cp \"C:\\\\Users\\\\Dominique\\\\dwelling\\\\claude/skills/parallax-3d-ui.md\" \"C:\\\\Users\\\\Dominique\\\\dwelling\\\\.claude\\\\skills/\")",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(npx vite:*)"
     ]
   },
   "hooks": {
