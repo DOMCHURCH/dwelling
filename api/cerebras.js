@@ -32,6 +32,28 @@ function verifyToken(token) {
   } catch { return null }
 }
 
+// C-1: Strip premium fields from AI JSON before returning to free-tier users.
+// Fields fully removed: investment, riskData, priceHistory
+// Neighborhood detail removed (character/pros/cons/bestFor) — basic scores remain
+const PREMIUM_FIELDS = ['investment', 'riskData', 'priceHistory']
+const NEIGHBORHOOD_DETAIL_FIELDS = ['character', 'pros', 'cons', 'bestFor']
+
+function stripPremiumContent(cerebrasData) {
+  try {
+    const content = cerebrasData?.choices?.[0]?.message?.content
+    if (!content) return cerebrasData
+    const analysis = JSON.parse(content)
+    PREMIUM_FIELDS.forEach(f => { delete analysis[f] })
+    if (analysis.neighborhood) {
+      NEIGHBORHOOD_DETAIL_FIELDS.forEach(f => { delete analysis.neighborhood[f] })
+    }
+    cerebrasData.choices[0].message.content = JSON.stringify(analysis)
+  } catch (e) {
+    console.error('cerebras: stripPremiumContent failed:', e.message)
+  }
+  return cerebrasData
+}
+
 // AES decrypt for Cerebras keys (mirrors auth.js)
 function decryptKey(encryptedHex, ivHex) {
   try {
@@ -109,6 +131,15 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'no_key', message: 'Please add your Cerebras API key in Settings (the 🔑 button).' })
   }
 
+  // H-4: Validate user-provided key format before forwarding to Cerebras.
+  // Platform key is admin-managed so we trust it; user-supplied keys are validated.
+  if (userApiKey && !/^csk-[A-Za-z0-9]{10,}$/.test(userApiKey)) {
+    return res.status(400).json({
+      error: 'invalid_key_format',
+      message: 'Your Cerebras API key format is invalid. Keys must start with "csk-" followed by letters and numbers.',
+    })
+  }
+
   // 3. Admin bypass
   if (isAdmin) {
     const r = await fetch('https://api.cerebras.ai/v1/chat/completions', {
@@ -167,5 +198,8 @@ export default async function handler(req, res) {
     await db.execute({ sql: 'UPDATE users SET analyses_used = analyses_used + 1 WHERE email = ?', args: [email] })
   }
 
-  res.status(r.status).json(data)
+  // C-1: Server-side paywall — strip premium fields before returning to free users.
+  // This ensures premium data is never transmitted, even if client-side blur is bypassed.
+  const responseData = (r.ok && !user.is_pro) ? stripPremiumContent(data) : data
+  res.status(r.status).json(responseData)
 }
