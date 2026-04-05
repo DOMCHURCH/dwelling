@@ -432,7 +432,7 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
               </div>
             )}
             <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20, padding: '4px 12px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow', sans-serif" }}>
-              Price range: {sym}{Math.round((areaMetrics.priceRange?.low || 0) / 1000)}k – {sym}{Math.round((areaMetrics.priceRange?.high || 0) / 1000)}k
+              Price range: {fmtCompact(areaMetrics.priceRange?.low || 0, sym)} – {fmtCompact(areaMetrics.priceRange?.high || 0, sym)}
             </div>
           </div>
 
