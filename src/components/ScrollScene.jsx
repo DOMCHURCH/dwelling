@@ -1,8 +1,37 @@
 // ScrollScene.jsx — R3F canvas fixed behind the landing page.
 // Camera flies through a 3D wireframe tunnel as the user scrolls.
 // window.scrollY drives camera Z/Y/X position via useFrame lerp.
-import { useRef, useEffect } from 'react'
+// Graceful degradation: if WebGL is unavailable (sandboxed GPU, old driver,
+// ANGLE DX9 fallback) the component silently renders nothing.
+import { useRef, useEffect, useState, Component } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
+
+// ─── WebGL capability probe ───────────────────────────────────────────────────
+// Must run in useEffect (not module-level) so SSR doesn't throw.
+function probeWebGL() {
+  try {
+    const c = document.createElement('canvas')
+    // Try both contexts; some browsers only expose experimental-webgl
+    const gl = c.getContext('webgl', { failIfMajorPerformanceCaveat: false })
+            || c.getContext('experimental-webgl', { failIfMajorPerformanceCaveat: false })
+    return !!gl
+  } catch {
+    return false
+  }
+}
+
+// ─── Error boundary — catches the R3F hard-throw when context creation fails ─
+class WebGLBoundary extends Component {
+  state = { crashed: false }
+  static getDerivedStateFromError() { return { crashed: true } }
+  componentDidCatch(err) {
+    // Only suppress the known WebGL context error; re-throw anything else
+    if (!err?.message?.toLowerCase().includes('webgl')) throw err
+  }
+  render() {
+    return this.state.crashed ? null : this.props.children
+  }
+}
 
 // Deterministic seeded pseudo-random — avoids hydration/hot-reload randomness
 const r = (n) => { const x = Math.sin(n + 1) * 43758.5453; return x - Math.floor(x) }
@@ -86,9 +115,16 @@ function CameraRig() {
 // ─── Public component ────────────────────────────────────────────────────────
 export default function ScrollScene() {
   const wrapRef = useRef(null)
+  // null = not checked yet, true/false = result of probe
+  const [webglOk, setWebglOk] = useState(null)
+
+  useEffect(() => {
+    setWebglOk(probeWebGL())
+  }, [])
 
   // Fade the canvas out as the user scrolls deep into the page (past ~1.5× vh)
   useEffect(() => {
+    if (!webglOk) return
     const onScroll = () => {
       if (!wrapRef.current) return
       const vh = window.innerHeight
@@ -98,7 +134,10 @@ export default function ScrollScene() {
     }
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
-  }, [])
+  }, [webglOk])
+
+  // WebGL unavailable or not yet probed — render nothing, no error
+  if (!webglOk) return null
 
   return (
     <div
@@ -110,18 +149,22 @@ export default function ScrollScene() {
         willChange: 'opacity',
       }}
     >
-      <Canvas
-        camera={{ position: [0, 0, 10], fov: 55 }}
-        dpr={[1, 1.5]}           // DPR cap per Vercel perf constraints
-        gl={{
-          antialias: false,       // off = big perf win on wireframes
-          alpha: true,            // transparent so site background shows through
-          powerPreference: 'low-power',
-        }}
-      >
-        {SHAPES.map(s => <Shape key={s.id} {...s} />)}
-        <CameraRig />
-      </Canvas>
+      <WebGLBoundary>
+        <Canvas
+          camera={{ position: [0, 0, 10], fov: 55 }}
+          dpr={[1, 1.5]}
+          gl={{
+            antialias: false,
+            alpha: true,
+            powerPreference: 'low-power',
+            // Accept contexts even with performance caveats (software/ANGLE fallback)
+            failIfMajorPerformanceCaveat: false,
+          }}
+        >
+          {SHAPES.map(s => <Shape key={s.id} {...s} />)}
+          <CameraRig />
+        </Canvas>
+      </WebGLBoundary>
     </div>
   )
 }
