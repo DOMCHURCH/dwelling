@@ -221,7 +221,7 @@ function CityscapeSilhouette({ backRef, frontRef }) {
         style={{ width: '100%', height: '100%', display: 'block' }}
       >
         {/* Back row — shorter, lighter buildings for depth */}
-        <g ref={backRef} fill="rgba(0,0,0,0.55)">
+        <g ref={backRef} fill="#0d1e35">
           <rect x="0"    y="210" width="40"  height="110" />
           <rect x="42"   y="230" width="28"  height="90"  />
           <rect x="72"   y="195" width="50"  height="125" />
@@ -351,13 +351,17 @@ function CityscapeSilhouette({ backRef, frontRef }) {
           <rect x="1330" y="202" width="3" height="3" />
         </g>
 
-        {/* Ground gradient — blends into page */}
         <defs>
+          <linearGradient id="skyGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stopColor="#0a1628" stopOpacity="0.95" />
+            <stop offset="100%" stopColor="#050c18" stopOpacity="1" />
+          </linearGradient>
           <linearGradient id="groundFade" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%"   stopColor="#000" stopOpacity="0" />
             <stop offset="100%" stopColor="#000" stopOpacity="1" />
           </linearGradient>
         </defs>
+        <rect x="0" y="0" width="1440" height="320" fill="url(#skyGradient)" />
         <rect x="0" y="100" width="1440" height="220" fill="url(#groundFade)" />
       </svg>
     </div>
@@ -371,26 +375,26 @@ function Hero({ onSearch, loading, onShowDemo }) {
   const cityWrapperRef = useRef(null)
 
   useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || window.innerWidth <= 768) return
-    let ctx
-    getGSAP().then(({ gsap, ScrollTrigger }) => {
-      const base = { trigger: '#hero', start: 'top top', end: 'bottom top', scrub: 1.2 }
-      ctx = gsap.context(() => {
-        if (backCityRef.current) {
-          gsap.set(backCityRef.current, { willChange: 'transform' })
-          gsap.to(backCityRef.current, { y: -30, ease: 'none', scrollTrigger: base })
-        }
-        if (frontCityRef.current) {
-          gsap.set(frontCityRef.current, { willChange: 'transform' })
-          gsap.to(frontCityRef.current, { y: -75, scale: 1.04, ease: 'none', scrollTrigger: base })
-        }
-        if (textRef.current) {
-          gsap.set(textRef.current, { willChange: 'transform' })
-          gsap.to(textRef.current, { y: -20, ease: 'none', scrollTrigger: base })
-        }
-      })
-    })
-    return () => ctx?.revert()
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const heroEl = document.getElementById('hero')
+    function onScroll() {
+      const scrolled = window.scrollY
+      const heroH = heroEl ? heroEl.offsetHeight : window.innerHeight
+      const p = Math.min(scrolled / heroH, 1)
+      if (backCityRef.current)
+        backCityRef.current.style.transform = `translateY(${-30 * p}px)`
+      if (frontCityRef.current)
+        frontCityRef.current.style.transform = `translateY(${-75 * p}px) scale(${1 + 0.04 * p})`
+      if (textRef.current)
+        textRef.current.style.transform = `translateY(${-20 * p}px)`
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      if (backCityRef.current) backCityRef.current.style.transform = ''
+      if (frontCityRef.current) frontCityRef.current.style.transform = ''
+      if (textRef.current) textRef.current.style.transform = ''
+    }
   }, [])
 
   // Mouse parallax — single RAF loop, separate from scroll parallax
@@ -518,25 +522,20 @@ const HowItWorks = memo(function HowItWorks() {
 
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
-    let ctx
-    getGSAP().then(({ gsap }) => {
-      const el = sectionRef.current
-      if (!el) return
-      ctx = gsap.context(() => {
-        gsap.from(el, {
-          scale: 0.93,
-          opacity: 0.4,
-          ease: 'power2.out',
-          scrollTrigger: {
-            trigger: el,
-            start: 'top 85%',
-            end: 'top 35%',
-            scrub: 0.9,
-          }
-        })
-      })
-    })
-    return () => ctx?.revert()
+    const el = sectionRef.current
+    if (!el) return
+    el.style.transform = 'scale(0.93)'
+    el.style.opacity = '0.4'
+    el.style.transition = 'transform 0.9s cubic-bezier(0.16,1,0.3,1), opacity 0.9s ease'
+    const obs = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        el.style.transform = 'scale(1)'
+        el.style.opacity = '1'
+        obs.disconnect()
+      }
+    }, { threshold: 0.15 })
+    obs.observe(el)
+    return () => obs.disconnect()
   }, [])
 
   return (
