@@ -416,28 +416,28 @@ function Hero({ onSearch, loading, onShowDemo }) {
       {/* Scene wrapper — mouse parallax shifts this whole layer */}
       <div ref={sceneRef} style={{ position: 'absolute', inset: '-5% -3%', pointerEvents: 'none' }}>
 
-        {/* Layer 1: Sky — barely moves */}
+        {/* Layer 1: Sky — amber glow, barely moves */}
         <div ref={skyRef} style={{
           position: 'absolute', inset: 0,
           backgroundImage: 'url(/hero-sky.jpg)',
-          backgroundSize: 'cover', backgroundPosition: 'center',
-          background: 'linear-gradient(180deg, #060d1c 0%, #0b1a2e 55%, #0f2240 100%)',
+          backgroundSize: 'cover', backgroundPosition: 'center 60%',
           willChange: 'transform',
         }} />
 
-        {/* Layer 2: Far buildings — medium speed */}
+        {/* Layer 2: Far city silhouette — multiply blend makes white transparent */}
         <div ref={farRef} style={{
-          position: 'absolute', bottom: 0, left: 0, right: 0, height: '60%',
+          position: 'absolute', bottom: 0, left: '-5%', right: '-5%', height: '55%',
           backgroundImage: 'url(/hero-far.png)',
-          backgroundSize: 'cover', backgroundPosition: 'center bottom',
+          backgroundSize: '80% auto', backgroundPosition: 'center bottom',
           backgroundRepeat: 'no-repeat',
+          mixBlendMode: 'multiply',
           willChange: 'transform',
         }} />
 
-        {/* Layer 3: Near buildings — fastest */}
+        {/* Layer 3: Toronto skyline — near, moves fastest */}
         <div ref={nearRef} style={{
-          position: 'absolute', bottom: 0, left: 0, right: 0, height: '45%',
-          backgroundImage: 'url(/hero-near.png)',
+          position: 'absolute', bottom: 0, left: '-5%', right: '-5%', height: '65%',
+          backgroundImage: 'url(/hero-near.jpg)',
           backgroundSize: 'cover', backgroundPosition: 'center bottom',
           backgroundRepeat: 'no-repeat',
           willChange: 'transform',
