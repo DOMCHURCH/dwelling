@@ -3,7 +3,8 @@
     "allow": [
       "Bash(node:*)",
       "Bash(notepad:*)",
-      "Bash(claude --system-file claude/skills/coding-helper.md --append-file claude/skills/parallax-3d-ui.md)"
+      "Bash(claude --system-file claude/skills/coding-helper.md --append-file claude/skills/parallax-3d-ui.md)",
+      "Bash(claude --system-prompt-file claude/skills/coding-helper.md --append-system-prompt-file claude/skills/parallax-3d-ui.md)"
     ]
   },
   "hooks": {
