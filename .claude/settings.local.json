@@ -1,0 +1,23 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /c/Users/Dominique/dwelling && git add -A && (git diff --cached --quiet || (git commit -m \"Auto-save $(date '+%Y-%m-%d %H:%M')\" && git push)) 2>/dev/null || true",
+            "statusMessage": "Committing and pushing changes..."
+          }
+        ]
+      }
+    ]
+  },
+  "remote": {
+    "defaultEnvironmentId": "env_01MoVeFXjG1u542fUhTYXDbT"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(node:*)"
+    ]
+  }
+}

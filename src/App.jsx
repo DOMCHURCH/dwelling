@@ -43,6 +43,11 @@ function Section({ children, style = {} }) {
 
 // ─── TERMS MODAL ─────────────────────────────────────────────────────────────
 function TermsModal({ onClose }) {
+  useEffect(() => {
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prev }
+  }, [])
   const sections = [
     { title: '1. Acceptance of Terms and Binding Agreement', body: 'By registering an account, accessing, browsing, or otherwise using the Dwelling platform, its website, mobile applications, or any related service (collectively, the "Platform"), you ("User," "you," or "your") acknowledge that you have read, understood, and agree to be legally bound by these Terms and Conditions ("Terms"). If you do not agree to every provision of these Terms, you must immediately discontinue all use of the Platform. These Terms constitute a legally binding agreement between you and Dwelling ("Company," "we," "us," or "our"). The Company reserves the right to amend, update, or replace these Terms at any time without prior individual notice. Updated Terms will be posted on the Platform with a revised effective date. Your continued access to or use of the Platform following any modification constitutes your unconditional acceptance of the revised Terms.' },
     { title: '2. Eligibility and Account Registration', body: 'The Platform is intended for individuals who are at least 18 years of age and who have the legal capacity to enter into binding contracts under applicable law. By using the Platform you represent and warrant that you meet these requirements. You agree to provide accurate, current, and complete information during registration and to update such information as necessary. You are solely responsible for maintaining the confidentiality of your account credentials and for all activity that occurs under your account. The Company is not liable for any loss or damage arising from your failure to maintain account security. The Company reserves the right to refuse registration or cancel accounts at its sole discretion, including where it suspects fraudulent, abusive, or unauthorized use.' },
@@ -74,7 +79,7 @@ function TermsModal({ onClose }) {
           </div>
           <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#fff', fontFamily: "'Barlow',sans-serif", fontSize: 12, padding: '6px 14px', cursor: 'pointer' }}>✕ Close</button>
         </div>
-        <div style={{ flex: 1, overflowY: 'scroll', padding: '28px' }}>
+        <div style={{ flex: 1, overflowY: 'scroll', padding: '28px', overscrollBehavior: 'contain' }}>
           <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.7, marginBottom: 24, padding: '12px 16px', background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.15)', borderRadius: 10 }}>
             ⚠ This document is provided for informational purposes. These Terms govern your use of the Dwelling platform. By using the platform you agree to be bound by them.
           </div>

@@ -21,8 +21,18 @@ export default async function handler(req, res) {
 
   try {
     const location = [city, state, country].filter(Boolean).join(' ')
-    const query = encodeURIComponent(`housing market real estate ${location}`)
-    const url = `https://news.google.com/rss/search?q=${query}&hl=en-US&gl=US&ceid=US:en`
+    const query = encodeURIComponent(`${city} housing market real estate`)
+    // Use country-specific locale so results are geographically relevant
+    const countryUpper = (country || 'US').toUpperCase()
+    const localeMap = {
+      CA: { hl: 'en-CA', gl: 'CA', ceid: 'CA:en' },
+      GB: { hl: 'en-GB', gl: 'GB', ceid: 'GB:en' },
+      AU: { hl: 'en-AU', gl: 'AU', ceid: 'AU:en' },
+      NZ: { hl: 'en-NZ', gl: 'NZ', ceid: 'NZ:en' },
+      US: { hl: 'en-US', gl: 'US', ceid: 'US:en' },
+    }
+    const locale = localeMap[countryUpper] || localeMap.US
+    const url = `https://news.google.com/rss/search?q=${query}&hl=${locale.hl}&gl=${locale.gl}&ceid=${locale.ceid}`
 
     const response = await fetch(url, {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; DwellingApp/1.0)' },

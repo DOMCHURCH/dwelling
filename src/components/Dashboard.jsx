@@ -50,6 +50,16 @@ import { getCurrencySymbol, getCurrencyName, fetchExchangeRates, convertCurrency
 const fmt = (n) => (n != null && n !== 0) ? n.toLocaleString('en-US', { maximumFractionDigits: 0 }) : '—'
 const fmtUSD = (n, sym) => (n != null && n !== 0) ? `${sym || '$'}${n.toLocaleString('en-US', { maximumFractionDigits: 0 })}` : '—'
 const pct = (n) => (n != null && n !== 0 && !isNaN(n)) ? `${Math.round(n)}%` : '—'
+// Compact price formatter: $1.5M / $630K / $9,500
+function fmtCompact(n, sym = '$') {
+  if (n == null || n === 0) return '—'
+  if (n >= 1_000_000) {
+    const m = n / 1_000_000
+    return `${sym}${m % 1 === 0 ? m.toFixed(0) : m.toFixed(1)}M`
+  }
+  if (n >= 1_000) return `${sym}${Math.round(n / 1_000)}K`
+  return `${sym}${n.toLocaleString('en-US', { maximumFractionDigits: 0 })}`
+}
 
 function Tag({ children, color = 'default' }) {
   const bg = color === 'green' ? 'rgba(74,222,128,0.12)' : color === 'red' ? 'rgba(248,113,113,0.12)' : 'rgba(255,255,255,0.08)'
@@ -133,11 +143,11 @@ function IncomeSlider({ costOfLiving, sym }) {
           <span style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow', sans-serif", fontWeight: 300 }}>Your {mode} income</span>
           <span style={{ fontFamily: "'Instrument Serif', serif", fontStyle: 'italic', fontSize: 20, color: '#ffffff' }}>{fmtUSD(income, sym)}</span>
         </div>
-        <input type="range" min={mode === 'monthly' ? 1000 : 12000} max={mode === 'monthly' ? 30000 : 360000} step={mode === 'monthly' ? 100 : 1000}
+        <input type="range" min={mode === 'monthly' ? 1000 : 12000} max={mode === 'monthly' ? 100000 : 1200000} step={mode === 'monthly' ? 500 : 6000}
           value={income} onChange={e => setIncome(Number(e.target.value))} style={{ width: '100%', accentColor: 'rgba(255,255,255,0.7)' }} />
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 4 }}>
           <span>{fmtUSD(mode === 'monthly' ? 1000 : 12000, sym)}</span>
-          <span>{fmtUSD(mode === 'monthly' ? 30000 : 360000, sym)}</span>
+          <span>{fmtUSD(mode === 'monthly' ? 100000 : 1200000, sym)}</span>
         </div>
       </div>
 
@@ -396,8 +406,8 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
           {/* Price Stats */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 8, marginBottom: 14 }}>
             {[
-              { label: 'Median Price', value: `${sym}${Math.round(areaMetrics.medianPrice / 1000)}k` },
-              { label: 'Avg Price', value: `${sym}${Math.round(areaMetrics.avgPrice / 1000)}k` },
+              { label: 'Median Price', value: fmtCompact(areaMetrics.medianPrice, sym) },
+              { label: 'Avg Price', value: fmtCompact(areaMetrics.avgPrice, sym) },
               { label: 'Median DOM', value: areaMetrics.medianDOM != null ? `${areaMetrics.medianDOM} days` : 'N/A', sub: areaMetrics.medianDOM != null ? (() => { const diff = Math.round(((33 - areaMetrics.medianDOM) / 33) * 100); return areaMetrics.medianDOM < 21 ? `⚡ ${Math.abs(diff)}% faster than avg` : areaMetrics.medianDOM < 35 ? `≈ Near national avg (33d)` : `⏱ ${Math.abs(diff)}% slower than avg` })() : null },
               { label: 'Price/sqft', value: areaMetrics.medianPPSF ? `${sym}${areaMetrics.medianPPSF}` : 'N/A' },
             ].map(({ label, value, sub }) => (

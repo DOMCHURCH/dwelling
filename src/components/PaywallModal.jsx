@@ -24,23 +24,23 @@ const PRICING_PRO = [
 const SECTION_COPY = {
   neighborhood: {
     emoji: '🏘',
-    title: 'Unlock full neighbourhood detail',
-    subtitle: 'You can already see walk & school scores. Upgrade to Pro for neighbourhood character, pros & cons, safety breakdown, and best-for analysis.',
+    title: 'Full neighbourhood detail is on Pro',
+    subtitle: 'You already see walk & school scores. Upgrade for neighbourhood character, pros & cons, safety breakdown, and best-for analysis.',
   },
   investment: {
     emoji: '📈',
-    title: "Oops — that's a Pro section",
-    subtitle: 'Rent yield, investment score & market outlook are only available on Pro.',
+    title: 'Investment analysis is on Pro',
+    subtitle: 'Get rent yield, investment score, and market outlook with a Pro plan.',
   },
   pricehistory: {
     emoji: '📊',
-    title: "Oops — that's a Pro section",
-    subtitle: 'Price history charts & market projections are only available on Pro.',
+    title: 'Price history is on Pro',
+    subtitle: 'Unlock historical price charts and market projections with a Pro plan.',
   },
   risk: {
     emoji: '🛡',
-    title: "Oops — that's a Pro section",
-    subtitle: 'Environmental risk, flood zone & hazard data are only available on Pro.',
+    title: 'Risk data is on Pro',
+    subtitle: 'Environmental risk, flood zone, and hazard data are available on Pro.',
   },
 }
 
@@ -116,7 +116,7 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
       <div style={{
         position: 'fixed', inset: 0, zIndex: 1000,
         background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(12px)',
-        overflowY: 'auto',
+        overflowY: 'auto', overscrollBehavior: 'contain',
         display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
         padding: '24px 20px 40px',
       }}>
@@ -176,16 +176,16 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
               background: 'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)',
               border: '1px solid rgba(255,255,255,0.07)',
             }}>
-              <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 20, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>Free</div>
-              <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.25)', marginBottom: 14 }}>Good for exploring</div>
+              <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 20, color: 'rgba(255,255,255,0.8)', marginBottom: 2 }}>Free</div>
+              <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 14 }}>No credit card required</div>
               <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 32, color: 'rgba(255,255,255,0.4)' }}>$0</span>
-                <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.2)', marginLeft: 4 }}>/month</span>
+                <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 32, color: 'rgba(255,255,255,0.7)' }}>$0</span>
+                <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.35)', marginLeft: 4 }}>/month</span>
               </div>
               {PRICING_FREE.map(f => (
                 <div key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 7, marginBottom: 7 }}>
-                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', flexShrink: 0, marginTop: 1 }}>✓</span>
-                  <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.3)', lineHeight: 1.4 }}>{f}</span>
+                  <span style={{ fontSize: 11, color: '#4ade80', flexShrink: 0, marginTop: 1 }}>✓</span>
+                  <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.55)', lineHeight: 1.4 }}>{f}</span>
                 </div>
               ))}
             </div>

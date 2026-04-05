@@ -61,16 +61,19 @@ export function useParallax({ speed = 0.3, scale = 1.15 } = {}) {
       const el = ref.current
       if (!el) return
       // Pre-scale so we have room to move without showing edges
-      gsap.set(el, { scale, transformOrigin: 'center center' })
+      // will-change: transform promotes to composited layer for GPU rendering
+      el.style.willChange = 'transform'
+      gsap.set(el, { scale, transformOrigin: 'center center', force3D: true })
       ctx = gsap.context(() => {
         gsap.to(el, {
           yPercent: -15 * speed * 3,
           ease: 'none',
+          force3D: true,
           scrollTrigger: {
             trigger: el.parentElement,
             start: 'top bottom',
             end: 'bottom top',
-            scrub: true,
+            scrub: 1, // numeric scrub = smooth catch-up, avoids jank vs scrub:true
           },
         })
       })
