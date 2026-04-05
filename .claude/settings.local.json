@@ -13,7 +13,10 @@
       "Bash(cp \"C:/Users/Dominique/Downloads/ChatGPT Image Apr 5, 2026, 10_54_08 AM.png\" \"C:/Users/Dominique/dwelling/public/hero-sky.jpg\")",
       "Bash(cp \"C:/Users/Dominique/Downloads/v2_watermarked-338c52ce-6c20-436d-b698-c4f6aaf4e43a.jpg\" \"C:/Users/Dominique/dwelling/public/hero-near.jpg\")",
       "Bash(cp \"C:/Users/Dominique/Downloads/ChatGPT Image Apr 5, 2026, 10_54_02 AM.png\" \"C:/Users/Dominique/dwelling/public/hero-far.png\")",
-      "WebSearch"
+      "WebSearch",
+      "Bash(git add:*)",
+      "Bash(git commit -m ':*)",
+      "Bash(git push:*)"
     ]
   },
   "hooks": {
