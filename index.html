@@ -69,6 +69,10 @@
 
       #print-header { display: none; }
     </style>
+    <!-- Preload hero images so they're ready before paint -->
+    <link rel="preload" href="/hero-near.jpg" as="image" fetchpriority="high" />
+    <link rel="preload" href="/hero-sky.jpg" as="image" />
+
     <!-- Google Analytics (consent-gated — PIPEDA compliant) -->
     <script>
       window.dataLayer = window.dataLayer || [];
