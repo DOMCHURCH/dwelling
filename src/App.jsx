@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, memo, lazy, Suspense } from 'react'
 import { useScrollReveal } from '../hooks/useScrollReveal'
-import { motion, AnimatePresence } from 'framer-motion'
 import AddressSearch from './components/AddressSearch'
 import LoadingState from './components/LoadingState'
 const Dashboard = lazy(() => import('./components/Dashboard'))
@@ -124,13 +123,15 @@ const FAQ = memo(function FAQ() {
               <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 400, fontSize: 14, color: '#fff', flex: 1, paddingRight: 16 }}>{item.q}</span>
               <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 18, transition: 'transform 0.2s', transform: open === i ? 'rotate(180deg)' : 'none', flexShrink: 0 }}>⌄</span>
             </button>
-            <AnimatePresence>
-              {open === i && (
-                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }}>
-                  <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.55)', lineHeight: 1.7, padding: '0 22px 18px' }}>{item.a}</p>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            <div style={{
+              display: 'grid',
+              gridTemplateRows: open === i ? '1fr' : '0fr',
+              transition: 'grid-template-rows 0.2s ease',
+            }}>
+              <div style={{ overflow: 'hidden' }}>
+                <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.55)', lineHeight: 1.7, padding: '0 22px 18px' }}>{item.a}</p>
+              </div>
+            </div>
           </div>
         ))}
       </div>

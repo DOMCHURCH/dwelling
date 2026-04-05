@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 
-const NUM_LINES = 18000 // reduced from 40000 for better performance
+const NUM_LINES = 3500 // capped for Vercel free plan performance budget
 
 export default function GlobalBackground() {
   const containerRef = useRef(null)
@@ -8,6 +8,9 @@ export default function GlobalBackground() {
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
+
+    // Respect prefers-reduced-motion — skip entirely for accessibility + perf
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
     const canvas = document.createElement('canvas')
     canvas.style.width = '100%'
@@ -18,13 +21,16 @@ export default function GlobalBackground() {
     const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl')
     if (!gl) return
 
+    // Cap device pixel ratio to 1.5 — prevents 4x overdraw on retina/high-DPR screens
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5)
+
     let cw, ch
     function resize() {
       cw = container.offsetWidth
       ch = container.offsetHeight
-      canvas.width = cw
-      canvas.height = ch
-      gl.viewport(0, 0, cw, ch)
+      canvas.width = Math.round(cw * dpr)
+      canvas.height = Math.round(ch * dpr)
+      gl.viewport(0, 0, canvas.width, canvas.height)
     }
     resize()
     window.addEventListener('resize', resize)
