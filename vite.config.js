@@ -12,20 +12,20 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          // React core — changes rarely, long-lived cache
-          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
-            return 'vendor-react'
+          // Three.js + R3F — lazy-loaded with ScrollScene, isolate for caching
+          if (id.includes('/node_modules/three') || id.includes('/node_modules/@react-three')) {
+            return 'vendor-three'
           }
-          // GSAP — lazy-loaded but still gets its own chunk for caching
-          if (id.includes('node_modules/gsap')) {
+          // GSAP — lazy-loaded via useScrollReveal
+          if (id.includes('/node_modules/gsap')) {
             return 'vendor-gsap'
           }
-          // Lenis smooth scroll — lazy-loaded, separate chunk
-          if (id.includes('node_modules/lenis')) {
+          // Lenis smooth scroll — lazy-loaded
+          if (id.includes('/node_modules/lenis')) {
             return 'vendor-lenis'
           }
-          // Everything else in node_modules
-          if (id.includes('node_modules')) {
+          // All other node_modules (react, react-dom, etc.) in one stable chunk
+          if (id.includes('/node_modules/')) {
             return 'vendor'
           }
         },

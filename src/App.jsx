@@ -5,7 +5,7 @@ import LoadingState from './components/LoadingState'
 const Dashboard = lazy(() => import('./components/Dashboard'))
 import AuthModal from './components/AuthModal'
 import PaywallModal from './components/PaywallModal'
-import GlobalBackground from './components/GlobalBackground'
+const ScrollScene = lazy(() => import('./components/ScrollScene'))
 import CompareView from './components/CompareView'
 import CountUp from './components/CountUp'
 import { geocodeStructured } from './lib/nominatim'
@@ -367,7 +367,6 @@ function CityscapeSilhouette() {
 function Hero({ onSearch, loading, onShowDemo }) {
   return (
     <section id="hero" style={{ position: 'relative', overflow: 'hidden', background: 'transparent', minHeight: 'min(1000px, 100svh)', height: 'auto', isolation: 'isolate', contain: 'layout paint', zIndex: 0 }}>
-      <GlobalBackground />
       <CityscapeSilhouette />
       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 350, background: 'linear-gradient(to top, #000 40%, transparent)', zIndex: 2 }} />
       <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', maxWidth: 900, margin: '0 auto', padding: 'clamp(100px, 20vw, 150px) 20px 80px' }}>
@@ -2074,6 +2073,8 @@ export default function App() {
         </div>
       ) : (
         <div style={{ position: 'relative', zIndex: 1 }}>
+          {/* 3D scroll scene — fixed canvas behind the landing page */}
+          <Suspense fallback={null}><ScrollScene /></Suspense>
           <Hero onSearch={handleSearch} loading={loading} onShowDemo={() => setShowDemo(true)} />
           <Partners />
           <HowItWorks />
