@@ -24,7 +24,8 @@
       "Bash(cp hero-near-opt.jpg hero-near.jpg)",
       "Bash(cp hero-sky-opt.jpg hero-sky.jpg)",
       "Bash(cp hero-far-opt.webp hero-far.webp)",
-      "Bash(rm hero-near-opt.jpg hero-sky-opt.jpg hero-far-opt.png hero-far-opt.webp)"
+      "Bash(rm hero-near-opt.jpg hero-sky-opt.jpg hero-far-opt.png hero-far-opt.webp)",
+      "Bash(npm install:*)"
     ]
   },
   "hooks": {
