@@ -534,20 +534,9 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
               </div>
             )}
             {/* Full detail — locked for free */}
-            <div style={{ position: 'relative' }}>
-              <div style={{ filter: isLocked('neighborhooddetail') ? 'blur(5px)' : 'none', userSelect: isLocked('neighborhooddetail') ? 'none' : 'auto', pointerEvents: isLocked('neighborhooddetail') ? 'none' : 'auto' }}>
-                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginBottom: 14, fontFamily: "'Barlow', sans-serif", fontWeight: 300, lineHeight: 1.7 }}>{neighborhood.character}</p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
-                  {neighborhood.pros.map((p) => <Tag key={p} color="green">+ {p}</Tag>)}
-                  {neighborhood.cons.map((c) => <Tag key={c} color="red">− {c}</Tag>)}
-                </div>
-                <div style={{ fontSize: 13, fontFamily: "'Barlow', sans-serif", fontWeight: 300 }}>
-                  <span style={{ color: 'rgba(255,255,255,0.4)' }}>Best for: </span>
-                  <span style={{ color: '#ffffff', fontWeight: 400 }}>{neighborhood.bestFor}</span>
-                </div>
-              </div>
-              {isLocked('neighborhooddetail') && (
-                <div onClick={() => onUpgrade('neighborhood')} style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)', borderRadius: 12, gap: 8, cursor: 'pointer' }}>
+            <div>
+              {isLocked('neighborhooddetail') ? (
+                <div onClick={() => onUpgrade('neighborhood')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 16px', background: 'rgba(0,0,0,0.4)', borderRadius: 12, gap: 8, cursor: 'pointer' }}>
                   <span style={{ fontSize: 22 }}>🔒</span>
                   <div style={{ textAlign: 'center', padding: '0 16px' }}>
                     <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 15, color: '#fff', marginBottom: 4 }}>Full Neighbourhood Detail</div>
@@ -555,7 +544,19 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
                     <div style={{ display: 'inline-block', background: '#fff', color: '#000', borderRadius: 40, padding: '6px 16px', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 12 }}>Upgrade to Pro →</div>
                   </div>
                 </div>
-              )}
+              ) : (neighborhood.character || neighborhood.pros?.length) ? (
+                <div>
+                  <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginBottom: 14, fontFamily: "'Barlow', sans-serif", fontWeight: 300, lineHeight: 1.7 }}>{neighborhood.character}</p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+                    {(neighborhood.pros || []).map((p) => <Tag key={p} color="green">+ {p}</Tag>)}
+                    {(neighborhood.cons || []).map((c) => <Tag key={c} color="red">− {c}</Tag>)}
+                  </div>
+                  <div style={{ fontSize: 13, fontFamily: "'Barlow', sans-serif", fontWeight: 300 }}>
+                    <span style={{ color: 'rgba(255,255,255,0.4)' }}>Best for: </span>
+                    <span style={{ color: '#ffffff', fontWeight: 400 }}>{neighborhood.bestFor}</span>
+                  </div>
+                </div>
+              ) : null}
             </div>
           </div>
         </SectionCard>
@@ -593,23 +594,20 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
 
 
       {/* Price History */}
-      {ai.priceHistory && (
+      {(isLocked('pricehistory') || ai.priceHistory) && (
         <SectionCard title="Price History & Projection" icon="📊" delay={275}>
-          <div style={{ position: 'relative' }}>
-            <div style={{ filter: isLocked('pricehistory') ? 'blur(6px)' : 'none', userSelect: isLocked('pricehistory') ? 'none' : 'auto', pointerEvents: isLocked('pricehistory') ? 'none' : 'auto' }}>
-              <PriceHistoryChart priceHistory={ai.priceHistory} />
-            </div>
-            {isLocked('pricehistory') && (
-              <div onClick={() => onUpgrade('pricehistory')} style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.65)', borderRadius: 12, gap: 10, cursor: 'pointer' }}>
-                <span style={{ fontSize: 28 }}>🔒</span>
-                <div style={{ textAlign: 'center', padding: '0 16px' }}>
-                  <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 17, color: '#fff', marginBottom: 6 }}>Price History & Projections</div>
-                  <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.55)', marginBottom: 14, lineHeight: 1.5 }}>Market trends & price projections are Pro only.</div>
-                  <div style={{ display: 'inline-block', background: '#fff', color: '#000', borderRadius: 40, padding: '8px 20px', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13 }}>Upgrade to Pro →</div>
-                </div>
+          {isLocked('pricehistory') ? (
+            <div onClick={() => onUpgrade('pricehistory')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 16px', gap: 10, cursor: 'pointer' }}>
+              <span style={{ fontSize: 28 }}>🔒</span>
+              <div style={{ textAlign: 'center', padding: '0 16px' }}>
+                <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 17, color: '#fff', marginBottom: 6 }}>Price History & Projections</div>
+                <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.55)', marginBottom: 14, lineHeight: 1.5 }}>Market trends & price projections are Pro only.</div>
+                <div style={{ display: 'inline-block', background: '#fff', color: '#000', borderRadius: 40, padding: '8px 20px', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13 }}>Upgrade to Pro →</div>
               </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <PriceHistoryChart priceHistory={ai.priceHistory} />
+          )}
         </SectionCard>
       )}
 
@@ -640,61 +638,10 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
       )}
 
       {/* Environmental Risk */}
-      {risk && (
+      {(isLocked('risk') || risk) && (
         <SectionCard title="Environmental Risk" icon="🛡" delay={290} className="gsap-reveal-risk">
-          <div style={{ position: 'relative' }}>
-          <div style={{ filter: isLocked('risk') ? 'blur(6px)' : 'none', userSelect: isLocked('risk') ? 'none' : 'auto', pointerEvents: isLocked('risk') ? 'none' : 'auto' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 16 }}>
-            {[
-              { label: 'Flood', value: risk.detailedRisk?.floodRisk || 'Low', icon: '🌊' },
-              { label: 'Fire', value: risk.detailedRisk?.fireRisk || 'Low', icon: '🔥' },
-              { label: 'Seismic', value: risk.detailedRisk?.seismicRisk || 'Low', icon: '🌍' },
-              { label: 'Pollution', value: risk.detailedRisk?.pollutionRisk || 'Low', icon: '💨' },
-              { label: 'Noise', value: risk.detailedRisk?.noiseRisk || 'Moderate', icon: '🔊' },
-              { label: 'Crime', value: risk.detailedRisk?.crimeRisk || 'Low-Moderate', icon: '👮' },
-            ].map((r) => (
-              <div key={r.label} className="liquid-glass" style={{ borderRadius: 14, padding: '12px 14px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                  <span style={{ fontSize: 12 }}>{r.icon}</span>
-                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: "'Barlow', sans-serif" }}>{r.label}</div>
-                </div>
-                <div style={{ fontSize: 15, color: '#ffffff', fontFamily: "'Instrument Serif', serif", fontStyle: 'italic' }}>{r.value}</div>
-              </div>
-            ))}
-          </div>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginBottom: 16 }}>
-            {risk.nationalRiskIndex && (
-              <div className="liquid-glass" style={{ borderRadius: 14, padding: '14px 16px' }}>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6, fontFamily: "'Barlow', sans-serif" }}>Community Risk</div>
-                <div style={{ fontSize: 18, color: '#ffffff', fontFamily: "'Instrument Serif', serif", fontStyle: 'italic' }}>{risk.nationalRiskIndex.overallRiskRating}</div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 4, fontFamily: "'Barlow', sans-serif" }}>FEMA National Risk Index</div>
-              </div>
-            )}
-            {risk.epaHazards && (
-              <div className="liquid-glass" style={{ borderRadius: 14, padding: '14px 16px' }}>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6, fontFamily: "'Barlow', sans-serif" }}>Air Quality</div>
-                <div style={{ fontSize: 18, color: '#ffffff', fontFamily: "'Instrument Serif', serif", fontStyle: 'italic' }}>{risk.epaHazards.airQualityRating || 'Moderate'}</div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 4, fontFamily: "'Barlow', sans-serif" }}>EPA EJScreen Percentile: {risk.epaHazards.airQualityPM25Percentile || 50}th</div>
-              </div>
-            )}
-          </div>
-          
-          {risk.nationalRiskIndex?.topRisks?.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {risk.nationalRiskIndex.topRisks.map((r) => (
-                <Tag key={r.name} color="red">⚠️ {r.name}</Tag>
-              ))}
-            </div>
-          )}
-          {!risk.isUS && (
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 12, fontFamily: "'Barlow', sans-serif", fontStyle: 'italic' }}>
-              Note: FEMA and EPA data are currently limited to US locations. Seismic risk is global.
-            </div>
-          )}
-          </div>
-          {isLocked('risk') && (
-            <div onClick={() => onUpgrade('risk')} style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.65)', borderRadius: 12, gap: 10, cursor: 'pointer' }}>
+          {isLocked('risk') ? (
+            <div onClick={() => onUpgrade('risk')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 16px', gap: 10, cursor: 'pointer' }}>
               <span style={{ fontSize: 28 }}>🔒</span>
               <div style={{ textAlign: 'center', padding: '0 16px' }}>
                 <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 17, color: '#fff', marginBottom: 6 }}>Environmental & Flood Risk</div>
@@ -702,15 +649,72 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
                 <div style={{ display: 'inline-block', background: '#fff', color: '#000', borderRadius: 40, padding: '8px 20px', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13 }}>Upgrade to Pro →</div>
               </div>
             </div>
+          ) : (
+            <div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 16 }}>
+                {[
+                  { label: 'Flood', value: risk.detailedRisk?.floodRisk || 'Low', icon: '🌊' },
+                  { label: 'Fire', value: risk.detailedRisk?.fireRisk || 'Low', icon: '🔥' },
+                  { label: 'Seismic', value: risk.detailedRisk?.seismicRisk || 'Low', icon: '🌍' },
+                  { label: 'Pollution', value: risk.detailedRisk?.pollutionRisk || 'Low', icon: '💨' },
+                  { label: 'Noise', value: risk.detailedRisk?.noiseRisk || 'Moderate', icon: '🔊' },
+                  { label: 'Crime', value: risk.detailedRisk?.crimeRisk || 'Low-Moderate', icon: '👮' },
+                ].map((r) => (
+                  <div key={r.label} className="liquid-glass" style={{ borderRadius: 14, padding: '12px 14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                      <span style={{ fontSize: 12 }}>{r.icon}</span>
+                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: "'Barlow', sans-serif" }}>{r.label}</div>
+                    </div>
+                    <div style={{ fontSize: 15, color: '#ffffff', fontFamily: "'Instrument Serif', serif", fontStyle: 'italic' }}>{r.value}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginBottom: 16 }}>
+                {risk.nationalRiskIndex && (
+                  <div className="liquid-glass" style={{ borderRadius: 14, padding: '14px 16px' }}>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6, fontFamily: "'Barlow', sans-serif" }}>Community Risk</div>
+                    <div style={{ fontSize: 18, color: '#ffffff', fontFamily: "'Instrument Serif', serif", fontStyle: 'italic' }}>{risk.nationalRiskIndex.overallRiskRating}</div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 4, fontFamily: "'Barlow', sans-serif" }}>FEMA National Risk Index</div>
+                  </div>
+                )}
+                {risk.epaHazards && (
+                  <div className="liquid-glass" style={{ borderRadius: 14, padding: '14px 16px' }}>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6, fontFamily: "'Barlow', sans-serif" }}>Air Quality</div>
+                    <div style={{ fontSize: 18, color: '#ffffff', fontFamily: "'Instrument Serif', serif", fontStyle: 'italic' }}>{risk.epaHazards.airQualityRating || 'Moderate'}</div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 4, fontFamily: "'Barlow', sans-serif" }}>EPA EJScreen Percentile: {risk.epaHazards.airQualityPM25Percentile || 50}th</div>
+                  </div>
+                )}
+              </div>
+              {risk.nationalRiskIndex?.topRisks?.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {risk.nationalRiskIndex.topRisks.map((r) => (
+                    <Tag key={r.name} color="red">⚠️ {r.name}</Tag>
+                  ))}
+                </div>
+              )}
+              {!risk.isUS && (
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 12, fontFamily: "'Barlow', sans-serif", fontStyle: 'italic' }}>
+                  Note: FEMA and EPA data are currently limited to US locations. Seismic risk is global.
+                </div>
+              )}
+            </div>
           )}
-          </div>
         </SectionCard>
       )}
 
       {/* Investment */}
       <SectionCard title="Investment Analysis" icon="📈" delay={300}>
-        <div style={{ position: 'relative' }}>
-          <div style={{ filter: isLocked('investment') ? 'blur(6px)' : 'none', userSelect: isLocked('investment') ? 'none' : 'auto', pointerEvents: isLocked('investment') ? 'none' : 'auto' }}>
+        {isLocked('investment') ? (
+          <div onClick={() => onUpgrade('investment')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 16px', gap: 10, cursor: 'pointer' }}>
+            <span style={{ fontSize: 28 }}>🔒</span>
+            <div style={{ textAlign: 'center', padding: '0 16px' }}>
+              <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 17, color: '#fff', marginBottom: 6 }}>Investment Analysis</div>
+              <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.55)', marginBottom: 14, lineHeight: 1.5 }}>Rent yield, investment score & outlook are Pro only.</div>
+              <div style={{ display: 'inline-block', background: '#fff', color: '#000', borderRadius: 40, padding: '8px 20px', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13 }}>Upgrade to Pro →</div>
+            </div>
+          </div>
+        ) : investment ? (
+          <div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 16 }}>
               <StatCard label="Rent Yield" value={`${investment.rentYieldPercent}%`} sub="annual gross" accent="#4ade80" />
               <StatCard label="Investment Score" value={`${investment.investmentScore}/100`} />
@@ -724,17 +728,7 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
             <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginBottom: 8, fontFamily: "'Barlow', sans-serif", fontWeight: 300, lineHeight: 1.7 }}>{investment.appreciationOutlookText}</p>
             <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow', sans-serif", fontWeight: 300, lineHeight: 1.7 }}>{investment.investmentSummary}</p>
           </div>
-          {isLocked('investment') && (
-            <div onClick={() => onUpgrade('investment')} style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.65)', borderRadius: 12, gap: 10, cursor: 'pointer' }}>
-              <span style={{ fontSize: 28 }}>🔒</span>
-              <div style={{ textAlign: 'center', padding: '0 16px' }}>
-                <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 17, color: '#fff', marginBottom: 6 }}>Investment Analysis</div>
-                <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.55)', marginBottom: 14, lineHeight: 1.5 }}>Rent yield, investment score & outlook are Pro only.</div>
-                <div style={{ display: 'inline-block', background: '#fff', color: '#000', borderRadius: 40, padding: '8px 20px', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13 }}>Upgrade to Pro →</div>
-              </div>
-            </div>
-          )}
-        </div>
+        ) : null}
       </SectionCard>
 
 
