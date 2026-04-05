@@ -1,4 +1,5 @@
 import { getAuthToken } from './localAuth'
+import { sanitizeLocation } from './sanitize'
 import { getCurrencyFromCountry, getCurrencySymbol } from './currency'
 import { runAVM, applyBoundedAIAdjustment, formatAVMForPrompt } from './avm'
 import { formatMarketDataForPrompt, getMarketData, getLiveMarketData } from './marketPrices'
@@ -341,13 +342,13 @@ function finalizeAnalysis(est, known, realData, currency, currencySymbol, city, 
 }
 
 export async function analyzeProperty(geoData, weatherData, climateData, knownFacts = {}, realData = {}, userApiKey = '') {
-  const street = geoData.userStreet || geoData.address?.road || ''
-  const city = geoData.userCity || geoData.address?.city || geoData.address?.town || ''
-  const state = geoData.userState || geoData.address?.state || ''
-  const country = geoData.userCountry || geoData.address?.country || ''
-  const neighbourhood = geoData.address?.neighbourhood || geoData.address?.suburb || geoData.address?.quarter || ''
-  const postcode = geoData.address?.postcode || ''
-  const county = geoData.address?.county || ''
+  const street = sanitizeLocation(geoData.userStreet || geoData.address?.road || '')
+  const city = sanitizeLocation(geoData.userCity || geoData.address?.city || geoData.address?.town || '')
+  const state = sanitizeLocation(geoData.userState || geoData.address?.state || '')
+  const country = sanitizeLocation(geoData.userCountry || geoData.address?.country || '')
+  const neighbourhood = sanitizeLocation(geoData.address?.neighbourhood || geoData.address?.suburb || geoData.address?.quarter || '')
+  const postcode = sanitizeLocation(geoData.address?.postcode || '')
+  const county = sanitizeLocation(geoData.address?.county || '')
 
   const isCanada = country.toLowerCase().includes('canada')
   const isUK = country.toLowerCase().includes('united kingdom') || country.toLowerCase().includes('england')

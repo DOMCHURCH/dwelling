@@ -1,11 +1,22 @@
 import { useState, useEffect } from 'react'
 
 const STORAGE_KEY = 'dwelling_cookie_consent'
+const GA_ID = 'G-P02023D4E6'
 
 function enableAnalytics() {
-  if (typeof window.gtag === 'function') {
-    window.gtag('consent', 'update', { analytics_storage: 'granted' })
-  }
+  // Dynamically inject GA4 script only after explicit consent (Basic Consent Mode)
+  // This prevents any data transmission to Google before the user opts in
+  if (document.querySelector(`script[src*="${GA_ID}"]`)) return // already loaded
+
+  window.dataLayer = window.dataLayer || []
+  window.gtag = function () { window.dataLayer.push(arguments) }
+  window.gtag('js', new Date())
+  window.gtag('config', GA_ID, { anonymize_ip: true })
+
+  const script = document.createElement('script')
+  script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_ID}`
+  script.async = true
+  document.head.appendChild(script)
 }
 
 export default function CookieBanner() {

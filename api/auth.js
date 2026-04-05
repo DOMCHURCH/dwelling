@@ -11,7 +11,7 @@ if (!ENCRYPTION_KEY_HEX) throw new Error('FATAL: CEREBRAS_ENCRYPTION_KEY env var
 const ENCRYPTION_KEY = Buffer.from(ENCRYPTION_KEY_HEX, 'hex')
 if (ENCRYPTION_KEY.length !== 32) throw new Error('FATAL: CEREBRAS_ENCRYPTION_KEY must be 64 hex chars (32 bytes).')
 
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '01dominique.c@gmail.com').split(',')
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
 const BASE_URL = process.env.BASE_URL || `https://${process.env.VERCEL_URL}` || 'https://dwelling-three.vercel.app'
 const ALLOWED_ORIGIN = 'https://dwelling-three.vercel.app'
 
@@ -204,8 +204,9 @@ export default async function handler(req, res) {
         args: [key, id, salt, hashed, is_pro, new Date().toISOString(), new Date().toISOString(), new Date().toISOString(), clientIp],
       })
 
-      const token = sign({ sub: id, email: key, is_pro: !!is_pro, exp: Math.floor(Date.now() / 1000) + 30 * 86400 })
-      return res.status(200).json({ token, userId: id, email: key, is_pro: !!is_pro })
+      const is_admin = ADMIN_EMAILS.includes(key)
+      const token = sign({ sub: id, email: key, is_pro: !!is_pro, is_admin, exp: Math.floor(Date.now() / 1000) + 30 * 86400 })
+      return res.status(200).json({ token, userId: id, email: key, is_pro: !!is_pro, is_admin })
     }
 
     // ── signin ──────────────────────────────────────────────────────────────
@@ -238,8 +239,9 @@ export default async function handler(req, res) {
 
       if (!passwordOk) return res.status(401).json({ error: 'Incorrect email or password.' })
 
-      const token = sign({ sub: user.id, email: key, is_pro: !!user.is_pro, exp: Math.floor(Date.now() / 1000) + 30 * 86400 })
-      return res.status(200).json({ token, userId: user.id, email: key, is_pro: !!user.is_pro })
+      const is_admin = ADMIN_EMAILS.includes(key)
+      const token = sign({ sub: user.id, email: key, is_pro: !!user.is_pro, is_admin, exp: Math.floor(Date.now() / 1000) + 30 * 86400 })
+      return res.status(200).json({ token, userId: user.id, email: key, is_pro: !!user.is_pro, is_admin })
     }
 
     // ── forgot-password ─────────────────────────────────────────────────────
@@ -297,8 +299,9 @@ export default async function handler(req, res) {
         args: [hashed, salt, user.email],
       })
 
-      const jwtToken = sign({ sub: user.id, email: user.email, is_pro: !!user.is_pro, exp: Math.floor(Date.now() / 1000) + 30 * 86400 })
-      return res.status(200).json({ token: jwtToken, userId: user.id, email: user.email, is_pro: !!user.is_pro })
+      const is_admin = ADMIN_EMAILS.includes(user.email)
+      const jwtToken = sign({ sub: user.id, email: user.email, is_pro: !!user.is_pro, is_admin, exp: Math.floor(Date.now() / 1000) + 30 * 86400 })
+      return res.status(200).json({ token: jwtToken, userId: user.id, email: user.email, is_pro: !!user.is_pro, is_admin })
     }
 
     // ── usage ───────────────────────────────────────────────────────────────
@@ -399,7 +402,8 @@ export default async function handler(req, res) {
 
     return res.status(400).json({ error: 'Unknown action' })
   } catch (err) {
-    console.error('auth error action=' + (req.body?.action || 'unknown'), err?.message || err)
-    return res.status(500).json({ error: 'Server error', detail: err?.message || String(err) })
+    const ref = Math.random().toString(36).slice(2, 10)
+    console.error(JSON.stringify({ ref, action: req.body?.action || 'unknown', msg: err?.message, stack: err?.stack }))
+    return res.status(500).json({ error: 'An internal error occurred.', ref })
   }
 }

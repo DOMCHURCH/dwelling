@@ -176,10 +176,10 @@ function Navbar({ user, userRecord, analysesLeft, isInTrial, trialDaysLeft, onSi
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {user ? (
             <>
-              <span className="liquid-glass" style={{ borderRadius: 40, padding: '5px 12px', fontSize: 12, fontFamily: "'Barlow',sans-serif", color: user?.email === '01dominique.c@gmail.com' ? '#a78bfa' : userRecord?.is_pro ? '#fbbf24' : low ? '#f87171' : 'rgba(255,255,255,0.5)' }}>
-                {user?.email === '01dominique.c@gmail.com' ? '⚡ Admin' : userRecord?.is_pro ? '★ Pro' : `${analysesLeft} / 10 left`}
+              <span className="liquid-glass" style={{ borderRadius: 40, padding: '5px 12px', fontSize: 12, fontFamily: "'Barlow',sans-serif", color: user?.is_admin ? '#a78bfa' : userRecord?.is_pro ? '#fbbf24' : low ? '#f87171' : 'rgba(255,255,255,0.5)' }}>
+                {user?.is_admin ? '⚡ Admin' : userRecord?.is_pro ? '★ Pro' : `${analysesLeft} / 10 left`}
               </span>
-              {user?.email === '01dominique.c@gmail.com' && (
+              {user?.is_admin && (
                 <button onClick={onTogglePreview} style={{ background: 'rgba(167,139,250,0.1)', border: '1px solid rgba(167,139,250,0.25)', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: '#a78bfa', padding: '5px 10px', borderRadius: 20 }}>
                   Preview: {previewPlan === 'pro' ? 'Pro' : 'Free'}
                 </button>
@@ -2040,7 +2040,7 @@ export default function App() {
                   onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
                   ↗ Share
                 </button>
-                {!(userRecord?.is_pro || user?.email === '01dominique.c@gmail.com') && (
+                {!(userRecord?.is_pro || user?.is_admin) && (
                   <button
                     onClick={() => { setPaywallTrigger('pricing'); setShowPaywall(true) }}
                     style={{ borderRadius: 40, padding: '8px 16px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: 'rgba(255,255,255,0.3)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer', background: 'transparent', transition: 'opacity 0.15s', display: 'flex', alignItems: 'center', gap: 5 }}
@@ -2051,7 +2051,7 @@ export default function App() {
                 )}
               </div>
               {/* Admin plan preview switcher */}
-              {user?.email === '01dominique.c@gmail.com' && (
+              {user?.is_admin && (
                 <div className="liquid-glass" style={{ borderRadius: 14, padding: '10px 14px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                   <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>👁 Preview as:</span>
                   {[['free', 'Free'], ['pro', 'Pro']].map(([val, label]) => (
@@ -2092,7 +2092,7 @@ export default function App() {
               onClearB={() => { setCompareResult(null); setComparingMode(true) }}
             />
           )}
-          {result && !loading && !compareResult && <Suspense fallback={<LoadingState step={0} />}><Dashboard data={result} onRecalculate={handleRecalculate} previewPlan={user?.email === '01dominique.c@gmail.com' ? previewPlan : userRecord?.is_pro ? 'pro' : 'free'} onUpgrade={(section) => { setPaywallTrigger(section || 'section'); setShowPaywall(true) }} /></Suspense>}
+          {result && !loading && !compareResult && <Suspense fallback={<LoadingState step={0} />}><Dashboard data={result} onRecalculate={handleRecalculate} previewPlan={user?.is_admin ? previewPlan : userRecord?.is_pro ? 'pro' : 'free'} onUpgrade={(section) => { setPaywallTrigger(section || 'section'); setShowPaywall(true) }} /></Suspense>}
         </div>
       ) : (
         <div style={{ position: 'relative', zIndex: 1 }}>

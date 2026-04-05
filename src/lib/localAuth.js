@@ -22,7 +22,7 @@ export function getCurrentUser() {
   const payload = parseJwt(token)
   if (!payload) return null
   if (payload.exp && Date.now() / 1000 > payload.exp) { setToken(null); return null }
-  return { id: payload.sub, email: payload.email, is_pro: payload.is_pro || false }
+  return { id: payload.sub, email: payload.email, is_pro: payload.is_pro || false, is_admin: payload.is_admin || false }
 }
 
 export function getAuthToken() {
