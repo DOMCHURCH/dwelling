@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, memo, lazy, Suspense } from 'react'
-import { useScrollReveal } from '../hooks/useScrollReveal'
+import { useScrollReveal, getGSAP } from '../hooks/useScrollReveal'
 import AddressSearch from './components/AddressSearch'
 import LoadingState from './components/LoadingState'
 const Dashboard = lazy(() => import('./components/Dashboard'))
@@ -203,7 +203,7 @@ function Navbar({ user, userRecord, analysesLeft, isInTrial, trialDaysLeft, onSi
 }
 
 // ─── HERO ────────────────────────────────────────────────────────────────────
-function CityscapeSilhouette() {
+function CityscapeSilhouette({ backRef, frontRef }) {
   // SVG cityscape silhouette — dark cutout at bottom of hero
   // Looks like you're looking out over a Canadian city skyline
   return (
@@ -221,7 +221,7 @@ function CityscapeSilhouette() {
         style={{ width: '100%', height: '100%', display: 'block' }}
       >
         {/* Back row — shorter, lighter buildings for depth */}
-        <g fill="rgba(0,0,0,0.55)">
+        <g ref={backRef} fill="rgba(0,0,0,0.55)">
           <rect x="0"    y="210" width="40"  height="110" />
           <rect x="42"   y="230" width="28"  height="90"  />
           <rect x="72"   y="195" width="50"  height="125" />
@@ -256,7 +256,7 @@ function CityscapeSilhouette() {
         </g>
 
         {/* Front row — taller, solid black buildings */}
-        <g fill="#000">
+        <g ref={frontRef} fill="#000">
           {/* Far left cluster */}
           <rect x="0"   y="240" width="55"  height="80"  />
           <rect x="57"  y="220" width="38"  height="100" />
@@ -365,9 +365,32 @@ function CityscapeSilhouette() {
 }
 
 function Hero({ onSearch, loading, onShowDemo }) {
+  const backCityRef = useRef(null)
+  const frontCityRef = useRef(null)
+
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    let ctx
+    getGSAP().then(({ gsap, ScrollTrigger }) => {
+      const trigger = '#hero'
+      const base = { trigger, start: 'top top', end: 'bottom top', scrub: 1.2 }
+      ctx = gsap.context(() => {
+        if (backCityRef.current) {
+          gsap.set(backCityRef.current, { willChange: 'transform' })
+          gsap.to(backCityRef.current, { y: -18, ease: 'none', scrollTrigger: base })
+        }
+        if (frontCityRef.current) {
+          gsap.set(frontCityRef.current, { willChange: 'transform' })
+          gsap.to(frontCityRef.current, { y: -48, ease: 'none', scrollTrigger: base })
+        }
+      })
+    })
+    return () => ctx?.revert()
+  }, [])
+
   return (
     <section id="hero" style={{ position: 'relative', overflow: 'hidden', background: 'transparent', minHeight: 'min(1000px, 100svh)', height: 'auto', isolation: 'isolate', contain: 'layout paint', zIndex: 0 }}>
-      <CityscapeSilhouette />
+      <CityscapeSilhouette backRef={backCityRef} frontRef={frontCityRef} />
       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 350, background: 'linear-gradient(to top, #000 40%, transparent)', zIndex: 2 }} />
       <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', maxWidth: 900, margin: '0 auto', padding: 'clamp(100px, 20vw, 150px) 20px 80px' }}>
         <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 16px', marginBottom: 28 }}>

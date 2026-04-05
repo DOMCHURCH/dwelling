@@ -5,7 +5,7 @@ import { useEffect, useRef } from 'react'
 let _gsap = null, _ST = null, _ready = false
 const _queue = []
 
-async function getGSAP() {
+export async function getGSAP() {
   if (_ready) return { gsap: _gsap, ScrollTrigger: _ST }
   return new Promise((resolve) => {
     _queue.push(resolve)
