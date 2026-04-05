@@ -12,10 +12,6 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          // Three.js + R3F — lazy-loaded with ScrollScene, isolate for caching
-          if (id.includes('/node_modules/three') || id.includes('/node_modules/@react-three')) {
-            return 'vendor-three'
-          }
           // GSAP — lazy-loaded via useScrollReveal
           if (id.includes('/node_modules/gsap')) {
             return 'vendor-gsap'
