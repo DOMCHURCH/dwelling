@@ -7,6 +7,7 @@ import AuthModal from './components/AuthModal'
 import PaywallModal from './components/PaywallModal'
 import CursorTrail from './components/CursorTrail'
 import CookieBanner from './components/CookieBanner'
+import DeleteAccountModal from './components/DeleteAccountModal'
 import CompareView from './components/CompareView'
 import CountUp from './components/CountUp'
 import { geocodeStructured } from './lib/nominatim'
@@ -141,7 +142,7 @@ const FAQ = memo(function FAQ() {
 })
 
 // ─── NAVBAR ──────────────────────────────────────────────────────────────────
-function Navbar({ user, userRecord, analysesLeft, isInTrial, trialDaysLeft, onSignOut, onHome, onOpenKeyModal, hasOwnKey, previewPlan, onTogglePreview }) {
+function Navbar({ user, userRecord, analysesLeft, isInTrial, trialDaysLeft, onSignOut, onHome, onOpenKeyModal, hasOwnKey, previewPlan, onTogglePreview, onDeleteAccount }) {
   const [scrolled, setScrolled] = useState(false)
   useEffect(() => {
     const h = () => { const s = window.scrollY > 50; setScrolled(prev => prev === s ? prev : s) }
@@ -189,6 +190,9 @@ function Navbar({ user, userRecord, analysesLeft, isInTrial, trialDaysLeft, onSi
               <button onClick={onSignOut} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.35)', padding: '5px 8px', transition: 'color 0.2s' }}
                 onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.7)'}
                 onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.35)'}>Sign out</button>
+              <button onClick={onDeleteAccount} title="Delete account" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(248,113,113,0.35)', padding: '5px 8px', transition: 'color 0.2s' }}
+                onMouseEnter={e => e.currentTarget.style.color = 'rgba(248,113,113,0.8)'}
+                onMouseLeave={e => e.currentTarget.style.color = 'rgba(248,113,113,0.35)'}>Delete account</button>
             </>
           ) : (
             <button onClick={onHome} style={{ background: '#fff', color: '#000', border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13, borderRadius: 40, padding: '8px 18px', display: 'flex', alignItems: 'center', gap: 6, transition: 'transform 0.15s' }}
@@ -1742,6 +1746,7 @@ export default function App() {
   const [cerebrasKey, setCerebrasKey] = useState(() => getCachedCerebrasKey())
   const [showKeyModal, setShowKeyModal] = useState(false)
   const [showOnboarding, setShowOnboarding] = useState(false)
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false)
 
   const scrollTo = (id) => {
     const el = document.getElementById(id)
@@ -2002,7 +2007,7 @@ export default function App() {
       )}
       <Navbar user={user} userRecord={userRecord} analysesLeft={analysesLeft} isInTrial={isInTrial} trialDaysLeft={trialDaysLeft} onSignOut={handleSignOut} onOpenKeyModal={() => setShowKeyModal(true)} hasOwnKey={!!cerebrasKey || !!userRecord?.has_own_key} previewPlan={previewPlan} onTogglePreview={() => setPreviewPlan(p => p === 'pro' ? 'free' : 'pro')}
         onHome={() => { setResult(null); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
-        onScrollTo={scrollTo} />
+        onScrollTo={scrollTo} onDeleteAccount={() => setShowDeleteAccount(true)} />
 
       {(result || loading) ? (
         <div style={{ maxWidth: compareResult ? 1200 : 960, margin: '0 auto', padding: 'clamp(80px, 12vw, 100px) 16px 60px', width: '100%', position: 'relative', zIndex: 1 }}>
@@ -2108,6 +2113,12 @@ export default function App() {
             onUpgrade={() => { setPaywallTrigger('pricing'); setShowPaywall(true) }}
           />
         </div>
+      )}
+      {showDeleteAccount && (
+        <DeleteAccountModal
+          onClose={() => setShowDeleteAccount(false)}
+          onDeleted={() => { handleSignOut(); setShowDeleteAccount(false) }}
+        />
       )}
       <CookieBanner />
     </div>

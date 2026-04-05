@@ -373,6 +373,30 @@ export default async function handler(req, res) {
       return res.status(200).json({ key })
     }
 
+    // ── delete-account ──────────────────────────────────────────────────────
+    if (action === 'delete-account') {
+      const authHeader = req.headers.authorization
+      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
+      const payload = verify(authHeader.replace('Bearer ', ''))
+      if (!payload) return res.status(401).json({ error: 'Invalid token' })
+
+      const { password } = req.body
+      if (!password) return res.status(400).json({ error: 'Password is required to delete your account.' })
+
+      const result = await db.execute({ sql: 'SELECT * FROM users WHERE email = ?', args: [payload.email] })
+      if (result.rows.length === 0) return res.status(404).json({ error: 'Account not found.' })
+
+      const user = result.rows[0]
+      const hash = await hashPassword(password, user.salt)
+      const legacyHash = hashPasswordLegacy(password, user.salt)
+      if (user.password !== hash && user.password !== legacyHash) {
+        return res.status(401).json({ error: 'Incorrect password.' })
+      }
+
+      await db.execute({ sql: 'DELETE FROM users WHERE email = ?', args: [payload.email] })
+      return res.status(200).json({ success: true })
+    }
+
     return res.status(400).json({ error: 'Unknown action' })
   } catch (err) {
     console.error('auth error action=' + (req.body?.action || 'unknown'), err?.message || err)

@@ -55,6 +55,22 @@ export async function signIn(email, password) {
 
 export function signOut() {
   setToken(null)
+  sessionStorage.removeItem('dw_cerebras_key')
+}
+
+export async function deleteAccount(password) {
+  const token = getToken()
+  if (!token) throw new Error('Not logged in')
+  const res = await fetch('/api/auth', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ action: 'delete-account', password }),
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error || 'Failed to delete account')
+  setToken(null)
+  sessionStorage.removeItem('dw_cerebras_key')
+  return true
 }
 
 export async function getUsage() {
