@@ -9,7 +9,10 @@
       "Bash(cp \"C:\\\\Users\\\\Dominique\\\\dwelling\\\\claude/skills/coding-helper.md\" \"C:\\\\Users\\\\Dominique\\\\dwelling\\\\.claude\\\\skills/\")",
       "Bash(cp \"C:\\\\Users\\\\Dominique\\\\dwelling\\\\claude/skills/parallax-3d-ui.md\" \"C:\\\\Users\\\\Dominique\\\\dwelling\\\\.claude\\\\skills/\")",
       "Bash(npm run:*)",
-      "Bash(npx vite:*)"
+      "Bash(npx vite:*)",
+      "Bash(cp \"C:/Users/Dominique/Downloads/ChatGPT Image Apr 5, 2026, 10_54_08 AM.png\" \"C:/Users/Dominique/dwelling/public/hero-sky.jpg\")",
+      "Bash(cp \"C:/Users/Dominique/Downloads/v2_watermarked-338c52ce-6c20-436d-b698-c4f6aaf4e43a.jpg\" \"C:/Users/Dominique/dwelling/public/hero-near.jpg\")",
+      "Bash(cp \"C:/Users/Dominique/Downloads/ChatGPT Image Apr 5, 2026, 10_54_02 AM.png\" \"C:/Users/Dominique/dwelling/public/hero-far.png\")"
     ]
   },
   "hooks": {
