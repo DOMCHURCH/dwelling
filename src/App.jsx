@@ -369,66 +369,85 @@ function CityscapeSilhouette({ backRef, frontRef }) {
 }
 
 function Hero({ onSearch, loading, onShowDemo }) {
-  const backCityRef = useRef(null)
-  const frontCityRef = useRef(null)
+  const skyRef  = useRef(null)
+  const farRef  = useRef(null)
+  const nearRef = useRef(null)
   const textRef = useRef(null)
-  const cityWrapperRef = useRef(null)
+  const sceneRef = useRef(null)
 
+  // Scroll parallax — direct window.scroll, no GSAP/Lenis dependency
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
     const heroEl = document.getElementById('hero')
     function onScroll() {
-      const scrolled = window.scrollY
-      const heroH = heroEl ? heroEl.offsetHeight : window.innerHeight
-      const p = Math.min(scrolled / heroH, 1)
-      if (backCityRef.current)
-        backCityRef.current.style.transform = `translateY(${-30 * p}px)`
-      if (frontCityRef.current)
-        frontCityRef.current.style.transform = `translateY(${-75 * p}px) scale(${1 + 0.04 * p})`
-      if (textRef.current)
-        textRef.current.style.transform = `translateY(${-20 * p}px)`
+      const p = Math.min(window.scrollY / (heroEl?.offsetHeight || window.innerHeight), 1)
+      if (skyRef.current)  skyRef.current.style.transform  = `translateY(${p * 12}px)`
+      if (farRef.current)  farRef.current.style.transform  = `translateY(${-p * 50}px)`
+      if (nearRef.current) nearRef.current.style.transform = `translateY(${-p * 100}px)`
+      if (textRef.current) textRef.current.style.transform = `translateY(${-p * 22}px)`
     }
     window.addEventListener('scroll', onScroll, { passive: true })
-    return () => {
-      window.removeEventListener('scroll', onScroll)
-      if (backCityRef.current) backCityRef.current.style.transform = ''
-      if (frontCityRef.current) frontCityRef.current.style.transform = ''
-      if (textRef.current) textRef.current.style.transform = ''
-    }
+    return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  // Mouse parallax — single RAF loop, separate from scroll parallax
+  // Mouse parallax — moves entire scene subtly, no transform conflict
   useEffect(() => {
     if (window.innerWidth <= 768) return
     let mx = 0, my = 0, cx = 0, cy = 0, id
     const onMove = e => {
-      mx = (e.clientX / window.innerWidth - 0.5) * 2
+      mx = (e.clientX / window.innerWidth  - 0.5) * 2
       my = (e.clientY / window.innerHeight - 0.5) * 2
     }
     window.addEventListener('mousemove', onMove, { passive: true })
     function loop() {
-      cx += (mx - cx) * 0.08
-      cy += (my - cy) * 0.08
-      if (cityWrapperRef.current) {
-        cityWrapperRef.current.style.transform = `translate(${cx * 6}px, ${cy * 3}px)`
-      }
+      cx += (mx - cx) * 0.06
+      cy += (my - cy) * 0.06
+      if (sceneRef.current)
+        sceneRef.current.style.transform = `translate(${cx * 10}px, ${cy * 5}px)`
       id = requestAnimationFrame(loop)
     }
     id = requestAnimationFrame(loop)
-    return () => {
-      cancelAnimationFrame(id)
-      window.removeEventListener('mousemove', onMove)
-      if (cityWrapperRef.current) cityWrapperRef.current.style.transform = ''
-    }
+    return () => { cancelAnimationFrame(id); window.removeEventListener('mousemove', onMove) }
   }, [])
 
   return (
-    <section id="hero" style={{ position: 'relative', overflow: 'hidden', background: 'transparent', minHeight: 'min(1000px, 100svh)', height: 'auto', isolation: 'isolate', contain: 'layout paint', zIndex: 0 }}>
-      <GlobalBackground />
-      <div ref={cityWrapperRef} style={{ position: 'absolute', inset: 0, zIndex: 3, pointerEvents: 'none', willChange: 'transform' }}>
-        <CityscapeSilhouette backRef={backCityRef} frontRef={frontCityRef} />
+    <section id="hero" style={{ position: 'relative', overflow: 'hidden', background: '#060d1c', minHeight: 'min(1000px, 100svh)', height: 'auto', zIndex: 0 }}>
+
+      {/* Scene wrapper — mouse parallax shifts this whole layer */}
+      <div ref={sceneRef} style={{ position: 'absolute', inset: '-5% -3%', pointerEvents: 'none' }}>
+
+        {/* Layer 1: Sky — barely moves */}
+        <div ref={skyRef} style={{
+          position: 'absolute', inset: 0,
+          backgroundImage: 'url(/hero-sky.jpg)',
+          backgroundSize: 'cover', backgroundPosition: 'center',
+          background: 'linear-gradient(180deg, #060d1c 0%, #0b1a2e 55%, #0f2240 100%)',
+          willChange: 'transform',
+        }} />
+
+        {/* Layer 2: Far buildings — medium speed */}
+        <div ref={farRef} style={{
+          position: 'absolute', bottom: 0, left: 0, right: 0, height: '60%',
+          backgroundImage: 'url(/hero-far.png)',
+          backgroundSize: 'cover', backgroundPosition: 'center bottom',
+          backgroundRepeat: 'no-repeat',
+          willChange: 'transform',
+        }} />
+
+        {/* Layer 3: Near buildings — fastest */}
+        <div ref={nearRef} style={{
+          position: 'absolute', bottom: 0, left: 0, right: 0, height: '45%',
+          backgroundImage: 'url(/hero-near.png)',
+          backgroundSize: 'cover', backgroundPosition: 'center bottom',
+          backgroundRepeat: 'no-repeat',
+          willChange: 'transform',
+        }} />
+
       </div>
-      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 350, background: 'linear-gradient(to top, #000 40%, transparent)', zIndex: 2 }} />
+
+      {/* Bottom gradient — fades scene into page */}
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 280, background: 'linear-gradient(to top, #000 30%, transparent)', zIndex: 2, pointerEvents: 'none' }} />
+
       <div ref={textRef} style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', maxWidth: 900, margin: '0 auto', padding: 'clamp(100px, 20vw, 150px) 20px 80px', willChange: 'transform' }}>
         <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 16px', marginBottom: 28 }}>
           <span style={{ background: '#fff', color: '#000', fontSize: 11, fontFamily: "'Barlow',sans-serif", fontWeight: 600, borderRadius: 20, padding: '2px 8px' }}>New</span>
