@@ -667,20 +667,13 @@ const DataPartnerships = memo(function DataPartnerships() {
 })
 
 function DataSourcesGrid({ partners }) {
-  const [hovered, setHovered] = useState(null)
   return (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12 }}>
           {partners.map((p, i) => (
             <div key={i}>
               <div className="liquid-glass"
-                onMouseEnter={() => setHovered(i)}
-                onMouseLeave={() => setHovered(null)}
                 style={{ borderRadius: 18, padding: 24, height: '100%', cursor: 'default',
-                  transition: 'transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.35s ease, box-shadow 0.35s ease',
-                  transform: hovered === null ? 'scale(1)' : hovered === i ? 'scale(1.04) translateY(-5px)' : 'scale(0.96)',
-                  opacity: hovered === null ? (p.status === 'soon' ? 0.7 : 1) : hovered === i ? 1 : 0.35,
-                  boxShadow: hovered === i ? '0 20px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.25)' : 'none',
-                  zIndex: hovered === i ? 2 : 1, position: 'relative',
+                  opacity: p.status === 'soon' ? 0.7 : 1,
                 }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -710,21 +703,11 @@ function DataSourcesGrid({ partners }) {
 
 // ─── HOVER GROUP — cards pop, siblings dim/shrink ────────────────────────────
 function HoverGroup({ steps }) {
-  const [hovered, setHovered] = useState(null)
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 14, textAlign: 'left' }}>
       {steps.map((s, i) => (
         <div key={i} className="liquid-glass how-step"
-          onMouseEnter={() => setHovered(i)}
-          onMouseLeave={() => setHovered(null)}
-          style={{
-            borderRadius: 20, padding: 28, cursor: 'default',
-            transition: 'transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.35s ease, box-shadow 0.35s ease',
-            transform: hovered === null ? 'scale(1)' : hovered === i ? 'scale(1.05) translateY(-6px)' : 'scale(0.95)',
-            opacity: hovered === null ? 1 : hovered === i ? 1 : 0.38,
-            boxShadow: hovered === i ? '0 20px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.25)' : 'none',
-            zIndex: hovered === i ? 2 : 1, position: 'relative',
-          }}>
+          style={{ borderRadius: 20, padding: 28, cursor: 'default' }}>
           <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 52, color: 'rgba(255,255,255,0.06)', lineHeight: 1, marginBottom: 14 }}>{s.num}</div>
           <div className="liquid-glass-strong" style={{ borderRadius: '50%', width: 42, height: 42, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14, fontSize: 17 }}>{s.icon}</div>
           <h3 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 19, color: '#fff', marginBottom: 10 }}>{s.title}</h3>
@@ -736,21 +719,11 @@ function HoverGroup({ steps }) {
 }
 
 function HoverGroupGrid({ cards }) {
-  const [hovered, setHovered] = useState(null)
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 14 }}>
       {cards.map((card, i) => (
         <div key={i} className="liquid-glass how-step"
-          onMouseEnter={() => setHovered(i)}
-          onMouseLeave={() => setHovered(null)}
-          style={{
-            borderRadius: 18, padding: 24, cursor: 'default',
-            transition: 'transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.35s ease, box-shadow 0.35s ease',
-            transform: hovered === null ? 'scale(1)' : hovered === i ? 'scale(1.05) translateY(-6px)' : 'scale(0.95)',
-            opacity: hovered === null ? 1 : hovered === i ? 1 : 0.38,
-            boxShadow: hovered === i ? '0 20px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.25)' : 'none',
-            zIndex: hovered === i ? 2 : 1, position: 'relative',
-          }}>
+          style={{ borderRadius: 18, padding: 24, cursor: 'default' }}>
           <div className="liquid-glass-strong" style={{ borderRadius: '50%', width: 42, height: 42, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18, fontSize: 17 }}>{card.icon}</div>
           <h3 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 17, color: '#fff', marginBottom: 7 }}>{card.title}</h3>
           <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>{card.desc}</p>
