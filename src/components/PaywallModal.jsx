@@ -11,12 +11,12 @@ const PRICING_FREE = [
 ]
 
 const PRICING_PRO = [
-  { text: 'Unlimited analyses', highlight: false },
-  { text: 'Full Neighbourhood detail & safety', highlight: true },
-  { text: 'Investment Analysis & score', highlight: true },
+  { text: 'Everything in Free — unlimited', highlight: false },
+  { text: 'Investment Analysis & ROI score', highlight: true },
   { text: 'Environmental & flood risk detection', highlight: true },
   { text: 'Price history & market projections', highlight: true },
-  { text: 'Side-by-side city comparison', highlight: false },
+  { text: 'Side-by-side city comparison', highlight: true },
+  { text: '🔑 Own API key — zero limits, your data stays private', highlight: true },
   { text: 'Priority support', highlight: false },
 ]
 
@@ -208,7 +208,7 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
               }}>Most Popular</div>
               <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 20, color: '#fff', marginBottom: 2 }}>Pro</div>
               <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 14 }}>
-                {annual ? 'Billed $226/year' : 'Full intelligence'}
+                {annual ? 'Billed $226/year — cancel anytime' : 'Everything in Free, plus the full picture'}
               </div>
               <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
                 <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 32, color: '#fff' }}>${displayPrice}</span>

@@ -100,7 +100,7 @@ const FAQ_ITEMS = [
   { q: 'Which cities does Dwelling cover?', a: 'Currently all major Canadian cities — Toronto, Vancouver, Calgary, Ottawa, Montreal, Edmonton, Winnipeg, Halifax, and hundreds more. We started with Canada to build a rock-solid, data-rich pilot before expanding.' },
   { q: 'Where does the data come from?', a: 'Realtor.ca active MLS listings (200+ per city), Statistics Canada price indices, OpenStreetMap walkability and amenities, Open-Meteo climate normals, and our proprietary AI engine for synthesis.' },
   { q: 'What is the Stability Score?', a: 'A 0–100 score computed from real listing data: median days on market, price volatility (coefficient of variation), inventory levels, and percentage of listings sitting >60 days. Higher = more stable.' },
-  { q: 'Is Dwelling free to use?', a: 'Free users get 10 analyses per month. Upgrade to Pro for $29/month (or $226/year — save 35%) for expanded analysis access, full city intelligence, and investment-grade reports. Analysis availability is subject to platform capacity.' },
+  { q: 'Is Dwelling free to use?', a: 'Yes. Free users get 10 analyses per month covering neighbourhood scores, area verdict, cost of living, and climate data. Pro ($29/month or $226/year) unlocks unlimited analyses, investment analysis, price history, risk detection, and the ability to connect your own Cerebras API key for maximum privacy and zero platform rate limits.' },
   { q: 'Can I use the results to make a real estate decision?', a: 'No. All outputs are informational only and do not constitute financial, legal, or real estate advice. Always consult a qualified professional.' },
   { q: 'Does Dwelling store my searches?', a: 'No. Searches are processed in real time and discarded immediately. We store only your usage count to enforce free-tier limits.' },
   { q: 'Why Canada only right now?', a: 'Depth over breadth. Starting with one country lets us build a genuinely reliable product — accurate data partnerships, verified sources, Canada-specific context — before expanding internationally.' },
@@ -804,11 +804,12 @@ const PRICING_FREE = [
   'Full Neighbourhood detail & safety',
 ]
 const PRICING_PRO = [
-  { text: 'Unlimited analyses', highlight: false },
-  { text: 'Investment Analysis & score', highlight: true },
+  { text: 'Everything in Free — unlimited', highlight: false },
+  { text: 'Investment Analysis & ROI score', highlight: true },
   { text: 'Environmental & flood risk detection', highlight: true },
   { text: 'Price history & market projections', highlight: true },
-  { text: 'Side-by-side city comparison', highlight: false },
+  { text: 'Side-by-side city comparison', highlight: true },
+  { text: '🔑 Own API key — zero limits, your data stays private', highlight: true },
   { text: 'Priority support', highlight: false },
 ]
 
@@ -967,7 +968,7 @@ const Pricing = memo(function Pricing({ onUpgrade }) {
             popular={false}
           />
           <PricingCard
-            plan="Pro" price={String(displayPrice)} desc={annual ? "Billed $226/year — cancel anytime" : "Full intelligence for every location decision"}
+            plan="Pro" price={String(displayPrice)} desc={annual ? "Billed $226/year — cancel anytime" : "Everything in Free, plus the full picture"}
             priceLabel={annual ? '/mo · billed yearly' : '/month'}
             features={PRICING_PRO}
             cta={annual ? `Get Pro — $226/year →` : "Upgrade to Pro →"}
@@ -1586,19 +1587,19 @@ function ApiKeyModal({ currentKey, onSave, onClose, isOnboarding = false }) {
             <div style={{ textAlign:'center', marginBottom:28 }}>
               <div style={{ fontSize:48, marginBottom:16 }}>🔑</div>
               <div style={{ fontFamily:"'Instrument Serif',serif", fontStyle:'italic', fontSize:26, color:'#fff', marginBottom:10 }}>
-                One quick setup step
+                Your own key. Maximum privacy.
               </div>
               <p style={{ fontFamily:"'Barlow',sans-serif", fontWeight:300, fontSize:14, color:'rgba(255,255,255,0.55)', lineHeight:1.75 }}>
-                Dwelling uses Cerebras AI to generate your reports. You'll need a free Cerebras API key to run analyses — it takes about 60 seconds to get one.
+                Connect your free Cerebras API key and your queries go directly from you to Cerebras — Dwelling never sees your search data. Takes 60 seconds to set up.
               </p>
             </div>
 
             {/* Why box */}
             <div className="liquid-glass" style={{ borderRadius:16, padding:'18px 20px', marginBottom:24 }}>
-              <div style={{ fontFamily:"'Barlow',sans-serif", fontWeight:500, fontSize:13, color:'#fff', marginBottom:10 }}>Why do I need this?</div>
+              <div style={{ fontFamily:"'Barlow',sans-serif", fontWeight:500, fontSize:13, color:'#fff', marginBottom:10 }}>Why connect your own key?</div>
               {[
-                ['⚡', 'Your key = your quota. Free Cerebras accounts get 1M tokens/minute — plenty for hundreds of analyses.'],
-                ['🔒', 'Your key is stored securely in your account and never shared or logged.'],
+                ['🔒', 'Privacy-first. Your searches go directly to Cerebras — we never log or store your queries.'],
+                ['⚡', 'Zero platform limits. Free Cerebras accounts get 1M tokens/minute — hundreds of analyses, no cap.'],
                 ['🆓', 'Cerebras is completely free to sign up. No credit card required.'],
               ].map(([icon, text]) => (
                 <div key={text} style={{ display:'flex', gap:10, marginBottom:8, alignItems:'flex-start' }}>
