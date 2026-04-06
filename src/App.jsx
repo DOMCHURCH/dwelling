@@ -829,10 +829,10 @@ const PRICING_FREE = [
   'Local Market News',
   'Area Market Estimate',
   'Walkability & school scores',
+  'Full Neighbourhood detail & safety',
 ]
 const PRICING_PRO = [
   { text: 'Unlimited analyses', highlight: false },
-  { text: 'Full Neighbourhood detail & safety', highlight: true },
   { text: 'Investment Analysis & score', highlight: true },
   { text: 'Environmental & flood risk detection', highlight: true },
   { text: 'Price history & market projections', highlight: true },
