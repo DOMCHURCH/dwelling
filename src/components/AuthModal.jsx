@@ -328,7 +328,7 @@ export default function AuthModal({ onAuth, onDemo }) {
 
               {error && <ErrorBox msg={error} />}
 
-              <button onClick={mode === 'signin' ? handleSignIn : handleSignUp} disabled={loading} style={btnStyle(loading)}>
+              <button onClick={mode === 'signin' ? handleSignIn : handleSignUp} disabled={loading || (mode === 'signup' && (!email || !password || password.length < 8))} style={{ ...btnStyle(loading), ...(mode === 'signup' && (!email || !password || password.length < 8) && { opacity: 0.5, cursor: 'not-allowed' }) }}>
                 {loading ? 'Please wait...' : (mode === 'signup' ? 'Create Account →' : 'Sign In →')}
               </button>
 
