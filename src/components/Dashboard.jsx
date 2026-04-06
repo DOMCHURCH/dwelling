@@ -406,10 +406,10 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
           {/* Price Stats */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 8, marginBottom: 14 }}>
             {[
-              { label: 'Median Price', value: fmtCompact(areaMetrics.medianPrice, sym) },
-              { label: 'Avg Price', value: fmtCompact(areaMetrics.avgPrice, sym) },
+              { label: 'Median Price', value: fmtCompact(convert(areaMetrics.medianPrice), sym) },
+              { label: 'Avg Price', value: fmtCompact(convert(areaMetrics.avgPrice), sym) },
               { label: 'Median DOM', value: areaMetrics.medianDOM != null ? `${areaMetrics.medianDOM} days` : 'N/A', sub: areaMetrics.medianDOM != null ? (() => { const diff = Math.round(((33 - areaMetrics.medianDOM) / 33) * 100); return areaMetrics.medianDOM < 21 ? `⚡ ${Math.abs(diff)}% faster than avg` : areaMetrics.medianDOM < 35 ? `≈ Near national avg (33d)` : `⏱ ${Math.abs(diff)}% slower than avg` })() : null },
-              { label: 'Price/sqft', value: areaMetrics.medianPPSF ? `${sym}${areaMetrics.medianPPSF}` : 'N/A' },
+              { label: 'Price/sqft', value: areaMetrics.medianPPSF ? fmtCompact(convert(areaMetrics.medianPPSF), sym) : 'N/A' },
             ].map(({ label, value, sub }) => (
               <div key={label} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 10, padding: '10px 12px', border: '1px solid rgba(255,255,255,0.06)' }}>
                 <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>{label}</div>
@@ -432,7 +432,7 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
               </div>
             )}
             <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20, padding: '4px 12px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow', sans-serif" }}>
-              Price range: {fmtCompact(areaMetrics.priceRange?.low || 0, sym)} – {fmtCompact(areaMetrics.priceRange?.high || 0, sym)}
+              Price range: {fmtCompact(convert(areaMetrics.priceRange?.low || 0), sym)} – {fmtCompact(convert(areaMetrics.priceRange?.high || 0), sym)}
             </div>
           </div>
 
@@ -486,8 +486,8 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
         </div>
         {realData?.censusData && (
           <div className="liquid-glass" style={{ borderRadius: 12, marginBottom: 12, padding: '10px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow', sans-serif", fontWeight: 300 }}>
-            Census tract median home value: <span style={{ color: '#ffffff', fontWeight: 400 }}>${realData.censusData.medianHomeValueUSD?.toLocaleString()}</span>
-            {realData.censusData.medianGrossRentUSD && <span> · Median rent: <span style={{ color: '#ffffff', fontWeight: 400 }}>${realData.censusData.medianGrossRentUSD?.toLocaleString()}/mo</span></span>}
+            Census tract median home value: <span style={{ color: '#ffffff', fontWeight: 400 }}>{fmtUSD(convert(realData.censusData.medianHomeValueUSD), sym)}</span>
+            {realData.censusData.medianGrossRentUSD && <span> · Median rent: <span style={{ color: '#ffffff', fontWeight: 400 }}>{fmtUSD(convert(realData.censusData.medianGrossRentUSD), sym)}/mo</span></span>}
             <span style={{ color: 'rgba(255,255,255,0.3)', marginLeft: 8 }}>· US Census ACS 2022</span>
           </div>
         )}
@@ -606,7 +606,7 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
               </div>
             </div>
           ) : (
-            <PriceHistoryChart priceHistory={ai.priceHistory} />
+            <PriceHistoryChart priceHistory={ai.priceHistory} convert={convert} sym={sym} />
           )}
         </SectionCard>
       )}

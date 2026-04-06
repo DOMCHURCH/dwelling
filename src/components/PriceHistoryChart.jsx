@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 
-export default function PriceHistoryChart({ priceHistory }) {
+export default function PriceHistoryChart({ priceHistory, convert = v => v, sym = '$' }) {
   const canvasRef = useRef(null)
 
   useEffect(() => {
@@ -9,7 +9,7 @@ export default function PriceHistoryChart({ priceHistory }) {
     const ctx = canvas.getContext('2d')
     const dpr = window.devicePixelRatio || 1
     const rect = canvas.getBoundingClientRect()
-    
+
     // Ensure canvas has dimensions
     if (rect.width === 0 || rect.height === 0) return
 
@@ -22,8 +22,8 @@ export default function PriceHistoryChart({ priceHistory }) {
     const chartW = W - pad.left - pad.right
     const chartH = H - pad.top - pad.bottom
 
-    const data = priceHistory.data
-    const values = data.map(d => Number(d.value) || 0)
+    const data = priceHistory.data.map(d => ({ ...d, value: convert(Number(d.value) || 0) }))
+    const values = data.map(d => d.value)
     if (values.length === 0) return
     
     const minVal = Math.min(...values) * 0.92
@@ -136,10 +136,9 @@ export default function PriceHistoryChart({ priceHistory }) {
     for (let i = 0; i <= 4; i++) {
       const val = minVal + (i / 4) * (maxVal - minVal)
       const y = pad.top + chartH - (i / 4) * chartH
-      const sym2 = priceHistory?.currencySymbol ?? '$'
       const label = val >= 1000000
-        ? `${sym2}${(val / 1000000).toFixed(1)}M`
-        : `${sym2}${(val / 1000).toFixed(0)}k`
+        ? `${sym}${(val / 1000000).toFixed(1)}M`
+        : `${sym}${(val / 1000).toFixed(0)}k`
       ctx.fillText(label, pad.left - 8, y + 4)
     }
 
@@ -162,10 +161,9 @@ export default function PriceHistoryChart({ priceHistory }) {
     ctx.fillStyle = 'rgba(255,255,255,0.4)'
     ctx.fillText('Projected', pad.left + 142, pad.top + 3)
 
-  }, [priceHistory])
+  }, [priceHistory, convert, sym])
 
-  const sym = priceHistory?.currencySymbol ?? '$'
-  const fmtUSD = (v) => v >= 1000000 ? `${sym}${(v/1000000).toFixed(2)}M` : `${sym}${(v/1000).toFixed(0)}k`
+  const fmtVal = (v) => { const cv = convert(v); return cv >= 1000000 ? `${sym}${(cv/1000000).toFixed(2)}M` : `${sym}${(cv/1000).toFixed(0)}k` }
   const current = priceHistory?.data?.find(d => d.year === new Date().getFullYear()) ?? priceHistory?.data?.[priceHistory.data.length - 1]
   const first = priceHistory?.data?.[0]
   const last = priceHistory?.data?.[priceHistory.data.length - 1]
@@ -177,7 +175,7 @@ export default function PriceHistoryChart({ priceHistory }) {
         {current && (
           <div>
             <div style={{ fontSize: 10, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 3 }}>Area Average</div>
-            <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "'Instrument Serif', serif", fontStyle: 'italic', letterSpacing: '-0.03em', color: 'var(--text)' }}>{fmtUSD(current.value)}</div>
+            <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "'Instrument Serif', serif", fontStyle: 'italic', letterSpacing: '-0.03em', color: 'var(--text)' }}>{fmtVal(current.value)}</div>
           </div>
         )}
         {change && (
