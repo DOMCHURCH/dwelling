@@ -141,7 +141,7 @@ const FAQ = memo(function FAQ() {
 })
 
 // ─── NAVBAR ──────────────────────────────────────────────────────────────────
-function Navbar({ user, userRecord, analysesLeft, isInTrial, trialDaysLeft, onSignOut, onHome, onOpenKeyModal, hasOwnKey, previewPlan, onTogglePreview, onDeleteAccount }) {
+function Navbar({ user, userRecord, analysesLeft, isInTrial, trialDaysLeft, onSignOut, onHome, onOpenKeyModal, hasOwnKey, previewPlan, onTogglePreview, onDeleteAccount, onOpenAuth }) {
   const [scrolled, setScrolled] = useState(false)
   useEffect(() => {
     const h = () => { const s = window.scrollY > 50; setScrolled(prev => prev === s ? prev : s) }
@@ -194,7 +194,7 @@ function Navbar({ user, userRecord, analysesLeft, isInTrial, trialDaysLeft, onSi
                 onMouseLeave={e => e.currentTarget.style.color = 'rgba(248,113,113,0.35)'}>Delete account</button>
             </>
           ) : (
-            <button onClick={onHome} style={{ background: '#fff', color: '#000', border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13, borderRadius: 40, padding: '8px 18px', display: 'flex', alignItems: 'center', gap: 6, transition: 'transform 0.15s' }}
+            <button onClick={onOpenAuth} style={{ background: '#fff', color: '#000', border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13, borderRadius: 40, padding: '8px 18px', display: 'flex', alignItems: 'center', gap: 6, transition: 'transform 0.15s' }}
               onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
               onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
               Get Started ↗
@@ -1981,6 +1981,7 @@ export default function App() {
       )}
       <Navbar user={user} userRecord={userRecord} analysesLeft={analysesLeft} isInTrial={isInTrial} trialDaysLeft={trialDaysLeft} onSignOut={handleSignOut} onOpenKeyModal={() => setShowKeyModal(true)} hasOwnKey={!!cerebrasKey || !!userRecord?.has_own_key} previewPlan={previewPlan} onTogglePreview={() => setPreviewPlan(p => p === 'pro' ? 'free' : 'pro')}
         onHome={() => { setResult(null); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+        onOpenAuth={() => setShowAuthModal(true)}
         onScrollTo={scrollTo} onDeleteAccount={() => setShowDeleteAccount(true)} />
 
       {(result || loading) ? (
