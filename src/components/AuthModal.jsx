@@ -240,11 +240,20 @@ export default function AuthModal({ onAuth, onDemo }) {
           {/* ── API KEY ONBOARDING (post-signup) ── */}
           {mode === 'apikey' && (
             <>
-              <div style={{ textAlign: 'center', marginBottom: 24 }}>
-                <div style={{ fontSize: 40, marginBottom: 12 }}>🔑</div>
-                <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.55)', lineHeight: 1.7 }}>
-                  Dwelling uses Cerebras AI to run your reports. Add your free API key now, or skip and add it later from the 🔑 button.
-                </p>
+              <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.55)', lineHeight: 1.75, marginBottom: 18 }}>
+                Dwelling runs its AI reports through Cerebras. To use it, you paste in a free API key — a personal passcode that connects your account directly to Cerebras on your behalf.
+              </p>
+              <div className="liquid-glass" style={{ borderRadius: 14, padding: '14px 18px', marginBottom: 20 }}>
+                {[
+                  ['🆓', 'Free forever. Sign up at Cerebras in under a minute — no credit card required.'],
+                  ['🔒', 'Private by design. Your searches go straight from you to Cerebras. Dwelling never sees them.'],
+                  ['⚡', 'No limits. Free accounts get 1M tokens/minute — hundreds of reports, no cap.'],
+                ].map(([icon, text]) => (
+                  <div key={text} style={{ display: 'flex', gap: 10, marginBottom: 8, alignItems: 'flex-start' }}>
+                    <span style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}>{icon}</span>
+                    <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12.5, color: 'rgba(255,255,255,0.6)', lineHeight: 1.6 }}>{text}</span>
+                  </div>
+                ))}
               </div>
               <div style={{ marginBottom: 8 }}>
                 <label style={{ display: 'block', fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 6, fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase' }}>Cerebras API Key</label>
@@ -261,9 +270,9 @@ export default function AuthModal({ onAuth, onDemo }) {
                 />
               </div>
               <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.35)', marginBottom: 20, lineHeight: 1.6 }}>
-                Get your free key at{' '}
+                Get yours at{' '}
                 <a href="https://cloud.cerebras.ai" target="_blank" rel="noreferrer" style={{ color: 'rgba(255,255,255,0.6)', textDecoration: 'underline', textUnderlineOffset: 3 }}>cloud.cerebras.ai</a>
-                {' '}→ API Keys. No credit card required.
+                {' '}→ API Keys.
               </p>
               {keyError && <ErrorBox msg={keyError} />}
               <button onClick={handleSaveKey} disabled={savingKey || !apiKey.trim()} style={btnStyle(savingKey || !apiKey.trim())}>

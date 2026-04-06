@@ -733,6 +733,53 @@ function HoverGroupGrid({ cards }) {
   )
 }
 
+// ─── API KEY EXPLAINER ────────────────────────────────────────────────────────
+const ApiKeyExplainer = memo(function ApiKeyExplainer() {
+  const revealRef = useScrollReveal({ y: 28, opacity: 0, duration: 0.7, stagger: 0.12, selector: '.apikey-card' })
+  return (
+    <section style={{ padding: '80px 24px' }}>
+      <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+        <div>
+          <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16 }}>How it works</div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, marginBottom: 40 }}>
+          <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2rem,5vw,3.5rem)', color: '#fff', lineHeight: 0.9, letterSpacing: '-0.02em' }}>
+            One key. Your data, your way.
+          </h2>
+          <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 14, color: 'rgba(255,255,255,0.4)', maxWidth: 340, lineHeight: 1.7 }}>
+            Dwelling connects you directly to Cerebras AI — the world's fastest inference platform. No middleman. No markup. Free to use.
+          </p>
+        </div>
+        <div ref={revealRef} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
+          {[
+            {
+              icon: '🔑',
+              title: 'What is an API key?',
+              body: "It's a free passcode you get from Cerebras in under a minute. Paste it into Dwelling once, and it authorizes your account to run AI reports. No subscription, no credit card — Cerebras is free to sign up.",
+            },
+            {
+              icon: '🔒',
+              title: 'Is it safe?',
+              body: 'Yes. Your key connects your browser directly to Cerebras. Dwelling never reads your key after it\'s saved, never logs your search queries, and has no access to your Cerebras account. Your searches stay between you and Cerebras.',
+            },
+            {
+              icon: '⚡',
+              title: 'What does it unlock?',
+              body: 'Free Cerebras accounts come with 1 million AI tokens per minute — enough for hundreds of city reports with zero throttling, zero platform limits. The more you explore, the more you save.',
+            },
+          ].map(({ icon, title, body }) => (
+            <div key={title} className="liquid-glass apikey-card" style={{ borderRadius: 18, padding: 28 }}>
+              <div className="liquid-glass-strong" style={{ borderRadius: '50%', width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18, fontSize: 18, flexShrink: 0 }}>{icon}</div>
+              <h3 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 19, color: '#fff', marginBottom: 10 }}>{title}</h3>
+              <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.75 }}>{body}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+})
+
 // ─── STATS ───────────────────────────────────────────────────────────────────
 const Stats = memo(function Stats() {
   return (
@@ -1554,7 +1601,6 @@ function ApiKeyModal({ currentKey, onSave, onClose, isOnboarding = false }) {
   const [key, setKey] = useState(currentKey || '')
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
-  const [step, setStep] = useState(isOnboarding ? 'explain' : 'enter') // 'explain' | 'enter'
 
   const inp = {
     width: '100%', padding: '13px 16px', boxSizing: 'border-box',
@@ -1576,120 +1622,72 @@ function ApiKeyModal({ currentKey, onSave, onClose, isOnboarding = false }) {
   }
 
   const skipAndClose = () => {
-    // Mark as seen so it doesn't show again this session
     sessionStorage.setItem('dw_key_onboarding_seen', '1')
     onClose()
   }
 
   return (
     <div style={{ position:'fixed', inset:0, zIndex:1200, background:'rgba(0,0,0,0.92)', backdropFilter:'blur(12px)', display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
-      <div className="liquid-glass-strong" style={{ borderRadius:24, maxWidth:520, width:'100%', padding:36, animation:'fadeUp 0.3s ease' }}>
+      <div className="liquid-glass-strong" style={{ borderRadius:24, maxWidth:480, width:'100%', padding:36, animation:'fadeUp 0.3s ease' }}>
 
-        {step === 'explain' ? (
-          <>
-            {/* Onboarding explanation screen */}
-            <div style={{ textAlign:'center', marginBottom:28 }}>
-              <div style={{ fontSize:48, marginBottom:16 }}>🔑</div>
-              <div style={{ fontFamily:"'Instrument Serif',serif", fontStyle:'italic', fontSize:26, color:'#fff', marginBottom:10 }}>
-                Your own key. Maximum privacy.
-              </div>
-              <p style={{ fontFamily:"'Barlow',sans-serif", fontWeight:300, fontSize:14, color:'rgba(255,255,255,0.55)', lineHeight:1.75 }}>
-                Connect your free Cerebras API key and your queries go directly from you to Cerebras — Dwelling never sees your search data. Takes 60 seconds to set up.
-              </p>
+        <div style={{ fontFamily:"'Instrument Serif',serif", fontStyle:'italic', fontSize:24, color:'#fff', marginBottom:8 }}>
+          Your Cerebras API Key
+        </div>
+        <p style={{ fontFamily:"'Barlow',sans-serif", fontWeight:300, fontSize:13, color:'rgba(255,255,255,0.5)', lineHeight:1.75, marginBottom:20 }}>
+          An API key is a free passcode that connects Dwelling directly to Cerebras AI on your behalf. Your searches go straight to Cerebras — Dwelling never sees them.
+        </p>
+
+        <div className="liquid-glass" style={{ borderRadius:14, padding:'14px 18px', marginBottom:24 }}>
+          {[
+            ['🆓', 'Free forever. Sign up at Cerebras in under a minute — no credit card required.'],
+            ['🔒', 'Private by design. Queries go from your browser directly to Cerebras, not through our servers.'],
+            ['⚡', 'No limits. Free accounts get 1M tokens/minute — hundreds of reports with no cap.'],
+          ].map(([icon, text]) => (
+            <div key={text} style={{ display:'flex', gap:10, marginBottom:8, alignItems:'flex-start' }}>
+              <span style={{ fontSize:14, flexShrink:0, marginTop:1 }}>{icon}</span>
+              <span style={{ fontFamily:"'Barlow',sans-serif", fontWeight:300, fontSize:12.5, color:'rgba(255,255,255,0.6)', lineHeight:1.6 }}>{text}</span>
             </div>
+          ))}
+        </div>
 
-            {/* Why box */}
-            <div className="liquid-glass" style={{ borderRadius:16, padding:'18px 20px', marginBottom:24 }}>
-              <div style={{ fontFamily:"'Barlow',sans-serif", fontWeight:500, fontSize:13, color:'#fff', marginBottom:10 }}>Why connect your own key?</div>
-              {[
-                ['🔒', 'Privacy-first. Your searches go directly to Cerebras — we never log or store your queries.'],
-                ['⚡', 'Zero platform limits. Free Cerebras accounts get 1M tokens/minute — hundreds of analyses, no cap.'],
-                ['🆓', 'Cerebras is completely free to sign up. No credit card required.'],
-              ].map(([icon, text]) => (
-                <div key={text} style={{ display:'flex', gap:10, marginBottom:8, alignItems:'flex-start' }}>
-                  <span style={{ fontSize:15, flexShrink:0 }}>{icon}</span>
-                  <span style={{ fontFamily:"'Barlow',sans-serif", fontWeight:300, fontSize:13, color:'rgba(255,255,255,0.6)', lineHeight:1.6 }}>{text}</span>
-                </div>
-              ))}
-            </div>
+        <div style={{ marginBottom:6 }}>
+          <label style={{ display:'block', fontSize:11, color:'rgba(255,255,255,0.4)', marginBottom:6, fontFamily:"'Barlow',sans-serif", letterSpacing:'0.08em', textTransform:'uppercase' }}>API Key</label>
+          <input
+            autoFocus
+            type="password" value={key} onChange={e => setKey(e.target.value)}
+            placeholder="csk-..."
+            style={inp}
+            onFocus={e => { e.target.style.borderColor='rgba(255,255,255,0.3)'; e.target.style.background='rgba(255,255,255,0.08)' }}
+            onBlur={e => { e.target.style.borderColor='rgba(255,255,255,0.1)'; e.target.style.background='rgba(255,255,255,0.05)' }}
+            onKeyDown={e => e.key === 'Enter' && key.trim() && save()}
+          />
+        </div>
+        <p style={{ fontFamily:"'Barlow',sans-serif", fontWeight:300, fontSize:11.5, color:'rgba(255,255,255,0.3)', marginBottom:20, lineHeight:1.6 }}>
+          Get yours at{' '}
+          <a href="https://cloud.cerebras.ai" target="_blank" rel="noreferrer" style={{ color:'rgba(255,255,255,0.55)', textDecoration:'underline', textUnderlineOffset:3 }}>cloud.cerebras.ai</a>
+          {' '}→ API Keys.
+        </p>
 
-            <div style={{ display:'flex', gap:10, flexDirection:'column' }}>
-              <a
-                href="https://cloud.cerebras.ai"
-                target="_blank"
-                rel="noreferrer"
-                onClick={() => setTimeout(() => setStep('enter'), 800)}
-                style={{ display:'block', width:'100%', padding:'14px', background:'#fff', border:'none', borderRadius:40, color:'#000', fontFamily:"'Barlow',sans-serif", fontWeight:600, fontSize:14, cursor:'pointer', textDecoration:'none', textAlign:'center', boxSizing:'border-box' }}
-              >
-                Get my free Cerebras key →
-              </a>
-              <button
-                onClick={() => setStep('enter')}
-                style={{ width:'100%', padding:'12px', background:'rgba(255,255,255,0.06)', border:'none', borderRadius:40, color:'rgba(255,255,255,0.6)', fontFamily:"'Barlow',sans-serif", fontSize:13, cursor:'pointer' }}
-              >
-                I already have a key
-              </button>
-              <button
-                onClick={skipAndClose}
-                style={{ background:'none', border:'none', color:'rgba(255,255,255,0.25)', fontFamily:"'Barlow',sans-serif", fontSize:12, cursor:'pointer', padding:'4px' }}
-              >
-                Skip for now — I'll add it later from the 🔑 button
-              </button>
-            </div>
-          </>
-        ) : (
-          <>
-            {/* Key entry screen */}
-            {isOnboarding && (
-              <button onClick={() => setStep('explain')} style={{ background:'none', border:'none', color:'rgba(255,255,255,0.3)', fontFamily:"'Barlow',sans-serif", fontSize:12, cursor:'pointer', padding:'0 0 20px 0', display:'block' }}>
-                ← Back
-              </button>
-            )}
-            <div style={{ fontFamily:"'Instrument Serif',serif", fontStyle:'italic', fontSize:22, color:'#fff', marginBottom:6 }}>
-              {isOnboarding ? 'Paste your Cerebras key' : 'Your Cerebras API Key'}
-            </div>
-            <p style={{ fontFamily:"'Barlow',sans-serif", fontWeight:300, fontSize:13, color:'rgba(255,255,255,0.45)', lineHeight:1.7, marginBottom:20 }}>
-              {isOnboarding
-                ? 'Find it at cloud.cerebras.ai → API Keys → Create new key. It starts with "csk-".'
-                : <>Use your own key for expanded analysis access. Get one free at <a href="https://cloud.cerebras.ai" target="_blank" rel="noreferrer" style={{ color:'rgba(255,255,255,0.7)' }}>cloud.cerebras.ai</a>.</>
-              }
-            </p>
+        {saveError && <p style={{ color:'#f87171', fontFamily:"'Barlow',sans-serif", fontSize:12, marginBottom:12 }}>⚠ {saveError}</p>}
 
-            <div style={{ marginBottom:16 }}>
-              <label style={{ display:'block', fontSize:11, color:'rgba(255,255,255,0.4)', marginBottom:6, fontFamily:"'Barlow',sans-serif", letterSpacing:'0.08em', textTransform:'uppercase' }}>API Key</label>
-              <input
-                autoFocus
-                type="password" value={key} onChange={e => setKey(e.target.value)}
-                placeholder="csk-..."
-                style={inp}
-                onFocus={e => { e.target.style.borderColor='rgba(255,255,255,0.3)'; e.target.style.background='rgba(255,255,255,0.08)' }}
-                onBlur={e => { e.target.style.borderColor='rgba(255,255,255,0.1)'; e.target.style.background='rgba(255,255,255,0.05)' }}
-                onKeyDown={e => e.key === 'Enter' && key.trim() && save()}
-              />
-            </div>
+        <div style={{ display:'flex', gap:10 }}>
+          <button onClick={save} disabled={saving || !key.trim()} style={{
+            flex:1, padding:'13px', border:'none', borderRadius:40, fontFamily:"'Barlow',sans-serif", fontWeight:600, fontSize:14,
+            background: saving || !key.trim() ? 'rgba(255,255,255,0.08)' : '#fff',
+            color: saving || !key.trim() ? 'rgba(255,255,255,0.25)' : '#000',
+            cursor: saving || !key.trim() ? 'not-allowed' : 'pointer',
+          }}>
+            {saving ? 'Saving...' : 'Save & Start Analyzing →'}
+          </button>
+          {!isOnboarding && (
+            <button onClick={onClose} style={{ padding:'13px 20px', background:'rgba(255,255,255,0.06)', border:'none', borderRadius:40, color:'rgba(255,255,255,0.5)', fontFamily:"'Barlow',sans-serif", fontSize:14, cursor:'pointer' }}>Cancel</button>
+          )}
+        </div>
 
-            {saveError && <p style={{ color:'#f87171', fontFamily:"'Barlow',sans-serif", fontSize:12, marginBottom:12 }}>⚠ {saveError}</p>}
-
-            <div style={{ display:'flex', gap:10 }}>
-              <button onClick={save} disabled={saving || !key.trim()} style={{
-                flex:1, padding:'13px', border:'none', borderRadius:40, fontFamily:"'Barlow',sans-serif", fontWeight:600, fontSize:14,
-                background: saving || !key.trim() ? 'rgba(255,255,255,0.08)' : '#fff',
-                color: saving || !key.trim() ? 'rgba(255,255,255,0.25)' : '#000',
-                cursor: saving || !key.trim() ? 'not-allowed' : 'pointer',
-              }}>
-                {saving ? 'Saving...' : 'Save & Start Analyzing →'}
-              </button>
-              {!isOnboarding && (
-                <button onClick={onClose} style={{ padding:'13px 20px', background:'rgba(255,255,255,0.06)', border:'none', borderRadius:40, color:'rgba(255,255,255,0.5)', fontFamily:"'Barlow',sans-serif", fontSize:14, cursor:'pointer' }}>Cancel</button>
-              )}
-            </div>
-
-            {isOnboarding && (
-              <button onClick={skipAndClose} style={{ display:'block', width:'100%', marginTop:10, background:'none', border:'none', color:'rgba(255,255,255,0.2)', fontFamily:"'Barlow',sans-serif", fontSize:12, cursor:'pointer', padding:'4px' }}>
-                Skip — I'll add it later
-              </button>
-            )}
-          </>
+        {isOnboarding && (
+          <button onClick={skipAndClose} style={{ display:'block', width:'100%', marginTop:10, background:'none', border:'none', color:'rgba(255,255,255,0.2)', fontFamily:"'Barlow',sans-serif", fontSize:12, cursor:'pointer', padding:'4px' }}>
+            Skip — I'll add it later from the 🔑 button
+          </button>
         )}
       </div>
     </div>
@@ -2084,6 +2082,7 @@ export default function App() {
           <MortgageCalculator activeCity={result?.geo?.userCity || null} />
           <RentalCalculator activeCity={result?.geo?.userCity || null} />
           <DataPartnerships />
+          <ApiKeyExplainer />
           <Stats />
           <Pricing onUpgrade={() => { setPaywallTrigger('pricing'); setShowPaywall(true) }} />
           <FAQ />
