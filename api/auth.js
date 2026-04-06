@@ -157,7 +157,7 @@ async function sendResetEmail(toEmail, resetToken) {
   const resend = new Resend(process.env.RESEND_API_KEY)
   const resetUrl = `${BASE_URL}?reset_token=${resetToken}`
   await resend.emails.send({
-    from: 'Dwelling <onboarding@resend.dev>',
+    from: 'Dwelling <hello@dwelling.one>',
     to: toEmail,
     subject: 'Reset your Dwelling password',
     html: `
