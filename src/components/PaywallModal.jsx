@@ -8,6 +8,7 @@ const PRICING_FREE = [
   'Local Market News',
   'Area Market Estimate',
   'Walkability & school scores',
+  '🔑 Connect your own API key for more analyses',
 ]
 
 const PRICING_PRO = [
@@ -16,7 +17,7 @@ const PRICING_PRO = [
   { text: 'Environmental & flood risk detection', highlight: true },
   { text: 'Price history & market projections', highlight: true },
   { text: 'Side-by-side city comparison', highlight: true },
-  { text: '🔑 Own API key — zero limits, your data stays private', highlight: true },
+  { text: '🔑 Own API key — unlimited capacity, full privacy', highlight: true },
   { text: 'Priority support', highlight: false },
 ]
 
