@@ -1396,6 +1396,9 @@ function CTAFooter({ onTermsClick, onScrollToTop, onUpgrade }) {
             <a href="/terms" style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.3)', textDecoration: 'underline', transition: 'color 0.2s' }}
               onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.6)'}
               onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.3)'}>Terms & Conditions</a>
+            <a href="https://instagram.com/dwellinghq" target="_blank" rel="noopener noreferrer" style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.3)', textDecoration: 'none', transition: 'color 0.2s' }}
+              onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.6)'}
+              onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.3)'}>@dwellinghq</a>
             <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>Not financial advice</span>
           </div>
         </div>
