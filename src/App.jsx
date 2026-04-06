@@ -1786,8 +1786,9 @@ export default function App() {
   }, [result])
 
   const handleAuth = async u => {
-    setUser(u)
-    setUserRecord({ is_pro: u.is_pro, analyses_used: 0 })
+    const fullUser = getCurrentUser() || u  // JWT decode has is_admin; u is fallback
+    setUser(fullUser)
+    setUserRecord({ is_pro: fullUser.is_pro, analyses_used: 0 })
     loadUserRecord()
     // Load the key for THIS account from Turso — wait for result BEFORE clearing cached key
     // so there's no window where cerebrasKey is '' and a search fires with no key

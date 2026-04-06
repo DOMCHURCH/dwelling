@@ -111,6 +111,7 @@ export default function AuthModal({ onAuth, onDemo }) {
     setLoading(true); setError(null)
     try {
       const user = await signIn(email.trim(), password)
+      sessionStorage.setItem('dw_key_onboarding_seen', '1')
       onAuth(user)
     } catch (e) {
       setError(e.message || 'Something went wrong.')
@@ -149,11 +150,9 @@ export default function AuthModal({ onAuth, onDemo }) {
     setLoading(true); setError(null)
     try {
       const data = await submitNewPassword(resetToken, newPassword)
-      // Auto sign in with returned token
-      const { setToken } = await import('../lib/localAuth')
-      onAuth({ id: data.userId, email: data.email, is_pro: data.is_pro })
-      // Store token
       localStorage.setItem('dw_token', data.token)
+      sessionStorage.setItem('dw_key_onboarding_seen', '1')
+      onAuth({ id: data.userId, email: data.email, is_pro: data.is_pro })
     } catch (e) {
       setError(e.message || 'Something went wrong.')
     } finally { setLoading(false) }
@@ -271,7 +270,7 @@ export default function AuthModal({ onAuth, onDemo }) {
                 {savingKey ? 'Saving...' : 'Save Key & Get Started →'}
               </button>
               <div style={{ textAlign: 'center', marginTop: 14 }}>
-                <button onClick={() => onAuth(signupUser)} style={linkBtn}>Skip for now — I'll add it later</button>
+                <button onClick={() => { sessionStorage.setItem('dw_key_onboarding_seen', '1'); onAuth(signupUser) }} style={linkBtn}>Skip for now — I'll add it later</button>
               </div>
             </>
           )}
