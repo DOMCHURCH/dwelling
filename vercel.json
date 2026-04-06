@@ -14,7 +14,7 @@
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
         { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(), interest-cohort=()" },
-        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://api.cerebras.ai https://*.turso.io https://*.upstash.io https://www.google-analytics.com https://analytics.google.com https://news.google.com https://redfin-public-data.s3.amazonaws.com https://api2.realtor.ca https://api.realtor.ca https://*.ingest.sentry.io; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" }
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' blob: https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://api.cerebras.ai https://*.turso.io https://*.upstash.io https://www.google-analytics.com https://analytics.google.com https://news.google.com https://redfin-public-data.s3.amazonaws.com https://api2.realtor.ca https://api.realtor.ca https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://nominatim.openstreetmap.org; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" }
       ]
     }
   ],
