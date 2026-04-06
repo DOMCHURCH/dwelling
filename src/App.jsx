@@ -805,7 +805,7 @@ const PRICING_FREE = [
   '🔑 Connect your own API key for more analyses',
 ]
 const PRICING_PRO = [
-  { text: 'Everything in Free — unlimited', highlight: false },
+  { text: 'Up to 254 analyses/day (vs. 10/month free)', highlight: false },
   { text: 'Investment Analysis & ROI score', highlight: true },
   { text: 'Environmental & flood risk detection', highlight: true },
   { text: 'Price history & market projections', highlight: true },
