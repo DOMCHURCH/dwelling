@@ -5,7 +5,6 @@ import LoadingState from './components/LoadingState'
 const Dashboard = lazy(() => import('./components/Dashboard'))
 import AuthModal from './components/AuthModal'
 import PaywallModal from './components/PaywallModal'
-import CursorTrail from './components/CursorTrail'
 import CookieBanner from './components/CookieBanner'
 import DeleteAccountModal from './components/DeleteAccountModal'
 import CompareView from './components/CompareView'
@@ -1975,7 +1974,6 @@ export default function App() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#000', display: 'flex', flexDirection: 'column' }}>
-      <CursorTrail />
         {showTerms && <TermsModal onClose={() => setShowTerms(false)} />}
       {/* Guest signup prompt — shown after first free search */}
       {!user && guestResult && result && (

@@ -1,3 +1,6 @@
+export default function ScrollScene() { return null }
+
+/*
 import { useRef, useEffect } from 'react'
 
 const r = (n) => { const x = Math.sin(n + 1) * 43758.5453; return x - Math.floor(x) }
@@ -122,3 +125,4 @@ export default function ScrollScene() {
     />
   )
 }
+*/

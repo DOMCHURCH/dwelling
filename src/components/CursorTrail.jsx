@@ -1,3 +1,6 @@
+export default function CursorTrail() { return null }
+
+/*
 import { useRef, useEffect } from 'react'
 
 function randomHex() {
@@ -125,3 +128,4 @@ export default function CursorTrail() {
     />
   )
 }
+*/

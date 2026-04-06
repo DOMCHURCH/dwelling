@@ -213,33 +213,9 @@ button.liquid-glass:hover {
 }
 
 /* ─── ANIMATIONS ─── */
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-5px); }
-}
 @keyframes glow-pulse {
   0%, 100% { opacity: 0.6; }
   50% { opacity: 1; }
-}
-@keyframes shimmer {
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
-}
-@keyframes ken-burns {
-  0% { transform: scale(1.0); }
-  100% { transform: scale(1.08); }
-}
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
-@keyframes marquee {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
 }
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(24px); }
@@ -269,10 +245,6 @@ input[type="range"] {
 .reveal-right { opacity: 1; transform: none; }
 .reveal-right.in-view { opacity: 1; transform: none; }
 
-/* stagger delays */
-.reveal-d1 { transition-delay: 0.08s; }
-.reveal-d2 { transition-delay: 0.16s; }
-.reveal-d3 { transition-delay: 0.24s; }
 
 
 
