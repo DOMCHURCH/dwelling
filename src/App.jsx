@@ -2,12 +2,25 @@ import { useState, useEffect, useRef, memo, lazy, Suspense, forwardRef } from 'r
 import { useScrollReveal, getGSAP } from '../hooks/useScrollReveal'
 import AddressSearch from './components/AddressSearch'
 import LoadingState from './components/LoadingState'
-const Dashboard = lazy(() => import('./components/Dashboard'))
-const AuthModal = lazy(() => import('./components/AuthModal'))
-const PaywallModal = lazy(() => import('./components/PaywallModal'))
-const CookieBanner = lazy(() => import('./components/CookieBanner'))
-const DeleteAccountModal = lazy(() => import('./components/DeleteAccountModal'))
-const CompareView = lazy(() => import('./components/CompareView'))
+// Reload once on chunk fetch failure (stale deployment — old HTML references old hashed filenames)
+function lazyWithReload(factory) {
+  return lazy(() =>
+    factory().catch(() => {
+      if (!sessionStorage.getItem('_chunk_reload')) {
+        sessionStorage.setItem('_chunk_reload', '1')
+        window.location.reload()
+      }
+      return { default: () => null }
+    })
+  )
+}
+
+const Dashboard = lazyWithReload(() => import('./components/Dashboard'))
+const AuthModal = lazyWithReload(() => import('./components/AuthModal'))
+const PaywallModal = lazyWithReload(() => import('./components/PaywallModal'))
+const CookieBanner = lazyWithReload(() => import('./components/CookieBanner'))
+const DeleteAccountModal = lazyWithReload(() => import('./components/DeleteAccountModal'))
+const CompareView = lazyWithReload(() => import('./components/CompareView'))
 import CountUp from './components/CountUp'
 import { geocodeStructured } from './lib/nominatim'
 import { getCurrentWeather, getClimateNormals } from './lib/weather'
