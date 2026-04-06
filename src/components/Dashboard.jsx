@@ -299,10 +299,10 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
 
 
       {/* Currency Converter */}
-      <div className="liquid-glass" style={{ borderRadius: 16, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+      <div className="liquid-glass" style={{ borderRadius: 16, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.5)', whiteSpace: 'nowrap' }}>💱 Display prices in</span>
         <select value={displayCurrency} onChange={e => setDisplayCurrency(e.target.value)}
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#fff', fontFamily: "'Barlow',sans-serif", fontSize: 13, padding: '6px 10px', cursor: 'pointer', outline: 'none', flex: 1, minWidth: 160, maxWidth: 220 }}>
+          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#fff', fontFamily: "'Barlow',sans-serif", fontSize: 13, padding: '6px 10px', cursor: 'pointer', outline: 'none', flex: '1 1 140px', minWidth: 0, maxWidth: 260 }}>
           {DISPLAY_CURRENCIES.map(c => (
             <option key={c.code} value={c.code} style={{ background: '#111' }}>
               {getCurrencySymbol(c.code)} {c.code} — {c.label}
@@ -479,7 +479,7 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
       )}
 
       <SectionCard title="Area Market Estimate" icon="🏠" delay={50}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 16 }}>
           <StatCard label="Median Value" value={fmtUSD(convert(propertyEstimate.estimatedValueUSD), sym)} sub="area average" accent="#ffffff" animate />
           <StatCard label="Price / sqft" value={fmtUSD(convert(propertyEstimate.pricePerSqftUSD), sym)} sub="area average" />
           <StatCard label="Rent / month" value={fmtUSD(convert(propertyEstimate.rentEstimateMonthlyUSD), sym)} sub="area average" accent="#4ade80" animate />
@@ -705,17 +705,35 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
       {/* Investment */}
       <SectionCard title="Investment Analysis" icon="📈" delay={300}>
         {isLocked('investment') ? (
-          <div onClick={() => onUpgrade('investment')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 16px', gap: 10, cursor: 'pointer' }}>
-            <span style={{ fontSize: 28 }}>🔒</span>
-            <div style={{ textAlign: 'center', padding: '0 16px' }}>
-              <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 17, color: '#fff', marginBottom: 6 }}>Investment Analysis</div>
-              <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.55)', marginBottom: 14, lineHeight: 1.5 }}>Rent yield, investment score & outlook are Pro only.</div>
-              <div style={{ display: 'inline-block', background: '#fff', color: '#000', borderRadius: 40, padding: '8px 20px', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13 }}>Upgrade to Pro →</div>
+          <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => onUpgrade('investment')}>
+            {/* Blurred preview — placeholder data */}
+            <div style={{ filter: 'blur(5px)', userSelect: 'none', pointerEvents: 'none' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12, marginBottom: 14 }}>
+                {[['Rent Yield','5.2%','#4ade80','annual gross'],['Investment Score','74/100','#fff','based on 12 factors'],['Outlook','BULLISH','#4ade80','3–5 yr horizon']].map(([label, val, color, sub]) => (
+                  <div key={label} className="liquid-glass" style={{ borderRadius: 14, padding: '14px 12px' }}>
+                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6, fontFamily: "'Barlow',sans-serif" }}>{label}</div>
+                    <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 22, color, lineHeight: 1 }}>{val}</div>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 4, fontFamily: "'Barlow',sans-serif" }}>{sub}</div>
+                  </div>
+                ))}
+              </div>
+              <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', lineHeight: 1.7, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>
+                Immigration-driven demand and a persistent construction shortfall support a bullish 3–5 year outlook. Gross yields above national average at current listing prices.
+              </p>
+            </div>
+            {/* Lock overlay */}
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, background: 'rgba(0,0,0,0.45)', borderRadius: 12, backdropFilter: 'blur(2px)' }}>
+              <span style={{ fontSize: 26 }}>🔒</span>
+              <div style={{ textAlign: 'center', padding: '0 16px' }}>
+                <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 16, color: '#fff', marginBottom: 4 }}>Investment Analysis</div>
+                <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 14, lineHeight: 1.5 }}>Unlock rent yield, investment score & full outlook.</div>
+                <div style={{ display: 'inline-block', background: '#fff', color: '#000', borderRadius: 40, padding: '8px 20px', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13 }}>Upgrade to Pro →</div>
+              </div>
             </div>
           </div>
         ) : investment ? (
           <div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 16 }}>
               <StatCard label="Rent Yield" value={`${investment.rentYieldPercent}%`} sub="annual gross" accent="#4ade80" />
               <StatCard label="Investment Score" value={`${investment.investmentScore}/100`} />
               <div className="liquid-glass" style={{ borderRadius: 14, padding: '16px' }}>
