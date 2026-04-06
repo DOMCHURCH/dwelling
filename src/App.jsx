@@ -372,7 +372,7 @@ function CityscapeSilhouette({ backRef, frontRef }) {
   )
 }
 
-function Hero({ onSearch, loading, onShowDemo }) {
+function Hero({ onSearch, loading, onShowDemo, user, onOpenAuth }) {
   return (
     <section id="hero" style={{ position: 'relative', overflow: 'hidden', background: '#060d1c', minHeight: 'min(1000px, 100svh)', height: 'auto', zIndex: 0 }}>
 
@@ -399,6 +399,11 @@ function Hero({ onSearch, loading, onShowDemo }) {
         </p>
         <div style={{ width: '100%', maxWidth: 600 }}>
           <AddressSearch onSearch={onSearch} loading={loading} />
+          {!user && (
+            <p style={{ marginTop: 12, fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.45)', textAlign: 'center', lineHeight: 1.6 }}>
+              <span onClick={onOpenAuth} style={{ color: '#fff', textDecoration: 'underline', textUnderlineOffset: 3, cursor: 'pointer' }}>Create a free account</span> to run your first search →
+            </p>
+          )}
         </div>
         <div style={{ display: 'flex', gap: 10, marginTop: 24, flexWrap: 'wrap', justifyContent: 'center' }}>
           {[['1,737+','Canadian Cities'],['10','Free / Month'],['<30s','Analysis time']].map(([val, lbl]) => (
@@ -2096,7 +2101,7 @@ export default function App() {
         </div>
       ) : (
         <div style={{ position: 'relative', zIndex: 1 }}>
-          <Hero onSearch={handleSearch} loading={loading} onShowDemo={() => setShowDemo(true)} />
+          <Hero onSearch={handleSearch} loading={loading} onShowDemo={() => setShowDemo(true)} user={user} onOpenAuth={() => setShowAuthModal(true)} />
           <Partners />
           <HowItWorks />
           <FeaturesChess />

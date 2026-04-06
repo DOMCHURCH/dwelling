@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { signIn, signUp } from '../lib/localAuth'
+import { signIn, signUp, saveCerebrasKey } from '../lib/localAuth'
 
 const TERMS = [
   {
@@ -76,6 +76,13 @@ export default function AuthModal({ onAuth, onDemo }) {
   const [success, setSuccess] = useState(null)
   const [showTerms, setShowTerms] = useState(false)
   const [scrolledToBottom, setScrolledToBottom] = useState(false)
+  const [showPass, setShowPass] = useState(false)
+  const [showNewPass, setShowNewPass] = useState(false)
+  const [showConfirmPass, setShowConfirmPass] = useState(false)
+  const [signupUser, setSignupUser] = useState(null)
+  const [apiKey, setApiKey] = useState('')
+  const [savingKey, setSavingKey] = useState(false)
+  const [keyError, setKeyError] = useState(null)
 
   // Lock body scroll while modal is open
   useEffect(() => {
@@ -117,7 +124,8 @@ export default function AuthModal({ onAuth, onDemo }) {
     setLoading(true); setError(null)
     try {
       const user = await signUp(email.trim(), password)
-      onAuth(user)
+      setSignupUser(user)
+      setMode('apikey')
     } catch (e) {
       setError(e.message || 'Something went wrong.')
     } finally { setLoading(false) }
@@ -151,12 +159,22 @@ export default function AuthModal({ onAuth, onDemo }) {
     } finally { setLoading(false) }
   }
 
+  const handleSaveKey = async () => {
+    setSavingKey(true); setKeyError(null)
+    try {
+      await saveCerebrasKey(apiKey.trim())
+      onAuth(signupUser)
+    } catch {
+      setKeyError('Failed to save key. You can add it later from the 🔑 button.')
+    } finally { setSavingKey(false) }
+  }
+
   const handleTermsScroll = (e) => {
     const el = e.target
     if (el.scrollHeight - el.scrollTop <= el.clientHeight + 40) setScrolledToBottom(true)
   }
 
-  const switchMode = (m) => { setMode(m); setError(null); setSuccess(null) }
+  const switchMode = (m) => { setMode(m); setError(null); setSuccess(null); setShowPass(false) }
 
   return (
     <>
@@ -169,7 +187,7 @@ export default function AuthModal({ onAuth, onDemo }) {
               DW<span style={{ opacity: 0.4 }}>.</span>ELLING
             </div>
             <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>
-              {mode === 'signup' ? 'Create your account' : mode === 'forgot' ? 'Reset your password' : mode === 'reset' ? 'Choose a new password' : 'Welcome back'}
+              {mode === 'apikey' ? 'One more step' : mode === 'signup' ? 'Create your account' : mode === 'forgot' ? 'Reset your password' : mode === 'reset' ? 'Choose a new password' : 'Welcome back'}
             </p>
           </div>
 
@@ -178,11 +196,17 @@ export default function AuthModal({ onAuth, onDemo }) {
             <>
               <div style={{ marginBottom: 12 }}>
                 <label style={{ display: 'block', fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 6, fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase' }}>New Password</label>
-                <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Min. 8 characters" style={inp} onFocus={focus} onBlur={unfocus} />
+                <div style={{ position: 'relative' }}>
+                  <input type={showNewPass ? 'text' : 'password'} value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Min. 8 characters" style={{ ...inp, paddingRight: 44 }} onFocus={focus} onBlur={unfocus} />
+                  <EyeButton show={showNewPass} onToggle={() => setShowNewPass(p => !p)} />
+                </div>
               </div>
               <div style={{ marginBottom: 20 }}>
                 <label style={{ display: 'block', fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 6, fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase' }}>Confirm Password</label>
-                <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Repeat your new password" style={inp} onFocus={focus} onBlur={unfocus} onKeyDown={e => e.key === 'Enter' && handleReset()} />
+                <div style={{ position: 'relative' }}>
+                  <input type={showConfirmPass ? 'text' : 'password'} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Repeat your new password" style={{ ...inp, paddingRight: 44 }} onFocus={focus} onBlur={unfocus} onKeyDown={e => e.key === 'Enter' && handleReset()} />
+                  <EyeButton show={showConfirmPass} onToggle={() => setShowConfirmPass(p => !p)} />
+                </div>
               </div>
               {error && <ErrorBox msg={error} />}
               <button onClick={handleReset} disabled={loading} style={btnStyle(loading)}>
@@ -214,6 +238,44 @@ export default function AuthModal({ onAuth, onDemo }) {
             </>
           )}
 
+          {/* ── API KEY ONBOARDING (post-signup) ── */}
+          {mode === 'apikey' && (
+            <>
+              <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                <div style={{ fontSize: 40, marginBottom: 12 }}>🔑</div>
+                <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.55)', lineHeight: 1.7 }}>
+                  Dwelling uses Cerebras AI to run your reports. Add your free API key now, or skip and add it later from the 🔑 button.
+                </p>
+              </div>
+              <div style={{ marginBottom: 8 }}>
+                <label style={{ display: 'block', fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 6, fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase' }}>Cerebras API Key</label>
+                <input
+                  type="text"
+                  value={apiKey}
+                  onChange={e => setApiKey(e.target.value)}
+                  placeholder="csk-..."
+                  style={inp}
+                  onFocus={focus}
+                  onBlur={unfocus}
+                  onKeyDown={e => e.key === 'Enter' && apiKey.trim() && handleSaveKey()}
+                  autoFocus
+                />
+              </div>
+              <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.35)', marginBottom: 20, lineHeight: 1.6 }}>
+                Get your free key at{' '}
+                <a href="https://cloud.cerebras.ai" target="_blank" rel="noreferrer" style={{ color: 'rgba(255,255,255,0.6)', textDecoration: 'underline', textUnderlineOffset: 3 }}>cloud.cerebras.ai</a>
+                {' '}→ API Keys. No credit card required.
+              </p>
+              {keyError && <ErrorBox msg={keyError} />}
+              <button onClick={handleSaveKey} disabled={savingKey || !apiKey.trim()} style={btnStyle(savingKey || !apiKey.trim())}>
+                {savingKey ? 'Saving...' : 'Save Key & Get Started →'}
+              </button>
+              <div style={{ textAlign: 'center', marginTop: 14 }}>
+                <button onClick={() => onAuth(signupUser)} style={linkBtn}>Skip for now — I'll add it later</button>
+              </div>
+            </>
+          )}
+
           {/* ── SIGN IN / SIGN UP ── */}
           {(mode === 'signin' || mode === 'signup') && (
             <>
@@ -232,7 +294,10 @@ export default function AuthModal({ onAuth, onDemo }) {
               </div>
               <div style={{ marginBottom: mode === 'signup' ? 8 : 8 }}>
                 <label style={{ display: 'block', fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 6, fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase' }}>Password</label>
-                <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min. 8 characters" style={inp} onFocus={focus} onBlur={unfocus} onKeyDown={e => e.key === 'Enter' && (mode === 'signin' ? handleSignIn() : handleSignUp())} />
+                <div style={{ position: 'relative' }}>
+                  <input type={showPass ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="Min. 8 characters" style={{ ...inp, paddingRight: 44 }} onFocus={focus} onBlur={unfocus} onKeyDown={e => e.key === 'Enter' && (mode === 'signin' ? handleSignIn() : handleSignUp())} />
+                  <EyeButton show={showPass} onToggle={() => setShowPass(p => !p)} />
+                </div>
               </div>
 
               {/* Forgot password link — only on sign in */}
@@ -348,4 +413,30 @@ const linkBtn = {
   fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13,
   color: 'rgba(255,255,255,0.35)', textDecoration: 'underline',
   textUnderlineOffset: 3, padding: '4px 8px', transition: 'color 0.2s',
+}
+
+function EyeButton({ show, onToggle }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-label={show ? 'Hide password' : 'Show password'}
+      style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'rgba(255,255,255,0.35)', display: 'flex', alignItems: 'center', transition: 'color 0.15s' }}
+      onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.7)'}
+      onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.35)'}
+    >
+      {show ? (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+          <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+          <line x1="1" y1="1" x2="23" y2="23"/>
+        </svg>
+      ) : (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+      )}
+    </button>
+  )
 }
