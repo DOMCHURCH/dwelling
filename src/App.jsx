@@ -2092,7 +2092,7 @@ export default function App() {
               onClearB={() => { setCompareResult(null); setComparingMode(true) }}
             />
           )}
-          {result && !loading && !compareResult && <Suspense fallback={<LoadingState step={0} />}><Dashboard data={result} onRecalculate={handleRecalculate} previewPlan={user?.is_admin ? previewPlan : userRecord?.is_pro ? 'pro' : 'free'} onUpgrade={(section) => { setPaywallTrigger(section || 'section'); setShowPaywall(true) }} /></Suspense>}
+          {result && !loading && !compareResult && <Suspense fallback={<LoadingState step={0} />}><Dashboard key={user?.is_admin ? previewPlan : 'fixed'} data={result} onRecalculate={handleRecalculate} previewPlan={user?.is_admin ? previewPlan : userRecord?.is_pro ? 'pro' : 'free'} onUpgrade={(section) => { setPaywallTrigger(section || 'section'); setShowPaywall(true) }} /></Suspense>}
         </div>
       ) : (
         <div style={{ position: 'relative', zIndex: 1 }}>
