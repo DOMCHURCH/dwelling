@@ -1,10 +1,12 @@
-import React from 'react'
+import React, { lazy, Suspense } from 'react'
 import ReactDOM from 'react-dom/client'
 import * as Sentry from '@sentry/react'
 import { inject } from '@vercel/analytics'
 import App from './App.jsx'
 import './index.css'
 import './lib/errorHandler'
+
+const TermsPage = lazy(() => import('./components/TermsPage.jsx'))
 
 inject()
 
@@ -20,8 +22,13 @@ Sentry.init({
   ],
 })
 
+const isTerms = window.location.pathname === '/terms'
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <App />
+    {isTerms
+      ? <Suspense fallback={null}><TermsPage /></Suspense>
+      : <App />
+    }
   </React.StrictMode>
 )

@@ -3,11 +3,11 @@ import { useScrollReveal, getGSAP } from '../hooks/useScrollReveal'
 import AddressSearch from './components/AddressSearch'
 import LoadingState from './components/LoadingState'
 const Dashboard = lazy(() => import('./components/Dashboard'))
-import AuthModal from './components/AuthModal'
-import PaywallModal from './components/PaywallModal'
-import CookieBanner from './components/CookieBanner'
-import DeleteAccountModal from './components/DeleteAccountModal'
-import CompareView from './components/CompareView'
+const AuthModal = lazy(() => import('./components/AuthModal'))
+const PaywallModal = lazy(() => import('./components/PaywallModal'))
+const CookieBanner = lazy(() => import('./components/CookieBanner'))
+const DeleteAccountModal = lazy(() => import('./components/DeleteAccountModal'))
+const CompareView = lazy(() => import('./components/CompareView'))
 import CountUp from './components/CountUp'
 import { geocodeStructured } from './lib/nominatim'
 import { getCurrentWeather, getClimateNormals } from './lib/weather'
@@ -66,7 +66,7 @@ function TermsModal({ onClose }) {
     { title: '15. Dispute Resolution, Arbitration, and Class Action Waiver', body: 'PLEASE READ THIS SECTION CAREFULLY — IT AFFECTS YOUR LEGAL RIGHTS. These Terms are governed exclusively by the laws of the Province of Ontario and the applicable federal laws of Canada, without regard to conflict of law principles. Before initiating formal proceedings, the parties agree to attempt resolution through good-faith negotiation for thirty (30) days following written notice. If unresolved, the Dispute shall be finally resolved by binding arbitration in Ottawa, Ontario under the Arbitration Act, 1991 (Ontario) before a single arbitrator. The arbitrator\'s decision shall be final and binding. YOU AND THE COMPANY EACH WAIVE ANY RIGHT TO A JURY TRIAL. YOU WAIVE ANY RIGHT TO INITIATE OR PARTICIPATE IN ANY CLASS ACTION, COLLECTIVE ACTION, OR REPRESENTATIVE PROCEEDING OF ANY KIND AGAINST THE COMPANY. The Company may seek injunctive or equitable relief in any court of competent jurisdiction to protect its intellectual property or prevent irreparable harm.' },
     { title: '16. Modifications to the Platform', body: 'The Company reserves the right, at its sole discretion, to modify, suspend, or discontinue the Platform or any part thereof at any time, with or without notice; add, remove, or change features or content; change pricing upon reasonable notice; or impose usage limits. The Company shall not be liable for any modification, suspension, or discontinuation of the Platform.' },
     { title: '17. Severability, Waiver, and Entire Agreement', body: 'If any provision of these Terms is held invalid, illegal, or unenforceable, it shall be modified to the minimum extent necessary to make it enforceable, and the remaining provisions shall continue in full force. No waiver by the Company of any breach shall be deemed a waiver of any subsequent breach. These Terms, together with the Privacy Policy and any other policies incorporated herein by reference, constitute the entire agreement between you and the Company regarding the Platform and supersede all prior understandings, agreements, and representations.' },
-    { title: '18. Contact and Legal Notices', body: 'For general support: 01dominique.c@gmail.com. For formal legal notices, written notice must be sent to the same address with the subject line "Legal Notice — Dwelling" and must include: your full legal name, account email, a detailed description of the claim, and the relief sought. The Company will acknowledge receipt of formal legal notices within ten (10) business days. These Terms were last updated on March 30, 2026.' },
+    { title: '18. Contact and Legal Notices', body: 'For general support: hello@dwelling.one. For formal legal notices, written notice must be sent to the same address with the subject line "Legal Notice — Dwelling" and must include: your full legal name, account email, a detailed description of the claim, and the relief sought. The Company will acknowledge receipt of formal legal notices within ten (10) business days. These Terms were last updated on March 30, 2026.' },
   ]
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
@@ -1390,12 +1390,12 @@ function CTAFooter({ onTermsClick, onScrollToTop, onUpgrade }) {
           <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 17, color: 'rgba(255,255,255,0.4)' }}>Dwelling</div>
           <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>© 2026 Dwelling. All rights reserved.</span>
           <div style={{ display: 'flex', gap: 18, alignItems: 'center' }}>
-            <a href="mailto:01dominique.c@gmail.com" style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.3)', textDecoration: 'none', transition: 'color 0.2s' }}
+            <a href="mailto:hello@dwelling.one" style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.3)', textDecoration: 'none', transition: 'color 0.2s' }}
               onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.6)'}
               onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.3)'}>Support</a>
-            <button onClick={onTermsClick} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.3)', textDecoration: 'underline', padding: 0, transition: 'color 0.2s' }}
+            <a href="/terms" style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.3)', textDecoration: 'underline', transition: 'color 0.2s' }}
               onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.6)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.3)'}>Terms & Conditions</button>
+              onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.3)'}>Terms & Conditions</a>
             <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>Not financial advice</span>
           </div>
         </div>
@@ -1975,10 +1975,10 @@ export default function App() {
       )}
       {showKeyModal && <ApiKeyModal currentKey={cerebrasKey} onSave={k => setCerebrasKey(k)} onClose={() => setShowKeyModal(false)} isOnboarding={false} />}
       {showOnboarding && <ApiKeyModal currentKey={cerebrasKey} onSave={k => setCerebrasKey(k)} onClose={() => setShowOnboarding(false)} isOnboarding={true} />}
-      {showPaywall && <PaywallModal trigger={paywallTrigger} onClose={() => setShowPaywall(false)} />}
+      {showPaywall && <Suspense fallback={null}><PaywallModal trigger={paywallTrigger} onClose={() => setShowPaywall(false)} /></Suspense>}
       {showAuthModal && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}>
-          <AuthModal onAuth={u => { handleAuth(u); setShowAuthModal(false) }} onDemo={() => setShowAuthModal(false)} />
+          <Suspense fallback={null}><AuthModal onAuth={u => { handleAuth(u); setShowAuthModal(false) }} onDemo={() => setShowAuthModal(false)} /></Suspense>
         </div>
       )}
       <Navbar user={user} userRecord={userRecord} analysesLeft={analysesLeft} isInTrial={isInTrial} trialDaysLeft={trialDaysLeft} onSignOut={handleSignOut} onOpenKeyModal={() => setShowKeyModal(true)} hasOwnKey={!!cerebrasKey || !!userRecord?.has_own_key} previewPlan={previewPlan} onTogglePreview={() => setPreviewPlan(p => p === 'pro' ? 'free' : 'pro')}
@@ -2062,12 +2062,12 @@ export default function App() {
             </div>
           )}
           {result && !loading && compareResult && (
-            <CompareView
+            <Suspense fallback={null}><CompareView
               resultA={result}
               resultB={compareResult}
               onBack={() => setCompareResult(null)}
               onClearB={() => { setCompareResult(null); setComparingMode(true) }}
-            />
+            /></Suspense>
           )}
           {result && !loading && !compareResult && <Suspense fallback={<LoadingState step={0} />}><Dashboard key={user?.is_admin ? previewPlan : 'fixed'} data={result} onRecalculate={handleRecalculate} previewPlan={user?.is_admin ? previewPlan : userRecord?.is_pro ? 'pro' : 'free'} onUpgrade={(section) => { setPaywallTrigger(section || 'section'); setShowPaywall(true) }} /></Suspense>}
         </div>
@@ -2092,12 +2092,12 @@ export default function App() {
         </div>
       )}
       {showDeleteAccount && (
-        <DeleteAccountModal
+        <Suspense fallback={null}><DeleteAccountModal
           onClose={() => setShowDeleteAccount(false)}
           onDeleted={() => { handleSignOut(); setShowDeleteAccount(false) }}
-        />
+        /></Suspense>
       )}
-      <CookieBanner />
+      <Suspense fallback={null}><CookieBanner /></Suspense>
     </div>
   )
 }
