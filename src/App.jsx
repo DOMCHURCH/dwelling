@@ -940,7 +940,7 @@ const Pricing = memo(function Pricing({ onUpgrade }) {
     <section id="pricing" style={{ position: 'relative', overflow: 'hidden', padding: 'clamp(80px, 10vw, 120px) 20px' }}>
       {/* Video background */}
       <video autoPlay muted loop playsInline
-        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.1, zIndex: 0 }}>
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.1, zIndex: 0, willChange: 'transform' }}>
         <source src="/pricing-bg.webm" type="video/webm" />
       </video>
       {/* Gradient overlays */}
@@ -1729,10 +1729,10 @@ export default function App() {
   // ── Lenis smooth scroll ──────────────────────────────────────────────────
   useEffect(() => {
     let lenis
-    import('lenis').then(({ default: Lenis }) => {
-      lenis = new Lenis({ lerp: 0.08, smoothWheel: true })
-      function raf(time) { lenis.raf(time); requestAnimationFrame(raf) }
-      requestAnimationFrame(raf)
+    Promise.all([import('lenis'), getGSAP()]).then(([{ default: Lenis }, { gsap }]) => {
+      lenis = new Lenis({ lerp: 0.1, smoothWheel: true })
+      gsap.ticker.add((time) => { lenis.raf(time * 1000) })
+      gsap.ticker.lagSmoothing(0)
     })
     return () => lenis?.destroy()
   }, [])
