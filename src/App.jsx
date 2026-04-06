@@ -1911,9 +1911,6 @@ export default function App() {
     </div>
   )
 
-  // Allow unauthenticated users to view the demo
-  if (!user && !showDemo && !guestResult) return <AuthModal onAuth={handleAuth} onDemo={() => setShowDemo(true)} />
-
   if (showDemo) return (
     <div style={{ minHeight: '100vh', background: '#000', display: 'flex', flexDirection: 'column' }}>
         <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50, padding: '12px 16px', background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
