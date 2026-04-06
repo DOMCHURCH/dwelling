@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://dwelling-three.vercel.app/sitemap.xml
+Sitemap: https://dwelling.one/sitemap.xml

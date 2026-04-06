@@ -1,6 +1,6 @@
 # Dwelling — Property Intelligence App
 
-**Live site: [dwelling-three.vercel.app](https://dwelling-three.vercel.app)**
+**Live site: [dwelling.one](https://dwelling.one)**
 
 Enter any address in the world and get a full property intelligence report including estimated value, cost of living, climate data, neighborhood scores, floor plan info, and investment analysis.
 

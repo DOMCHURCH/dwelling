@@ -214,7 +214,7 @@ function findCity(cityName, dataset) {
 import { apiLimiter, applyLimit } from './_ratelimit.js'
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', process.env.ALLOWED_ORIGIN || 'https://dwelling-three.vercel.app')
+  res.setHeader('Access-Control-Allow-Origin', process.env.ALLOWED_ORIGIN || 'https://dwelling.one')
   res.setHeader('Cache-Control', 'public, s-maxage=3600')
 
   const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown'
