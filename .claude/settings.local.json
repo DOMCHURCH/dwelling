@@ -34,7 +34,8 @@
       "WebFetch(domain:developer.chrome.com)",
       "WebFetch(domain:gsap.com)",
       "Bash(sed:*)",
-      "Bash(npm i:*)"
+      "Bash(npm i:*)",
+      "WebFetch(domain:dwelling.one)"
     ]
   },
   "hooks": {
