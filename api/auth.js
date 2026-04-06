@@ -445,6 +445,20 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true })
     }
 
+    if (action === 'notify-pro') {
+      const { email: notifyEmail } = req.body
+      if (!notifyEmail || typeof notifyEmail !== 'string' || !notifyEmail.includes('@')) {
+        return res.status(400).json({ error: 'Invalid email.' })
+      }
+      const db = getDb()
+      await db.execute(`CREATE TABLE IF NOT EXISTS pro_waitlist (email TEXT PRIMARY KEY, created_at TEXT)`)
+      await db.execute(
+        `INSERT OR IGNORE INTO pro_waitlist (email, created_at) VALUES (?, ?)`,
+        [notifyEmail.trim().toLowerCase(), new Date().toISOString()]
+      )
+      return res.status(200).json({ success: true })
+    }
+
     return res.status(400).json({ error: 'Unknown action' })
   } catch (err) {
     const ref = Math.random().toString(36).slice(2, 10)

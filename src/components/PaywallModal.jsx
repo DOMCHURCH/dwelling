@@ -1,274 +1,257 @@
 import { useState, useEffect } from 'react'
 
-const PRICING_FREE = [
-  '10 analyses / month',
-  'Area Verdict & Market Intelligence',
-  'Cost of Living breakdown',
-  'Climate & weather data',
-  'Local Market News',
-  'Area Market Estimate',
-  'Walkability & school scores',
-  'Connect your own API key for more analyses',
+const MONTHLY = 19
+const ANNUAL = 149
+const ANNUAL_MONTHLY = Math.round(ANNUAL / 12)
+
+const PRO_FEATURES = [
+  { icon: '📈', title: 'Investment Analysis', desc: 'Rent yield, ROI score, and 3–5 year market outlook.' },
+  { icon: '📊', title: 'Price History & Projections', desc: '10-year historical trends + 2-year AI forecast.' },
+  { icon: '🛡', title: 'Environmental Risk', desc: 'Flood, fire, seismic, pollution, and air quality scores.' },
+  { icon: '⚖️', title: 'City Comparison', desc: 'Run two cities head-to-head — every metric, side by side.' },
 ]
 
-const PRICING_PRO = [
-  { text: 'Virtually unlimited analyses', highlight: false },
-  { text: 'Investment Analysis & ROI score', highlight: true },
-  { text: 'Environmental & flood risk detection', highlight: true },
-  { text: 'Price history & market projections', highlight: true },
-  { text: 'Side-by-side city comparison', highlight: true },
-  { text: 'Own API key — zero platform limits, full privacy', highlight: true },
-  { text: 'Priority support', highlight: false },
-]
-
-// Per-section copy when a free user clicks a locked section
 const SECTION_COPY = {
-  neighborhood: {
-    emoji: '🏘',
-    title: 'Full neighbourhood detail is on Pro',
-    subtitle: 'You already see walk & school scores. Upgrade for neighbourhood character, pros & cons, safety breakdown, and best-for analysis.',
-  },
   investment: {
-    emoji: '📈',
-    title: 'Investment analysis is on Pro',
-    subtitle: 'Get rent yield, investment score, and market outlook with a Pro plan.',
+    icon: '📈',
+    hook: "You're one upgrade away from knowing if this city makes financial sense.",
+    highlight: 0,
   },
   pricehistory: {
-    emoji: '📊',
-    title: 'Price history is on Pro',
-    subtitle: 'Unlock historical price charts and market projections with a Pro plan.',
+    icon: '📊',
+    hook: "See where prices have been — and where they're going.",
+    highlight: 1,
   },
   risk: {
-    emoji: '🛡',
-    title: 'Risk data is on Pro',
-    subtitle: 'Environmental risk, flood zone, and hazard data are available on Pro.',
+    icon: '🛡',
+    hook: 'Find out what risks this area carries before you commit.',
+    highlight: 2,
   },
-}
-
-function StripeComingSoon({ onClose }) {
-  return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 1100,
-      background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
-    }}>
-      <div className="liquid-glass-strong" style={{
-        borderRadius: 24, maxWidth: 400, width: '100%',
-        padding: 36, textAlign: 'center', animation: 'fadeUp 0.25s ease',
-        border: '1px solid rgba(255,255,255,0.1)',
-      }}>
-        <div style={{ fontSize: 48, marginBottom: 16 }}>🚧</div>
-        <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 24, color: '#fff', marginBottom: 10 }}>
-          Payments coming soon
-        </div>
-        <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7, marginBottom: 24 }}>
-          We're integrating Stripe right now. Pro upgrades will be live very shortly — check back soon.
-        </p>
-        <button
-          onClick={onClose}
-          style={{
-            width: '100%', padding: '13px', borderRadius: 40, border: 'none',
-            fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 14,
-            background: '#fff', color: '#000', cursor: 'pointer',
-          }}
-        >
-          Got it
-        </button>
-      </div>
-    </div>
-  )
+  neighborhood: {
+    icon: '🏘',
+    hook: "You've seen the scores. Now get the full neighbourhood story.",
+    highlight: null,
+  },
 }
 
 export default function PaywallModal({ onClose, trigger = 'limit' }) {
-  const [annual, setAnnual] = useState(false)
-  const [hovUpgrade, setHovUpgrade] = useState(false)
-  const [showStripe, setShowStripe] = useState(false)
+  const [annual, setAnnual] = useState(true)
+  const [notified, setNotified] = useState(false)
+  const [email, setEmail] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
-  const monthlyPrice = 29
-  const annualPrice = 226
-  const displayPrice = annual ? Math.round(annualPrice / 12) : monthlyPrice
-
-  // Lock body scroll while modal is open
   useEffect(() => {
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     return () => { document.body.style.overflow = prev }
   }, [])
 
-  // Determine header copy based on trigger
-  const isSection = trigger && SECTION_COPY[trigger]
-  const sectionCopy = isSection ? SECTION_COPY[trigger] : null
+  const section = SECTION_COPY[trigger]
+  const highlightIdx = section?.highlight ?? null
 
-  const headerEmoji = sectionCopy ? sectionCopy.emoji : trigger === 'limit' ? null : '⚡'
-  const headerTitle = sectionCopy
-    ? sectionCopy.title
-    : trigger === 'limit'
-      ? 'Your free analyses are used up'
-      : 'Unlock the full picture'
-  const headerSubtitle = sectionCopy
-    ? sectionCopy.subtitle
-    : trigger === 'limit'
-      ? "You've used all 10 free analyses this month. Upgrade to keep going."
-      : 'Get investment-grade city intelligence — full neighbourhood detail, risk analysis, price history & investment score.'
+  const hook = section?.hook
+    ?? (trigger === 'limit'
+      ? "You've used all 10 free reports this month."
+      : 'Get the full picture on any Canadian city.')
+
+  const subhook = trigger === 'limit'
+    ? 'Upgrade to Pro for unlimited analyses — investment scores, price history, risk data, and city comparison.'
+    : null
+
+  const displayPrice = annual ? ANNUAL_MONTHLY : MONTHLY
+  const priceSuffix = annual ? '/mo · billed $149/yr' : '/month'
+
+  const handleNotify = async (e) => {
+    e.preventDefault()
+    if (!email.trim()) return
+    setSubmitting(true)
+    // Fire-and-forget — just need an email collected
+    try {
+      await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'notify-pro', email: email.trim() }),
+      })
+    } catch { /* non-critical */ }
+    setSubmitting(false)
+    setNotified(true)
+  }
 
   return (
-    <>
-      {showStripe && <StripeComingSoon onClose={() => setShowStripe(false)} />}
-      <div role="dialog" aria-modal="true" aria-labelledby="paywall-title" data-lenis-prevent style={{
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="paywall-title"
+      data-lenis-prevent
+      onClick={e => e.target === e.currentTarget && onClose()}
+      style={{
         position: 'fixed', inset: 0, zIndex: 1000,
-        background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(12px)',
-        overflowY: 'auto', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch',
-        display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
-        padding: '24px 20px 40px',
-      }}>
-        <div className="liquid-glass-strong" style={{
-          borderRadius: 24, maxWidth: 560, width: '100%',
-          padding: 36, animation: 'fadeUp 0.3s ease',
+        background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(14px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '24px 20px', overflowY: 'auto', overscrollBehavior: 'contain',
+      }}
+    >
+      <div
+        className="liquid-glass-strong"
+        style={{
+          borderRadius: 28, maxWidth: 480, width: '100%',
+          padding: '36px 32px', animation: 'fadeUp 0.28s ease',
           border: '1px solid rgba(255,255,255,0.1)',
-          marginTop: 'auto', marginBottom: 'auto',
-          flexShrink: 0,
-        }}>
-
-          {/* Header */}
-          <div style={{ textAlign: 'center', marginBottom: 28 }}>
-            {headerEmoji && <div style={{ fontSize: 40, marginBottom: 12 }}>{headerEmoji}</div>}
-            <div id="paywall-title" style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 26, color: '#fff', marginBottom: 8, lineHeight: 1.1 }}>
-              {headerTitle}
+        }}
+      >
+        {notified ? (
+          /* ── Post-submit confirmation ── */
+          <div style={{ textAlign: 'center', padding: '16px 0' }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>🎉</div>
+            <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 24, color: '#fff', marginBottom: 10 }}>
+              You're on the list.
             </div>
-            <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 14, color: 'rgba(255,255,255,0.5)', lineHeight: 1.6, marginBottom: 4 }}>
-              {headerSubtitle}
+            <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 14, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7, marginBottom: 28 }}>
+              We'll email you the moment Pro payments go live — you'll be first in.
             </p>
-            {trigger === 'limit' && (
-              <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>
-                Pro costs less than 0.002% of the average Canadian home purchase.
-              </p>
-            )}
+            <button onClick={onClose} style={ctaStyle(true)}>Back to my report</button>
           </div>
-
-          {/* Annual toggle */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 24 }}>
-            <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 13, color: annual ? 'rgba(255,255,255,0.35)' : '#fff' }}>Monthly</span>
-            <button
-              onClick={() => setAnnual(a => !a)}
-              aria-label="Toggle annual billing"
-              aria-pressed={annual}
-              style={{
-                width: 48, height: 26, borderRadius: 13, border: 'none', cursor: 'pointer', position: 'relative',
-                background: annual ? 'linear-gradient(90deg, #38bdf8, #818cf8)' : 'rgba(255,255,255,0.15)',
-                transition: 'background 0.25s ease', flexShrink: 0,
-              }}
-            >
-              <div style={{
-                position: 'absolute', top: 3, left: annual ? 25 : 3,
-                width: 20, height: 20, borderRadius: '50%', background: '#fff',
-                transition: 'left 0.25s ease',
-              }} />
-            </button>
-            <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 13, color: annual ? '#fff' : 'rgba(255,255,255,0.35)' }}>
-              Annual
-              <span style={{ marginLeft: 6, background: 'rgba(56,189,248,0.15)', border: '1px solid rgba(56,189,248,0.3)', borderRadius: 20, padding: '2px 8px', fontSize: 11, color: '#38bdf8' }}>Save 35%</span>
-            </span>
-          </div>
-
-          {/* Plan cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 20 }}>
-
-            {/* Free */}
-            <div style={{
-              borderRadius: 18, padding: 20,
-              background: 'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)',
-              border: '1px solid rgba(255,255,255,0.07)',
-            }}>
-              <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 20, color: 'rgba(255,255,255,0.8)', marginBottom: 2 }}>Free</div>
-              <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 14 }}>No credit card required</div>
-              <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 32, color: 'rgba(255,255,255,0.7)' }}>$0</span>
-                <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.35)', marginLeft: 4 }}>/month</span>
+        ) : (
+          <>
+            {/* ── Hook ── */}
+            <div style={{ marginBottom: 24 }}>
+              {section?.icon && (
+                <div style={{ fontSize: 36, marginBottom: 12 }}>{section.icon}</div>
+              )}
+              <div
+                id="paywall-title"
+                style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(1.3rem,4vw,1.7rem)', color: '#fff', lineHeight: 1.2, marginBottom: subhook ? 10 : 0 }}
+              >
+                {hook}
               </div>
-              {PRICING_FREE.map(f => (
-                <div key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 7, marginBottom: 7 }}>
-                  <span style={{ fontSize: 11, color: '#4ade80', flexShrink: 0, marginTop: 1 }}>✓</span>
-                  <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.55)', lineHeight: 1.4 }}>{f}</span>
-                </div>
-              ))}
+              {subhook && (
+                <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.6, marginTop: 8 }}>
+                  {subhook}
+                </p>
+              )}
             </div>
 
-            {/* Pro */}
-            <div style={{
-              borderRadius: 18, padding: 20, position: 'relative',
-              background: 'linear-gradient(135deg, rgba(255,255,255,0.13) 0%, rgba(255,255,255,0.06) 100%)',
-              border: '1px solid rgba(255,255,255,0.2)',
-              boxShadow: '0 16px 48px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.12)',
-            }}>
-              <div style={{
-                position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)',
-                background: 'linear-gradient(90deg, #38bdf8, #818cf8)',
-                borderRadius: 20, padding: '3px 14px',
-                fontFamily: "'Barlow',sans-serif", fontWeight: 700, fontSize: 10,
-                color: '#000', whiteSpace: 'nowrap', letterSpacing: '0.06em', textTransform: 'uppercase',
-              }}>Most Popular</div>
-              <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 20, color: '#fff', marginBottom: 2 }}>Pro</div>
-              <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 14 }}>
-                {annual ? 'Billed $226/year — cancel anytime' : 'Everything in Free, plus the full picture'}
-              </div>
-              <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 32, color: '#fff' }}>${displayPrice}</span>
-                <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.4)', marginLeft: 4 }}>{annual ? '/mo' : '/month'}</span>
-              </div>
-              {PRICING_PRO.map(f => (
-                <div key={f.text} style={{ display: 'flex', alignItems: 'flex-start', gap: 7, marginBottom: 7 }}>
-                  <div style={{
-                    width: 14, height: 14, borderRadius: '50%', flexShrink: 0, marginTop: 1,
-                    background: f.highlight ? 'rgba(56,189,248,0.15)' : 'rgba(255,255,255,0.06)',
-                    border: f.highlight ? '1px solid rgba(56,189,248,0.4)' : '1px solid rgba(255,255,255,0.1)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    <span style={{ fontSize: 8, color: f.highlight ? '#38bdf8' : 'rgba(255,255,255,0.4)' }}>✓</span>
+            {/* ── Pro features ── */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 24 }}>
+              {PRO_FEATURES.map((f, i) => (
+                <div
+                  key={f.title}
+                  className="liquid-glass"
+                  style={{
+                    borderRadius: 14, padding: '12px 16px',
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    border: i === highlightIdx
+                      ? '1px solid rgba(56,189,248,0.35)'
+                      : '1px solid rgba(255,255,255,0.06)',
+                    background: i === highlightIdx ? 'rgba(56,189,248,0.06)' : undefined,
+                  }}
+                >
+                  <span style={{ fontSize: 18, flexShrink: 0 }}>{f.icon}</span>
+                  <div>
+                    <div style={{
+                      fontFamily: "'Barlow',sans-serif", fontWeight: 500, fontSize: 13,
+                      color: i === highlightIdx ? '#38bdf8' : '#fff', marginBottom: 2,
+                    }}>{f.title}</div>
+                    <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.4 }}>{f.desc}</div>
                   </div>
-                  <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: f.highlight ? 400 : 300, fontSize: 11, color: f.highlight ? '#fff' : 'rgba(255,255,255,0.6)', lineHeight: 1.4 }}>{f.text}</span>
+                  {i === highlightIdx && (
+                    <div style={{ marginLeft: 'auto', flexShrink: 0, background: 'rgba(56,189,248,0.15)', border: '1px solid rgba(56,189,248,0.3)', borderRadius: 20, padding: '2px 8px', fontSize: 9, color: '#38bdf8', fontFamily: "'Barlow',sans-serif", fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      Unlocks
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
-          </div>
 
-          {/* CTA */}
-          <button
-            onClick={() => setShowStripe(true)}
-            onMouseEnter={() => setHovUpgrade(true)}
-            onMouseLeave={() => setHovUpgrade(false)}
-            style={{
-              width: '100%', padding: '15px', borderRadius: 40, border: 'none', cursor: 'pointer',
-              fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 15,
-              background: hovUpgrade ? 'rgba(255,255,255,0.92)' : '#fff',
-              color: '#000', transition: 'background 0.2s, transform 0.15s',
-              transform: hovUpgrade ? 'scale(1.01)' : 'scale(1)',
-              marginBottom: 10,
-            }}
-          >
-            {annual ? `Upgrade to Pro — $226/year →` : `Upgrade to Pro — $29/month →`}
-          </button>
+            {/* ── Billing toggle ── */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, background: 'rgba(255,255,255,0.04)', borderRadius: 12, padding: '10px 14px' }}>
+              <button
+                onClick={() => setAnnual(false)}
+                style={{ flex: 1, padding: '8px', borderRadius: 8, border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontSize: 13, fontWeight: 500, transition: 'background 0.2s, color 0.2s', background: !annual ? '#fff' : 'transparent', color: !annual ? '#000' : 'rgba(255,255,255,0.4)' }}
+              >
+                Monthly
+              </button>
+              <button
+                onClick={() => setAnnual(true)}
+                style={{ flex: 1, padding: '8px', borderRadius: 8, border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontSize: 13, fontWeight: 500, transition: 'background 0.2s, color 0.2s', background: annual ? '#fff' : 'transparent', color: annual ? '#000' : 'rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+              >
+                Annual
+                <span style={{ background: annual ? 'rgba(56,189,248,0.15)' : 'rgba(255,255,255,0.08)', border: `1px solid ${annual ? 'rgba(56,189,248,0.4)' : 'rgba(255,255,255,0.1)'}`, borderRadius: 20, padding: '1px 6px', fontSize: 9, color: annual ? '#38bdf8' : 'rgba(255,255,255,0.3)', fontWeight: 600 }}>
+                  −35%
+                </span>
+              </button>
+            </div>
 
-          <div style={{ textAlign: 'center', marginBottom: 6 }}>
-            <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 12, color: 'rgba(74,222,128,0.7)', fontWeight: 300 }}>
-              ✓ Cancel anytime · No long-term commitment
-            </span>
-          </div>
+            {/* ── Price ── */}
+            <div style={{ textAlign: 'center', marginBottom: 16 }}>
+              <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 44, color: '#fff', lineHeight: 1 }}>${displayPrice}</span>
+              <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.4)', marginLeft: 6 }}>{priceSuffix}</span>
+            </div>
 
-          <button
-            onClick={onClose}
-            aria-label="Close upgrade prompt"
-            style={{
-              display: 'block', width: '100%', padding: '10px', background: 'none', border: 'none',
-              cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13,
-              color: 'rgba(255,255,255,0.3)', transition: 'color 0.2s',
-            }}
-            onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.6)'}
-            onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.3)'}
-          >
-            Maybe later
-          </button>
-        </div>
+            {/* ── CTA ── */}
+            <form onSubmit={handleNotify} style={{ marginBottom: 10 }}>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  required
+                  style={{
+                    flex: 1, padding: '13px 16px', borderRadius: 40,
+                    background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)',
+                    color: '#fff', fontFamily: "'Barlow',sans-serif", fontSize: 14, outline: 'none',
+                  }}
+                  onFocus={e => e.target.style.borderColor = 'rgba(255,255,255,0.3)'}
+                  onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.12)'}
+                />
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  style={ctaStyle(submitting, false)}
+                >
+                  {submitting ? '...' : `Get Pro →`}
+                </button>
+              </div>
+              <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.25)', textAlign: 'center', lineHeight: 1.5 }}>
+                Stripe payments launching shortly — drop your email and you'll be first to unlock Pro.
+              </p>
+            </form>
+
+            <div style={{ textAlign: 'center', marginBottom: 8 }}>
+              <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(74,222,128,0.6)', fontWeight: 300 }}>
+                ✓ Cancel anytime &nbsp;·&nbsp; No long-term commitment
+              </span>
+            </div>
+
+            <button
+              onClick={onClose}
+              style={{
+                display: 'block', width: '100%', padding: '10px', background: 'none', border: 'none',
+                cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13,
+                color: 'rgba(255,255,255,0.28)', transition: 'color 0.2s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.55)'}
+              onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.28)'}
+            >
+              Continue on free
+            </button>
+          </>
+        )}
       </div>
-    </>
+    </div>
   )
+}
+
+function ctaStyle(disabled, full = true) {
+  return {
+    ...(full ? { width: '100%' } : {}),
+    padding: '13px 22px', borderRadius: 40, border: 'none',
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 14,
+    background: disabled ? 'rgba(255,255,255,0.08)' : '#fff',
+    color: disabled ? 'rgba(255,255,255,0.3)' : '#000',
+    transition: 'background 0.2s',
+    whiteSpace: 'nowrap',
+  }
 }
