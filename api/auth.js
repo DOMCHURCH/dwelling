@@ -186,7 +186,7 @@ async function sendResetEmail(toEmail, resetToken) {
 export default async function handler(req, res) {
   // CORS — locked to production domain only
   const origin = req.headers.origin || ''
-  if (origin === ALLOWED_ORIGIN || process.env.NODE_ENV === 'development') {
+  if (origin === ALLOWED_ORIGIN) {
     res.setHeader('Access-Control-Allow-Origin', origin || ALLOWED_ORIGIN)
   }
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
@@ -430,6 +430,7 @@ export default async function handler(req, res) {
       // Rotate: delete old refresh token, issue new pair
       await getRedis().del(`rt:${refreshToken}`)
       const claims = typeof stored === 'string' ? JSON.parse(stored) : stored
+      if (!claims?.email || !claims?.sub) return res.status(401).json({ error: 'Invalid refresh token.' })
       const { accessToken, refreshToken: newRt } = await issueTokenPair(claims)
       return res.status(200).json({ token: accessToken, refreshToken: newRt })
     }

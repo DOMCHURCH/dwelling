@@ -6,7 +6,7 @@ const SECRET = process.env.AUTH_SECRET
 if (!SECRET) throw new Error('FATAL: AUTH_SECRET env var is not set. Refusing to start.')
 
 const FREE_LIMIT = 10
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '').split(',').filter(Boolean)
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
 const ALLOWED_ORIGIN = 'https://dwelling-three.vercel.app'
 
 function getDb() {
@@ -73,7 +73,7 @@ function decryptKey(encryptedHex, ivHex) {
 export default async function handler(req, res) {
   // CORS — locked to production domain
   const origin = req.headers.origin || ''
-  if (origin === ALLOWED_ORIGIN || process.env.NODE_ENV === 'development') {
+  if (origin === ALLOWED_ORIGIN) {
     res.setHeader('Access-Control-Allow-Origin', origin || ALLOWED_ORIGIN)
   }
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
@@ -142,10 +142,11 @@ export default async function handler(req, res) {
 
   // 3. Admin bypass
   if (isAdmin) {
+    const { model, messages, temperature, max_tokens, stream } = req.body
     const r = await fetch('https://api.cerebras.ai/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify(req.body),
+      body: JSON.stringify({ model, messages, temperature, max_tokens, stream }),
     })
     const data = await r.json()
     return res.status(r.status).json(data)
@@ -179,10 +180,11 @@ export default async function handler(req, res) {
   }
 
   // 7. Call Cerebras
+  const { model, messages, temperature, max_tokens, stream } = req.body
   const r = await fetch('https://api.cerebras.ai/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-    body: JSON.stringify(req.body),
+    body: JSON.stringify({ model, messages, temperature, max_tokens, stream }),
   })
   const data = await r.json()
 
