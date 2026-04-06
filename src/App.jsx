@@ -380,7 +380,7 @@ function Hero({ onSearch, loading, onShowDemo }) {
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
         <div style={{ position: 'absolute', inset: 0, backgroundImage: 'url(/hero-sky.jpg)', backgroundSize: 'cover', backgroundPosition: 'center 60%' }} />
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '55%', backgroundImage: 'url(/hero-far.webp)', backgroundSize: '80% auto', backgroundPosition: 'center bottom', backgroundRepeat: 'no-repeat', mixBlendMode: 'multiply' }} />
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '65%', backgroundImage: 'url(/hero-near.jpg)', backgroundSize: 'cover', backgroundPosition: 'center bottom' }} />
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '80%', backgroundImage: 'url(/hero-near.jpg)', backgroundSize: 'cover', backgroundPosition: 'center 70%' }} />
       </div>
 
       {/* Bottom gradient — fades into page */}
