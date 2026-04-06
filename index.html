@@ -10,6 +10,9 @@
     <!-- Primary meta -->
     <title>Dwelling — Know Your Neighbourhood Before You Buy</title>
     <meta name="description" content="AI-powered Canadian city intelligence. Get a stability score, market temperature, investment verdict, climate risk, and school ratings for any Canadian city — in 30 seconds. Free to start." />
+    <meta name="robots" content="index, follow" />
+    <meta name="author" content="Dwelling" />
+    <meta name="theme-color" content="#000000" />
 
     <!-- Open Graph (Facebook, WhatsApp, iMessage previews) -->
     <meta property="og:type" content="website" />
@@ -20,6 +23,7 @@
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:site_name" content="Dwelling" />
+    <meta property="og:locale" content="en_CA" />
 
     <!-- Twitter / X card -->
     <meta name="twitter:card" content="summary_large_image" />
@@ -75,6 +79,40 @@
     <!-- Preload hero images so they're ready before paint -->
     <link rel="preload" href="/hero-near.jpg" as="image" fetchpriority="high" />
     <link rel="preload" href="/hero-sky.jpg" as="image" />
+
+    <!-- Structured data — helps Google understand this is a real product -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Dwelling",
+      "url": "https://dwelling-three.vercel.app",
+      "description": "AI-powered Canadian city intelligence. Stability score, market verdict, climate risk, school ratings, and investment analysis for any Canadian city in 30 seconds.",
+      "applicationCategory": "RealEstateApplication",
+      "operatingSystem": "Web",
+      "inLanguage": "en-CA",
+      "areaServed": {
+        "@type": "Country",
+        "name": "Canada"
+      },
+      "offers": [
+        {
+          "@type": "Offer",
+          "name": "Free",
+          "price": "0",
+          "priceCurrency": "CAD",
+          "description": "10 analyses per month, neighbourhood scores, area verdict, cost of living breakdown."
+        },
+        {
+          "@type": "Offer",
+          "name": "Pro",
+          "price": "152",
+          "priceCurrency": "CAD",
+          "description": "Unlimited analyses, investment analysis, price history, flood and environmental risk, full neighbourhood detail."
+        }
+      ]
+    }
+    </script>
 
     <!-- GA4 loaded only after cookie consent (see CookieBanner.jsx) — PIPEDA/Quebec Law 25 compliant -->
 
