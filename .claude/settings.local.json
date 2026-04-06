@@ -27,7 +27,9 @@
       "Bash(rm hero-near-opt.jpg hero-sky-opt.jpg hero-far-opt.png hero-far-opt.webp)",
       "Bash(npm install:*)",
       "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\({**d.get\\('dependencies',{}\\), **d.get\\('devDependencies',{}\\)}, indent=2\\)\\)\")",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git pull:*)",
+      "Bash(git stash:*)"
     ]
   },
   "hooks": {
