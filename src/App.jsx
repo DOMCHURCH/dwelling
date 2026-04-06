@@ -802,15 +802,15 @@ const PRICING_FREE = [
   'Area Market Estimate',
   'Walkability & school scores',
   'Full Neighbourhood detail & safety',
-  '🔑 Connect your own API key for more analyses',
+  'Connect your own API key for more analyses',
 ]
 const PRICING_PRO = [
-  { text: 'Virtually unlimited analyses — way more than you\'ll need', highlight: false },
+  { text: 'Virtually unlimited analyses', highlight: false },
   { text: 'Investment Analysis & ROI score', highlight: true },
   { text: 'Environmental & flood risk detection', highlight: true },
   { text: 'Price history & market projections', highlight: true },
   { text: 'Side-by-side city comparison', highlight: true },
-  { text: '🔑 Own API key — unlimited capacity, full privacy', highlight: true },
+  { text: 'Own API key — zero platform limits, full privacy', highlight: true },
   { text: 'Priority support', highlight: false },
 ]
 
@@ -860,7 +860,7 @@ function PricingCard({ plan, price, desc, features, cta, onCta, popular, highlig
           const text = typeof f === 'string' ? f : f.text
           const hl = typeof f === 'object' && f.highlight
           return (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 11 }}>
+            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 11 }}>
               <div style={{
                 width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
                 background: hl ? 'rgba(56,189,248,0.15)' : 'rgba(255,255,255,0.06)',
@@ -899,7 +899,7 @@ function PricingCard({ plan, price, desc, features, cta, onCta, popular, highlig
 
       {popular && (
         <div style={{ textAlign: 'center', marginTop: 10 }}>
-          <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.25)', fontWeight: 300 }}>Cancel anytime · No refunds</span>
+          <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.25)', fontWeight: 300 }}>Cancel anytime</span>
         </div>
       )}
     </div>
