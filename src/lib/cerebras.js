@@ -179,6 +179,49 @@ function buildRiskContext(realData) {
   return lines.length > 1 ? lines.join('\n') : ''
 }
 
+// Shared helper — builds a price history anchored to the given value so the
+// chart always matches the headline estimate. Used by both area mode and
+// property mode to prevent AI-generated history from drifting off the estimate.
+function buildPriceHistory(val, city, country, currency, currencySymbol, existingMarketNote) {
+  const isCanada = country.toLowerCase().includes('canada')
+  const isUK = country.toLowerCase().includes('united kingdom')
+  const cityLower = city.toLowerCase()
+  let multipliers
+  if (isCanada && (cityLower.includes('toronto') || cityLower.includes('vancouver'))) {
+    multipliers = { 2019: 0.68, 2020: 0.72, 2021: 0.88, 2022: 0.98, 2023: 0.87, 2024: 0.94, 2025: 1.0, 2026: 1.03, 2027: 1.06 }
+  } else if (isCanada && cityLower.includes('ottawa')) {
+    multipliers = { 2019: 0.72, 2020: 0.78, 2021: 0.90, 2022: 0.97, 2023: 0.91, 2024: 0.96, 2025: 1.0, 2026: 1.03, 2027: 1.06 }
+  } else if (isCanada && cityLower.includes('calgary')) {
+    multipliers = { 2019: 0.82, 2020: 0.80, 2021: 0.88, 2022: 0.98, 2023: 0.97, 2024: 1.01, 2025: 1.0, 2026: 1.04, 2027: 1.08 }
+  } else if (isCanada) {
+    multipliers = { 2019: 0.72, 2020: 0.76, 2021: 0.89, 2022: 0.97, 2023: 0.90, 2024: 0.95, 2025: 1.0, 2026: 1.03, 2027: 1.06 }
+  } else if (isUK && cityLower.includes('london')) {
+    multipliers = { 2019: 0.90, 2020: 0.88, 2021: 0.94, 2022: 1.02, 2023: 0.95, 2024: 0.97, 2025: 1.0, 2026: 1.03, 2027: 1.06 }
+  } else if (isUK) {
+    multipliers = { 2019: 0.85, 2020: 0.85, 2021: 0.93, 2022: 1.03, 2023: 0.96, 2024: 0.98, 2025: 1.0, 2026: 1.03, 2027: 1.06 }
+  } else if (cityLower.includes('austin') || cityLower.includes('phoenix') || cityLower.includes('tampa')) {
+    multipliers = { 2019: 0.58, 2020: 0.64, 2021: 0.82, 2022: 1.05, 2023: 0.93, 2024: 0.96, 2025: 1.0, 2026: 1.04, 2027: 1.07 }
+  } else if (cityLower.includes('new york') || cityLower.includes('san francisco') || cityLower.includes('los angeles') || cityLower.includes('boston') || cityLower.includes('seattle')) {
+    multipliers = { 2019: 0.82, 2020: 0.83, 2021: 0.93, 2022: 1.02, 2023: 0.95, 2024: 0.98, 2025: 1.0, 2026: 1.03, 2027: 1.06 }
+  } else if (cityLower.includes('miami') || cityLower.includes('fort lauderdale') || cityLower.includes('naples')) {
+    multipliers = { 2019: 0.62, 2020: 0.68, 2021: 0.84, 2022: 1.06, 2023: 1.01, 2024: 1.00, 2025: 1.0, 2026: 1.03, 2027: 1.06 }
+  } else if (cityLower.includes('sydney') || cityLower.includes('melbourne') || cityLower.includes('brisbane')) {
+    multipliers = { 2019: 0.82, 2020: 0.80, 2021: 0.92, 2022: 1.04, 2023: 0.94, 2024: 1.00, 2025: 1.0, 2026: 1.04, 2027: 1.08 }
+  } else {
+    multipliers = { 2019: 0.75, 2020: 0.78, 2021: 0.90, 2022: 1.02, 2023: 0.96, 2024: 0.98, 2025: 1.0, 2026: 1.03, 2027: 1.06 }
+  }
+  return {
+    currency,
+    currencySymbol,
+    marketNote: existingMarketNote || `${city} real estate experienced the broader pandemic-era boom and subsequent correction, with prices now stabilizing and modest growth expected.`,
+    data: Object.entries(multipliers).map(([year, mult]) => ({
+      year: parseInt(year),
+      value: Math.round(val * mult),
+      type: parseInt(year) >= 2025 ? 'projected' : 'historical',
+    })),
+  }
+}
+
 function finalizeAnalysis(est, known, realData, currency, currencySymbol, city, country) {
   // Use market database as a sanity check on the AI estimate
   const marketDb = getMarketData(city, country)
@@ -276,59 +319,9 @@ function finalizeAnalysis(est, known, realData, currency, currencySymbol, city, 
     est.neighborhood.schoolRating = realData.neighborhoodScores.schoolScore
   }
 
-  // Build a city-aware price history using the final estimated value as anchor
+  // Build a city-aware price history anchored to the final estimated value
   if (val != null && val > 0) {
-    const isCanada = country.toLowerCase().includes('canada')
-    const isUK = country.toLowerCase().includes('united kingdom')
-    const cityLower = city.toLowerCase()
-
-    // City-specific historical multipliers (relative to 2025 = 1.0)
-    // These reflect actual market cycles for major cities
-    let multipliers
-
-    if (isCanada && (cityLower.includes('toronto') || cityLower.includes('vancouver'))) {
-      // Big Canadian cities: huge COVID boom, sharp correction, slow recovery
-      multipliers = { 2019: 0.68, 2020: 0.72, 2021: 0.88, 2022: 0.98, 2023: 0.87, 2024: 0.94, 2025: 1.0, 2026: 1.03, 2027: 1.06 }
-    } else if (isCanada && cityLower.includes('ottawa')) {
-      // Ottawa: more stable, less volatile
-      multipliers = { 2019: 0.72, 2020: 0.78, 2021: 0.90, 2022: 0.97, 2023: 0.91, 2024: 0.96, 2025: 1.0, 2026: 1.03, 2027: 1.06 }
-    } else if (isCanada && cityLower.includes('calgary')) {
-      // Calgary: energy sector driven, different cycle
-      multipliers = { 2019: 0.82, 2020: 0.80, 2021: 0.88, 2022: 0.98, 2023: 0.97, 2024: 1.01, 2025: 1.0, 2026: 1.04, 2027: 1.08 }
-    } else if (isCanada) {
-      // Generic Canada
-      multipliers = { 2019: 0.72, 2020: 0.76, 2021: 0.89, 2022: 0.97, 2023: 0.90, 2024: 0.95, 2025: 1.0, 2026: 1.03, 2027: 1.06 }
-    } else if (isUK && cityLower.includes('london')) {
-      multipliers = { 2019: 0.90, 2020: 0.88, 2021: 0.94, 2022: 1.02, 2023: 0.95, 2024: 0.97, 2025: 1.0, 2026: 1.03, 2027: 1.06 }
-    } else if (isUK) {
-      multipliers = { 2019: 0.85, 2020: 0.85, 2021: 0.93, 2022: 1.03, 2023: 0.96, 2024: 0.98, 2025: 1.0, 2026: 1.03, 2027: 1.06 }
-    } else if (cityLower.includes('austin') || cityLower.includes('phoenix') || cityLower.includes('tampa')) {
-      // Sun Belt: huge boom, significant correction
-      multipliers = { 2019: 0.58, 2020: 0.64, 2021: 0.82, 2022: 1.05, 2023: 0.93, 2024: 0.96, 2025: 1.0, 2026: 1.04, 2027: 1.07 }
-    } else if (cityLower.includes('new york') || cityLower.includes('san francisco') || cityLower.includes('los angeles') || cityLower.includes('boston') || cityLower.includes('seattle')) {
-      // Expensive coastal US: smaller swings
-      multipliers = { 2019: 0.82, 2020: 0.83, 2021: 0.93, 2022: 1.02, 2023: 0.95, 2024: 0.98, 2025: 1.0, 2026: 1.03, 2027: 1.06 }
-    } else if (cityLower.includes('miami') || cityLower.includes('fort lauderdale') || cityLower.includes('naples')) {
-      // Florida: strong demand, less correction
-      multipliers = { 2019: 0.62, 2020: 0.68, 2021: 0.84, 2022: 1.06, 2023: 1.01, 2024: 1.00, 2025: 1.0, 2026: 1.03, 2027: 1.06 }
-    } else if (cityLower.includes('sydney') || cityLower.includes('melbourne') || cityLower.includes('brisbane')) {
-      // Australia: strong recovery
-      multipliers = { 2019: 0.82, 2020: 0.80, 2021: 0.92, 2022: 1.04, 2023: 0.94, 2024: 1.00, 2025: 1.0, 2026: 1.04, 2027: 1.08 }
-    } else {
-      // Generic US/international: moderate cycle
-      multipliers = { 2019: 0.75, 2020: 0.78, 2021: 0.90, 2022: 1.02, 2023: 0.96, 2024: 0.98, 2025: 1.0, 2026: 1.03, 2027: 1.06 }
-    }
-
-    est.priceHistory = {
-      currency,
-      currencySymbol,
-      marketNote: est.priceHistory?.marketNote || `${city} real estate experienced the broader pandemic-era boom and subsequent correction, with prices now stabilizing and modest growth expected.`,
-      data: Object.entries(multipliers).map(([year, mult]) => ({
-        year: parseInt(year),
-        value: Math.round(val * mult),
-        type: parseInt(year) >= 2025 ? 'projected' : 'historical',
-      })),
-    }
+    est.priceHistory = buildPriceHistory(val, city, country, currency, currencySymbol, est.priceHistory?.marketNote)
   }
 
   // Strip any placeholder text the AI might have returned
@@ -546,9 +539,19 @@ Be specific, honest, and evidence-based. End with: READY_FOR_JSON`
     if (areaResult.investment?.investmentSummary) areaResult.investmentSummary = areaResult.investment.investmentSummary
     if (areaResult.costOfLiving?.summary) areaResult.costOfLivingSummary = areaResult.costOfLiving.summary
 
-    areaResult.priceHistory = areaResult.priceHistory || {}
-    areaResult.priceHistory.currencySymbol = currencySymbol
-    areaResult.priceHistory.currency = currency
+    // Rebuild price history anchored to the actual estimate so chart matches
+    // headline figure — AI-generated history often drifts from the estimate
+    const areaVal = areaResult.propertyEstimate.estimatedValueUSD
+    if (areaVal && areaVal > 0) {
+      areaResult.priceHistory = buildPriceHistory(
+        areaVal, city, country, currency, currencySymbol,
+        areaResult.priceHistory?.marketNote
+      )
+    } else {
+      areaResult.priceHistory = areaResult.priceHistory || {}
+      areaResult.priceHistory.currencySymbol = currencySymbol
+      areaResult.priceHistory.currency = currency
+    }
 
     return areaResult
   }
