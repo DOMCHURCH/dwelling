@@ -42,7 +42,9 @@
       "Bash(cp /c/Users/Dominique/Downloads/favicon_extracted/favicon-96x96.png /c/Users/Dominique/dwelling/public/)",
       "Bash(cp /c/Users/Dominique/Downloads/favicon_extracted/favicon.ico /c/Users/Dominique/dwelling/public/)",
       "Bash(cp /c/Users/Dominique/Downloads/favicon_extracted/site.webmanifest /c/Users/Dominique/dwelling/public/)",
-      "Bash(cp /c/Users/Dominique/Downloads/favicon_extracted/web-app-manifest-192x192.png /c/Users/Dominique/dwelling/public/)"
+      "Bash(cp /c/Users/Dominique/Downloads/favicon_extracted/web-app-manifest-192x192.png /c/Users/Dominique/dwelling/public/)",
+      "Bash(npm audit:*)",
+      "Bash(grep:*)"
     ]
   },
   "hooks": {
