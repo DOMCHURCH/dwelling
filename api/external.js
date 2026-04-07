@@ -8,7 +8,7 @@ const CENSUS_KEY = process.env.CENSUS_API_KEY ?? ''
 const HUD_BASE = 'https://www.huduser.gov/hudapi/public'
 const CENSUS_BASE = 'https://api.census.gov/data'
 const GEOCODER_BASE = 'https://geocoding.geo.census.gov/geocoder'
-const ALLOWED_ORIGIN = 'https://dwelling.one'
+const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'https://dwelling.one'
 
 // ── HUD Fair Market Rent ──────────────────────────────────────────────────────
 async function getFairMarketRent(zipCode) {
