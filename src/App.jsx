@@ -1861,23 +1861,21 @@ function ApiKeyModal({ currentKey, onSave, onClose, isOnboarding = false }) {
 }
 
 // ─── ADMIN TEST PANEL ────────────────────────────────────────────────────────
-function AdminTestPanel({ onProChange }) {
-  const [email, setEmail] = useState('')
+function AdminTestPanel({ email, onProChange }) {
   const [status, setStatus] = useState(null)
   const [busy, setBusy] = useState(false)
 
   const act = async (grant) => {
-    if (!email.trim()) return
     setBusy(true); setStatus(null)
     try {
       const token = await getAuthToken()
       const res = await fetch('/api/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ action: 'admin-grant-pro', targetEmail: email.trim(), grant }),
+        body: JSON.stringify({ action: 'admin-grant-pro', targetEmail: email, grant }),
       })
       const data = await res.json()
-      setStatus(res.ok ? `${grant ? 'Granted' : 'Revoked'} Pro for ${data.email}` : (data.error || 'Error'))
+      setStatus(res.ok ? `${grant ? 'Granted' : 'Revoked'} Pro` : (data.error || 'Error'))
       if (res.ok) onProChange?.()
     } catch (e) { setStatus(e.message) }
     setBusy(false)
@@ -1885,14 +1883,8 @@ function AdminTestPanel({ onProChange }) {
 
   return (
     <div className="liquid-glass" style={{ borderRadius: 14, padding: '10px 14px', marginBottom: 14 }}>
-      <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 8 }}>⚡ Admin: Manage Pro</span>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-        <input
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          placeholder="user@email.com"
-          style={{ flex: 1, minWidth: 180, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '6px 10px', color: '#fff', fontFamily: "'Barlow',sans-serif", fontSize: 12, outline: 'none' }}
-        />
+        <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.08em', flex: 1 }}>⚡ Admin: Pro Status</span>
         <button onClick={() => act(true)} disabled={busy} style={{ borderRadius: 8, padding: '6px 12px', fontSize: 11, fontFamily: "'Barlow',sans-serif", fontWeight: 600, border: 'none', cursor: 'pointer', background: '#4ade80', color: '#000', opacity: busy ? 0.6 : 1 }}>+ Grant</button>
         <button onClick={() => act(false)} disabled={busy} style={{ borderRadius: 8, padding: '6px 12px', fontSize: 11, fontFamily: "'Barlow',sans-serif", fontWeight: 600, border: 'none', cursor: 'pointer', background: '#f87171', color: '#000', opacity: busy ? 0.6 : 1 }}>− Revoke</button>
       </div>
@@ -2276,7 +2268,7 @@ export default function App() {
                     ))}
                     <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.2)', marginLeft: 'auto' }}>Admin only</span>
                   </div>
-                  <AdminTestPanel onProChange={loadUserRecord} />
+                  <AdminTestPanel email={user?.email} onProChange={loadUserRecord} />
                 </>
               )}
               <AddressSearch onSearch={handleSearch} loading={loading} compact />
