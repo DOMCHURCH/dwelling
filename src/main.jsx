@@ -15,10 +15,8 @@ Sentry.init({
   environment: import.meta.env.MODE,
   sendDefaultPii: false, // PIPEDA: no automatic IP/PII collection
   tracesSampleRate: 0.2, // capture 20% of transactions for performance monitoring
-  replaysOnErrorSampleRate: 1.0, // full session replay on errors
   integrations: [
     Sentry.browserTracingIntegration(),
-    Sentry.replayIntegration({ maskAllText: true, blockAllMedia: true }),
   ],
 })
 
