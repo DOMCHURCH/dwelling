@@ -3,6 +3,17 @@ import { createClient } from '@libsql/client'
 import { Resend } from 'resend'
 import { hash as argon2Hash, verify as argon2Verify } from '@node-rs/argon2'
 import { signupLimiter, signinLimiter, resetLimiter, apiLimiter, applyLimit, getRedis } from './_ratelimit.js'
+import Stripe from 'stripe'
+
+const STRIPE_SECRET = process.env.STRIPE_SECRET_KEY
+const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET
+const STRIPE_PRICE_ID_MONTHLY = process.env.STRIPE_PRICE_ID_MONTHLY
+const STRIPE_PRICE_ID_ANNUAL = process.env.STRIPE_PRICE_ID_ANNUAL
+
+function getStripe() {
+  if (!STRIPE_SECRET) throw new Error('STRIPE_SECRET_KEY not configured')
+  return new Stripe(STRIPE_SECRET, { apiVersion: '2024-06-20' })
+}
 
 // ─── Startup validation — refuse to run with missing critical secrets ─────────
 const SECRET = process.env.AUTH_SECRET
@@ -486,6 +497,158 @@ export default async function handler(req, res) {
         [notifyEmail.trim().toLowerCase(), new Date().toISOString()]
       )
       return res.status(200).json({ success: true })
+    }
+
+    // ── Stripe: create-checkout ──────────────────────────────────────────────
+    if (action === 'create-checkout') {
+      if (!STRIPE_SECRET) return res.status(503).json({ error: 'Payments not yet configured' })
+      if (await applyLimit(apiLimiter, clientIp, res)) return
+      const authHeader = req.headers.authorization
+      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
+      const payload = verify(authHeader.replace('Bearer ', ''))
+      if (!payload) return res.status(401).json({ error: 'Invalid token' })
+      const { billing = 'monthly' } = req.body
+      const priceId = billing === 'annual' ? STRIPE_PRICE_ID_ANNUAL : STRIPE_PRICE_ID_MONTHLY
+      if (!priceId) return res.status(503).json({ error: 'Stripe price ID not configured' })
+      const stripe = getStripe()
+      const session = await stripe.checkout.sessions.create({
+        mode: 'subscription',
+        customer_email: payload.email,
+        line_items: [{ price: priceId, quantity: 1 }],
+        success_url: `${BASE_URL}/?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${BASE_URL}/?checkout=cancelled`,
+        subscription_data: { metadata: { user_email: payload.email } },
+        metadata: { user_email: payload.email },
+        allow_promotion_codes: true,
+      })
+      return res.status(200).json({ url: session.url })
+    }
+
+    // ── Stripe: verify-checkout ──────────────────────────────────────────────
+    if (action === 'verify-checkout') {
+      if (!STRIPE_SECRET) return res.status(503).json({ error: 'Payments not yet configured' })
+      if (await applyLimit(apiLimiter, clientIp, res)) return
+      const authHeader = req.headers.authorization
+      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
+      const payload = verify(authHeader.replace('Bearer ', ''))
+      if (!payload) return res.status(401).json({ error: 'Invalid token' })
+      const { sessionId } = req.body
+      if (!sessionId || typeof sessionId !== 'string') return res.status(400).json({ error: 'sessionId required' })
+      const stripe = getStripe()
+      const session = await stripe.checkout.sessions.retrieve(sessionId, { expand: ['subscription'] })
+      if (session.payment_status !== 'paid' && session.status !== 'complete') {
+        return res.status(400).json({ error: 'Payment not completed' })
+      }
+      const sessionEmail = (session.customer_email || session.customer_details?.email || '').toLowerCase()
+      if (sessionEmail && sessionEmail !== payload.email.toLowerCase()) {
+        return res.status(403).json({ error: 'Session does not belong to this account' })
+      }
+      const db = getDb()
+      await db.execute({
+        sql: 'UPDATE users SET is_pro = 1, stripe_customer_id = ?, stripe_subscription_id = ? WHERE email = ?',
+        args: [session.customer || null, session.subscription?.id || null, payload.email],
+      })
+      return res.status(200).json({ success: true, is_pro: true })
+    }
+
+    // ── Stripe: cancel-subscription ──────────────────────────────────────────
+    if (action === 'cancel-subscription') {
+      if (!STRIPE_SECRET) return res.status(503).json({ error: 'Payments not yet configured' })
+      if (await applyLimit(apiLimiter, clientIp, res)) return
+      const authHeader = req.headers.authorization
+      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
+      const payload = verify(authHeader.replace('Bearer ', ''))
+      if (!payload) return res.status(401).json({ error: 'Invalid token' })
+      const db = getDb()
+      const subResult = await db.execute({
+        sql: 'SELECT stripe_subscription_id FROM users WHERE email = ?',
+        args: [payload.email],
+      })
+      const subId = subResult.rows[0]?.stripe_subscription_id
+      if (!subId) return res.status(400).json({ error: 'No active subscription found' })
+      const stripe = getStripe()
+      await stripe.subscriptions.update(subId, { cancel_at_period_end: true })
+      return res.status(200).json({ success: true, message: 'Subscription will cancel at end of billing period' })
+    }
+
+    // ── Stripe: portal ────────────────────────────────────────────────────────
+    if (action === 'portal') {
+      if (!STRIPE_SECRET) return res.status(503).json({ error: 'Payments not yet configured' })
+      if (await applyLimit(apiLimiter, clientIp, res)) return
+      const authHeader = req.headers.authorization
+      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
+      const payload = verify(authHeader.replace('Bearer ', ''))
+      if (!payload) return res.status(401).json({ error: 'Invalid token' })
+      const db = getDb()
+      const custResult = await db.execute({
+        sql: 'SELECT stripe_customer_id FROM users WHERE email = ?',
+        args: [payload.email],
+      })
+      const customerId = custResult.rows[0]?.stripe_customer_id
+      if (!customerId) return res.status(400).json({ error: 'No billing account found' })
+      const stripe = getStripe()
+      const portalSession = await stripe.billingPortal.sessions.create({
+        customer: customerId,
+        return_url: BASE_URL,
+      })
+      return res.status(200).json({ url: portalSession.url })
+    }
+
+    // ── Stripe: admin-grant-pro ───────────────────────────────────────────────
+    if (action === 'admin-grant-pro') {
+      const authHeader = req.headers.authorization
+      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
+      const payload = verify(authHeader.replace('Bearer ', ''))
+      if (!payload?.is_admin) return res.status(403).json({ error: 'Admin access required' })
+      const { targetEmail, grant } = req.body
+      if (!targetEmail || typeof targetEmail !== 'string') return res.status(400).json({ error: 'targetEmail required' })
+      const db = getDb()
+      const grantResult = await db.execute({
+        sql: 'UPDATE users SET is_pro = ? WHERE email = ?',
+        args: [grant ? 1 : 0, targetEmail.trim().toLowerCase()],
+      })
+      if (grantResult.rowsAffected === 0) {
+        return res.status(404).json({ error: `No user found with email ${targetEmail}` })
+      }
+      return res.status(200).json({ success: true, granted: !!grant, email: targetEmail.trim().toLowerCase() })
+    }
+
+    // ── Stripe: webhook ───────────────────────────────────────────────────────
+    if (action === 'webhook') {
+      let event = req.body
+      const sig = req.headers['stripe-signature']
+      if (STRIPE_WEBHOOK_SECRET && sig && STRIPE_SECRET) {
+        try {
+          const stripe = getStripe()
+          event = stripe.webhooks.constructEvent(JSON.stringify(req.body), sig, STRIPE_WEBHOOK_SECRET)
+        } catch (err) {
+          console.error(`Stripe webhook sig failed: ${err.message}`)
+          return res.status(400).json({ error: 'Webhook signature invalid' })
+        }
+      }
+      const db = getDb()
+      const type = event.type || ''
+      if (type === 'customer.subscription.created' || type === 'customer.subscription.updated') {
+        const sub = event.data?.object
+        const email = sub?.metadata?.user_email
+        if (email && sub?.status === 'active') {
+          await db.execute({
+            sql: 'UPDATE users SET is_pro = 1, stripe_subscription_id = ? WHERE email = ?',
+            args: [sub.id, email.toLowerCase()],
+          })
+        }
+      }
+      if (type === 'customer.subscription.deleted') {
+        const sub = event.data?.object
+        const email = sub?.metadata?.user_email
+        if (email) {
+          await db.execute({
+            sql: 'UPDATE users SET is_pro = 0, stripe_subscription_id = NULL WHERE email = ?',
+            args: [email.toLowerCase()],
+          })
+        }
+      }
+      return res.status(200).json({ received: true })
     }
 
     return res.status(400).json({ error: 'Unknown action' })

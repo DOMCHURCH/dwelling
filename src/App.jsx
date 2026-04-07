@@ -1871,7 +1871,7 @@ function AdminTestPanel({ onProChange }) {
     setBusy(true); setStatus(null)
     try {
       const token = await getAuthToken()
-      const res = await fetch('/api/stripe', {
+      const res = await fetch('/api/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ action: 'admin-grant-pro', targetEmail: email.trim(), grant }),
@@ -1970,7 +1970,7 @@ export default function App() {
       getAuthToken().then(async token => {
         if (!token) return
         try {
-          const res = await fetch('/api/stripe', {
+          const res = await fetch('/api/auth', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
             body: JSON.stringify({ action: 'verify-checkout', sessionId }),
