@@ -18,7 +18,7 @@ Sentry.init({
   replaysOnErrorSampleRate: 1.0, // full session replay on errors
   integrations: [
     Sentry.browserTracingIntegration(),
-    Sentry.replayIntegration({ maskAllText: false, blockAllMedia: false }),
+    Sentry.replayIntegration({ maskAllText: true, blockAllMedia: true }),
   ],
 })
 

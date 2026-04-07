@@ -1,4 +1,4 @@
-import { createHash, createHmac, randomBytes, createCipheriv, createDecipheriv } from 'crypto'
+import { createHash, createHmac, timingSafeEqual, randomBytes, createCipheriv, createDecipheriv } from 'crypto'
 import { createClient } from '@libsql/client'
 import { Resend } from 'resend'
 import { hash as argon2Hash, verify as argon2Verify } from '@node-rs/argon2'
@@ -144,8 +144,15 @@ async function issueTokenPair(claims) {
 function verify(token) {
   try {
     const [header, body, sig] = token.split('.')
+    if (!header || !body || !sig) return null
+    // Validate algorithm — reject alg:none and unexpected algorithms
+    const headerObj = JSON.parse(Buffer.from(header.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString())
+    if (headerObj.alg !== 'HS256') return null
+    // Constant-time HMAC comparison — prevents timing attacks
     const expected = b64url(createHmac('sha256', SECRET).update(`${header}.${body}`).digest())
-    if (sig !== expected) return null
+    try {
+      if (!timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null
+    } catch { return null } // lengths differ → invalid
     const base64 = body.replace(/-/g, '+').replace(/_/g, '/')
     const payload = JSON.parse(Buffer.from(base64, 'base64').toString())
     if (payload.exp && Date.now() / 1000 > payload.exp) return null
@@ -422,7 +429,9 @@ export default async function handler(req, res) {
 
       let stored
       try {
-        stored = await getRedis().get(`rt:${refreshToken}`)
+        // GETDEL is atomic — eliminates the race condition where two concurrent
+        // requests could both read before either deletes the token.
+        stored = await getRedis().getdel(`rt:${refreshToken}`)
       } catch (e) {
         console.error('auth: Redis unavailable during refresh:', e.message)
         return res.status(503).json({ error: 'Session service temporarily unavailable. Please try again.' })
@@ -430,8 +439,6 @@ export default async function handler(req, res) {
 
       if (!stored) return res.status(401).json({ error: 'Session expired. Please sign in again.' })
 
-      // Rotate: delete old refresh token, issue new pair
-      await getRedis().del(`rt:${refreshToken}`)
       const claims = typeof stored === 'string' ? JSON.parse(stored) : stored
       if (!claims?.email || !claims?.sub) return res.status(401).json({ error: 'Invalid refresh token.' })
       const { accessToken, refreshToken: newRt } = await issueTokenPair(claims)
@@ -450,7 +457,7 @@ export default async function handler(req, res) {
     if (action === 'notify-pro') {
       if (await applyLimit(apiLimiter, clientIp, res)) return
       const { email: notifyEmail } = req.body
-      if (!notifyEmail || typeof notifyEmail !== 'string' || !notifyEmail.includes('@')) {
+      if (!notifyEmail || typeof notifyEmail !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(notifyEmail)) {
         return res.status(400).json({ error: 'Invalid email.' })
       }
       const db = getDb()

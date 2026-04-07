@@ -1,4 +1,4 @@
-import { createHmac, createDecipheriv } from 'crypto'
+import { createHmac, timingSafeEqual, createDecipheriv } from 'crypto'
 import { createClient } from '@libsql/client'
 
 // ─── Startup validation ───────────────────────────────────────────────────────
@@ -23,8 +23,15 @@ function b64url(buf) {
 function verifyToken(token) {
   try {
     const [header, body, sig] = token.split('.')
+    if (!header || !body || !sig) return null
+    // Reject alg:none and unexpected algorithms
+    const headerObj = JSON.parse(Buffer.from(header.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString())
+    if (headerObj.alg !== 'HS256') return null
+    // Constant-time comparison — prevents timing attacks
     const expected = b64url(createHmac('sha256', SECRET).update(`${header}.${body}`).digest())
-    if (sig !== expected) return null
+    try {
+      if (!timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null
+    } catch { return null }
     const base64 = body.replace(/-/g, '+').replace(/_/g, '/')
     const payload = JSON.parse(Buffer.from(base64, 'base64').toString())
     if (payload.exp && Date.now() / 1000 > payload.exp) return null

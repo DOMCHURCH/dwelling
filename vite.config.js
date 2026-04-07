@@ -6,6 +6,7 @@ export default defineConfig({
   build: {
     target: 'es2020',
     cssCodeSplit: true,
+    sourcemap: false,
     minify: 'esbuild',
     // Inline small assets as base64 up to 4KB — avoids extra round-trips for icons/tiny images
     assetsInlineLimit: 4096,
