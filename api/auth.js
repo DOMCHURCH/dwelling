@@ -2,7 +2,7 @@ import { createHash, createHmac, randomBytes, createCipheriv, createDecipheriv }
 import { createClient } from '@libsql/client'
 import { Resend } from 'resend'
 import { hash as argon2Hash, verify as argon2Verify } from '@node-rs/argon2'
-import { signupLimiter, signinLimiter, resetLimiter, applyLimit, getRedis } from './_ratelimit.js'
+import { signupLimiter, signinLimiter, resetLimiter, apiLimiter, applyLimit, getRedis } from './_ratelimit.js'
 
 // ─── Startup validation — refuse to run with missing critical secrets ─────────
 const SECRET = process.env.AUTH_SECRET
@@ -334,6 +334,7 @@ export default async function handler(req, res) {
 
     // ── save-key ────────────────────────────────────────────────────────────
     if (action === 'save-key') {
+      if (await applyLimit(apiLimiter, clientIp, res)) return
       const authHeader = req.headers.authorization
       if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
       const payload = verify(authHeader.replace('Bearer ', ''))
@@ -392,6 +393,7 @@ export default async function handler(req, res) {
 
     // ── delete-account ──────────────────────────────────────────────────────
     if (action === 'delete-account') {
+      if (await applyLimit(resetLimiter, clientIp, res)) return
       const authHeader = req.headers.authorization
       if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
       const payload = verify(authHeader.replace('Bearer ', ''))
@@ -446,6 +448,7 @@ export default async function handler(req, res) {
     }
 
     if (action === 'notify-pro') {
+      if (await applyLimit(apiLimiter, clientIp, res)) return
       const { email: notifyEmail } = req.body
       if (!notifyEmail || typeof notifyEmail !== 'string' || !notifyEmail.includes('@')) {
         return res.status(400).json({ error: 'Invalid email.' })
