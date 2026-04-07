@@ -89,8 +89,15 @@ function stripCDATA(s) {
   return s.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').trim()
 }
 
-// Google News links are redirect URLs — return as-is, client can follow
+// Google News links are redirect URLs — validate protocol before returning to client
 function followRedirect(url) {
   if (!url) return ''
-  return url.startsWith('http') ? url : `https://news.google.com${url}`
+  try {
+    const normalized = url.startsWith('http') ? url : `https://news.google.com${url}`
+    const parsed = new URL(normalized)
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return ''
+    return parsed.href
+  } catch {
+    return ''
+  }
 }

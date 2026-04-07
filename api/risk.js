@@ -15,6 +15,11 @@ export default async function handler(req, res) {
 
   const { lat, lon, county, state, country } = req.body
   if (!lat || !lon) return res.status(400).json({ error: 'lat and lon required' })
+  const latNum = parseFloat(lat)
+  const lonNum = parseFloat(lon)
+  if (isNaN(latNum) || isNaN(lonNum) || latNum < -90 || latNum > 90 || lonNum < -180 || lonNum > 180) {
+    return res.status(400).json({ error: 'Invalid coordinates' })
+  }
 
   // Only run FEMA/EPA/USGS for US addresses — these are US-specific APIs
   const isUS = !country || country.toLowerCase().includes('united states') ||

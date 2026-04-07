@@ -12,10 +12,13 @@ const ALLOWED_ORIGIN = 'https://dwelling.one'
 
 // ── HUD Fair Market Rent ──────────────────────────────────────────────────────
 async function getFairMarketRent(zipCode) {
-  if (!HUD_TOKEN || !zipCode || !/^\d{5}$/.test(zipCode.trim())) return null
+  if (!HUD_TOKEN || !zipCode) return null
+  // Normalize: accept plain 5-digit or ZIP+4 (12345-6789), extract the 5-digit part
+  const zip5 = zipCode.trim().match(/^(\d{5})(?:-\d{4})?$/)?.[1]
+  if (!zip5) return null
   try {
     const crosswalkRes = await fetch(
-      `${HUD_BASE}/usps?type=1&query=${zipCode}`,
+      `${HUD_BASE}/usps?type=1&query=${zip5}`,
       { headers: { Authorization: `Bearer ${HUD_TOKEN}` } }
     )
     if (!crosswalkRes.ok) return null

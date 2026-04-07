@@ -160,9 +160,19 @@ function verify(token) {
   } catch { return null }
 }
 
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
 async function sendResetEmail(toEmail, resetToken) {
   const resend = new Resend(process.env.RESEND_API_KEY)
   const resetUrl = `${BASE_URL}?reset_token=${resetToken}`
+  const safeUrl = escapeHtml(resetUrl)
   await resend.emails.send({
     from: 'Dwelling <hello@dwelling.one>',
     reply_to: '01dominique.c@gmail.com',
@@ -176,12 +186,12 @@ async function sendResetEmail(toEmail, resetToken) {
         <p style="color:rgba(255,255,255,0.7);line-height:1.6;margin-bottom:28px;">
           Someone requested a password reset for your Dwelling account. This link expires in <strong>1 hour</strong>.
         </p>
-        <a href="${resetUrl}" style="display:inline-block;background:#fff;color:#000;padding:14px 28px;border-radius:40px;font-weight:600;font-size:15px;text-decoration:none;margin-bottom:28px;">
+        <a href="${safeUrl}" style="display:inline-block;background:#fff;color:#000;padding:14px 28px;border-radius:40px;font-weight:600;font-size:15px;text-decoration:none;margin-bottom:28px;">
           Reset Password →
         </a>
         <p style="color:rgba(255,255,255,0.35);font-size:12px;line-height:1.6;">
           If you didn't request this, ignore this email. Your password will not change.<br><br>
-          Or copy this link: <span style="color:rgba(255,255,255,0.5);">${resetUrl}</span>
+          Or copy this link: <span style="color:rgba(255,255,255,0.5);">${safeUrl}</span>
         </p>
         <hr style="border:none;border-top:1px solid rgba(255,255,255,0.1);margin:28px 0;"/>
         <p style="color:rgba(255,255,255,0.2);font-size:11px;">Dwelling · Ottawa, Canada · Automated message, do not reply.</p>
@@ -388,10 +398,17 @@ export default async function handler(req, res) {
         // New AES-256-GCM encrypted
         key = decryptKey(row.cerebras_key, row.cerebras_key_iv)
       } else {
-        // Legacy base64 — decode and return, will be re-encrypted on next save
+        // Legacy base64 — decode and immediately re-encrypt in place
         try {
           const decoded = Buffer.from(row.cerebras_key, 'base64').toString().trim()
-          if (decoded.startsWith('csk-') || decoded.length > 10) key = decoded
+          if (decoded.startsWith('csk-') || decoded.length > 10) {
+            key = decoded
+            const { encrypted, iv } = encryptKey(decoded)
+            await db.execute({
+              sql: 'UPDATE users SET cerebras_key = ?, cerebras_key_iv = ? WHERE email = ?',
+              args: [encrypted, iv, payload.email],
+            })
+          }
         } catch { key = null }
       }
 
@@ -472,7 +489,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Unknown action' })
   } catch (err) {
     const ref = Math.random().toString(36).slice(2, 10)
-    console.error(JSON.stringify({ ref, action: req.body?.action || 'unknown', msg: err?.message, stack: err?.stack }))
+    console.error(JSON.stringify({ ref, action: req.body?.action || 'unknown', msg: err?.message }))
     return res.status(500).json({ error: 'An internal error occurred.', ref })
   }
 }
