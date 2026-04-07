@@ -1842,7 +1842,7 @@ export default function App() {
     return () => lenis?.destroy()
   }, [])
   const [showDemo, setShowDemo] = useState(false)
-  const [showAuthModal, setShowAuthModal] = useState(false)
+  const [showAuthModal, setShowAuthModal] = useState(() => !!new URLSearchParams(window.location.search).get('reset_token'))
   const [guestResult, setGuestResult] = useState(null) // first search result shown to non-logged-in users
   const [teaserCity, setTeaserCity] = useState(null)
   const [compareResult, setCompareResult] = useState(null)
