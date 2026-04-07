@@ -42,12 +42,9 @@ function Check() {
   )
 }
 
-export default function PaywallModal({ onClose, onUpgraded, trigger = 'limit' }) {
+export default function PaywallModal({ onClose, trigger = 'limit' }) {
   const [annual, setAnnual] = useState(true)
-  const [view, setView] = useState('main') // 'main' | 'code' | 'notify' | 'success'
-  const [code, setCode] = useState('')
-  const [codeError, setCodeError] = useState('')
-  const [codeLoading, setCodeLoading] = useState(false)
+  const [view, setView] = useState('main') // 'main' | 'notify' | 'success'
   const [notifyEmail, setNotifyEmail] = useState('')
   const [notifyLoading, setNotifyLoading] = useState(false)
 
@@ -60,26 +57,6 @@ export default function PaywallModal({ onClose, onUpgraded, trigger = 'limit' })
   const hook = SECTION_HOOK[trigger] ?? SECTION_HOOK.limit
   const displayPrice = annual ? ANNUAL_MONTHLY : MONTHLY
   const priceSuffix = annual ? '/mo · billed $149/yr' : '/month'
-
-  const handleCode = async (e) => {
-    e.preventDefault()
-    if (!code.trim()) return
-    setCodeLoading(true); setCodeError('')
-    try {
-      const token = localStorage.getItem('dw_token')
-      const res = await fetch('/api/auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ action: 'redeem-code', code: code.trim() }),
-      })
-      const data = await res.json()
-      if (!res.ok) { setCodeError(data.error || 'Invalid code.'); return }
-      setView('success')
-      onUpgraded?.()
-    } catch {
-      setCodeError('Something went wrong. Try again.')
-    } finally { setCodeLoading(false) }
-  }
 
   const handleNotify = async (e) => {
     e.preventDefault()
@@ -103,45 +80,13 @@ export default function PaywallModal({ onClose, onUpgraded, trigger = 'limit' })
         <div style={{ textAlign: 'center', padding: '24px 0' }}>
           <div style={{ fontSize: 52, marginBottom: 16 }}>🎉</div>
           <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 26, color: '#fff', marginBottom: 10 }}>
-            You're on Pro.
+            You're on the list.
           </div>
           <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 14, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7, marginBottom: 28 }}>
-            All Pro features are now unlocked. Enjoy the full picture.
+            You'll be first to know when Pro launches — and first to lock in the early price.
           </p>
           <button onClick={onClose} style={btnPrimary}>Back to my report →</button>
         </div>
-      </Overlay>
-    )
-  }
-
-  // ── Promo code entry ────────────────────────────────────────────────────────
-  if (view === 'code') {
-    return (
-      <Overlay onClose={onClose}>
-        <button onClick={() => { setView('main'); setCode(''); setCodeError('') }} style={backBtn}>← Back</button>
-        <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 22, color: '#fff', marginBottom: 6 }}>
-          Enter your promo code
-        </div>
-        <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.45)', marginBottom: 24, lineHeight: 1.6 }}>
-          Got a code from a friend or an early access invite? Paste it below to unlock Pro instantly — no payment needed.
-        </p>
-        <form onSubmit={handleCode}>
-          <input
-            autoFocus
-            value={code}
-            onChange={e => { setCode(e.target.value); setCodeError('') }}
-            placeholder="PROMO-CODE"
-            style={{ ...inputStyle, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}
-            onFocus={e => e.target.style.borderColor = 'rgba(255,255,255,0.35)'}
-            onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.12)'}
-          />
-          {codeError && (
-            <p style={{ fontFamily: "'Barlow',sans-serif", fontSize: 12, color: '#f87171', marginBottom: 12 }}>⚠ {codeError}</p>
-          )}
-          <button type="submit" disabled={codeLoading || !code.trim()} style={{ ...btnPrimary, opacity: (!code.trim() || codeLoading) ? 0.5 : 1 }}>
-            {codeLoading ? 'Checking...' : 'Unlock Pro →'}
-          </button>
-        </form>
       </Overlay>
     )
   }
@@ -155,7 +100,7 @@ export default function PaywallModal({ onClose, onUpgraded, trigger = 'limit' })
           Get notified when Pro launches
         </div>
         <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.45)', marginBottom: 24, lineHeight: 1.6 }}>
-          Stripe payments are launching shortly. Drop your email and you'll be first to know — and first to lock in $19/month.
+          Payments are launching shortly. Drop your email and you'll be first to know — and first to lock in the early price.
         </p>
         <form onSubmit={handleNotify}>
           <input
@@ -253,19 +198,9 @@ export default function PaywallModal({ onClose, onUpgraded, trigger = 'limit' })
           {/* Primary CTA */}
           <button
             onClick={() => setView('notify')}
-            style={{ ...btnPrimary, marginBottom: 8, fontSize: 13 }}
+            style={{ ...btnPrimary, marginBottom: 16, fontSize: 13 }}
           >
             {annual ? 'Get Pro — $149/year →' : 'Get Pro — $19/month →'}
-          </button>
-
-          {/* Promo code link */}
-          <button
-            onClick={() => setView('code')}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.35)', textDecoration: 'underline', textUnderlineOffset: 3, padding: '2px 0', marginBottom: 16, textAlign: 'center', transition: 'color 0.2s' }}
-            onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.65)'}
-            onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.35)'}
-          >
-            Have a promo code? Unlock Pro free →
           </button>
 
           <div style={{ height: 1, background: 'rgba(255,255,255,0.07)', marginBottom: 14 }} />
