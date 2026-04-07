@@ -1860,38 +1860,6 @@ function ApiKeyModal({ currentKey, onSave, onClose, isOnboarding = false }) {
   )
 }
 
-// ─── ADMIN TEST PANEL ────────────────────────────────────────────────────────
-function AdminTestPanel({ email, onProChange }) {
-  const [status, setStatus] = useState(null)
-  const [busy, setBusy] = useState(false)
-
-  const act = async (grant) => {
-    setBusy(true); setStatus(null)
-    try {
-      const token = await getAuthToken()
-      const res = await fetch('/api/auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ action: 'admin-grant-pro', targetEmail: email, grant }),
-      })
-      const data = await res.json()
-      setStatus(res.ok ? `${grant ? 'Granted' : 'Revoked'} Pro` : (data.error || 'Error'))
-      if (res.ok) onProChange?.()
-    } catch (e) { setStatus(e.message) }
-    setBusy(false)
-  }
-
-  return (
-    <div className="liquid-glass" style={{ borderRadius: 14, padding: '10px 14px', marginBottom: 14 }}>
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-        <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.08em', flex: 1 }}>⚡ Admin: Pro Status</span>
-        <button onClick={() => act(true)} disabled={busy} style={{ borderRadius: 8, padding: '6px 12px', fontSize: 11, fontFamily: "'Barlow',sans-serif", fontWeight: 600, border: 'none', cursor: 'pointer', background: '#4ade80', color: '#000', opacity: busy ? 0.6 : 1 }}>+ Grant</button>
-        <button onClick={() => act(false)} disabled={busy} style={{ borderRadius: 8, padding: '6px 12px', fontSize: 11, fontFamily: "'Barlow',sans-serif", fontWeight: 600, border: 'none', cursor: 'pointer', background: '#f87171', color: '#000', opacity: busy ? 0.6 : 1 }}>− Revoke</button>
-      </div>
-      {status && <div style={{ marginTop: 6, fontSize: 11, fontFamily: "'Barlow',sans-serif", color: 'rgba(255,255,255,0.5)' }}>{status}</div>}
-    </div>
-  )
-}
 
 export default function App() {
   const [loading, setLoading] = useState(false)
@@ -2268,7 +2236,6 @@ export default function App() {
                     ))}
                     <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.2)', marginLeft: 'auto' }}>Admin only</span>
                   </div>
-                  <AdminTestPanel email={user?.email} onProChange={loadUserRecord} />
                 </>
               )}
               <AddressSearch onSearch={handleSearch} loading={loading} compact />
