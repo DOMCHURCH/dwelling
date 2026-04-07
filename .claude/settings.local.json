@@ -44,7 +44,10 @@
       "Bash(cp /c/Users/Dominique/Downloads/favicon_extracted/site.webmanifest /c/Users/Dominique/dwelling/public/)",
       "Bash(cp /c/Users/Dominique/Downloads/favicon_extracted/web-app-manifest-192x192.png /c/Users/Dominique/dwelling/public/)",
       "Bash(npm audit:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(ls -la /c/Users/Dominique/dwelling/api/*.js)",
+      "Bash(ls /c/Users/Dominique/dwelling/api/*.js)",
+      "Bash(ls C:/Users/Dominique/dwelling/api/*.js)"
     ]
   },
   "hooks": {
