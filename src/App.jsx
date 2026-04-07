@@ -975,6 +975,7 @@ const PRICING_FREE = [
   'Area Market Estimate',
   'Walkability & school scores',
   'Full Neighbourhood detail & safety',
+  'Own API key — full privacy, no platform limits',
 ]
 const PRICING_PRO = [
   { text: 'Virtually unlimited analyses', highlight: false },
@@ -982,7 +983,6 @@ const PRICING_PRO = [
   { text: 'Environmental & flood risk detection', highlight: true },
   { text: 'Price history & market projections', highlight: true },
   { text: 'Side-by-side city comparison', highlight: true },
-  { text: 'Own API key — zero platform limits, full privacy', highlight: true },
   { text: 'Priority support', highlight: false },
 ]
 

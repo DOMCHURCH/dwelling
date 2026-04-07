@@ -14,6 +14,7 @@ const FREE_FEATURES = [
   { text: 'Area Market Estimate', highlight: false },
   { text: 'Walkability & school scores', highlight: false },
   { text: 'Full Neighbourhood detail & safety', highlight: false },
+  { text: 'Own API key — full privacy, no platform limits', highlight: false },
 ]
 
 const PRO_FEATURES = [
@@ -22,7 +23,6 @@ const PRO_FEATURES = [
   { text: 'Environmental & flood risk detection', highlight: true },
   { text: 'Price history & market projections', highlight: true },
   { text: 'Side-by-side city comparison', highlight: true },
-  { text: 'Own API key — zero platform limits, full privacy', highlight: true },
   { text: 'Priority support', highlight: false },
 ]
 
