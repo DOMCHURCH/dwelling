@@ -2101,7 +2101,7 @@ export default function App() {
       )}
       {showKeyModal && <ApiKeyModal currentKey={cerebrasKey} onSave={k => setCerebrasKey(k)} onClose={() => setShowKeyModal(false)} isOnboarding={false} />}
       {showOnboarding && <ApiKeyModal currentKey={cerebrasKey} onSave={k => setCerebrasKey(k)} onClose={() => setShowOnboarding(false)} isOnboarding={true} />}
-      {showPaywall && <Suspense fallback={null}><PaywallModal trigger={paywallTrigger} onClose={() => setShowPaywall(false)} /></Suspense>}
+      {showPaywall && <Suspense fallback={null}><PaywallModal trigger={paywallTrigger} onClose={() => setShowPaywall(false)} onUpgraded={() => { setUserRecord(r => ({ ...r, is_pro: true })); setShowPaywall(false) }} /></Suspense>}
       {showAuthModal && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}>
           <Suspense fallback={null}><AuthModal onAuth={u => { handleAuth(u); setShowAuthModal(false) }} onDemo={() => setShowAuthModal(false)} /></Suspense>

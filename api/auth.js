@@ -459,6 +459,26 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true })
     }
 
+    // ── redeem-code ─────────────────────────────────────────────────────────
+    if (action === 'redeem-code') {
+      const authHeader = req.headers.authorization
+      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Not signed in.' })
+      const payload = verify(authHeader.replace('Bearer ', ''))
+      if (!payload) return res.status(401).json({ error: 'Invalid session.' })
+
+      const { code } = req.body
+      if (!code) return res.status(400).json({ error: 'No code provided.' })
+
+      const validCodes = (process.env.PROMO_CODES || '')
+        .split(',').map(c => c.trim().toUpperCase()).filter(Boolean)
+      if (!validCodes.includes(code.trim().toUpperCase())) {
+        return res.status(400).json({ error: 'Invalid or expired promo code.' })
+      }
+
+      await db.execute({ sql: 'UPDATE users SET is_pro = 1 WHERE email = ?', args: [payload.email] })
+      return res.status(200).json({ success: true })
+    }
+
     return res.status(400).json({ error: 'Unknown action' })
   } catch (err) {
     const ref = Math.random().toString(36).slice(2, 10)
