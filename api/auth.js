@@ -47,6 +47,8 @@ async function ensureTable(db) {
     'ALTER TABLE users ADD COLUMN reset_token TEXT',
     'ALTER TABLE users ADD COLUMN reset_token_expires TEXT',
     'ALTER TABLE users ADD COLUMN cerebras_key_iv TEXT',
+    'ALTER TABLE users ADD COLUMN stripe_customer_id TEXT',
+    'ALTER TABLE users ADD COLUMN stripe_subscription_id TEXT',
   ]
   for (const sql of migrations) {
     try { await db.execute(sql) } catch { /* already exists */ }

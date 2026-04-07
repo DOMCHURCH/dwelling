@@ -26,6 +26,7 @@ export function useScrollReveal({
   y = 30, x = 0, opacity = 0, scale = 1,
   duration = 0.7, delay = 0, ease = 'power3.out',
   stagger = 0, selector = null,
+  start = 'top 88%',
 } = {}) {
   const ref = useRef(null)
   useEffect(() => {
@@ -38,11 +39,19 @@ export function useScrollReveal({
       if (reduced()) { gsap.set(targets, { opacity: 1, y: 0, x: 0, scale: 1 }); return }
       gsap.set(targets, { opacity, y, x, scale })
       ctx = gsap.context(() => {
-        gsap.to(targets, {
-          opacity: 1, y: 0, x: 0, scale: 1,
-          duration, delay, ease, stagger,
-          scrollTrigger: { trigger: el, start: 'top 88%', toggleActions: 'play none none none' },
-        })
+        // If GSAP loaded after the element was already scrolled into view,
+        // play immediately instead of waiting for a ScrollTrigger that will never fire.
+        const rect = el.getBoundingClientRect()
+        const alreadyVisible = rect.top < window.innerHeight && rect.bottom > 0
+        if (alreadyVisible) {
+          gsap.to(targets, { opacity: 1, y: 0, x: 0, scale: 1, duration, delay, ease, stagger })
+        } else {
+          gsap.to(targets, {
+            opacity: 1, y: 0, x: 0, scale: 1,
+            duration, delay, ease, stagger,
+            scrollTrigger: { trigger: el, start, toggleActions: 'play none none none' },
+          })
+        }
       })
     })
     return () => ctx?.revert()

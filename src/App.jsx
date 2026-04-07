@@ -854,7 +854,7 @@ const Testimonials = memo(function Testimonials() {
 
 // ─── PRO SHOWCASE ────────────────────────────────────────────────────────────
 const ProShowcase = memo(function ProShowcase({ onUpgrade }) {
-  const revealRef = useScrollReveal({ y: 32, opacity: 0, duration: 0.75, stagger: 0.13, selector: '.pro-card' })
+  const revealRef = useScrollReveal({ y: 32, opacity: 0, duration: 0.75, stagger: 0.13, selector: '.pro-card', start: 'top bottom' })
   return (
     <section style={{ padding: '80px 24px' }}>
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
@@ -986,94 +986,135 @@ const PRICING_PRO = [
   { text: 'Priority support', highlight: false },
 ]
 
-function PricingCard({ plan, price, desc, features, cta, onCta, popular, highlight, priceLabel, annualSavings }) {
+function PricingCard({ plan, price, desc, features, cta, onCta, popular, priceLabel, annualSavings }) {
   const [hov, setHov] = useState(false)
-  return (
-    <div
-      style={{
-        flex: 1, minWidth: 260, maxWidth: 360,
-        borderRadius: 24, padding: 32,
-        background: popular
-          ? 'linear-gradient(135deg, rgba(255,255,255,0.13) 0%, rgba(255,255,255,0.06) 100%)'
-          : 'linear-gradient(135deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.03) 100%)',
-        border: popular ? '1px solid rgba(255,255,255,0.22)' : '1px solid rgba(255,255,255,0.09)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        boxShadow: popular ? '0 24px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.15)' : '0 8px 32px rgba(0,0,0,0.3)',
-        display: 'flex', flexDirection: 'column',
-        position: 'relative',
-        transform: popular ? 'scale(1.04)' : 'scale(1)',
-        transition: 'box-shadow 0.3s ease',
-      }}
-    >
+  const MAX_FREE_SHOWN = 5
+  const visibleFeatures = popular ? features : features.slice(0, MAX_FREE_SHOWN)
+  const hiddenCount = popular ? 0 : features.length - MAX_FREE_SHOWN
+
+  const inner = (
+    <div style={{
+      borderRadius: popular ? 22.5 : 24,
+      padding: popular ? 32 : 28,
+      background: popular
+        ? 'linear-gradient(135deg, rgba(14,16,32,0.98) 0%, rgba(8,10,24,0.98) 100%)'
+        : 'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)',
+      backdropFilter: 'blur(24px)',
+      WebkitBackdropFilter: 'blur(24px)',
+      display: 'flex', flexDirection: 'column',
+      position: 'relative',
+      width: '100%', boxSizing: 'border-box',
+    }}>
       {popular && (
         <div style={{
-          position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)',
+          position: 'absolute', top: -16, left: '50%', transform: 'translateX(-50%)',
           background: 'linear-gradient(90deg, #38bdf8, #818cf8)',
-          borderRadius: 20, padding: '4px 16px',
-          fontFamily: "'Barlow',sans-serif", fontWeight: 700, fontSize: 11,
-          color: '#000', whiteSpace: 'nowrap', letterSpacing: '0.06em', textTransform: 'uppercase',
-        }}>Most Popular</div>
+          borderRadius: 20, padding: '5px 18px',
+          fontFamily: "'Barlow',sans-serif", fontWeight: 700, fontSize: 10,
+          color: '#000', whiteSpace: 'nowrap', letterSpacing: '0.08em', textTransform: 'uppercase',
+          boxShadow: '0 4px 16px rgba(56,189,248,0.4)',
+        }}>Best Value</div>
       )}
 
-      {/* Plan name */}
-      <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 28, color: '#fff', marginBottom: 4 }}>{plan}</div>
-      <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.45)', marginBottom: 20 }}>{desc}</div>
+      <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: popular ? 30 : 22, color: popular ? '#fff' : 'rgba(255,255,255,0.5)', marginBottom: 4 }}>{plan}</div>
+      <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: popular ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.28)', marginBottom: popular ? 20 : 14 }}>{desc}</div>
 
-      {/* Price */}
-      <div style={{ marginBottom: 24, paddingBottom: 24, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-        <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 56, color: '#fff', lineHeight: 1 }}>${price}</span>
-        <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 14, color: 'rgba(255,255,255,0.35)', marginLeft: 6 }}>/month</span>
+      <div style={{ marginBottom: popular ? 24 : 18, paddingBottom: popular ? 22 : 16, borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+        <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: popular ? 56 : 42, color: popular ? '#fff' : 'rgba(255,255,255,0.45)', lineHeight: 1 }}>${price}</span>
+        <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.25)', marginLeft: 5 }}>/month</span>
+        {popular && annualSavings && (
+          <div style={{ marginTop: 5, fontFamily: "'Barlow',sans-serif", fontSize: 11, color: '#38bdf8', fontWeight: 500 }}>Billed $149/year — save 35%</div>
+        )}
       </div>
 
-      {/* Features */}
-      <div style={{ flex: 1, marginBottom: 24 }}>
-        {features.map((f, i) => {
+      <div style={{ flex: 1, marginBottom: popular ? 24 : 18 }}>
+        {popular && (
+          <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Everything in Free, plus:</div>
+        )}
+        {visibleFeatures.map((f, i) => {
           const text = typeof f === 'string' ? f : f.text
-          const hl = typeof f === 'object' && f.highlight
+          const hl = popular && typeof f === 'object' && f.highlight
           return (
-            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 11 }}>
+            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: popular ? 12 : 8 }}>
               <div style={{
-                width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
-                background: hl ? 'rgba(56,189,248,0.15)' : 'rgba(255,255,255,0.06)',
-                border: hl ? '1px solid rgba(56,189,248,0.4)' : '1px solid rgba(255,255,255,0.1)',
+                width: 17, height: 17, borderRadius: '50%', flexShrink: 0, marginTop: 1,
+                background: hl ? 'rgba(56,189,248,0.15)' : 'rgba(255,255,255,0.05)',
+                border: hl ? '1px solid rgba(56,189,248,0.4)' : '1px solid rgba(255,255,255,0.08)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <span style={{ fontSize: 10, color: hl ? '#38bdf8' : 'rgba(255,255,255,0.5)' }}>✓</span>
+                <span style={{ fontSize: 9, color: hl ? '#38bdf8' : 'rgba(255,255,255,0.3)' }}>✓</span>
               </div>
               <span style={{
-                fontFamily: "'Barlow',sans-serif", fontWeight: hl ? 400 : 300, fontSize: 13,
-                color: hl ? '#fff' : 'rgba(255,255,255,0.65)',
+                fontFamily: "'Barlow',sans-serif",
+                fontWeight: hl ? 500 : 300,
+                fontSize: popular ? 13 : 12,
+                color: hl ? '#e2f5ff' : (popular ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.38)'),
+                lineHeight: 1.4,
               }}>{text}</span>
             </div>
           )
         })}
+        {hiddenCount > 0 && (
+          <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.22)', marginTop: 6, paddingLeft: 27 }}>& {hiddenCount} more</div>
+        )}
       </div>
 
-      {/* CTA */}
       <button
         onClick={onCta}
         onMouseEnter={() => setHov(true)}
         onMouseLeave={() => setHov(false)}
         style={{
-          width: '100%', borderRadius: 40, padding: '14px',
-          fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 14,
-          border: popular ? 'none' : '1px solid rgba(255,255,255,0.15)',
+          width: '100%', borderRadius: 40, padding: popular ? '14px' : '11px',
+          fontFamily: "'Barlow',sans-serif",
+          fontWeight: popular ? 700 : 400,
+          fontSize: popular ? 14 : 13,
+          border: 'none',
           background: popular
-            ? hov ? 'rgba(255,255,255,0.92)' : '#fff'
-            : hov ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.06)',
-          color: popular ? '#000' : '#fff',
+            ? (hov ? 'linear-gradient(90deg, #60cfff, #a0aeff)' : 'linear-gradient(90deg, #38bdf8, #818cf8)')
+            : (hov ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.04)'),
+          color: popular ? '#000' : 'rgba(255,255,255,0.35)',
           cursor: 'pointer',
           transition: 'background 0.2s ease, transform 0.15s ease',
-          transform: hov ? 'scale(1.01)' : 'scale(1)',
+          transform: hov && popular ? 'scale(1.01)' : 'scale(1)',
+          letterSpacing: popular ? '0.01em' : 0,
         }}
       >{cta}</button>
 
       {popular && (
         <div style={{ textAlign: 'center', marginTop: 10 }}>
-          <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.25)', fontWeight: 300 }}>Cancel anytime</span>
+          <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.22)', fontWeight: 300 }}>Cancel anytime</span>
         </div>
       )}
+    </div>
+  )
+
+  if (popular) {
+    return (
+      <div
+        className="pricing-card-anim"
+        style={{
+          flex: '1 1 280px', maxWidth: 380,
+          padding: 1.5, borderRadius: 25.5,
+          background: 'linear-gradient(135deg, rgba(56,189,248,0.55) 0%, rgba(129,140,248,0.55) 50%, rgba(167,139,250,0.55) 100%)',
+          boxShadow: '0 0 80px rgba(56,189,248,0.1), 0 28px 72px rgba(0,0,0,0.5)',
+          position: 'relative',
+        }}
+      >
+        {inner}
+      </div>
+    )
+  }
+
+  return (
+    <div
+      className="pricing-card-anim"
+      style={{
+        flex: '1 1 240px', maxWidth: 340,
+        borderRadius: 24, opacity: 0.68,
+        border: '1px solid rgba(255,255,255,0.06)',
+      }}
+    >
+      {inner}
     </div>
   )
 }
@@ -1099,14 +1140,14 @@ const Pricing = memo(function Pricing({ onUpgrade }) {
       {/* Subtle radial glow */}
       <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 80% 60% at 50% 50%, rgba(56,189,248,0.07) 0%, transparent 70%)', zIndex: 1 }} />
 
-      <div style={{ position: 'relative', zIndex: 2, maxWidth: 900, margin: '0 auto', textAlign: 'center' }}>
+      <div ref={headRef} style={{ position: 'relative', zIndex: 2, maxWidth: 900, margin: '0 auto', textAlign: 'center' }}>
         <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 20 }}>Pricing</div>
 
         <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2.2rem,5vw,3.8rem)', color: '#fff', marginBottom: 12, lineHeight: 0.95, letterSpacing: '-0.02em' }}>
           Know before you move.
         </h2>
         <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 16, color: 'rgba(255,255,255,0.45)', marginBottom: 56, lineHeight: 1.7, maxWidth: 500, margin: '0 auto 56px' }}>
-          Start free. Upgrade when you need the full picture — pro pays for itself the moment it helps you avoid the wrong neighbourhood.
+          Start free. Upgrade when you need the full picture — Pro pays for itself the moment it helps you avoid the wrong neighbourhood.
         </p>
 
         {/* Annual / Monthly toggle */}
@@ -1132,16 +1173,16 @@ const Pricing = memo(function Pricing({ onUpgrade }) {
           </span>
         </div>
 
-        <div style={{ display: 'flex', gap: 20, justifyContent: 'center', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+        <div ref={cardsRef} style={{ display: 'flex', gap: 24, justifyContent: 'center', flexWrap: 'wrap', alignItems: 'center' }}>
           <PricingCard
             plan="Free" price="0" desc="Good for exploring"
             features={PRICING_FREE}
-            cta="Start for free"
+            cta="Continue with Free"
             onCta={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
             popular={false}
           />
           <PricingCard
-            plan="Pro" price={String(displayPrice)} desc={annual ? "Billed $149/year — cancel anytime" : "Everything in Free, plus the full picture"}
+            plan="Pro" price={String(displayPrice)} desc={annual ? "Billed $149/year — cancel anytime" : "Full intelligence, no limits"}
             priceLabel={annual ? '/mo · billed yearly' : '/month'}
             features={PRICING_PRO}
             cta={annual ? `Get Pro — $149/year →` : "Upgrade to Pro →"}
@@ -1819,6 +1860,47 @@ function ApiKeyModal({ currentKey, onSave, onClose, isOnboarding = false }) {
   )
 }
 
+// ─── ADMIN TEST PANEL ────────────────────────────────────────────────────────
+function AdminTestPanel({ onProChange }) {
+  const [email, setEmail] = useState('')
+  const [status, setStatus] = useState(null)
+  const [busy, setBusy] = useState(false)
+
+  const act = async (grant) => {
+    if (!email.trim()) return
+    setBusy(true); setStatus(null)
+    try {
+      const token = await getAuthToken()
+      const res = await fetch('/api/stripe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: 'admin-grant-pro', targetEmail: email.trim(), grant }),
+      })
+      const data = await res.json()
+      setStatus(res.ok ? `${grant ? 'Granted' : 'Revoked'} Pro for ${data.email}` : (data.error || 'Error'))
+      if (res.ok) onProChange?.()
+    } catch (e) { setStatus(e.message) }
+    setBusy(false)
+  }
+
+  return (
+    <div className="liquid-glass" style={{ borderRadius: 14, padding: '10px 14px', marginBottom: 14 }}>
+      <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 8 }}>⚡ Admin: Manage Pro</span>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        <input
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          placeholder="user@email.com"
+          style={{ flex: 1, minWidth: 180, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '6px 10px', color: '#fff', fontFamily: "'Barlow',sans-serif", fontSize: 12, outline: 'none' }}
+        />
+        <button onClick={() => act(true)} disabled={busy} style={{ borderRadius: 8, padding: '6px 12px', fontSize: 11, fontFamily: "'Barlow',sans-serif", fontWeight: 600, border: 'none', cursor: 'pointer', background: '#4ade80', color: '#000', opacity: busy ? 0.6 : 1 }}>+ Grant</button>
+        <button onClick={() => act(false)} disabled={busy} style={{ borderRadius: 8, padding: '6px 12px', fontSize: 11, fontFamily: "'Barlow',sans-serif", fontWeight: 600, border: 'none', cursor: 'pointer', background: '#f87171', color: '#000', opacity: busy ? 0.6 : 1 }}>− Revoke</button>
+      </div>
+      {status && <div style={{ marginTop: 6, fontSize: 11, fontFamily: "'Barlow',sans-serif", color: 'rgba(255,255,255,0.5)' }}>{status}</div>}
+    </div>
+  )
+}
+
 export default function App() {
   const [loading, setLoading] = useState(false)
   const [loadStep, setLoadStep] = useState(0)
@@ -1876,6 +1958,34 @@ export default function App() {
       loadCerebrasKeyFromServer().then(k => { if (k) setCerebrasKey(k) })
     }
     setAuthLoading(false)
+  }, [])
+
+  // Verify Stripe checkout success on return from Stripe
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const checkoutStatus = params.get('checkout')
+    const sessionId = params.get('session_id')
+    if (checkoutStatus === 'success' && sessionId) {
+      window.history.replaceState({}, '', window.location.pathname)
+      getAuthToken().then(async token => {
+        if (!token) return
+        try {
+          const res = await fetch('/api/stripe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ action: 'verify-checkout', sessionId }),
+          })
+          if (res.ok) {
+            const data = await res.json()
+            if (data.success) {
+              await loadUserRecord()
+              const updated = getCurrentUser()
+              if (updated) setUser({ ...updated, is_pro: true })
+            }
+          }
+        } catch {}
+      })
+    }
   }, [])
 
   useEffect(() => {
@@ -2155,16 +2265,19 @@ export default function App() {
               </div>
               {/* Admin plan preview switcher */}
               {user?.is_admin && (
-                <div className="liquid-glass" style={{ borderRadius: 14, padding: '10px 14px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                  <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>👁 Preview as:</span>
-                  {[['free', 'Free'], ['pro', 'Pro']].map(([val, label]) => (
-                    <button key={val} onClick={() => setPreviewPlan(val)}
-                      style={{ borderRadius: 40, padding: '5px 14px', fontSize: 12, fontFamily: "'Barlow',sans-serif", fontWeight: previewPlan === val ? 600 : 300, border: 'none', cursor: 'pointer', background: previewPlan === val ? '#fff' : 'rgba(255,255,255,0.06)', color: previewPlan === val ? '#000' : 'rgba(255,255,255,0.5)', transition: 'all 0.15s' }}>
-                      {label}
-                    </button>
-                  ))}
-                  <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.2)', marginLeft: 'auto' }}>Admin only</span>
-                </div>
+                <>
+                  <div className="liquid-glass" style={{ borderRadius: 14, padding: '10px 14px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>👁 Preview as:</span>
+                    {[['free', 'Free'], ['pro', 'Pro']].map(([val, label]) => (
+                      <button key={val} onClick={() => setPreviewPlan(val)}
+                        style={{ borderRadius: 40, padding: '5px 14px', fontSize: 12, fontFamily: "'Barlow',sans-serif", fontWeight: previewPlan === val ? 600 : 300, border: 'none', cursor: 'pointer', background: previewPlan === val ? '#fff' : 'rgba(255,255,255,0.06)', color: previewPlan === val ? '#000' : 'rgba(255,255,255,0.5)', transition: 'all 0.15s' }}>
+                        {label}
+                      </button>
+                    ))}
+                    <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.2)', marginLeft: 'auto' }}>Admin only</span>
+                  </div>
+                  <AdminTestPanel onProChange={loadUserRecord} />
+                </>
               )}
               <AddressSearch onSearch={handleSearch} loading={loading} compact />
             </div>
