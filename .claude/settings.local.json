@@ -47,7 +47,8 @@
       "Bash(grep:*)",
       "Bash(ls -la /c/Users/Dominique/dwelling/api/*.js)",
       "Bash(ls /c/Users/Dominique/dwelling/api/*.js)",
-      "Bash(ls C:/Users/Dominique/dwelling/api/*.js)"
+      "Bash(ls C:/Users/Dominique/dwelling/api/*.js)",
+      "Bash(npm uninstall:*)"
     ]
   },
   "hooks": {

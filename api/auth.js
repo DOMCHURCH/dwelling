@@ -1,4 +1,5 @@
-import { createHash, createHmac, timingSafeEqual, randomBytes, createCipheriv, createDecipheriv } from 'crypto'
+import { createHash, createHmac, timingSafeEqual, randomBytes, createCipheriv, createDecipheriv, pbkdf2 as _pbkdf2 } from 'crypto'
+import { promisify } from 'util'
 import { createClient } from '@libsql/client'
 import { Resend } from 'resend'
 import { hash as argon2Hash, verify as argon2Verify } from '@node-rs/argon2'
@@ -26,7 +27,7 @@ if (ENCRYPTION_KEY.length !== 32) throw new Error('FATAL: CEREBRAS_ENCRYPTION_KE
 
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
 const BASE_URL = process.env.BASE_URL || `https://${process.env.VERCEL_URL}` || 'https://dwelling.one'
-const ALLOWED_ORIGIN = 'https://dwelling.one'
+const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'https://dwelling.one'
 
 // Rate limiting handled by Upstash Redis via api/_ratelimit.js
 
@@ -92,8 +93,6 @@ function decryptKey(encryptedHex, ivHex) {
 }
 
 // ─── Password hashing (Argon2id, with PBKDF2 + SHA-256 legacy fallback) ───────
-import { pbkdf2 as _pbkdf2 } from 'crypto'
-import { promisify } from 'util'
 const _pbkdf2Async = promisify(_pbkdf2)
 
 // New: Argon2id — salt is embedded in the hash string, no separate salt needed
@@ -614,17 +613,18 @@ export default async function handler(req, res) {
     }
 
     // ── Stripe: webhook ───────────────────────────────────────────────────────
+    // NOTE: Vercel pre-parses the request body so the raw bytes Stripe signed are
+    // unavailable here. Signature verification via constructEvent() will always fail
+    // in this handler because JSON.stringify(parsed) ≠ original bytes.
+    // For production-grade webhook verification, create a dedicated
+    // /api/stripe-webhook endpoint that buffers the raw stream before parsing.
+    // For test mode (no STRIPE_WEBHOOK_SECRET set), events are accepted as-is.
     if (action === 'webhook') {
-      let event = req.body
-      const sig = req.headers['stripe-signature']
-      if (STRIPE_WEBHOOK_SECRET && sig && STRIPE_SECRET) {
-        try {
-          const stripe = getStripe()
-          event = stripe.webhooks.constructEvent(JSON.stringify(req.body), sig, STRIPE_WEBHOOK_SECRET)
-        } catch (err) {
-          console.error(`Stripe webhook sig failed: ${err.message}`)
-          return res.status(400).json({ error: 'Webhook signature invalid' })
-        }
+      const event = req.body
+      // Guard: if a webhook secret is configured, reject unauthenticated calls
+      // until a raw-body endpoint replaces this handler.
+      if (STRIPE_WEBHOOK_SECRET) {
+        return res.status(501).json({ error: 'Webhook signature verification requires a raw-body endpoint. Configure /api/stripe-webhook instead.' })
       }
       const db = getDb()
       const type = event.type || ''
