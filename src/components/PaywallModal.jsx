@@ -5,25 +5,25 @@ const ANNUAL = 149
 const ANNUAL_MONTHLY = Math.round(ANNUAL / 12) // 12
 
 const FREE_FEATURES = [
-  '10 free reports / month',
-  'Area Verdict & AI Market Intelligence',
-  'Investment Score preview',
-  'Cost of Living breakdown',
-  'Climate & weather data',
-  'Local Market News',
-  'Area Market Estimate',
-  'Walkability & school scores',
-  'Full Neighbourhood detail & safety',
+  { text: '10 free reports / month', highlight: false },
+  { text: 'Area Verdict & AI Market Intelligence', highlight: false },
+  { text: 'Investment Score preview', highlight: false },
+  { text: 'Cost of Living breakdown', highlight: false },
+  { text: 'Climate & weather data', highlight: false },
+  { text: 'Local Market News', highlight: false },
+  { text: 'Area Market Estimate', highlight: false },
+  { text: 'Walkability & school scores', highlight: false },
+  { text: 'Full Neighbourhood detail & safety', highlight: false },
 ]
 
-const PRO_EXTRAS = [
-  { text: 'Unlimited analyses', key: true },
-  { text: 'Investment Analysis & ROI score', key: true },
-  { text: 'Price history & market projections', key: true },
-  { text: 'Environmental & flood risk detection', key: true },
-  { text: 'Side-by-side city comparison', key: true },
-  { text: 'BYOK — full privacy, no platform limits', key: false },
-  { text: 'Priority support', key: false },
+const PRO_FEATURES = [
+  { text: 'Virtually unlimited analyses', highlight: false },
+  { text: 'Investment Analysis & ROI score', highlight: true },
+  { text: 'Environmental & flood risk detection', highlight: true },
+  { text: 'Price history & market projections', highlight: true },
+  { text: 'Side-by-side city comparison', highlight: true },
+  { text: 'Own API key — zero platform limits, full privacy', highlight: true },
+  { text: 'Priority support', highlight: false },
 ]
 
 const SECTION_HOOK = {
@@ -34,11 +34,16 @@ const SECTION_HOOK = {
   limit: { icon: null, text: "You've used all 10 free reports this month." },
 }
 
-function Check() {
+function CircleCheck({ highlight }) {
   return (
-    <svg width="11" height="11" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0, marginTop: 2 }}>
-      <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <div style={{
+      width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
+      background: highlight ? 'rgba(56,189,248,0.15)' : 'rgba(255,255,255,0.06)',
+      border: highlight ? '1px solid rgba(56,189,248,0.4)' : '1px solid rgba(255,255,255,0.1)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      <span style={{ fontSize: 10, color: highlight ? '#38bdf8' : 'rgba(255,255,255,0.5)' }}>✓</span>
+    </div>
   )
 }
 
@@ -56,7 +61,7 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
 
   const hook = SECTION_HOOK[trigger] ?? SECTION_HOOK.limit
   const displayPrice = annual ? ANNUAL_MONTHLY : MONTHLY
-  const priceSuffix = annual ? '/mo · billed $149/yr' : '/month'
+  const priceDesc = annual ? `Billed $${ANNUAL}/year — cancel anytime` : 'Everything in Free, plus the full picture'
 
   const handleNotify = async (e) => {
     e.preventDefault()
@@ -73,13 +78,13 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
     setView('success')
   }
 
-  // ── Success screen ──────────────────────────────────────────────────────────
+  // ── Success ─────────────────────────────────────────────────────────────────
   if (view === 'success') {
     return (
       <Overlay onClose={onClose}>
-        <div style={{ textAlign: 'center', padding: '24px 0' }}>
+        <div style={{ textAlign: 'center', padding: '32px 0' }}>
           <div style={{ fontSize: 52, marginBottom: 16 }}>🎉</div>
-          <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 26, color: '#fff', marginBottom: 10 }}>
+          <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 28, color: '#fff', marginBottom: 10 }}>
             You're on the list.
           </div>
           <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 14, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7, marginBottom: 28 }}>
@@ -91,12 +96,12 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
     )
   }
 
-  // ── Notify waitlist ─────────────────────────────────────────────────────────
+  // ── Notify ──────────────────────────────────────────────────────────────────
   if (view === 'notify') {
     return (
       <Overlay onClose={onClose}>
         <button onClick={() => setView('main')} style={backBtn}>← Back</button>
-        <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 22, color: '#fff', marginBottom: 6 }}>
+        <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 24, color: '#fff', marginBottom: 8 }}>
           Get notified when Pro launches
         </div>
         <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.45)', marginBottom: 24, lineHeight: 1.6 }}>
@@ -122,114 +127,160 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
     )
   }
 
-  // ── Main two-column paywall ─────────────────────────────────────────────────
+  // ── Main ────────────────────────────────────────────────────────────────────
   return (
     <Overlay onClose={onClose} wide>
 
-      {/* Context hook — only shown when triggered from a specific section */}
+      {/* Close button */}
+      <button
+        onClick={onClose}
+        aria-label="Close"
+        style={{ position: 'absolute', top: 16, right: 16, background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)', fontSize: 20, lineHeight: 1, padding: 4, transition: 'color 0.2s', zIndex: 2 }}
+        onMouseEnter={e => e.currentTarget.style.color = '#fff'}
+        onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.3)'}
+      >✕</button>
+
+      {/* Context hook */}
       {trigger !== 'pricing' && (
-        <div style={{ marginBottom: 24, paddingBottom: 20, borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-          {hook.icon && <span style={{ fontSize: 28, display: 'block', marginBottom: 8 }}>{hook.icon}</span>}
-          <p id="paywall-title" style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(1.1rem,3vw,1.4rem)', color: '#fff', lineHeight: 1.3 }}>
+        <div style={{ textAlign: 'center', marginBottom: 20, paddingBottom: 18, borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+          {hook.icon && <span style={{ fontSize: 24, display: 'block', marginBottom: 6 }}>{hook.icon}</span>}
+          <p id="paywall-title" style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(1rem,3vw,1.25rem)', color: 'rgba(255,255,255,0.8)', lineHeight: 1.3 }}>
             {hook.text}
           </p>
         </div>
       )}
 
-      {/* Two-column grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,2fr) minmax(0,3fr)', gap: 0, borderRadius: 18, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)' }}>
+      {/* Billing toggle */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 28 }}>
+        <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 13, color: annual ? 'rgba(255,255,255,0.35)' : '#fff', fontWeight: 400, transition: 'color 0.2s' }}>Monthly</span>
+        <button
+          onClick={() => setAnnual(a => !a)}
+          aria-label="Toggle billing period"
+          style={{
+            width: 48, height: 26, borderRadius: 13, border: 'none', cursor: 'pointer', position: 'relative',
+            background: annual ? 'linear-gradient(90deg, #38bdf8, #818cf8)' : 'rgba(255,255,255,0.15)',
+            transition: 'background 0.25s ease',
+          }}
+        >
+          <div style={{
+            position: 'absolute', top: 3, left: annual ? 25 : 3,
+            width: 20, height: 20, borderRadius: '50%', background: '#fff',
+            transition: 'left 0.25s ease',
+          }} />
+        </button>
+        <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 13, color: annual ? '#fff' : 'rgba(255,255,255,0.35)', fontWeight: 400, transition: 'color 0.2s' }}>
+          Annual
+          <span style={{ marginLeft: 6, background: 'rgba(56,189,248,0.15)', border: '1px solid rgba(56,189,248,0.3)', borderRadius: 20, padding: '2px 8px', fontSize: 11, color: '#38bdf8' }}>Save 35%</span>
+        </span>
+      </div>
 
-        {/* ── Free column ── */}
-        <div style={{ padding: '24px 20px', borderRight: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 20, color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>Free</div>
-          <div style={{ marginBottom: 4 }}>
-            <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 28, color: 'rgba(255,255,255,0.7)' }}>$0</span>
-            <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.3)', marginLeft: 4 }}>/month</span>
+      {/* Cards */}
+      <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+
+        {/* Free */}
+        <div style={{
+          flex: '1 1 240px', maxWidth: 320, borderRadius: 24, padding: '28px 24px',
+          background: 'linear-gradient(135deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.03) 100%)',
+          border: '1px solid rgba(255,255,255,0.09)', backdropFilter: 'blur(20px)',
+          display: 'flex', flexDirection: 'column',
+        }}>
+          <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 26, color: '#fff', marginBottom: 4 }}>Free</div>
+          <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.45)', marginBottom: 18 }}>Good for exploring</div>
+
+          <div style={{ marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+            <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 48, color: '#fff', lineHeight: 1 }}>$0</span>
+            <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.35)', marginLeft: 5 }}>/month</span>
           </div>
-          <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 16 }}>No credit card required</div>
+
+          <div style={{ flex: 1, marginBottom: 20 }}>
+            {FREE_FEATURES.map(f => (
+              <div key={f.text} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 10 }}>
+                <CircleCheck highlight={false} />
+                <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.65)', lineHeight: 1.4 }}>{f.text}</span>
+              </div>
+            ))}
+          </div>
 
           <button
             onClick={onClose}
-            style={{ width: '100%', padding: '10px', borderRadius: 40, border: '1px solid rgba(255,255,255,0.15)', background: 'transparent', color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", fontWeight: 500, fontSize: 12, cursor: 'pointer', marginBottom: 16, transition: 'border-color 0.2s, color 0.2s' }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.35)'; e.currentTarget.style.color = '#fff' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; e.currentTarget.style.color = 'rgba(255,255,255,0.5)' }}
+            style={{
+              width: '100%', borderRadius: 40, padding: '13px',
+              fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13,
+              border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.06)',
+              color: '#fff', cursor: 'pointer', transition: 'background 0.2s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
           >
-            Continue on free
+            Start for free
           </button>
-
-          <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', marginBottom: 14 }} />
-
-          <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 9, flex: 1 }}>
-            {FREE_FEATURES.map(f => (
-              <li key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                <span style={{ color: 'rgba(255,255,255,0.4)', marginTop: 1 }}><Check /></span>
-                <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.5)', lineHeight: 1.4 }}>{f}</span>
-              </li>
-            ))}
-          </ul>
         </div>
 
-        {/* ── Pro column ── */}
-        <div style={{ padding: '24px 22px', background: 'rgba(255,255,255,0.04)', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-          {/* Popular badge */}
-          <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', background: 'linear-gradient(90deg, #38bdf8, #818cf8)', borderRadius: 20, padding: '3px 14px', fontFamily: "'Barlow',sans-serif", fontWeight: 700, fontSize: 10, color: '#000', whiteSpace: 'nowrap', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-            Most Popular
+        {/* Pro */}
+        <div style={{
+          flex: '1 1 240px', maxWidth: 320, borderRadius: 24, padding: '28px 24px',
+          background: 'linear-gradient(135deg, rgba(255,255,255,0.13) 0%, rgba(255,255,255,0.06) 100%)',
+          border: '1px solid rgba(255,255,255,0.22)', backdropFilter: 'blur(20px)',
+          boxShadow: '0 24px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.15)',
+          display: 'flex', flexDirection: 'column', position: 'relative',
+          transform: 'scale(1.03)',
+        }}>
+          {/* Badge */}
+          <div style={{
+            position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)',
+            background: 'linear-gradient(90deg, #38bdf8, #818cf8)',
+            borderRadius: 20, padding: '4px 16px',
+            fontFamily: "'Barlow',sans-serif", fontWeight: 700, fontSize: 10,
+            color: '#000', whiteSpace: 'nowrap', letterSpacing: '0.06em', textTransform: 'uppercase',
+          }}>Most Popular</div>
+
+          <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 26, color: '#fff', marginBottom: 4 }}>Pro</div>
+          <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.45)', marginBottom: 18 }}>{priceDesc}</div>
+
+          <div style={{ marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+            <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 48, color: '#fff', lineHeight: 1 }}>${displayPrice}</span>
+            <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.35)', marginLeft: 5 }}>/month</span>
           </div>
 
-          <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 20, color: '#fff', marginBottom: 4 }}>Pro</div>
-
-          {/* Billing toggle */}
-          <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
-            {[{ label: 'Monthly', val: false }, { label: 'Annual −35%', val: true }].map(({ label, val }) => (
-              <button key={label} onClick={() => setAnnual(val)} style={{ flex: 1, padding: '5px 6px', borderRadius: 8, border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontSize: 11, fontWeight: 500, transition: 'all 0.2s', background: annual === val ? '#fff' : 'rgba(255,255,255,0.06)', color: annual === val ? '#000' : 'rgba(255,255,255,0.4)' }}>
-                {label}
-              </button>
+          <div style={{ flex: 1, marginBottom: 20 }}>
+            {PRO_FEATURES.map(f => (
+              <div key={f.text} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 10 }}>
+                <CircleCheck highlight={f.highlight} />
+                <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: f.highlight ? 400 : 300, fontSize: 12, color: f.highlight ? '#fff' : 'rgba(255,255,255,0.65)', lineHeight: 1.4 }}>{f.text}</span>
+              </div>
             ))}
           </div>
 
-          <div style={{ marginBottom: 4 }}>
-            <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 28, color: '#fff' }}>${displayPrice}</span>
-            <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.4)', marginLeft: 4 }}>{priceSuffix}</span>
-          </div>
-          <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 14 }}>
-            {annual ? 'Billed $149/year — cancel anytime' : 'Cancel anytime'}
-          </div>
-
-          {/* Primary CTA */}
           <button
             onClick={() => setView('notify')}
-            style={{ ...btnPrimary, marginBottom: 16, fontSize: 13 }}
+            style={{ ...btnPrimary, marginBottom: 8 }}
+            onMouseEnter={e => e.currentTarget.style.opacity = '0.88'}
+            onMouseLeave={e => e.currentTarget.style.opacity = '1'}
           >
-            {annual ? 'Get Pro — $149/year →' : 'Get Pro — $19/month →'}
+            {annual ? `Get Pro — $${ANNUAL}/year →` : 'Upgrade to Pro →'}
           </button>
-
-          <div style={{ height: 1, background: 'rgba(255,255,255,0.07)', marginBottom: 14 }} />
-
-          <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 500, fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            Everything in Free, plus:
-          </div>
-
-          <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
-            {PRO_EXTRAS.map(f => (
-              <li key={f.text} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                <span style={{ color: f.key ? '#38bdf8' : 'rgba(255,255,255,0.4)', marginTop: 1 }}><Check /></span>
-                <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: f.key ? 400 : 300, fontSize: 11, color: f.key ? '#fff' : 'rgba(255,255,255,0.55)', lineHeight: 1.4 }}>{f.text}</span>
-              </li>
-            ))}
-          </ul>
-
-          <div style={{ marginTop: 14, textAlign: 'center' }}>
-            <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 10, color: 'rgba(74,222,128,0.55)', fontWeight: 300 }}>
-              ✓ Cancel anytime · No long-term commitment
-            </span>
+          <div style={{ textAlign: 'center' }}>
+            <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.25)', fontWeight: 300 }}>Cancel anytime</span>
           </div>
         </div>
+      </div>
+
+      {/* Maybe later */}
+      <div style={{ textAlign: 'center', marginTop: 20 }}>
+        <button
+          onClick={onClose}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.25)', transition: 'color 0.2s' }}
+          onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.55)'}
+          onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.25)'}
+        >
+          Maybe later
+        </button>
       </div>
     </Overlay>
   )
 }
 
-// ── Shared sub-components ──────────────────────────────────────────────────────
+// ── Shared ────────────────────────────────────────────────────────────────────
 
 function Overlay({ children, onClose, wide }) {
   return (
@@ -249,9 +300,9 @@ function Overlay({ children, onClose, wide }) {
       <div
         className="liquid-glass-strong"
         style={{
-          borderRadius: 24, width: '100%',
-          maxWidth: wide ? 680 : 420,
-          padding: wide ? '28px 28px 24px' : '32px 28px',
+          borderRadius: 24, width: '100%', position: 'relative',
+          maxWidth: wide ? 720 : 420,
+          padding: wide ? '32px 28px 24px' : '32px 28px',
           animation: 'fadeUp 0.28s ease',
           border: '1px solid rgba(255,255,255,0.1)',
         }}
@@ -263,7 +314,7 @@ function Overlay({ children, onClose, wide }) {
 }
 
 const btnPrimary = {
-  width: '100%', padding: '12px 20px', borderRadius: 40, border: 'none',
+  width: '100%', padding: '13px 20px', borderRadius: 40, border: 'none',
   cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 14,
   background: '#fff', color: '#000', transition: 'opacity 0.15s',
 }

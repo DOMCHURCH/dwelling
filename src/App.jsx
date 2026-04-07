@@ -1141,7 +1141,7 @@ const Pricing = memo(function Pricing({ onUpgrade }) {
             popular={false}
           />
           <PricingCard
-            plan="Pro" price={String(displayPrice)} desc={annual ? "Billed $226/year — cancel anytime" : "Everything in Free, plus the full picture"}
+            plan="Pro" price={String(displayPrice)} desc={annual ? "Billed $149/year — cancel anytime" : "Everything in Free, plus the full picture"}
             priceLabel={annual ? '/mo · billed yearly' : '/month'}
             features={PRICING_PRO}
             cta={annual ? `Get Pro — $149/year →` : "Upgrade to Pro →"}
