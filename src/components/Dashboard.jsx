@@ -646,11 +646,6 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
                   </div>
                 ))}
               </div>
-              {!risk.isUS && (
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 12, fontFamily: "'Barlow', sans-serif", fontStyle: 'italic' }}>
-                  Note: FEMA and EPA data are currently limited to US locations. Seismic risk is global.
-                </div>
-              )}
             </div>
           )}
         </SectionCard>
