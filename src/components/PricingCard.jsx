@@ -1,0 +1,156 @@
+import { useState } from 'react'
+
+export const PRICING_FREE = [
+  '10 free reports / month',
+  'Area Verdict & AI Market Intelligence',
+  'Investment Score preview',
+  'Cost of Living breakdown',
+  'Climate & weather data',
+  'Local Market News',
+  'Area Market Estimate',
+  'Walkability & school scores',
+  'Full Neighbourhood detail & safety',
+  'Own API key — full privacy, no platform limits',
+]
+
+export const PRICING_PRO = [
+  { text: 'Virtually unlimited analyses', highlight: false },
+  { text: 'Investment Analysis & ROI score', highlight: true },
+  { text: 'Environmental & flood risk detection', highlight: true },
+  { text: 'Price history & market projections', highlight: true },
+  { text: 'Side-by-side city comparison', highlight: true },
+  { text: 'Priority support', highlight: false },
+]
+
+export default function PricingCard({ plan, price, desc, features, cta, onCta, popular, priceLabel, annualSavings }) {
+  const [hov, setHov] = useState(false)
+  const MAX_FREE_SHOWN = 5
+  const visibleFeatures = popular ? features : features.slice(0, MAX_FREE_SHOWN)
+  const hiddenCount = popular ? 0 : features.length - MAX_FREE_SHOWN
+
+  const inner = (
+    <div style={{
+      borderRadius: popular ? 22.5 : 24,
+      padding: popular ? 32 : 28,
+      background: popular
+        ? 'linear-gradient(135deg, rgba(14,16,32,0.98) 0%, rgba(8,10,24,0.98) 100%)'
+        : 'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)',
+      backdropFilter: 'blur(24px)',
+      WebkitBackdropFilter: 'blur(24px)',
+      display: 'flex', flexDirection: 'column',
+      position: 'relative',
+      width: '100%', boxSizing: 'border-box',
+    }}>
+      {popular && (
+        <div style={{
+          position: 'absolute', top: -16, left: '50%', transform: 'translateX(-50%)',
+          background: 'linear-gradient(90deg, #38bdf8, #818cf8)',
+          borderRadius: 20, padding: '5px 18px',
+          fontFamily: "'Barlow',sans-serif", fontWeight: 700, fontSize: 10,
+          color: '#000', whiteSpace: 'nowrap', letterSpacing: '0.08em', textTransform: 'uppercase',
+          boxShadow: '0 4px 16px rgba(56,189,248,0.4)',
+        }}>Best Value</div>
+      )}
+
+      <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: popular ? 30 : 22, color: popular ? '#fff' : 'rgba(255,255,255,0.5)', marginBottom: 4 }}>{plan}</div>
+      <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: popular ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.28)', marginBottom: popular ? 20 : 14 }}>{desc}</div>
+
+      <div style={{ marginBottom: popular ? 24 : 18, paddingBottom: popular ? 22 : 16, borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+        <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: popular ? 56 : 42, color: popular ? '#fff' : 'rgba(255,255,255,0.45)', lineHeight: 1 }}>${price}</span>
+        <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.25)', marginLeft: 5 }}>/month</span>
+        {popular && annualSavings && (
+          <div style={{ marginTop: 5, fontFamily: "'Barlow',sans-serif", fontSize: 11, color: '#38bdf8', fontWeight: 500 }}>Billed $149/year — save 35%</div>
+        )}
+      </div>
+
+      <div style={{ flex: 1, marginBottom: popular ? 24 : 18 }}>
+        {popular && (
+          <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Everything in Free, plus:</div>
+        )}
+        {visibleFeatures.map((f, i) => {
+          const text = typeof f === 'string' ? f : f.text
+          const hl = popular && typeof f === 'object' && f.highlight
+          return (
+            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: popular ? 12 : 8 }}>
+              <div style={{
+                width: 17, height: 17, borderRadius: '50%', flexShrink: 0, marginTop: 1,
+                background: hl ? 'rgba(56,189,248,0.15)' : 'rgba(255,255,255,0.05)',
+                border: hl ? '1px solid rgba(56,189,248,0.4)' : '1px solid rgba(255,255,255,0.08)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <span style={{ fontSize: 9, color: hl ? '#38bdf8' : 'rgba(255,255,255,0.3)' }}>✓</span>
+              </div>
+              <span style={{
+                fontFamily: "'Barlow',sans-serif",
+                fontWeight: hl ? 500 : 300,
+                fontSize: popular ? 13 : 12,
+                color: hl ? '#e2f5ff' : (popular ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.38)'),
+                lineHeight: 1.4,
+              }}>{text}</span>
+            </div>
+          )
+        })}
+        {hiddenCount > 0 && (
+          <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.22)', marginTop: 6, paddingLeft: 27 }}>& {hiddenCount} more</div>
+        )}
+      </div>
+
+      <button
+        onClick={onCta}
+        onMouseEnter={() => setHov(true)}
+        onMouseLeave={() => setHov(false)}
+        style={{
+          width: '100%', borderRadius: 40, padding: popular ? '14px' : '11px',
+          fontFamily: "'Barlow',sans-serif",
+          fontWeight: popular ? 700 : 400,
+          fontSize: popular ? 14 : 13,
+          border: 'none',
+          background: popular
+            ? (hov ? 'linear-gradient(90deg, #60cfff, #a0aeff)' : 'linear-gradient(90deg, #38bdf8, #818cf8)')
+            : (hov ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.04)'),
+          color: popular ? '#000' : 'rgba(255,255,255,0.35)',
+          cursor: 'pointer',
+          transition: 'background 0.2s ease, transform 0.15s ease',
+          transform: hov && popular ? 'scale(1.01)' : 'scale(1)',
+          letterSpacing: popular ? '0.01em' : 0,
+        }}
+      >{cta}</button>
+
+      {popular && (
+        <div style={{ textAlign: 'center', marginTop: 10 }}>
+          <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.22)', fontWeight: 300 }}>Cancel anytime</span>
+        </div>
+      )}
+    </div>
+  )
+
+  if (popular) {
+    return (
+      <div
+        className="pricing-card-anim"
+        style={{
+          flex: '1 1 280px', maxWidth: 380,
+          padding: 1.5, borderRadius: 25.5,
+          background: 'linear-gradient(135deg, rgba(56,189,248,0.55) 0%, rgba(129,140,248,0.55) 50%, rgba(167,139,250,0.55) 100%)',
+          boxShadow: '0 0 80px rgba(56,189,248,0.1), 0 28px 72px rgba(0,0,0,0.5)',
+          position: 'relative',
+        }}
+      >
+        {inner}
+      </div>
+    )
+  }
+
+  return (
+    <div
+      className="pricing-card-anim"
+      style={{
+        flex: '1 1 240px', maxWidth: 340,
+        borderRadius: 24, opacity: 0.68,
+        border: '1px solid rgba(255,255,255,0.06)',
+      }}
+    >
+      {inner}
+    </div>
+  )
+}

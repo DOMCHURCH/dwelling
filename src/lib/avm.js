@@ -55,6 +55,16 @@ export function runAVM(comps, subject, priceIndex, censusData) {
     ? Math.round(estimate / subject.sqft)
     : null
 
+  // Data quality: how many comps passed, and are any stale?
+  const hasStale = weighted.some(c => {
+    if (!c.saleDateObj) return false
+    const monthsAgo = (Date.now() - c.saleDateObj.getTime()) / (1000 * 60 * 60 * 24 * 30.4)
+    return monthsAgo > 18
+  })
+  const dataQuality = weighted.length >= 5 && !hasStale ? 'verified'
+    : weighted.length >= 1 ? 'limited'
+    : 'estimated'
+
   return {
     estimatedValue: Math.round(estimate),
     pricePerSqft,
@@ -63,6 +73,7 @@ export function runAVM(comps, subject, priceIndex, censusData) {
     confidenceFactors: confidence.factors,
     compsUsed: weighted.length,
     compsDropped: comps.length - filtered.length,
+    dataQuality,
     priceRange: {
       low: Math.round(estimate * 0.92),
       mid: Math.round(estimate),
@@ -374,6 +385,7 @@ function buildFallbackResult(censusData, priceIndex) {
     confidenceFactors: { compCount: 0, priceConsistency: 0, proximity: 0, compsAnalyzed: 0 },
     compsUsed: 0,
     compsDropped: 0,
+    dataQuality: 'estimated',
     priceRange: null,
     topComps: [],
     source: 'No comps available — AI estimation only',

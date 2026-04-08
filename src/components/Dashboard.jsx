@@ -484,11 +484,14 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
           <StatCard label="Price / sqft" value={fmtUSD(convert(propertyEstimate.pricePerSqftUSD), sym)} sub="area average" />
           <StatCard label="Rent / month" value={fmtUSD(convert(propertyEstimate.rentEstimateMonthlyUSD), sym)} sub="area average" accent="#4ade80" animate />
         </div>
-        {realData?.censusData && (
-          <div className="liquid-glass" style={{ borderRadius: 12, marginBottom: 12, padding: '10px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow', sans-serif", fontWeight: 300 }}>
-            Census tract median home value: <span style={{ color: '#ffffff', fontWeight: 400 }}>{fmtUSD(convert(realData.censusData.medianHomeValueUSD), sym)}</span>
-            {realData.censusData.medianGrossRentUSD && <span> · Median rent: <span style={{ color: '#ffffff', fontWeight: 400 }}>{fmtUSD(convert(realData.censusData.medianGrossRentUSD), sym)}/mo</span></span>}
-            <span style={{ color: 'rgba(255,255,255,0.3)', marginLeft: 8 }}>· US Census ACS 2022</span>
+        {propertyEstimate?.dataQuality === 'limited' && (
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 8, padding: '4px 10px', fontSize: 11, color: '#fbbf24', fontFamily: "'Barlow', sans-serif", marginBottom: 10 }}>
+            ⚠ Limited comparable sales
+          </div>
+        )}
+        {propertyEstimate?.dataQuality === 'estimated' && (
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.25)', borderRadius: 8, padding: '4px 10px', fontSize: 11, color: '#f87171', fontFamily: "'Barlow', sans-serif", marginBottom: 10 }}>
+            ⚠ AI estimate only — no sales data found
           </div>
         )}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
@@ -611,31 +614,6 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
         </SectionCard>
       )}
 
-      {/* Flood Zone */}
-      {realData?.floodZone && (
-        <SectionCard title="Flood Risk" icon="🌊" delay={280}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-            <div className="liquid-glass" style={{
-              borderRadius: 14, padding: '12px 20px', textAlign: 'center',
-              background: realData.floodZone.riskLevel === 'high' ? 'rgba(248,113,113,0.1)' : realData.floodZone.riskLevel === 'moderate' ? 'rgba(251,191,36,0.08)' : 'rgba(74,222,128,0.08)',
-            }}>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4, fontFamily: "'Barlow', sans-serif" }}>FEMA Zone</div>
-              <div style={{ fontFamily: "'Instrument Serif', serif", fontStyle: 'italic', fontSize: 30, color: realData.floodZone.riskLevel === 'high' ? '#f87171' : realData.floodZone.riskLevel === 'moderate' ? '#fbbf24' : '#4ade80' }}>
-                {realData.floodZone.zone}
-              </div>
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, color: '#ffffff', marginBottom: 4, fontFamily: "'Barlow', sans-serif", fontWeight: 400 }}>{realData.floodZone.description}</div>
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow', sans-serif", fontWeight: 300 }}>
-                {realData.floodZone.inSpecialFloodHazardArea
-                  ? 'This property is in a Special Flood Hazard Area. Flood insurance is typically required.'
-                  : 'This property is not in a Special Flood Hazard Area. Standard insurance applies.'}
-              </div>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 6, fontFamily: "'Barlow', sans-serif" }}>Source: FEMA National Flood Hazard Layer</div>
-            </div>
-          </div>
-        </SectionCard>
-      )}
 
       {/* Environmental Risk */}
       {(isLocked('risk') || risk) && (
@@ -658,7 +636,6 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
                   { label: 'Seismic', value: risk.detailedRisk?.seismicRisk || 'Low', icon: '🌍' },
                   { label: 'Pollution', value: risk.detailedRisk?.pollutionRisk || 'Low', icon: '💨' },
                   { label: 'Noise', value: risk.detailedRisk?.noiseRisk || 'Moderate', icon: '🔊' },
-                  { label: 'Crime', value: risk.detailedRisk?.crimeRisk || 'Low-Moderate', icon: '👮' },
                 ].map((r) => (
                   <div key={r.label} className="liquid-glass" style={{ borderRadius: 14, padding: '12px 14px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
@@ -669,29 +646,6 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
                   </div>
                 ))}
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginBottom: 16 }}>
-                {risk.nationalRiskIndex && (
-                  <div className="liquid-glass" style={{ borderRadius: 14, padding: '14px 16px' }}>
-                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6, fontFamily: "'Barlow', sans-serif" }}>Community Risk</div>
-                    <div style={{ fontSize: 18, color: '#ffffff', fontFamily: "'Instrument Serif', serif", fontStyle: 'italic' }}>{risk.nationalRiskIndex.overallRiskRating}</div>
-                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 4, fontFamily: "'Barlow', sans-serif" }}>FEMA National Risk Index</div>
-                  </div>
-                )}
-                {risk.epaHazards && (
-                  <div className="liquid-glass" style={{ borderRadius: 14, padding: '14px 16px' }}>
-                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6, fontFamily: "'Barlow', sans-serif" }}>Air Quality</div>
-                    <div style={{ fontSize: 18, color: '#ffffff', fontFamily: "'Instrument Serif', serif", fontStyle: 'italic' }}>{risk.epaHazards.airQualityRating || 'Moderate'}</div>
-                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 4, fontFamily: "'Barlow', sans-serif" }}>EPA EJScreen Percentile: {risk.epaHazards.airQualityPM25Percentile || 50}th</div>
-                  </div>
-                )}
-              </div>
-              {risk.nationalRiskIndex?.topRisks?.length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {risk.nationalRiskIndex.topRisks.map((r) => (
-                    <Tag key={r.name} color="red">⚠️ {r.name}</Tag>
-                  ))}
-                </div>
-              )}
               {!risk.isUS && (
                 <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 12, fontFamily: "'Barlow', sans-serif", fontStyle: 'italic' }}>
                   Note: FEMA and EPA data are currently limited to US locations. Seismic risk is global.

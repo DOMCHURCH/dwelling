@@ -99,14 +99,7 @@ US MARKET CONTEXT (2025):
 - 2026-2027 outlook: 2-4% annual appreciation as rates ease and supply remains constrained`
   }
 
-  const censusSnippet = realData.censusData?.medianHomeValueUSD
-    ? `\nLocal census median home value: ${currency} ${Math.round(realData.censusData.medianHomeValueUSD * (isCanada ? 1.35 : 1)).toLocaleString()}`
-    : ''
-  const rentSnippet = realData.fmr?.twoBed
-    ? `\nHUD Fair Market Rent (2BR): ${currency} ${realData.fmr.twoBed}/month`
-    : ''
-
-  return macroContext + censusSnippet + rentSnippet
+  return macroContext
 }
 
 
@@ -148,34 +141,13 @@ function buildCompsContext(realData, currency, subject) {
 
 function buildRiskContext(realData) {
   const risk = realData.riskData
-  if (!risk) return ''
+  if (!risk?.detailedRisk) return ''
 
-  const lines = ['\nENVIRONMENTAL RISK DATA (FEMA/EPA/USGS):']
+  const lines = ['\nENVIRONMENTAL RISK DATA (pre-computed OSM/StatCan):']
+  const d = risk.detailedRisk
+  if (d.noiseRisk) lines.push(`Noise risk: ${d.noiseRisk}`)
 
-  if (risk.nationalRiskIndex) {
-    const nri = risk.nationalRiskIndex
-    lines.push(`Overall community risk rating: ${nri.overallRiskRating}`)
-    if (nri.topRisks?.length) {
-      lines.push(`Top natural hazards: ${nri.topRisks.map(h => `${h.name} (${h.rating})`).join(', ')}`)
-    }
-    if (nri.expectedAnnualLossRating) {
-      lines.push(`Expected annual loss rating: ${nri.expectedAnnualLossRating}`)
-    }
-  }
-
-  if (risk.seismicRisk) {
-    const s = risk.seismicRisk
-    lines.push(`Seismic risk: ${s.seismicRating}${s.isHighSeismicRisk ? ' — MENTION in investment analysis' : ''}`)
-  }
-
-  if (risk.epaHazards) {
-    const e = risk.epaHazards
-    if (e.hasSignificantConcerns) lines.push(`EPA environmental concerns detected — mention in neighborhood analysis`)
-    if (e.airQualityPM25Percentile != null) lines.push(`Air quality PM2.5 percentile: ${e.airQualityPM25Percentile}th`)
-    if (e.superfundSitesNearby > 0) lines.push(`Superfund/toxic sites within 1.5 miles: ${e.superfundSitesNearby}`)
-  }
-
-  if (lines.length > 1) lines.push('Incorporate relevant risk factors into investment analysis and neighborhood assessment.')
+  if (lines.length > 1) lines.push('Incorporate relevant risk factors into neighbourhood assessment.')
   return lines.length > 1 ? lines.join('\n') : ''
 }
 
@@ -366,9 +338,18 @@ OPENSTREETMAP REAL DATA:
 - Grocery stores: ${realData.neighborhoodScores.nearbyGrocery?.join(', ') || 'none mapped'}
 - Total amenities within 1km: ${realData.neighborhoodScores.amenityCount500m || 0}` : ''
 
-  const floodInfo = realData.floodZone
-    ? `\nFEMA FLOOD ZONE: ${realData.floodZone.zone} — ${realData.floodZone.inSpecialFloodHazardArea ? 'HIGH RISK — mention this in analysis' : 'Low risk'}`
-    : ''
+  // StatCan anchor — warn and inject context when falling back to synthesised data
+  let statcanAnchor = ''
+  if (realData.compsSource === 'statcan_fallback' || realData.compsSource === 'statcan_estimate' || !realData.areaMetrics?.count) {
+    console.warn('AVM fallback triggered — using StatCan anchor only')
+    const nhpi = realData.priceIndex?.nhpi || realData.priceIndex
+    if (nhpi?.multipliers) {
+      const latestMultiplier = nhpi.multipliers['2025'] || 1.0
+      statcanAnchor = nhpi.marketNote
+        ? `\nStatistics Canada NHPI note: ${nhpi.marketNote} Your price estimate must be consistent with this trajectory.`
+        : ''
+    }
+  }
 
   // Build subject profile for AVM
   const avmSubject = {
@@ -400,6 +381,7 @@ AREA INTELLIGENCE REPORT FOR: ${city}${state ? ', ' + state : ''}, ${country}
 ${areaContext}
 ${marketContext2}
 ${riskContext}
+${statcanAnchor}
 
 Analyze this area across 6 dimensions:
 1. MARKET CONDITIONS: What do the listing data signals mean? Is supply rising or falling? Who has negotiating power?
@@ -568,7 +550,6 @@ GPS: ${geoData.lat}, ${geoData.lon}
 CONFIRMED PROPERTY FACTS:
 ${knownLines || 'No confirmed facts provided — estimate based on location and neighbourhood type.'}
 ${osmnData}
-${floodInfo}
 ${compsContext}
 ${marketContext2}
 ${areaContext}

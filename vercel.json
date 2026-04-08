@@ -1,4 +1,10 @@
 {
+  "crons": [
+    {
+      "path": "/api/cron/precompute-noise-zones",
+      "schedule": "0 3 * * 0"
+    }
+  ],
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
