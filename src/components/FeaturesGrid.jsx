@@ -8,7 +8,7 @@ const FeaturesGrid = memo(function FeaturesGrid() {
     { icon: '🍁', title: 'Canada-First', desc: 'Built specifically for Canadian cities. Realtor.ca MLS data, Statistics Canada demographics, and Canadian market context baked in.' },
     { icon: '📊', title: 'Real MLS Data', desc: 'Active listings from Realtor.ca, StatCan NHPI price indices, and Open-Meteo climate normals. No made-up numbers.' },
     { icon: '⚡', title: 'Instant Analysis', desc: 'Full city intelligence report in under 30 seconds — stability score, verdict, market temperature, investment outlook.' },
-    { icon: '🔒', title: 'Secure & Private', desc: 'Your searches are never stored. Bank-grade encryption. Searches processed in real time and never retained.' },
+    { icon: '🔒', title: 'Secure & Private', desc: 'Your searches are never stored. End-to-end encryption tougher than most expect. Searches processed in real time and never retained.' },
   ]
   return (
     <section style={{ padding: '80px 24px' }}>

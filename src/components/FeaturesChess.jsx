@@ -7,9 +7,9 @@ const FeaturesChess = memo(function FeaturesChess() {
   const features = [
     {
       title: 'City stability scored. Not guessed.',
-      desc: 'We aggregate 200+ active Realtor.ca listings per Canadian city and compute a real stability score — median price, days on market, price volatility, inventory level. Concrete data sourced directly from MLS.',
+      desc: 'We pull active Realtor.ca listings per Canadian city and compute a real stability score — median price, days on market, price volatility, inventory level. Concrete data sourced directly from MLS.',
       stats: [
-        { val: '200+', label: 'Listings analyzed' },
+        { val: 'Live', label: 'Listings analyzed' },
         { val: '<30s', label: 'Analysis time' },
         { val: '100%', label: 'Real MLS data' },
       ],
