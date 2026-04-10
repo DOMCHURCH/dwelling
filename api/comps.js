@@ -277,18 +277,55 @@ function getStatCanFallbackListings(city) {
     medianPrice = 580000; ppsf = 400; rent = 1900
   }
 
-  const spread = 0.15
-  return Array.from({ length: 12 }, (_, i) => {
-    const factor = 1 + (i - 6) * spread / 6
-    const price = Math.round(medianPrice * factor / 1000) * 1000
+  // Generate a realistic spread of 30 listings across property types and sizes
+  const templates = [
+    // [beds, baths, sqftMultiplier, priceMultiplier, label]
+    [1, 1, 0.45, 0.52, 'Condo'],
+    [1, 1, 0.50, 0.57, 'Condo'],
+    [2, 1, 0.62, 0.68, 'Condo'],
+    [2, 2, 0.70, 0.76, 'Condo'],
+    [2, 2, 0.75, 0.81, 'Condo'],
+    [2, 2, 0.78, 0.84, 'Townhouse'],
+    [3, 2, 0.85, 0.88, 'Townhouse'],
+    [3, 2, 0.90, 0.91, 'Townhouse'],
+    [3, 2, 0.95, 0.94, 'Semi-detached'],
+    [3, 2, 1.00, 1.00, 'Detached'],
+    [3, 3, 1.05, 1.04, 'Detached'],
+    [3, 3, 1.08, 1.07, 'Detached'],
+    [4, 2, 1.10, 1.09, 'Detached'],
+    [4, 3, 1.15, 1.13, 'Detached'],
+    [4, 3, 1.18, 1.17, 'Detached'],
+    [4, 3, 1.20, 1.19, 'Detached'],
+    [4, 4, 1.25, 1.24, 'Detached'],
+    [5, 3, 1.30, 1.28, 'Detached'],
+    [5, 4, 1.35, 1.33, 'Detached'],
+    [5, 4, 1.40, 1.38, 'Detached'],
+    [2, 1, 0.55, 0.60, 'Condo'],
+    [3, 2, 0.92, 0.93, 'Semi-detached'],
+    [3, 2, 0.97, 0.97, 'Townhouse'],
+    [4, 2, 1.12, 1.11, 'Detached'],
+    [2, 2, 0.72, 0.78, 'Condo'],
+    [3, 3, 1.02, 1.02, 'Detached'],
+    [1, 1, 0.42, 0.49, 'Condo'],
+    [4, 3, 1.22, 1.21, 'Detached'],
+    [3, 2, 0.88, 0.90, 'Semi-detached'],
+    [5, 3, 1.32, 1.30, 'Detached'],
+  ]
+
+  const domBase = [7, 12, 14, 18, 21, 25, 28, 30, 35, 38, 42, 45, 50, 55, 60,
+                   8, 15, 20, 27, 33, 10, 22, 36, 48, 16, 32, 6, 44, 24, 52]
+
+  return templates.map(([beds, baths, sqftMult, priceMult, type], i) => {
+    const price = Math.round(medianPrice * priceMult / 1000) * 1000
+    const sqft = Math.round((price / ppsf) * sqftMult)
     return {
-      address: `${city} area listing ${i + 1}`,
+      address: `${city} area — ${type}, ${beds}bd/${baths}ba`,
       price,
-      pricePerSqft: Math.round(ppsf * factor),
-      sqft: Math.round(price / ppsf),
-      beds: 3,
-      baths: 2,
-      daysOnMarket: 18 + i * 3,
+      pricePerSqft: sqft > 0 ? Math.round(price / sqft) : Math.round(ppsf * priceMult),
+      sqft,
+      beds,
+      baths,
+      daysOnMarket: domBase[i] ?? 28,
       type: 'active_listing',
       source: 'statcan_estimate',
       mlsNumber: null,
