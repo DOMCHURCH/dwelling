@@ -341,7 +341,7 @@ OPENSTREETMAP REAL DATA:
   // StatCan anchor — warn and inject context when falling back to synthesised data
   let statcanAnchor = ''
   if (realData.compsSource === 'statcan_fallback' || realData.compsSource === 'statcan_estimate' || !realData.areaMetrics?.count) {
-    console.warn('AVM fallback triggered — using StatCan anchor only')
+    console.log('AVM: using StatCan anchor (Realtor.ca unavailable from Vercel)')
     const nhpi = realData.priceIndex?.nhpi || realData.priceIndex
     if (nhpi?.multipliers) {
       const latestMultiplier = nhpi.multipliers['2025'] || 1.0
