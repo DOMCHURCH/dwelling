@@ -5,6 +5,7 @@
 // FEMA, EPA, USGS removed — US-only APIs.
 
 import { createClient } from '@libsql/client'
+import { apiLimiter, applyLimit } from './_ratelimit.js'
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', process.env.ALLOWED_ORIGIN || 'https://dwelling.one')
@@ -13,6 +14,9 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 's-maxage=86400')
   if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
+
+  const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown'
+  if (await applyLimit(apiLimiter, clientIp, res)) return
 
   const { lat, lon } = req.body
   if (!lat || !lon) return res.status(400).json({ error: 'lat and lon required' })

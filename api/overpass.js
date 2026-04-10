@@ -1,6 +1,8 @@
 // Serverless proxy for Overpass API
 // Runs server-side so browser never sees 504s, results are cached per city
 
+import { apiLimiter, applyLimit } from './_ratelimit.js'
+
 const BASES = [
   'https://overpass-api.de/api/interpreter',
   'https://z.overpass-api.de/api/interpreter',
@@ -17,10 +19,17 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'POST') return res.status(405).end()
 
+  const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown'
+  if (await applyLimit(apiLimiter, clientIp, res)) return
+
   const { lat, lon } = req.body
   if (!lat || !lon) return res.status(400).json({ error: 'Missing lat/lon' })
+  const latNum = parseFloat(lat), lonNum = parseFloat(lon)
+  if (isNaN(latNum) || isNaN(lonNum) || latNum < -90 || latNum > 90 || lonNum < -180 || lonNum > 180) {
+    return res.status(400).json({ error: 'Invalid coordinates' })
+  }
 
-  const cacheKey = `${Math.round(lat * 1000) / 1000},${Math.round(lon * 1000) / 1000}`
+  const cacheKey = `${Math.round(latNum * 1000) / 1000},${Math.round(lonNum * 1000) / 1000}`
   const cached = cache.get(cacheKey)
   if (cached && Date.now() - cached.ts < CACHE_TTL) {
     return res.status(200).json(cached.data)
@@ -29,14 +38,14 @@ export default async function handler(req, res) {
   const query = `
     [out:json][timeout:20];
     (
-      node["amenity"~"school|supermarket|restaurant|cafe|fast_food|pharmacy|hospital|bank|gym"](around:2000,${lat},${lon});
-      way["amenity"~"school|supermarket|restaurant|cafe|fast_food|pharmacy|hospital|bank|gym"](around:2000,${lat},${lon});
-      node["leisure"="park"](around:2000,${lat},${lon});
-      node["shop"~"supermarket|grocery|convenience"](around:2000,${lat},${lon});
-      node["public_transport"="station"](around:2000,${lat},${lon});
-      node["highway"="bus_stop"](around:2000,${lat},${lon});
-      node["railway"~"station|subway_entrance"](around:2000,${lat},${lon});
-      way["building"](around:50,${lat},${lon});
+      node["amenity"~"school|supermarket|restaurant|cafe|fast_food|pharmacy|hospital|bank|gym"](around:2000,${latNum},${lonNum});
+      way["amenity"~"school|supermarket|restaurant|cafe|fast_food|pharmacy|hospital|bank|gym"](around:2000,${latNum},${lonNum});
+      node["leisure"="park"](around:2000,${latNum},${lonNum});
+      node["shop"~"supermarket|grocery|convenience"](around:2000,${latNum},${lonNum});
+      node["public_transport"="station"](around:2000,${latNum},${lonNum});
+      node["highway"="bus_stop"](around:2000,${latNum},${lonNum});
+      node["railway"~"station|subway_entrance"](around:2000,${latNum},${lonNum});
+      way["building"](around:50,${latNum},${lonNum});
     );
     out body;
   `

@@ -24,9 +24,11 @@ const isTerms = window.location.pathname === '/terms'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    {isTerms
-      ? <Suspense fallback={null}><TermsPage /></Suspense>
-      : <App />
-    }
+    <Sentry.ErrorBoundary fallback={<div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',background:'#000',color:'rgba(255,255,255,0.6)',fontFamily:'sans-serif',flexDirection:'column',gap:12}}><p style={{fontSize:18}}>Something went wrong.</p><button onClick={()=>window.location.reload()} style={{padding:'10px 24px',borderRadius:40,border:'1px solid rgba(255,255,255,0.2)',background:'transparent',color:'#fff',cursor:'pointer'}}>Reload</button></div>}>
+      {isTerms
+        ? <Suspense fallback={null}><TermsPage /></Suspense>
+        : <App />
+      }
+    </Sentry.ErrorBoundary>
   </React.StrictMode>
 )

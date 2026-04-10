@@ -489,7 +489,6 @@ export default async function handler(req, res) {
       if (!notifyEmail || typeof notifyEmail !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(notifyEmail)) {
         return res.status(400).json({ error: 'Invalid email.' })
       }
-      const db = getDb()
       await db.execute(`CREATE TABLE IF NOT EXISTS pro_waitlist (email TEXT PRIMARY KEY, created_at TEXT)`)
       await db.execute(
         `INSERT OR IGNORE INTO pro_waitlist (email, created_at) VALUES (?, ?)`,
