@@ -36,7 +36,7 @@ export const PRICING_BUSINESS = [
   { text: 'Dedicated support', highlight: false },
 ]
 
-export function BusinessCard({ onCta }) {
+export function BusinessCard({ onCta, annual = false }) {
   const [hov, setHov] = useState(false)
   return (
     <div
@@ -68,9 +68,11 @@ export function BusinessCard({ onCta }) {
         <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.4)', marginBottom: 20 }}>For agencies, brokers & investment firms</div>
 
         <div style={{ marginBottom: 22, paddingBottom: 18, borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-          <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 52, color: '#fff', lineHeight: 1 }}>$99</span>
+          <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 52, color: '#fff', lineHeight: 1 }}>${annual ? 79 : 99}</span>
           <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.3)', marginLeft: 5 }}>/month</span>
-          <div style={{ marginTop: 5, fontFamily: "'Barlow',sans-serif", fontSize: 11, color: '#fbbf24', fontWeight: 500 }}>Up to $249/mo for larger teams</div>
+          <div style={{ marginTop: 5, fontFamily: "'Barlow',sans-serif", fontSize: 11, color: '#fbbf24', fontWeight: 500 }}>
+            {annual ? 'Billed $948/year — save 20%' : 'Up to $249/mo for larger teams'}
+          </div>
         </div>
 
         <div style={{ flex: 1, marginBottom: 22 }}>
@@ -151,7 +153,7 @@ export default function PricingCard({ plan, price, desc, features, cta, onCta, p
         <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: popular ? 56 : 42, color: popular ? '#fff' : 'rgba(255,255,255,0.45)', lineHeight: 1 }}>${price}</span>
         <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.25)', marginLeft: 5 }}>/month</span>
         {popular && annualSavings && (
-          <div style={{ marginTop: 5, fontFamily: "'Barlow',sans-serif", fontSize: 11, color: '#38bdf8', fontWeight: 500 }}>Billed $144/year — save 37%</div>
+          <div style={{ marginTop: 5, fontFamily: "'Barlow',sans-serif", fontSize: 11, color: '#38bdf8', fontWeight: 500 }}>Billed $1,440/year — save 20%</div>
         )}
       </div>
 

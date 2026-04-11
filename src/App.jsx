@@ -244,10 +244,13 @@ export default function App() {
       if (!getUserType()) setTimeout(() => setShowUserTypeModal(true), 1800)
       setTimeout(() => loadUserRecord(), 800)
     } catch (err) {
-      if (err.message?.includes('context invalidated')) return
       if (err.message === 'no_key') { setShowKeyModal(true); return }
-      if (err.message?.includes('limit reached') || err.message?.includes('429')) { setPaywallTrigger('limit'); setShowPaywall(true) }
-      else setError(err.message ?? 'Something went wrong.')
+      if (err.message?.includes('limit reached') || err.message?.includes('429')) { setPaywallTrigger('limit'); setShowPaywall(true); return }
+      if (err.message?.includes('Not authenticated') || err.message?.includes('Session expired') || err.message?.includes('sign in')) {
+        setShowAuthModal(true); return
+      }
+      if (err.message?.includes('context invalidated') || err.message?.includes('unmounted')) return
+      setError(err.message ?? 'Something went wrong.')
     } finally { setLoading(false); pendingSearchKeyRef.current = null }
   }
 
@@ -384,7 +387,7 @@ export default function App() {
         onOpenAuth={() => setShowAuthModal(true)}
         onDeleteAccount={() => setShowDeleteAccount(true)} />
 
-      {(result || loading) ? (
+      {(result || loading || error) ? (
         <div style={{ maxWidth: compareResult ? 1200 : 960, margin: '0 auto', padding: 'clamp(80px, 12vw, 100px) 16px 60px', width: '100%', position: 'relative', zIndex: 1 }}>
           {!loading && result && !compareResult && !comparingMode && (
             <div style={{ marginBottom: 22 }}>
@@ -428,7 +431,7 @@ export default function App() {
               {user?.is_admin && (
                 <div className="liquid-glass" style={{ borderRadius: 14, padding: '10px 14px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                   <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>👁 Preview as:</span>
-                  {[['free', 'Free'], ['pro', 'Pro']].map(([val, label]) => (
+                  {[['free', 'Free'], ['pro', 'Pro'], ['business', 'Business']].map(([val, label]) => (
                     <button key={val} onClick={() => setPreviewPlan(val)}
                       style={{ borderRadius: 40, padding: '5px 14px', fontSize: 12, fontFamily: "'Barlow',sans-serif", fontWeight: previewPlan === val ? 600 : 300, border: 'none', cursor: 'pointer', background: previewPlan === val ? '#fff' : 'rgba(255,255,255,0.06)', color: previewPlan === val ? '#000' : 'rgba(255,255,255,0.5)', transition: 'all 0.15s' }}>
                       {label}
@@ -454,8 +457,14 @@ export default function App() {
           )}
           {loading && <LoadingState step={loadStep} />}
           {error && (
-            <div className="liquid-glass" style={{ borderRadius: 12, padding: '12px 18px', border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.08)', marginBottom: 14 }}>
-              <p style={{ fontFamily: "'Barlow',sans-serif", fontSize: 13, color: '#f87171' }}>⚠ {error}</p>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, padding: '40px 16px' }}>
+              <div className="liquid-glass" style={{ borderRadius: 12, padding: '14px 20px', border: '1px solid rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.08)', width: '100%', maxWidth: 500 }}>
+                <p style={{ fontFamily: "'Barlow',sans-serif", fontSize: 13, color: '#f87171' }}>⚠ {error}</p>
+              </div>
+              <button onClick={() => { setError(null); setResult(null) }}
+                style={{ background: 'rgba(255,255,255,0.08)', border: 'none', cursor: 'pointer', borderRadius: 40, padding: '9px 20px', fontFamily: "'Barlow',sans-serif", fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>
+                ← Back to search
+              </button>
             </div>
           )}
           {result && !loading && compareResult && (

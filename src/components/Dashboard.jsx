@@ -320,7 +320,7 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
 
   // Plan-based visibility helper
   const isLocked = (feature) => {
-    if (previewPlan === 'pro') return false
+    if (previewPlan === 'pro' || previewPlan === 'business') return false
     // Free: investment, risk, pricehistory locked. neighborhood detail now free.
     const freeHidden = ['investment', 'risk', 'pricehistory', 'costoflivingdetail']
     return freeHidden.includes(feature)
@@ -328,12 +328,20 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {/* Plan preview banner — only shown when admin is previewing free */}
+      {/* Plan preview banner — admin only */}
       {previewPlan === 'free' && (
         <div style={{ borderRadius: 14, padding: '12px 18px', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 14 }}>⚠️</span>
           <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(251,191,36,0.9)' }}>
             Previewing <strong>Free plan</strong> — neighbourhood detail visible; investment analysis, risk, and price history are Pro only.
+          </span>
+        </div>
+      )}
+      {previewPlan === 'business' && (
+        <div style={{ borderRadius: 14, padding: '12px 18px', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 14 }}>🏢</span>
+          <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(251,191,36,0.9)' }}>
+            Previewing <strong>Business plan</strong> — all sections fully unlocked, team features active.
           </span>
         </div>
       )}

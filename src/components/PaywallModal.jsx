@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { getAuthToken } from '../lib/localAuth'
 
-const MONTHLY = 19
-const ANNUAL = 144
-const ANNUAL_MONTHLY = 12
+const MONTHLY = 150
+const ANNUAL = 1440
+const ANNUAL_MONTHLY = 120
 
 const FREE_FEATURES = [
   { text: '10 free reports / month', highlight: false },
@@ -189,7 +189,7 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
         </button>
         <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 13, color: annual ? '#fff' : 'rgba(255,255,255,0.35)', fontWeight: 400, transition: 'color 0.2s' }}>
           Annual
-          <span style={{ marginLeft: 6, background: 'rgba(56,189,248,0.15)', border: '1px solid rgba(56,189,248,0.3)', borderRadius: 20, padding: '2px 8px', fontSize: 11, color: '#38bdf8' }}>Save 37%</span>
+          <span style={{ marginLeft: 6, background: 'rgba(56,189,248,0.15)', border: '1px solid rgba(56,189,248,0.3)', borderRadius: 20, padding: '2px 8px', fontSize: 11, color: '#38bdf8' }}>Save 20%</span>
         </span>
       </div>
 
@@ -271,7 +271,7 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
               <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 52, color: '#fff', lineHeight: 1 }}>${displayPrice}</span>
               <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.35)', marginLeft: 5 }}>/month</span>
               {annual && (
-                <div style={{ marginTop: 4, fontFamily: "'Barlow',sans-serif", fontSize: 11, color: '#38bdf8', fontWeight: 500 }}>Billed $144/year — save 37%</div>
+                <div style={{ marginTop: 4, fontFamily: "'Barlow',sans-serif", fontSize: 11, color: '#38bdf8', fontWeight: 500 }}>Billed $1,440/year — save 20%</div>
               )}
             </div>
 
@@ -334,9 +334,11 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
             <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 22, color: '#fff', marginBottom: 3 }}>Business</div>
             <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.35)', marginBottom: 14 }}>Agencies & brokers</div>
             <div style={{ marginBottom: 16, paddingBottom: 14, borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-              <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 38, color: '#fff', lineHeight: 1 }}>$99</span>
+              <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 38, color: '#fff', lineHeight: 1 }}>${annual ? 79 : 99}</span>
               <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.3)', marginLeft: 4 }}>/mo</span>
-              <div style={{ marginTop: 4, fontFamily: "'Barlow',sans-serif", fontSize: 10, color: '#fbbf24', fontWeight: 500 }}>Up to $249/mo for larger teams</div>
+              <div style={{ marginTop: 4, fontFamily: "'Barlow',sans-serif", fontSize: 10, color: '#fbbf24', fontWeight: 500 }}>
+                {annual ? 'Billed $948/year — up to $199/mo for larger teams' : 'Up to $249/mo for larger teams'}
+              </div>
             </div>
             <div style={{ flex: 1, marginBottom: 16 }}>
               {[
