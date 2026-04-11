@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react'
 import { getAuthToken } from '../lib/localAuth'
 
 const MONTHLY = 19
-const ANNUAL = 149
-const ANNUAL_MONTHLY = Math.round(ANNUAL / 12) // 12
+const ANNUAL = 144
+const ANNUAL_MONTHLY = 12
 
 const FREE_FEATURES = [
   { text: '10 free reports / month', highlight: false },
@@ -15,12 +15,15 @@ const FREE_FEATURES = [
 const FREE_HIDDEN = 5 // "& 5 more" note
 
 const PRO_FEATURES = [
-  { text: 'Virtually unlimited analyses', highlight: false },
+  { text: '100–150 reports / month', highlight: false },
+  { text: 'Full AI reports — all sections unlocked', highlight: false },
   { text: 'Investment Analysis & ROI score', highlight: true },
   { text: 'Environmental & flood risk detection', highlight: true },
   { text: 'Price history & market projections', highlight: true },
-  { text: 'Side-by-side city comparison', highlight: true },
-  { text: 'Priority support', highlight: false },
+  { text: 'PDF export', highlight: true },
+  { text: 'Compare up to 3 areas side-by-side', highlight: true },
+  { text: 'Saved reports', highlight: false },
+  { text: 'Priority processing', highlight: false },
 ]
 
 const SECTION_HOOK = {
@@ -186,7 +189,7 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
         </button>
         <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 13, color: annual ? '#fff' : 'rgba(255,255,255,0.35)', fontWeight: 400, transition: 'color 0.2s' }}>
           Annual
-          <span style={{ marginLeft: 6, background: 'rgba(56,189,248,0.15)', border: '1px solid rgba(56,189,248,0.3)', borderRadius: 20, padding: '2px 8px', fontSize: 11, color: '#38bdf8' }}>Save 35%</span>
+          <span style={{ marginLeft: 6, background: 'rgba(56,189,248,0.15)', border: '1px solid rgba(56,189,248,0.3)', borderRadius: 20, padding: '2px 8px', fontSize: 11, color: '#38bdf8' }}>Save 37%</span>
         </span>
       </div>
 
@@ -268,7 +271,7 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
               <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 52, color: '#fff', lineHeight: 1 }}>${displayPrice}</span>
               <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.35)', marginLeft: 5 }}>/month</span>
               {annual && (
-                <div style={{ marginTop: 4, fontFamily: "'Barlow',sans-serif", fontSize: 11, color: '#38bdf8', fontWeight: 500 }}>Billed $149/year — save 35%</div>
+                <div style={{ marginTop: 4, fontFamily: "'Barlow',sans-serif", fontSize: 11, color: '#38bdf8', fontWeight: 500 }}>Billed $144/year — save 37%</div>
               )}
             </div>
 
