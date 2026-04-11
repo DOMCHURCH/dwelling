@@ -7,9 +7,9 @@ const Pricing = memo(function Pricing({ onUpgrade }) {
   const headRef = useScrollReveal({ y: 28, opacity: 0, duration: 0.85, ease: 'power3.out' })
   const cardsRef = useScrollReveal({ y: 40, opacity: 0, duration: 0.7, stagger: 0.15, selector: '.pricing-card-anim' })
   const [annual, setAnnual] = useState(false)
-  const monthlyPrice = 150
-  const annualPrice = 1440
-  const displayPrice = annual ? 120 : monthlyPrice
+  const monthlyPrice = 19
+  const annualPrice = 144
+  const displayPrice = annual ? 12 : monthlyPrice
 
   return (
     <section id="pricing" style={{ position: 'relative', overflow: 'hidden', padding: 'clamp(80px, 10vw, 120px) 20px' }}>
@@ -61,10 +61,10 @@ const Pricing = memo(function Pricing({ onUpgrade }) {
             popular={false}
           />
           <PricingCard
-            plan="Pro" price={String(displayPrice)} desc={annual ? "Billed $1,440/year — cancel anytime" : "Full intelligence, no limits"}
+            plan="Pro" price={String(displayPrice)} desc={annual ? "Billed $144/year — cancel anytime" : "Full intelligence, no limits"}
             priceLabel={annual ? '/mo · billed yearly' : '/month'}
             features={PRICING_PRO}
-            cta={annual ? `Get Pro — $1,440/year →` : "Upgrade to Pro →"}
+            cta={annual ? `Get Pro — $144/year →` : "Upgrade to Pro →"}
             onCta={onUpgrade}
             popular={true}
             annualSavings={annual}
