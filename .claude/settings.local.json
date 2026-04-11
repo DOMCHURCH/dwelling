@@ -49,7 +49,9 @@
       "Bash(ls /c/Users/Dominique/dwelling/api/*.js)",
       "Bash(ls C:/Users/Dominique/dwelling/api/*.js)",
       "Bash(npm uninstall:*)",
-      "Bash(openssl rand:*)"
+      "Bash(openssl rand:*)",
+      "Bash(claude plugins:*)",
+      "Bash(claude mcp:*)"
     ]
   },
   "hooks": {
