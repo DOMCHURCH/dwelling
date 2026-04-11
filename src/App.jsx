@@ -93,8 +93,8 @@ export default function App() {
   // Prevent duplicate in-flight searches for the same normalised address
   const pendingSearchKeyRef = useRef(null)
 
-  // Engagement tracking — reset on each new report
-  const { trackEvent, shouldShowPaywall, markPaywallShown, reset: resetEngagement } = useEngagement({ enabled: !!result })
+  // Engagement tracking (analytics only — does not gate the paywall)
+  const { trackEvent, reset: resetEngagement } = useEngagement({ enabled: !!result })
 
   const scrollTo = (id) => {
     const el = document.getElementById(id)
@@ -467,24 +467,10 @@ export default function App() {
             /></Suspense>
           )}
           {result && !loading && !compareResult && <Suspense fallback={<LoadingState step={0} />}><Dashboard key={user?.is_admin ? previewPlan : 'fixed'} data={result} onRecalculate={handleRecalculate} previewPlan={user?.is_admin ? previewPlan : userRecord?.is_pro ? 'pro' : 'free'}
-            onUpgrade={(section) => {
-              setPaywallTrigger(section || 'section')
-              setShowPaywall(true)
-              markPaywallShown()
-            }}
+            onUpgrade={(section) => { setPaywallTrigger(section || 'section'); setShowPaywall(true) }}
             onLockedInteraction={(section, type) => {
               trackEvent(type === 'click' ? 'lockedClick' : 'lockedHover', { section })
-              // On click, always open paywall immediately (user showed explicit intent)
-              // On hover, only open if engagement threshold met and cooldown passed
-              if (type === 'click') {
-                setPaywallTrigger(section)
-                setShowPaywall(true)
-                markPaywallShown()
-              } else if (shouldShowPaywall()) {
-                setPaywallTrigger(section)
-                setShowPaywall(true)
-                markPaywallShown()
-              }
+              if (type === 'click') { setPaywallTrigger(section); setShowPaywall(true) }
             }}
           /></Suspense>}
         </div>
