@@ -54,7 +54,8 @@
       "Bash(claude mcp:*)",
       "Bash(claude plugin:*)",
       "Read(//tmp/get-shit-done/**)",
-      "Bash(npx n8n-mcp:*)"
+      "Bash(npx n8n-mcp:*)",
+      "Skill(gsd-resume-work)"
     ]
   },
   "hooks": {
