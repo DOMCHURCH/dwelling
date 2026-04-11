@@ -240,7 +240,7 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
 
         {/* Pro — gradient border, dominant */}
         <div style={{
-          flex: '1 1 240px', maxWidth: 340,
+          flex: '1 1 220px', maxWidth: 320,
           padding: 1.5, borderRadius: 25.5,
           background: 'linear-gradient(135deg, rgba(56,189,248,0.55) 0%, rgba(129,140,248,0.55) 50%, rgba(167,139,250,0.55) 100%)',
           boxShadow: '0 0 80px rgba(56,189,248,0.12), 0 28px 72px rgba(0,0,0,0.5)',
@@ -307,6 +307,86 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
             </div>
           </div>
         </div>
+        {/* Business — amber, for teams */}
+        <div style={{
+          flex: '1 1 200px', maxWidth: 280,
+          padding: 1.5, borderRadius: 25.5,
+          background: 'linear-gradient(135deg, rgba(251,191,36,0.4) 0%, rgba(245,158,11,0.3) 50%, rgba(180,83,9,0.25) 100%)',
+          boxShadow: '0 0 40px rgba(251,191,36,0.07), 0 20px 50px rgba(0,0,0,0.4)',
+          position: 'relative',
+        }}>
+          <div style={{
+            position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)',
+            background: 'linear-gradient(90deg, #fbbf24, #f59e0b)',
+            borderRadius: 20, padding: '4px 14px',
+            fontFamily: "'Barlow',sans-serif", fontWeight: 700, fontSize: 9,
+            color: '#000', whiteSpace: 'nowrap', letterSpacing: '0.08em', textTransform: 'uppercase',
+            boxShadow: '0 3px 12px rgba(251,191,36,0.3)',
+            zIndex: 2,
+          }}>For Teams</div>
+          <div style={{
+            borderRadius: 22.5, padding: '24px 20px',
+            background: 'linear-gradient(135deg, rgba(20,14,4,0.98) 0%, rgba(12,8,2,0.98) 100%)',
+            backdropFilter: 'blur(24px)',
+            display: 'flex', flexDirection: 'column',
+            width: '100%', boxSizing: 'border-box',
+          }}>
+            <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 22, color: '#fff', marginBottom: 3 }}>Business</div>
+            <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.35)', marginBottom: 14 }}>Agencies & brokers</div>
+            <div style={{ marginBottom: 16, paddingBottom: 14, borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+              <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 38, color: '#fff', lineHeight: 1 }}>$99</span>
+              <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.3)', marginLeft: 4 }}>/mo</span>
+              <div style={{ marginTop: 4, fontFamily: "'Barlow',sans-serif", fontSize: 10, color: '#fbbf24', fontWeight: 500 }}>Up to $249/mo for larger teams</div>
+            </div>
+            <div style={{ flex: 1, marginBottom: 16 }}>
+              {[
+                ['1,000–3,000 reports / month', true],
+                ['200 reports / day', false],
+                ['3–10 team members', true],
+                ['Team workspace', true],
+                ['Client sharing links', true],
+                ['Branded PDF reports', true],
+              ].map(([text, hl]) => (
+                <div key={text} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
+                  <div style={{
+                    width: 15, height: 15, borderRadius: '50%', flexShrink: 0, marginTop: 1,
+                    background: hl ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.05)',
+                    border: hl ? '1px solid rgba(251,191,36,0.35)' : '1px solid rgba(255,255,255,0.08)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <span style={{ fontSize: 8, color: hl ? '#fbbf24' : 'rgba(255,255,255,0.3)' }}>✓</span>
+                  </div>
+                  <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: hl ? 500 : 300, fontSize: 11, color: hl ? '#fef3c7' : 'rgba(255,255,255,0.55)', lineHeight: 1.4 }}>{text}</span>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={async () => {
+                try {
+                  const token = await getAuthToken()
+                  if (!token) { window.location.href = 'mailto:01dominique.c@gmail.com?subject=Dwelling Business Plan'; return }
+                  const res = await fetch('/api/auth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ action: 'create-checkout', billing: 'business' }),
+                  })
+                  if (!res.ok) { window.location.href = 'mailto:01dominique.c@gmail.com?subject=Dwelling Business Plan'; return }
+                  const { url } = await res.json()
+                  if (url) window.location.href = url
+                  else window.location.href = 'mailto:01dominique.c@gmail.com?subject=Dwelling Business Plan'
+                } catch { window.location.href = 'mailto:01dominique.c@gmail.com?subject=Dwelling Business Plan' }
+              }}
+              style={{
+                width: '100%', padding: '11px', borderRadius: 40, border: 'none',
+                cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 700, fontSize: 12,
+                background: 'linear-gradient(90deg, #fbbf24, #d97706)',
+                color: '#000', transition: 'opacity 0.15s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.opacity = '0.88'}
+              onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+            >Get Business →</button>
+          </div>
+        </div>
       </div>
 
       {/* Maybe later */}
@@ -352,7 +432,7 @@ function Overlay({ children, onClose, wide }) {
           className="liquid-glass-strong"
           style={{
             borderRadius: 24, width: '100%', position: 'relative',
-            maxWidth: wide ? 720 : 420,
+            maxWidth: wide ? 980 : 420,
             padding: wide ? '36px 28px 28px' : '32px 28px',
             animation: 'fadeUp 0.28s ease',
             border: '1px solid rgba(255,255,255,0.1)',

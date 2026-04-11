@@ -1,4 +1,5 @@
-import { memo, useState } from 'react'
+import { memo, useState, useCallback } from 'react'
+import { getAuthToken } from '../lib/localAuth'
 import { useScrollReveal } from '../../hooks/useScrollReveal'
 import PricingCard, { PRICING_FREE, PRICING_PRO, BusinessCard } from './PricingCard'
 
@@ -68,7 +69,21 @@ const Pricing = memo(function Pricing({ onUpgrade }) {
             popular={true}
             annualSavings={annual}
           />
-          <BusinessCard onCta={() => window.location.href = 'mailto:hello@dwelling.one?subject=Business Plan'} />
+          <BusinessCard onCta={async () => {
+            try {
+              const token = await getAuthToken()
+              if (!token) { window.location.href = 'mailto:01dominique.c@gmail.com?subject=Dwelling Business Plan'; return }
+              const res = await fetch('/api/auth', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ action: 'create-checkout', billing: 'business' }),
+              })
+              if (!res.ok) { window.location.href = 'mailto:01dominique.c@gmail.com?subject=Dwelling Business Plan'; return }
+              const { url } = await res.json()
+              if (url) window.location.href = url
+              else window.location.href = 'mailto:01dominique.c@gmail.com?subject=Dwelling Business Plan'
+            } catch { window.location.href = 'mailto:01dominique.c@gmail.com?subject=Dwelling Business Plan' }
+          }} />
         </div>
       </div>
     </section>

@@ -105,9 +105,9 @@ export function BusinessCard({ onCta }) {
             transform: hov ? 'scale(1.01)' : 'scale(1)',
             letterSpacing: '0.01em',
           }}
-        >Contact sales →</button>
+        >Get Business →</button>
         <div style={{ textAlign: 'center', marginTop: 10 }}>
-          <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.22)', fontWeight: 300 }}>Custom contracts available</span>
+          <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.22)', fontWeight: 300 }}>Cancel anytime · From $99/mo</span>
         </div>
       </div>
     </div>
