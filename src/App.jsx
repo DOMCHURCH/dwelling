@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react'
+import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { getGSAP } from '../hooks/useScrollReveal'
 import AddressSearch from './components/AddressSearch'
 import LoadingState from './components/LoadingState'
@@ -29,6 +29,8 @@ import { analyzeProperty } from './lib/cerebras'
 import { aggregateListings, computeRiskScore, getMarketTemperature } from './lib/areaAnalysis'
 import { getNeighborhoodScores } from './lib/overpass'
 import { getCurrentUser, getAuthToken, signOut as localSignOut, getUsage, saveCerebrasKey, getCachedCerebrasKey, loadCerebrasKeyFromServer } from './lib/localAuth'
+import { useEngagement } from './lib/useEngagement'
+import UserTypeModal, { getUserType, setUserType } from './components/UserTypeModal'
 
 // Reload once on chunk fetch failure (stale deployment — old HTML references old hashed filenames)
 function lazyWithReload(factory) {
@@ -85,6 +87,14 @@ export default function App() {
   const [showKeyModal, setShowKeyModal] = useState(false)
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [showDeleteAccount, setShowDeleteAccount] = useState(false)
+  const [showUserTypeModal, setShowUserTypeModal] = useState(false)
+  const [userType, setUserTypeState] = useState(() => getUserType())
+
+  // Prevent duplicate in-flight searches for the same normalised address
+  const pendingSearchKeyRef = useRef(null)
+
+  // Engagement tracking — reset on each new report
+  const { trackEvent, shouldShowPaywall, markPaywallShown, reset: resetEngagement } = useEngagement({ enabled: !!result })
 
   const scrollTo = (id) => {
     const el = document.getElementById(id)
@@ -187,6 +197,10 @@ export default function App() {
     const country = 'Canada'
     if (loading) return
     if (!user) { setShowAuthModal(true); return }
+    // Deduplicate: ignore if exact same search is already running
+    const searchKey = `${street.trim().toLowerCase()}|${city.trim().toLowerCase()}|${state}`
+    if (pendingSearchKeyRef.current === searchKey) return
+    pendingSearchKeyRef.current = searchKey
     setLoading(true); setError(null); setResult(null); setLoadStep(0)
     const isAreaMode = !street.trim()
     try {
@@ -225,13 +239,16 @@ export default function App() {
       const reportData = { geo, weather, climate, ai, knownFacts: knownFacts ?? {}, realData, isAreaMode }
       setResult(reportData)
       if (!user) setGuestResult(reportData)
+      resetEngagement()
+      // Show user type modal once, after first successful report
+      if (!getUserType()) setTimeout(() => setShowUserTypeModal(true), 1800)
       setTimeout(() => loadUserRecord(), 800)
     } catch (err) {
       if (err.message?.includes('context invalidated')) return
       if (err.message === 'no_key') { setShowKeyModal(true); return }
       if (err.message?.includes('limit reached') || err.message?.includes('429')) { setPaywallTrigger('limit'); setShowPaywall(true) }
       else setError(err.message ?? 'Something went wrong.')
-    } finally { setLoading(false) }
+    } finally { setLoading(false); pendingSearchKeyRef.current = null }
   }
 
   const handleRecalculate = async corrections => {
@@ -449,7 +466,27 @@ export default function App() {
               onClearB={() => { setCompareResult(null); setComparingMode(true) }}
             /></Suspense>
           )}
-          {result && !loading && !compareResult && <Suspense fallback={<LoadingState step={0} />}><Dashboard key={user?.is_admin ? previewPlan : 'fixed'} data={result} onRecalculate={handleRecalculate} previewPlan={user?.is_admin ? previewPlan : userRecord?.is_pro ? 'pro' : 'free'} onUpgrade={(section) => { setPaywallTrigger(section || 'section'); setShowPaywall(true) }} /></Suspense>}
+          {result && !loading && !compareResult && <Suspense fallback={<LoadingState step={0} />}><Dashboard key={user?.is_admin ? previewPlan : 'fixed'} data={result} onRecalculate={handleRecalculate} previewPlan={user?.is_admin ? previewPlan : userRecord?.is_pro ? 'pro' : 'free'}
+            onUpgrade={(section) => {
+              setPaywallTrigger(section || 'section')
+              setShowPaywall(true)
+              markPaywallShown()
+            }}
+            onLockedInteraction={(section, type) => {
+              trackEvent(type === 'click' ? 'lockedClick' : 'lockedHover', { section })
+              // On click, always open paywall immediately (user showed explicit intent)
+              // On hover, only open if engagement threshold met and cooldown passed
+              if (type === 'click') {
+                setPaywallTrigger(section)
+                setShowPaywall(true)
+                markPaywallShown()
+              } else if (shouldShowPaywall()) {
+                setPaywallTrigger(section)
+                setShowPaywall(true)
+                markPaywallShown()
+              }
+            }}
+          /></Suspense>}
         </div>
       ) : (
         <div style={{ position: 'relative', zIndex: 1 }}>
@@ -480,6 +517,12 @@ export default function App() {
         /></Suspense>
       )}
       <Suspense fallback={null}><CookieBanner /></Suspense>
+      {showUserTypeModal && (
+        <UserTypeModal
+          onSelect={type => { setUserTypeState(type); setShowUserTypeModal(false) }}
+          onSkip={() => { setUserType('explorer'); setShowUserTypeModal(false) }}
+        />
+      )}
     </div>
   )
 }
