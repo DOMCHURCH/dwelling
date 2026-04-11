@@ -12,6 +12,9 @@ function verdictColor(verdict) {
   return '#ffffff'
 }
 
+const SIDE_ICONS = { left: '🅰️', center: '🅱️', right: '🅲' }
+const SIDE_LABELS = { left: 'A', center: 'B', right: 'C' }
+
 function CompareColumn({ data, side }) {
   const { geo, ai, realData } = data
   const { areaMetrics, areaRiskScore, marketTemperature, neighborhoodScores } = realData || {}
@@ -25,7 +28,7 @@ function CompareColumn({ data, side }) {
 
       {/* Header */}
       <div className="liquid-glass-strong" style={{ borderRadius: 16, padding: '16px 20px', textAlign: 'center' }}>
-        <div style={{ fontSize: 20, marginBottom: 6 }}>{side === 'left' ? '🅰️' : '🅱️'}</div>
+        <div style={{ fontSize: 20, marginBottom: 6 }}>{SIDE_ICONS[side] || '🅰️'}</div>
         <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 18, color: '#fff', marginBottom: 4 }}>{cityName}</div>
         <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{geo?.displayName}</div>
       </div>
@@ -148,7 +151,7 @@ function CompareColumn({ data, side }) {
   )
 }
 
-export default function CompareView({ resultA, resultB, onBack, onClearB }) {
+export default function CompareView({ resultA, resultB, resultC, onBack, onClearB, onAddC, onClearC }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
@@ -163,12 +166,30 @@ export default function CompareView({ resultA, resultB, onBack, onClearB }) {
         <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 16, color: 'rgba(255,255,255,0.5)' }}>
           Side-by-side comparison
         </div>
-        <button onClick={onClearB}
-          style={{ borderRadius: 40, padding: '8px 16px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: 'rgba(255,255,255,0.4)', border: 'none', cursor: 'pointer', background: 'transparent', transition: 'color 0.15s' }}
-          onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.7)'}
-          onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}>
-          Change area B
-        </button>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button onClick={onClearB}
+            style={{ borderRadius: 40, padding: '8px 16px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: 'rgba(255,255,255,0.4)', border: 'none', cursor: 'pointer', background: 'transparent', transition: 'color 0.15s' }}
+            onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.7)'}
+            onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}>
+            Change B
+          </button>
+          {!resultC && onAddC && (
+            <button onClick={onAddC}
+              style={{ borderRadius: 40, padding: '8px 16px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer', background: 'rgba(255,255,255,0.04)', transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 5 }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)' }}>
+              + Add area C
+            </button>
+          )}
+          {resultC && onClearC && (
+            <button onClick={onClearC}
+              style={{ borderRadius: 40, padding: '8px 16px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: 'rgba(255,255,255,0.4)', border: 'none', cursor: 'pointer', background: 'transparent', transition: 'color 0.15s' }}
+              onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.7)'}
+              onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}>
+              Change C
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Winner banner */}
@@ -190,12 +211,17 @@ export default function CompareView({ resultA, resultB, onBack, onClearB }) {
         )
       })()}
 
-      {/* Two columns */}
+      {/* Columns */}
       <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
         <CompareColumn data={resultA} side="left" />
-        {/* Divider */}
         <div style={{ width: 1, background: 'rgba(255,255,255,0.07)', alignSelf: 'stretch', flexShrink: 0 }} />
-        <CompareColumn data={resultB} side="right" />
+        <CompareColumn data={resultB} side={resultC ? 'center' : 'right'} />
+        {resultC && (
+          <>
+            <div style={{ width: 1, background: 'rgba(255,255,255,0.07)', alignSelf: 'stretch', flexShrink: 0 }} />
+            <CompareColumn data={resultC} side="right" />
+          </>
+        )}
       </div>
 
       <p style={{ textAlign: 'center', fontSize: 11, color: 'rgba(255,255,255,0.2)', padding: '8px 0', fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>

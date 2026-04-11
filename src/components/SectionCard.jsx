@@ -1,6 +1,6 @@
-export default function SectionCard({ title, icon, children }) {
+export default function SectionCard({ title, icon, children, pdfSection }) {
   return (
-    <div className="liquid-glass" style={{ borderRadius: 20, marginBottom: 0 }}>
+    <div className="liquid-glass" style={{ borderRadius: 20, marginBottom: 0 }} {...(pdfSection ? { 'data-pdf-section': pdfSection } : {})}>
       {title && (
         <div style={{
           display: 'flex', alignItems: 'center', gap: 10,

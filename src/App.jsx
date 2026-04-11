@@ -31,6 +31,10 @@ import { getNeighborhoodScores } from './lib/overpass'
 import { getCurrentUser, getAuthToken, signOut as localSignOut, getUsage, saveCerebrasKey, getCachedCerebrasKey, loadCerebrasKeyFromServer } from './lib/localAuth'
 import { useEngagement } from './lib/useEngagement'
 import UserTypeModal, { getUserType, setUserType } from './components/UserTypeModal'
+import { useSavedReports } from './lib/useSavedReports'
+import SavedReportsModal from './components/SavedReportsModal'
+import BrandingModal, { getBrandLogo, getBrandName } from './components/BrandingModal'
+import PDFExportModal from './components/PDFExportModal'
 
 // Reload once on chunk fetch failure (stale deployment — old HTML references old hashed filenames)
 function lazyWithReload(factory) {
@@ -89,6 +93,12 @@ export default function App() {
   const [showDeleteAccount, setShowDeleteAccount] = useState(false)
   const [showUserTypeModal, setShowUserTypeModal] = useState(false)
   const [userType, setUserTypeState] = useState(() => getUserType())
+  const [showSavedReports, setShowSavedReports] = useState(false)
+  const [showBranding, setShowBranding] = useState(false)
+  const [showPDFExport, setShowPDFExport] = useState(false)
+  const [compareResultC, setCompareResultC] = useState(null)
+  const [comparingModeC, setComparingModeC] = useState(false)
+  const { saved: savedReports, saveReport, deleteReport, isReportSaved } = useSavedReports()
 
   // Prevent duplicate in-flight searches for the same normalised address
   const pendingSearchKeyRef = useRef(null)
@@ -160,6 +170,8 @@ export default function App() {
     setUser(fullUser)
     setUserRecord({ is_pro: fullUser.is_pro, analyses_used: 0 })
     loadUserRecord()
+    // Show user type modal on first login if not yet answered
+    if (!getUserType()) setTimeout(() => setShowUserTypeModal(true), 1200)
     const serverKey = await loadCerebrasKeyFromServer()
     if (serverKey) {
       sessionStorage.removeItem('dw_cerebras_key')
@@ -302,6 +314,47 @@ export default function App() {
     } finally { setLoading(false) }
   }
 
+  const handleCompareCSearch = async ({ street, city, state, country }) => {
+    if (loading) return
+    setLoading(true); setError(null); setLoadStep(0)
+    const isAreaMode = !street.trim()
+    try {
+      const { geocodeStructured } = await import('./lib/nominatim')
+      const { getCurrentWeather, getClimateNormals } = await import('./lib/weather')
+      const { analyzeProperty } = await import('./lib/cerebras')
+      const { aggregateListings, computeRiskScore, getMarketTemperature } = await import('./lib/areaAnalysis')
+      const { getNeighborhoodScores } = await import('./lib/overpass')
+      const geocodeInput = isAreaMode ? { street: '', city, state, country } : { street, city, state, country }
+      const geo = await geocodeStructured(geocodeInput); setLoadStep(1)
+      const [weather, climate, neighborhoodScores] = await Promise.all([getCurrentWeather(geo.lat, geo.lon), getClimateNormals(geo.lat, geo.lon), getNeighborhoodScores(geo.lat, geo.lon)]); setLoadStep(2)
+      setLoadStep(3)
+      const riskData = await fetch('/api/risk', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lat: geo.lat, lon: geo.lon, county: geo.address?.county, state, country }) }).then(r => r.ok ? r.json() : null).catch(() => null)
+      const [bulkCompsRes, newsRes] = await Promise.allSettled([
+        fetch('/api/comps', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ city, state, country, mode: 'area' }) }).then(r => r.json()).catch(() => null),
+        fetch('/api/news', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ city, state, country }) }).then(r => r.json()).catch(() => null),
+      ])
+      const bulkListings = bulkCompsRes.status === 'fulfilled' ? bulkCompsRes.value?.listings || bulkCompsRes.value?.comps || [] : []
+      const newsData = newsRes.status === 'fulfilled' ? newsRes.value : null
+      const compsSource = bulkCompsRes.status === 'fulfilled' ? (bulkCompsRes.value?.source || null) : null
+      const areaMetrics = aggregateListings(bulkListings) || null
+      const areaRiskScore = computeRiskScore(areaMetrics, null) || null
+      const marketTemperature = getMarketTemperature(areaMetrics) || null
+      const realData = { neighborhoodScores, riskData, areaMetrics, areaRiskScore, marketTemperature, newsData, isAreaMode, compsSource }
+      const ai = await analyzeProperty(geo, weather, climate, {}, realData, cerebrasKey); setLoadStep(4)
+      setCompareResultC({ geo, weather, climate, ai, knownFacts: {}, realData, isAreaMode })
+      setComparingModeC(false)
+    } catch (err) {
+      if (err.message === 'no_key') { setShowKeyModal(true); return }
+      setError(err.message ?? 'Something went wrong.')
+    } finally { setLoading(false) }
+  }
+
+  const handleDownloadPDF = () => window.print()
+
+  const effectivePlan = user?.is_admin ? previewPlan : (userRecord?.is_pro ? 'pro' : 'free')
+  const isPro = effectivePlan === 'pro' || effectivePlan === 'business'
+  const isBusiness = effectivePlan === 'business'
+
   const trialDaysLeft = null
   const isInTrial = false
   const analysesLeft = userRecord ? (userRecord.is_pro ? '∞' : Math.max(0, FREE_LIMIT - (userRecord.analyses_used ?? 0))) : '...'
@@ -390,10 +443,21 @@ export default function App() {
       {(result || loading || error) ? (
         <div style={{ maxWidth: compareResult ? 1200 : 960, margin: '0 auto', padding: 'clamp(80px, 12vw, 100px) 16px 60px', width: '100%', position: 'relative', zIndex: 1 }}>
           {!loading && result && !compareResult && !comparingMode && (
-            <div style={{ marginBottom: 22 }}>
+            <div style={{ marginBottom: 22 }} className="no-print">
+              {/* Print-only header — hidden on screen */}
+              <div id="print-header" style={{ display: 'none', alignItems: 'center', justifyContent: 'space-between', padding: '0 0 16px', borderBottom: '1px solid rgba(255,255,255,0.15)', marginBottom: 20 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  {getBrandLogo() ? <img src={getBrandLogo()} alt="Logo" style={{ height: 32, objectFit: 'contain' }} /> : <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663463031725/5FNF4QVCkxSRz6ba3cCadG/dwelling-logo-3AJU9MMgr8YxSGXWKetVFA.webp" alt="Dwelling" style={{ width: 28, height: 28, borderRadius: 6 }} />}
+                  <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 18, color: '#fff' }}>{getBrandName() || 'Dwelling'}</span>
+                </div>
+                <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
+                  {result?.geo?.displayName} · {new Date().toLocaleDateString('en', { year: 'numeric', month: 'long', day: 'numeric' })}
+                </div>
+              </div>
+
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
-                <button onClick={() => { setResult(null); setCompareResult(null); setComparingMode(false) }}
-                  style={{ borderRadius: 40, padding: '8px 16px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: 'rgba(255,255,255,0.6)', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)', transition: 'transform 0.15s' }}
+                <button onClick={() => { setResult(null); setCompareResult(null); setCompareResultC(null); setComparingMode(false) }}
+                  style={{ borderRadius: 40, padding: '8px 16px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: 'rgba(255,255,255,0.6)', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)', transition: 'opacity 0.15s' }}
                   onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
                   onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
                   ← New search
@@ -402,26 +466,70 @@ export default function App() {
                   style={{ borderRadius: 40, padding: '8px 16px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: '#fff', border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer', background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(12px)', transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 6 }}
                   onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.09)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)' }}
                   onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)' }}>
-                  ⚖️ Compare areas
+                  ⚖️ Compare
                 </button>
+
+                {/* Pro: Save Report */}
+                {isPro && (
+                  <button onClick={() => { saveReport(result); }}
+                    style={{ borderRadius: 40, padding: '8px 16px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: isReportSaved(result) ? '#4ade80' : 'rgba(255,255,255,0.6)', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.06)', transition: 'opacity 0.15s', display: 'flex', alignItems: 'center', gap: 5 }}
+                    onMouseEnter={e => e.currentTarget.style.opacity = '0.75'}
+                    onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                    title="Save this report">
+                    {isReportSaved(result) ? '★ Saved' : '☆ Save'}
+                  </button>
+                )}
+
+                {/* Pro: Saved reports list */}
+                {isPro && savedReports.length > 0 && (
+                  <button onClick={() => setShowSavedReports(true)}
+                    style={{ borderRadius: 40, padding: '8px 16px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: 'rgba(255,255,255,0.5)', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.04)', transition: 'opacity 0.15s' }}
+                    onMouseEnter={e => e.currentTarget.style.opacity = '0.75'}
+                    onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
+                    📂 {savedReports.length}
+                  </button>
+                )}
+
+                {/* Pro/Business: PDF Download */}
+                {isPro && (
+                  <button onClick={isBusiness ? () => setShowPDFExport(true) : handleDownloadPDF}
+                    style={{ borderRadius: 40, padding: '8px 16px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: isBusiness ? 'rgba(251,191,36,0.8)' : 'rgba(255,255,255,0.6)', border: isBusiness ? '1px solid rgba(251,191,36,0.2)' : 'none', cursor: 'pointer', background: isBusiness ? 'rgba(251,191,36,0.06)' : 'rgba(255,255,255,0.06)', transition: 'opacity 0.15s', display: 'flex', alignItems: 'center', gap: 5 }}
+                    onMouseEnter={e => e.currentTarget.style.opacity = '0.75'}
+                    onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                    title={isBusiness ? 'Export branded PDF with section selection' : 'Download PDF'}>
+                    {isBusiness ? '↓ PDF+' : '↓ PDF'}
+                  </button>
+                )}
+
+                {/* Business: Branding */}
+                {isBusiness && (
+                  <button onClick={() => setShowBranding(true)}
+                    style={{ borderRadius: 40, padding: '8px 16px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: 'rgba(251,191,36,0.7)', border: '1px solid rgba(251,191,36,0.2)', cursor: 'pointer', background: 'rgba(251,191,36,0.06)', transition: 'opacity 0.15s' }}
+                    onMouseEnter={e => e.currentTarget.style.opacity = '0.75'}
+                    onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
+                    🏢 Brand
+                  </button>
+                )}
+
+                {/* Share */}
                 <button
                   onClick={() => {
-                    const city = result?.geo?.userCity || 'this city'
-                    const score = result?.ai?.stabilityScore || result?.ai?.overallScore || ''
-                    const verdict = result?.ai?.verdict || result?.ai?.marketVerdict || ''
-                    const text = `I just ran a Dwelling AI report on ${city}${score ? ` — Score: ${score}/100` : ''}${verdict ? `, Verdict: ${verdict}` : ''}. Free at dwelling.one`
-                    if (navigator.share) { navigator.share({ title: `Dwelling: ${city}`, text, url: 'https://dwelling.one' }).catch(() => {}) }
-                    else { navigator.clipboard?.writeText(text).then(() => alert('Copied to clipboard!')).catch(() => alert(text)) }
+                    const city = result?.geo?.displayName?.split(',')[0] || 'this city'
+                    const score = result?.realData?.areaRiskScore?.score || ''
+                    const verdict = result?.ai?.areaIntelligence?.verdict || ''
+                    const text = `${city} — Dwelling AI Report${score ? ` · Score: ${score}/100` : ''}${verdict ? ` · ${verdict}` : ''}\ndwelling.one`
+                    if (navigator.share) navigator.share({ title: `Dwelling: ${city}`, text, url: 'https://dwelling.one' }).catch(() => {})
+                    else navigator.clipboard?.writeText(text).then(() => {}).catch(() => {})
                   }}
-                  style={{ borderRadius: 40, padding: '8px 16px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: 'rgba(255,255,255,0.6)', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)', transition: 'opacity 0.15s', display: 'flex', alignItems: 'center', gap: 5 }}
+                  style={{ borderRadius: 40, padding: '8px 16px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: 'rgba(255,255,255,0.6)', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.06)', transition: 'opacity 0.15s', display: 'flex', alignItems: 'center', gap: 5 }}
                   onMouseEnter={e => e.currentTarget.style.opacity = '0.75'}
                   onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
                   ↗ Share
                 </button>
-                {!(userRecord?.is_pro || user?.is_admin) && (
-                  <button
-                    onClick={() => { setPaywallTrigger('pricing'); setShowPaywall(true) }}
-                    style={{ borderRadius: 40, padding: '8px 16px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: 'rgba(255,255,255,0.3)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer', background: 'transparent', transition: 'opacity 0.15s', display: 'flex', alignItems: 'center', gap: 5 }}
+
+                {!isPro && (
+                  <button onClick={() => { setPaywallTrigger('pricing'); setShowPaywall(true) }}
+                    style={{ borderRadius: 40, padding: '8px 16px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: 'rgba(255,255,255,0.3)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer', background: 'transparent', transition: 'opacity 0.15s' }}
                     onMouseEnter={e => e.currentTarget.style.opacity = '0.75'}
                     onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
                     ★ Upgrade to Pro
@@ -455,6 +563,18 @@ export default function App() {
               <AddressSearch onSearch={handleCompareSearch} loading={loading} compact />
             </div>
           )}
+          {!loading && comparingModeC && (
+            <div style={{ marginBottom: 22 }}>
+              <div className="liquid-glass" style={{ borderRadius: 14, padding: '14px 18px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 16 }}>🅲</span>
+                <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>
+                  Search a third area to compare against <span style={{ color: '#fff' }}>{compareResult?.geo?.displayName?.split(',')[0]}</span>
+                </span>
+                <button onClick={() => setComparingModeC(false)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>×</button>
+              </div>
+              <AddressSearch onSearch={handleCompareCSearch} loading={loading} compact />
+            </div>
+          )}
           {loading && <LoadingState step={loadStep} />}
           {error && (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, padding: '40px 16px' }}>
@@ -471,8 +591,11 @@ export default function App() {
             <Suspense fallback={null}><CompareView
               resultA={result}
               resultB={compareResult}
-              onBack={() => setCompareResult(null)}
+              resultC={compareResultC}
+              onBack={() => { setCompareResult(null); setCompareResultC(null); setComparingModeC(false) }}
               onClearB={() => { setCompareResult(null); setComparingMode(true) }}
+              onAddC={isPro ? () => setComparingModeC(true) : undefined}
+              onClearC={() => { setCompareResultC(null); setComparingModeC(true) }}
             /></Suspense>
           )}
           {result && !loading && !compareResult && <Suspense fallback={<LoadingState step={0} />}><Dashboard key={user?.is_admin ? previewPlan : 'fixed'} data={result} onRecalculate={handleRecalculate} previewPlan={user?.is_admin ? previewPlan : userRecord?.is_pro ? 'pro' : 'free'}
@@ -504,6 +627,18 @@ export default function App() {
             onUpgrade={() => { setPaywallTrigger('pricing'); setShowPaywall(true) }}
           />
         </div>
+      )}
+      {showSavedReports && (
+        <SavedReportsModal
+          saved={savedReports}
+          onLoad={r => { setResult(r); setShowSavedReports(false) }}
+          onDelete={deleteReport}
+          onClose={() => setShowSavedReports(false)}
+        />
+      )}
+      {showBranding && <BrandingModal onClose={() => setShowBranding(false)} />}
+      {showPDFExport && result && (
+        <PDFExportModal result={result} onClose={() => setShowPDFExport(false)} />
       )}
       {showDeleteAccount && (
         <Suspense fallback={null}><DeleteAccountModal

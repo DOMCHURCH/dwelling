@@ -415,7 +415,7 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
 
       {/* Area Verdict — top-level summary for area mode */}
       {areaIntelligence && (
-        <SectionCard title="Area Verdict" icon="🎯" delay={40}>
+        <SectionCard title="Area Verdict" icon="🎯" delay={40} pdfSection="verdict">
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 14, flexWrap: 'wrap' }}>
             <div style={{
               padding: '10px 24px', borderRadius: 40,
@@ -459,7 +459,7 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
 
       {/* Area Intelligence — shown when no street address was given */}
       {areaMetrics && (
-        <SectionCard title="Market Intelligence" icon="📊" delay={45}>
+        <SectionCard title="Market Intelligence" icon="📊" delay={45} pdfSection="market">
           {/* Risk Score */}
           {areaRiskScore && (
             <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
@@ -542,7 +542,7 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
 
       {/* Local News */}
       {newsData?.articles?.length > 0 && (
-        <SectionCard title="Local Market News" icon="📰" delay={48}>
+        <SectionCard title="Local Market News" icon="📰" delay={48} pdfSection="news">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {newsData.articles.slice(0, 5).map((article) => (
               <a key={article.url} href={article.url} target="_blank" rel="noopener noreferrer"
@@ -566,7 +566,7 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
         </SectionCard>
       )}
 
-      <SectionCard title="Area Market Estimate" icon="🏠" delay={50}>
+      <SectionCard title="Area Market Estimate" icon="🏠" delay={50} pdfSection="estimate">
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 16 }}>
           <StatCard label="Median Value" value={fmtUSD(convert(propertyEstimate.estimatedValueUSD), sym)} sub="area average" accent="#ffffff" animate />
           <StatCard label="Price / sqft" value={fmtUSD(convert(propertyEstimate.pricePerSqftUSD), sym)} sub="area average" />
@@ -597,13 +597,13 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
       </SectionCard>
 
       {/* Cost of Living */}
-      <SectionCard title="Cost of Living" icon="💰" delay={100}>
+      <SectionCard title="Cost of Living" icon="💰" delay={100} pdfSection="costliving">
         <IncomeSlider costOfLiving={costOfLiving} sym={sym} />
       </SectionCard>
 
       {/* Neighborhood + Climate */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: 16 }}>
-        <SectionCard title="Neighborhood" icon="🏘" delay={150}>
+        <SectionCard title="Neighborhood" icon="🏘" delay={150} pdfSection="neighborhood">
           <div style={{ position: 'relative' }}>
             {/* Walk + School scores always visible for free */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8, marginBottom: 14 }}>
@@ -652,7 +652,7 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
           </div>
         </SectionCard>
 
-        <SectionCard title="Climate" icon="🌤" delay={200}>
+        <SectionCard title="Climate" icon="🌤" delay={200} pdfSection="climate">
           {climate && (
             <>
               <BarMeter label="Avg High" value={`${climate.avgHighC}°C`} max={50} />
@@ -686,7 +686,7 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
 
       {/* Price History */}
       {(isLocked('pricehistory') || ai.priceHistory) && (
-        <SectionCard title="Price History & Projection" icon="📊" delay={275}>
+        <SectionCard title="Price History & Projection" icon="📊" delay={275} pdfSection="pricehistory">
           {isLocked('pricehistory') ? (
             <LockedSection
               title="Price History & Projections"
@@ -713,7 +713,7 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
 
       {/* Environmental Risk */}
       {(isLocked('risk') || risk) && (
-        <SectionCard title="Environmental Risk" icon="🛡" delay={290} className="gsap-reveal-risk">
+        <SectionCard title="Environmental Risk" icon="🛡" delay={290} className="gsap-reveal-risk" pdfSection="risk">
           {isLocked('risk') ? (
             <LockedSection
               title="Environmental & Flood Risk"
@@ -757,7 +757,7 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
       )}
 
       {/* Investment */}
-      <SectionCard title="Investment Analysis" icon="📈" delay={300}>
+      <SectionCard title="Investment Analysis" icon="📈" delay={300} pdfSection="investment">
         {isLocked('investment') ? (
           <LockedSection
             title="Investment Analysis"
@@ -802,7 +802,7 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
 
 
       {/* Local Insights */}
-      <SectionCard title="Local Insights" icon="🗺" delay={350}>
+      <SectionCard title="Local Insights" icon="🗺" delay={350} pdfSection="insights">
         <p style={{ fontSize: 15, color: '#ffffff', marginBottom: 16, fontFamily: "'Instrument Serif', serif", fontStyle: 'italic' }}>"{localInsights.knownFor}"</p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
           <div>
