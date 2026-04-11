@@ -484,7 +484,7 @@ export default function AddressSearch({ onSearch, loading, compact }) {
           style={{ ...btn(valid, loading), width: '100%', padding: '14px', fontSize: 15 }}
           onMouseEnter={hoverBtn} onMouseLeave={unhoverBtn}
         >
-          {loading ? '⟳ Analyzing...' : '→ Get Free Report'}
+          {loading ? '⟳ Analyzing...' : '→ Get Report'}
         </button>
       </div>
     </form>
