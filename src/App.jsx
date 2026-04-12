@@ -43,6 +43,7 @@ import UserTypeModal, { getUserType, setUserType } from "./components/UserTypeMo
 import { useSavedReports } from "./lib/useSavedReports"
 import SavedReportsModal from "./components/SavedReportsModal"
 import BrandingModal, { getBrandLogo, getBrandName } from "./components/BrandingModal"
+import AdminPanel from "./components/AdminPanel"
 import PDFExportModal from "./components/PDFExportModal"
 import ExportModal from "./components/ExportModal"
 import BusinessDashboard from "./components/BusinessDashboard"
@@ -111,6 +112,7 @@ export default function App() {
   const [showSavedReports, setShowSavedReports] = useState(false)
   const [showBranding, setShowBranding] = useState(false)
   const [showExportModal, setShowExportModal] = useState(false)
+  const [showAdminPanel, setShowAdminPanel] = useState(false)
   const [showPDFExport, setShowPDFExport] = useState(false)
   const [showBusinessDashboard, setShowBusinessDashboard] = useState(false)
   const [compareResultC, setCompareResultC] = useState(null)
@@ -812,6 +814,7 @@ export default function App() {
         isPro={isPro}
         savedCount={savedReports.length}
         onOpenDashboard={() => setShowBusinessDashboard(true)}
+        onOpenAdmin={() => setShowAdminPanel(true)}
         onHome={() => {
           setResult(null)
           window.scrollTo({ top: 0, behavior: "smooth" })
@@ -1344,6 +1347,7 @@ export default function App() {
         />
       )}
       {showBranding && <BrandingModal onClose={() => setShowBranding(false)} />}
+      {showAdminPanel && <AdminPanel onClose={() => setShowAdminPanel(false)} />}
       {showExportModal && result && <ExportModal result={result} onClose={() => setShowExportModal(false)} />}
       {showPDFExport && result && <PDFExportModal result={result} onClose={() => setShowPDFExport(false)} />}
       {showBusinessDashboard && <BusinessDashboard onClose={() => setShowBusinessDashboard(false)} />}

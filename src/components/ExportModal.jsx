@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { downloadAnalysisHTML } from "../lib/exportHTML"
 
 const SECTIONS = [
@@ -18,6 +18,8 @@ export default function ExportModal({ result, onClose }) {
   const [brandName, setBrandName] = useState("Dwelling")
   const [clientName, setClientName] = useState("")
   const [logoUrl, setLogoUrl] = useState("")
+  const [logoPreview, setLogoPreview] = useState("")
+  const fileRef = useRef(null)
   const [sections, setSections] = useState(
     Object.fromEntries(SECTIONS.map((s) => [s.key, true]))
   )
@@ -115,15 +117,45 @@ export default function ExportModal({ result, onClose }) {
         </div>
 
         <div style={{ marginBottom: 28 }}>
-          <label style={labelStyle}>Logo URL <span style={{ color: "rgba(255,255,255,0.25)" }}>(optional)</span></label>
+          <label style={labelStyle}>Logo <span style={{ color: "rgba(255,255,255,0.25)" }}>(PNG or JPEG, optional)</span></label>
           <input
-            value={logoUrl}
-            onChange={(e) => setLogoUrl(e.target.value)}
-            placeholder="https://yourcompany.com/logo.png"
-            style={inputStyle}
-            onFocus={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.3)")}
-            onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.1)")}
+            ref={fileRef}
+            type="file"
+            accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
+            style={{ display: "none" }}
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              if (!file) return
+              const reader = new FileReader()
+              reader.onload = (ev) => {
+                setLogoUrl(ev.target.result)
+                setLogoPreview(ev.target.result)
+              }
+              reader.readAsDataURL(file)
+            }}
           />
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              style={{
+                ...inputStyle,
+                cursor: "pointer", textAlign: "left",
+                color: logoPreview ? "rgba(255,255,255,0.8)" : "rgba(255,255,255,0.3)",
+                display: "flex", alignItems: "center", gap: 8, width: "auto", flex: 1,
+              }}
+            >
+              <span style={{ fontSize: 16 }}>🖼</span>
+              {logoPreview ? "Logo uploaded — click to change" : "Upload logo file"}
+            </button>
+            {logoPreview && (
+              <>
+                <img src={logoPreview} alt="Logo preview" style={{ height: 36, width: "auto", objectFit: "contain", borderRadius: 6, border: "1px solid rgba(255,255,255,0.1)", padding: 4, background: "rgba(255,255,255,0.05)" }} />
+                <button type="button" onClick={() => { setLogoUrl(""); setLogoPreview(""); fileRef.current.value = "" }}
+                  style={{ background: "none", border: "none", color: "rgba(255,255,255,0.3)", cursor: "pointer", fontSize: 16 }}>×</button>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Section picker */}

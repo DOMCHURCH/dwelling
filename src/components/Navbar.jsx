@@ -14,6 +14,7 @@ export default function Navbar({
   savedCount,
   isPro,
   onOpenDashboard,
+  onOpenAdmin,
   onOpenKeyModal,
   hasOwnKey,
   previewPlan,
@@ -156,7 +157,10 @@ export default function Navbar({
                       : low
                         ? "#f87171"
                         : "rgba(255,255,255,0.5)",
+                  cursor: user?.is_admin ? "pointer" : "default",
                 }}
+                onClick={user?.is_admin ? onOpenAdmin : undefined}
+                title={user?.is_admin ? "Open Admin Panel" : undefined}
               >
                 {user?.is_admin ? "⚡ Admin" : userRecord?.is_pro ? "★ Pro" : `${analysesLeft} / 10 left`}
               </span>

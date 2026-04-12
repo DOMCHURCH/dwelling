@@ -644,6 +644,37 @@ export default async function handler(req, res) {
       return res.status(200).json({ url: portalSession.url })
     }
 
+    // ── Admin: list all users ─────────────────────────────────────────────────
+    if (action === 'admin-list-users') {
+      const authHeader = req.headers.authorization
+      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
+      const payload = verify(authHeader.replace('Bearer ', ''))
+      if (!payload?.is_admin) return res.status(403).json({ error: 'Admin access required' })
+      const db = getDb()
+      const result = await db.execute({
+        sql: 'SELECT id, email, is_pro, is_business, analyses_used, created_at FROM users ORDER BY created_at DESC LIMIT 200',
+        args: [],
+      })
+      return res.status(200).json({ users: result.rows })
+    }
+
+    // ── Admin: adjust user quota ──────────────────────────────────────────────
+    if (action === 'admin-adjust-usage') {
+      const authHeader = req.headers.authorization
+      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
+      const payload = verify(authHeader.replace('Bearer ', ''))
+      if (!payload?.is_admin) return res.status(403).json({ error: 'Admin access required' })
+      const { targetEmail, analysesUsed } = req.body
+      if (!targetEmail || analysesUsed == null) return res.status(400).json({ error: 'targetEmail and analysesUsed required' })
+      const db = getDb()
+      const r = await db.execute({
+        sql: 'UPDATE users SET analyses_used = ? WHERE email = ?',
+        args: [Math.max(0, parseInt(analysesUsed, 10)), targetEmail.trim().toLowerCase()],
+      })
+      if (r.rowsAffected === 0) return res.status(404).json({ error: `No user: ${targetEmail}` })
+      return res.status(200).json({ success: true })
+    }
+
     // ── Stripe: admin-grant-pro ───────────────────────────────────────────────
     if (action === 'admin-grant-pro') {
       const authHeader = req.headers.authorization
