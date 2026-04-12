@@ -1,218 +1,335 @@
-/* ============================================================
-   Vela — main.js
-   Scroll-synced video scrub + progressive text spawning
-   GSAP ScrollTrigger  |  single scrubbed timeline
-============================================================ */
+/* ==========================================================
+   Vela Landing Page — main.js
+   Three.js particles + GSAP scroll animations + 3D tilt
+   ========================================================== */
 
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const isMobile = window.innerWidth < 768;
 
-/* ── Nav background ───────────────────────────────────────── */
-(function initNav() {
-  const nav = document.querySelector('nav');
-  if (!nav) return;
-  window.addEventListener('scroll', () => {
-    nav.classList.toggle('scrolled', window.scrollY > 40);
-  }, { passive: true });
+/* ----------------------------------------------------------
+   1. THREE.JS PARTICLE FIELD
+   ---------------------------------------------------------- */
+(function initParticles() {
+  if (isMobile || prefersReducedMotion) return;
+
+  const canvas = document.getElementById('particle-canvas');
+  if (!canvas || typeof THREE === 'undefined') return;
+
+  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: false });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0x000000, 0);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+  camera.position.z = 12;
+
+  // 2000 particles in a sphere
+  const count = 2000;
+  const positions = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    const r = 5;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(2 * Math.random() - 1);
+    positions[i * 3]     = r * Math.sin(phi) * Math.cos(theta) + (Math.random() - 0.5) * 4;
+    positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta) + (Math.random() - 0.5) * 4;
+    positions[i * 3 + 2] = r * Math.cos(phi) + (Math.random() - 0.5) * 4;
+  }
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+  const mat = new THREE.PointsMaterial({
+    color: 0xffffff,
+    size: 0.035,
+    sizeAttenuation: true,
+    transparent: true,
+    opacity: 0.5,
+    depthWrite: false,
+  });
+
+  const points = new THREE.Points(geo, mat);
+  scene.add(points);
+
+  let rafId;
+  function animate() {
+    rafId = requestAnimationFrame(animate);
+    points.rotation.y += 0.0008;
+    points.rotation.x += 0.0002;
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  // Resize
+  window.addEventListener('resize', () => {
+    const w = window.innerWidth, h = window.innerHeight;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
+  });
+
+  // Fade out particles when user scrolls past hero
+  const hero = document.querySelector('.hero');
+  if (hero) {
+    const obs = new IntersectionObserver(([entry]) => {
+      canvas.style.opacity = entry.isIntersecting ? '1' : '0';
+      canvas.style.transition = 'opacity 0.6s';
+    }, { threshold: 0.1 });
+    obs.observe(hero);
+  }
 })();
 
-/* ── 3D card tilt ─────────────────────────────────────────── */
-(function initCardTilt() {
-  if (prefersReducedMotion) return;
-  document.querySelectorAll('.feature-card').forEach(card => {
-    card.addEventListener('mousemove', e => {
-      const r  = card.getBoundingClientRect();
-      const dx = (e.clientX - r.left - r.width  / 2) / (r.width  / 2);
-      const dy = (e.clientY - r.top  - r.height / 2) / (r.height / 2);
-      card.style.transform = `perspective(800px) rotateX(${-dy*12}deg) rotateY(${dx*12}deg) scale3d(1.02,1.02,1.02)`;
-      card.style.setProperty('--mx', ((e.clientX - r.left) / r.width  * 100).toFixed(1) + '%');
-      card.style.setProperty('--my', ((e.clientY - r.top ) / r.height * 100).toFixed(1) + '%');
-    });
-    card.addEventListener('mouseleave', () => { card.style.transform = ''; });
+
+/* ----------------------------------------------------------
+   2. VIDEO FALLBACK
+   ---------------------------------------------------------- */
+(function initVideo() {
+  const video = document.getElementById('hero-video');
+  if (!video) return;
+
+  video.addEventListener('error', () => {
+    const wrap = video.closest('.hero-video-wrap');
+    if (wrap) {
+      wrap.style.background = '#0a0f1f';
+      video.style.display = 'none';
+    }
   });
 })();
 
-/* ── Main scroll logic ────────────────────────────────────── */
-document.addEventListener('DOMContentLoaded', () => {
 
-  /* Guard — GSAP must be loaded */
-  if (!window.gsap || !window.ScrollTrigger) {
-    console.warn('Vela: GSAP or ScrollTrigger not available');
-    // Fallback: just show section-1
-    const s1 = document.getElementById('section-1');
-    if (s1) { s1.style.opacity = '1'; s1.style.pointerEvents = 'auto'; }
-    return;
-  }
-
+/* ----------------------------------------------------------
+   3. GSAP ANIMATIONS
+   ---------------------------------------------------------- */
+(function initGSAP() {
+  if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') return;
   gsap.registerPlugin(ScrollTrigger);
 
-  const video      = document.getElementById('hero-video');
-  const viewport   = document.getElementById('scroll-viewport');
-  const fill       = document.getElementById('scroll-progress-fill');
-  const sections   = ['section-1','section-2','section-3','section-4'].map(id => document.getElementById(id));
+  if (prefersReducedMotion) return;
 
-  /* ── Inject nav dots ── */
-  const dotsWrap = document.createElement('div');
-  dotsWrap.id = 'section-dots';
-  dotsWrap.setAttribute('aria-hidden', 'true');
-  sections.forEach((_, i) => {
-    const d = document.createElement('span');
-    d.className = 's-dot';
-    d.dataset.idx = i;
-    dotsWrap.appendChild(d);
+  // --- Hero entrance ---
+  const heroItems = ['.hero-badge', '.hero-headline', '.hero-sub', '.hero-cta-group', '.hero-social-proof'];
+  gsap.from(heroItems, {
+    opacity: 0,
+    y: 30,
+    duration: 0.9,
+    stagger: 0.12,
+    ease: 'power3.out',
+    delay: 0.2,
+    clearProps: 'all',
   });
-  document.getElementById('sticky-frame').appendChild(dotsWrap);
-  const dots = dotsWrap.querySelectorAll('.s-dot');
 
-  /* ── Helpers ── */
-  function setActiveSection(idx) {
-    sections.forEach((s, i) => s && s.classList.toggle('gsap-active', i === idx));
-    dots.forEach((d, i) => d.classList.toggle('active', i === idx));
-  }
+  // --- Feature cards: fade + slide up on scroll ---
+  gsap.from('.feature-card', {
+    opacity: 0,
+    y: 40,
+    duration: 0.7,
+    stagger: 0.15,
+    ease: 'power3.out',
+    clearProps: 'all',
+    scrollTrigger: {
+      trigger: '.feature-grid',
+      start: 'top 80%',
+    },
+  });
 
-  /* ── Reduced-motion fallback: no animation, just show section-1 ── */
-  if (prefersReducedMotion) {
-    sections[0] && (sections[0].style.opacity = '1', sections[0].style.pointerEvents = 'auto');
-    setActiveSection(0);
-    return;
-  }
+  // --- Logo items ---
+  gsap.from('.logo-item', {
+    opacity: 0,
+    y: 16,
+    duration: 0.5,
+    stagger: 0.08,
+    ease: 'power2.out',
+    clearProps: 'all',
+    scrollTrigger: { trigger: '.logos-strip', start: 'top 85%' },
+  });
 
-  /* ══════════════════════════════════════════════════
-     VIDEO SCRUB
-     We need to know the video duration before building
-     the timeline. We handle both "already loaded" and
-     "needs to load" cases.
-  ══════════════════════════════════════════════════ */
-  function buildTimeline() {
-    const dur = video.duration;
+  // --- Stats ---
+  gsap.from('.stat-item', {
+    opacity: 0,
+    y: 30,
+    duration: 0.6,
+    stagger: 0.1,
+    ease: 'power3.out',
+    clearProps: 'all',
+    scrollTrigger: { trigger: '.stats-section', start: 'top 80%' },
+  });
 
-    /* ── Master timeline pinned to scroll-viewport ── */
-    const tl = gsap.timeline({
-      scrollTrigger: {
-        trigger:  viewport,
-        start:    'top top',
-        end:      'bottom bottom',
-        scrub:    1,           /* smooth 1 s lag — plays in reverse on scroll up */
-        onUpdate(self) {
-          /* progress bar */
-          if (fill) fill.style.width = (self.progress * 100).toFixed(2) + '%';
-        },
+  // --- Pricing cards ---
+  gsap.from('.pricing-card', {
+    opacity: 0,
+    y: 40,
+    duration: 0.7,
+    stagger: 0.15,
+    ease: 'power3.out',
+    clearProps: 'all',
+    scrollTrigger: { trigger: '.pricing-grid', start: 'top 80%' },
+  });
+
+  // --- CTA section ---
+  gsap.from('.cta-inner', {
+    opacity: 0,
+    scale: 0.97,
+    duration: 0.8,
+    ease: 'power3.out',
+    clearProps: 'all',
+    scrollTrigger: { trigger: '.cta-section', start: 'top 80%' },
+  });
+
+  // --- Section headers ---
+  gsap.utils.toArray('.section-header').forEach(el => {
+    gsap.from(el.children, {
+      opacity: 0,
+      y: 24,
+      duration: 0.6,
+      stagger: 0.1,
+      ease: 'power2.out',
+      clearProps: 'all',
+      scrollTrigger: { trigger: el, start: 'top 85%' },
+    });
+  });
+
+  // --- Scroll sequence: 3 pinned panels ---
+  initScrollSequence();
+})();
+
+
+/* ----------------------------------------------------------
+   4. SCROLL SEQUENCE (pinned, scrubbed, 3 panels)
+   ---------------------------------------------------------- */
+function initScrollSequence() {
+  const section = document.querySelector('.scroll-sequence');
+  const pinWrap = document.querySelector('.sequence-pin-wrap');
+  const panels = gsap.utils.toArray('.sequence-panel');
+  if (!section || !pinWrap || panels.length === 0) return;
+
+  const panelCount = panels.length;
+  const scrollHeight = window.innerHeight * (panelCount + 0.5);
+
+  pinWrap.style.position = 'relative';
+  pinWrap.style.height = scrollHeight + 'px';
+  section.style.minHeight = scrollHeight + 'px';
+
+  // Make panels position:absolute within the pin wrap
+  panels.forEach(p => {
+    p.style.position = 'absolute';
+    p.style.inset = '0';
+    p.style.minHeight = window.innerHeight + 'px';
+  });
+
+  // Pin the section, scrub through panels
+  ScrollTrigger.create({
+    trigger: section,
+    start: 'top top',
+    end: () => '+=' + scrollHeight,
+    pin: true,
+    pinSpacing: false,
+    onUpdate: self => {
+      const progress = self.progress; // 0 → 1
+      const step = 1 / panelCount;
+
+      panels.forEach((panel, i) => {
+        const panelStart = i * step;
+        const panelEnd = (i + 1) * step;
+        const localProgress = Math.max(0, Math.min(1, (progress - panelStart) / step));
+
+        if (localProgress > 0 && localProgress <= 1) {
+          // Fade in
+          const opacity = Math.min(localProgress * 3, 1);
+          const ty = (1 - Math.min(localProgress * 2, 1)) * 40;
+          gsap.set(panel, { opacity, y: ty, pointerEvents: opacity > 0.5 ? 'auto' : 'none' });
+        } else if (localProgress === 0) {
+          gsap.set(panel, { opacity: 0, y: 40, pointerEvents: 'none' });
+        }
+      });
+    },
+  });
+
+  // Ensure first panel is visible at start
+  gsap.set(panels[0], { opacity: 1, y: 0 });
+}
+
+
+/* ----------------------------------------------------------
+   5. CSS 3D TILT ON HOVER
+   ---------------------------------------------------------- */
+(function initTilt() {
+  if (isMobile || prefersReducedMotion) return;
+
+  const MAX_TILT = 15; // degrees
+
+  document.querySelectorAll('.tilt-card').forEach(card => {
+    const glare = card.querySelector('.card-glare');
+
+    card.addEventListener('mousemove', e => {
+      const rect = card.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const dx = (e.clientX - cx) / (rect.width / 2);   // -1 → 1
+      const dy = (e.clientY - cy) / (rect.height / 2);  // -1 → 1
+
+      const rotX = -dy * MAX_TILT;
+      const rotY = dx * MAX_TILT;
+
+      card.style.transform = `perspective(800px) rotateX(${rotX}deg) rotateY(${rotY}deg) scale3d(1.02,1.02,1.02)`;
+
+      // Glare position (CSS vars)
+      if (glare) {
+        const mx = ((e.clientX - rect.left) / rect.width) * 100;
+        const my = ((e.clientY - rect.top) / rect.height) * 100;
+        glare.style.setProperty('--mx', mx + '%');
+        glare.style.setProperty('--my', my + '%');
       }
     });
 
-    /* ── 1. VIDEO SCRUB — map duration to full timeline ── */
-    if (dur && isFinite(dur)) {
-      /*
-        We set currentTime directly via a GSAP tween on a proxy object
-        because <video> currentTime isn't a tweeable DOM property.
-      */
-      const proxy = { t: 0 };
-      tl.to(proxy, {
-        t:        dur,
-        ease:     'none',
-        duration: 1,          /* normalised — ScrollTrigger maps this to scroll distance */
-        onUpdate() { video.currentTime = proxy.t; }
-      }, 0);
+    card.addEventListener('mouseleave', () => {
+      card.style.transform = 'perspective(800px) rotateX(0deg) rotateY(0deg) scale3d(1,1,1)';
+      card.style.transition = 'transform 0.5s cubic-bezier(0.23,1,0.32,1)';
+      setTimeout(() => { card.style.transition = ''; }, 500);
+    });
+
+    card.addEventListener('mouseenter', () => {
+      card.style.transition = 'transform 0.1s ease';
+    });
+  });
+})();
+
+
+/* ----------------------------------------------------------
+   6. NAVBAR SCROLL STATE
+   ---------------------------------------------------------- */
+(function initNavbar() {
+  const nav = document.querySelector('.navbar');
+  if (!nav) return;
+
+  const onScroll = () => {
+    if (window.scrollY > 20) {
+      nav.style.background = 'rgba(10,15,31,0.9)';
+    } else {
+      nav.style.background = 'rgba(10,15,31,0.65)';
     }
+  };
+  window.addEventListener('scroll', onScroll, { passive: true });
+})();
 
-    /* ── 2. TEXT SPAWNING SEQUENCE ── */
-    /*
-      Timeline runs from 0 to 1 (normalised).
-      Section windows:
-        sec-1  0.00 – 0.25
-        sec-2  0.26 – 0.50
-        sec-3  0.51 – 0.75
-        sec-4  0.76 – 1.00
 
-      Each inner has a y:50→0 spawn + opacity fade.
-      We tween the *section* opacity independently so the inner
-      elements animate relative to their parent.
-    */
+/* ----------------------------------------------------------
+   7. CTA FORM
+   ---------------------------------------------------------- */
+(function initForm() {
+  const form = document.querySelector('.cta-form');
+  if (!form) return;
 
-    const FADE = 0.04;   /* duration (normalised) for fade in / out */
-    const SPAWN = 0.05;  /* duration for y spawn */
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    const input = form.querySelector('input[type="email"]');
+    const btn = form.querySelector('button');
+    if (!input || !btn) return;
 
-    const windows = [
-      { id: 'section-1', start: 0.00, end: 0.25 },
-      { id: 'section-2', start: 0.26, end: 0.50 },
-      { id: 'section-3', start: 0.51, end: 0.75 },
-      { id: 'section-4', start: 0.76, end: 1.00 },
-    ];
-
-    windows.forEach(({ id, start, end }, i) => {
-      const section = document.getElementById(id);
-      if (!section) return;
-      const inner = section.querySelector('.text-section-inner');
-
-      /* Fade IN section opacity */
-      tl.fromTo(section,
-        { opacity: 0 },
-        { opacity: 1, duration: FADE, ease: 'power2.out',
-          onStart()    { setActiveSection(i); section.classList.add('gsap-active'); },
-          onReverseComplete() { section.classList.remove('gsap-active'); }
-        },
-        start
-      );
-
-      /* Spawn — inner slides up */
-      tl.fromTo(inner,
-        { y: 50, opacity: 0 },
-        { y: 0, opacity: 1, duration: SPAWN, ease: 'power3.out' },
-        start
-      );
-
-      /* For sections 1–3: fade OUT near the end of their window */
-      if (i < windows.length - 1) {
-        const fadeOutAt = end - FADE;
-        tl.to(section,
-          { opacity: 0, duration: FADE, ease: 'power2.in',
-            onStart()           { section.classList.remove('gsap-active'); },
-            onReverseComplete() { section.classList.add('gsap-active'); setActiveSection(i); }
-          },
-          fadeOutAt
-        );
-        tl.to(inner,
-          { y: -30, opacity: 0, duration: FADE, ease: 'power2.in' },
-          fadeOutAt
-        );
-      }
-    });
-
-    /* Set first section visible at page load (progress = 0) */
-    gsap.set('#section-1', { opacity: 1 });
-    gsap.set('#section-1 .text-section-inner', { y: 0, opacity: 1 });
-    setActiveSection(0);
-    document.getElementById('section-1')?.classList.add('gsap-active');
-  }
-
-  /* ── Wait for video metadata ── */
-  if (video.readyState >= 1) {
-    buildTimeline();
-  } else {
-    video.addEventListener('loadedmetadata', buildTimeline, { once: true });
-    /* Fallback: if video never loads, build without scrub after 2 s */
-    setTimeout(() => {
-      if (!ScrollTrigger.getAll().length) buildTimeline();
-    }, 2000);
-  }
-
-  /* ── Dot clicks scroll to section midpoint ── */
-  dots.forEach((dot, i) => {
-    dot.addEventListener('click', () => {
-      const win     = [0.00, 0.26, 0.51, 0.76];
-      const vpRect  = viewport.getBoundingClientRect();
-      const vpTop   = window.scrollY + vpRect.top;
-      const vpH     = viewport.offsetHeight;
-      const target  = vpTop + win[i] * vpH;
-      window.scrollTo({ top: target, behavior: 'smooth' });
-    });
+    btn.textContent = 'You\'re on the list!';
+    btn.style.background = '#10b981';
+    btn.disabled = true;
+    input.disabled = true;
+    input.value = '';
+    input.placeholder = 'Thanks — we\'ll be in touch!';
   });
-
-  /* ── Feature card entrance (below fold) ── */
-  gsap.utils.toArray('.feature-card').forEach((card, i) => {
-    gsap.from(card, {
-      opacity: 0, y: 40, duration: .65, ease: 'power3.out',
-      delay: (i % 3) * 0.15,
-      scrollTrigger: { trigger: card, start: 'top 80%', toggleActions: 'play none none none' }
-    });
-  });
-});
+})();

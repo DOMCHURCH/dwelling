@@ -3,263 +3,448 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Vela — premium analytics dashboard. Real-time insights, zero complexity." />
-  <title>Vela — Premium Analytics Dashboard</title>
-
+  <meta name="description" content="Vela — the premium analytics dashboard that transforms your data into decisions." />
+  <title>Vela — Premium Analytics</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
 
-  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <!-- Skip to content -->
+  <a href="#main" class="skip-link">Skip to content</a>
 
-  <!-- ── NAV ── -->
-  <nav aria-label="Main navigation">
-    <a href="#" class="nav-logo">Vel<span>a</span></a>
-    <ul class="nav-links" role="list">
-      <li><a href="#features">Features</a></li>
-      <li><a href="#pricing">Pricing</a></li>
-      <li><a href="#cta" class="nav-cta">Get early access</a></li>
-    </ul>
+  <!-- Navbar -->
+  <nav class="navbar" aria-label="Main navigation">
+    <div class="nav-inner">
+      <a href="#" class="nav-logo" aria-label="Vela home">
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+          <polygon points="14,2 26,24 2,24" fill="#3b82f6" opacity="0.9"/>
+          <polygon points="14,8 22,22 6,22" fill="#0a0f1f"/>
+          <circle cx="14" cy="17" r="2.5" fill="#3b82f6"/>
+        </svg>
+        <span>Vela</span>
+      </a>
+      <ul class="nav-links" role="list">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#sequence">How it Works</a></li>
+        <li><a href="#pricing">Pricing</a></li>
+      </ul>
+      <a href="#cta" class="btn btn-sm">Get Early Access</a>
+    </div>
   </nav>
 
-  <main id="main-content">
+  <main id="main">
 
-    <!-- ══════════════════════════════════════════
-         SCROLL-VIEWPORT  (500vh scroll container)
-         Sticky-Frame pins the video + text while
-         the user scrolls through 500vh of content.
-    ═══════════════════════════════════════════════ -->
-    <div id="scroll-viewport">
+    <!-- ===== HERO ===== -->
+    <section class="hero" aria-label="Hero">
+      <!-- Three.js canvas -->
+      <canvas id="particle-canvas" aria-hidden="true"></canvas>
 
-      <div id="sticky-frame">
-
-        <!-- 1. Background video -->
+      <!-- Video background -->
+      <div class="hero-video-wrap" aria-hidden="true">
         <video
           id="hero-video"
-          src="/vela-bg.webm"
-          muted
-          playsinline
-          preload="auto"
-          style="object-fit:cover;width:100vw;height:100vh;"
-          aria-hidden="true"
-        ></video>
+          autoplay muted loop playsinline
+          poster="assets/poster.jpg"
+        >
+          <source src="assets/vela-bg.webm" type="video/webm" />
+        </video>
+        <div class="video-overlay"></div>
+      </div>
 
-        <!-- 2. Dark overlay -->
-        <div class="hero-overlay" aria-hidden="true"></div>
-
-        <!-- 3. Text overlay layer — four sections -->
-        <div id="text-overlay-layer" aria-live="polite">
-
-          <!-- Section 1  0–25% -->
-          <div class="text-section" id="section-1" aria-label="Section 1">
-            <div class="text-section-inner">
-              <span class="section-eyebrow">01 / Overview</span>
-              <h2 class="section-heading">See every metric<br /><em>at once.</em></h2>
-              <p class="section-body">
-                Vela's unified dashboard connects all your data sources into one
-                living, breathing view — updated the instant something changes.
-              </p>
-              <a href="/dashboard" class="section-cta btn-primary">Open Dashboard →</a>
-            </div>
-          </div>
-
-          <!-- Section 2  26–50% -->
-          <div class="text-section" id="section-2" aria-label="Section 2">
-            <div class="text-section-inner">
-              <span class="section-eyebrow">02 / Analytics</span>
-              <h2 class="section-heading">Patterns hidden<br /><em>in plain sight.</em></h2>
-              <p class="section-body">
-                AI-powered anomaly detection surfaces trends before they become
-                problems. Stop reacting. Start anticipating.
-              </p>
-              <a href="/analytics" class="section-cta btn-primary">Explore Analytics →</a>
-            </div>
-          </div>
-
-          <!-- Section 3  51–75% -->
-          <div class="text-section" id="section-3" aria-label="Section 3">
-            <div class="text-section-inner">
-              <span class="section-eyebrow">03 / Settings</span>
-              <h2 class="section-heading">Your workflow,<br /><em>your rules.</em></h2>
-              <p class="section-body">
-                Granular controls for every team member. Set alerts, permissions,
-                and integrations exactly the way your organisation needs them.
-              </p>
-              <a href="/settings" class="section-cta btn-primary">Configure Settings →</a>
-            </div>
-          </div>
-
-          <!-- Section 4  76–100% -->
-          <div class="text-section" id="section-4" aria-label="Section 4">
-            <div class="text-section-inner">
-              <span class="section-eyebrow">04 / Profile</span>
-              <h2 class="section-heading">Built around<br /><em>you.</em></h2>
-              <p class="section-body">
-                Personalised insights, custom report schedules, and a UI that
-                remembers how you work. Analytics finally designed for humans.
-              </p>
-              <a href="/profile" class="section-cta btn-primary">View Profile →</a>
-            </div>
-          </div>
-
-        </div><!-- /text-overlay-layer -->
-
-        <!-- Progress bar -->
-        <div id="scroll-progress" aria-hidden="true">
-          <div id="scroll-progress-fill"></div>
+      <!-- Hero content -->
+      <div class="hero-content container">
+        <div class="hero-badge">Now in Beta</div>
+        <h1 class="hero-headline">
+          Analytics that<br />
+          <span class="gradient-text">think ahead.</span>
+        </h1>
+        <p class="hero-sub">
+          Vela surfaces what matters — before you know to look for it.
+          A dashboard built for teams who move fast and measure everything.
+        </p>
+        <div class="hero-cta-group">
+          <a href="#cta" class="btn btn-primary">Start Free Trial</a>
+          <a href="#sequence" class="btn btn-ghost">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/>
+              <polygon points="6.5,5.5 11.5,8 6.5,10.5" fill="currentColor"/>
+            </svg>
+            See it in action
+          </a>
         </div>
+        <div class="hero-social-proof">
+          <div class="avatar-stack" aria-hidden="true">
+            <div class="avatar" style="background:#4f46e5"></div>
+            <div class="avatar" style="background:#0891b2"></div>
+            <div class="avatar" style="background:#059669"></div>
+            <div class="avatar" style="background:#d97706"></div>
+          </div>
+          <span>Trusted by <strong>2,400+</strong> data teams</span>
+        </div>
+      </div>
 
-      </div><!-- /sticky-frame -->
-    </div><!-- /scroll-viewport -->
-
-    <!-- ── FEATURES (below scroll sequence) ── -->
-    <section id="features" aria-labelledby="features-heading" class="section-padded">
-      <span class="section-label">Features</span>
-      <h2 class="section-title" id="features-heading">Everything your team needs.<br />Nothing they don't.</h2>
-      <p class="section-sub">Opinionated by design — powerful defaults, minimal configuration, maximum clarity.</p>
-
-      <div class="features-grid">
-        <article class="feature-card" tabindex="0">
-          <div class="card-icon" aria-hidden="true">
-            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-          </div>
-          <h3>Real-time streams</h3>
-          <p>Sub-second event ingestion from any source. Webhooks, SDKs, direct DB connectors — Vela keeps up.</p>
-        </article>
-        <article class="feature-card" tabindex="0">
-          <div class="card-icon" aria-hidden="true">
-            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
-          </div>
-          <h3>No-code dashboards</h3>
-          <p>Drag, drop, done. Build pixel-perfect dashboards without writing a single query.</p>
-        </article>
-        <article class="feature-card" tabindex="0">
-          <div class="card-icon" aria-hidden="true">
-            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-          </div>
-          <h3>Scheduled reports</h3>
-          <p>Automated reports land in your inbox, Slack, or Teams right when you need them.</p>
-        </article>
-        <article class="feature-card" tabindex="0">
-          <div class="card-icon" aria-hidden="true">
-            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          </div>
-          <h3>Enterprise security</h3>
-          <p>SOC 2 Type II, SSO, RBAC, and end-to-end encryption baked in from day one.</p>
-        </article>
-        <article class="feature-card" tabindex="0">
-          <div class="card-icon" aria-hidden="true">
-            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-          </div>
-          <h3>Predictive analytics</h3>
-          <p>ML models trained on your data surface trends before they become problems.</p>
-        </article>
-        <article class="feature-card" tabindex="0">
-          <div class="card-icon" aria-hidden="true">
-            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-          </div>
-          <h3>200+ integrations</h3>
-          <p>Salesforce, Stripe, HubSpot, Postgres, BigQuery and hundreds more — connected in seconds.</p>
-        </article>
+      <!-- Scroll indicator -->
+      <div class="scroll-indicator" aria-hidden="true">
+        <div class="scroll-dot"></div>
       </div>
     </section>
 
-    <!-- ── STATS ── -->
-    <section id="stats" aria-labelledby="stats-heading">
-      <h2 class="sr-only" id="stats-heading">Key metrics</h2>
-      <div class="stats-inner">
-        <div><div class="stat-num" data-target="99.9">99.9%</div><div class="stat-label">Uptime SLA</div></div>
-        <div><div class="stat-num" data-target="200">200+</div><div class="stat-label">Integrations</div></div>
-        <div><div class="stat-num" data-target="40">40+</div><div class="stat-label">Countries</div></div>
-        <div><div class="stat-num" data-target="8000">8,000+</div><div class="stat-label">Teams using Vela</div></div>
-      </div>
-    </section>
-
-    <!-- ── PRICING ── -->
-    <section id="pricing" aria-labelledby="pricing-heading" class="section-padded text-center">
-      <span class="section-label">Pricing</span>
-      <h2 class="section-title" id="pricing-heading">Simple, transparent pricing</h2>
-      <p class="section-sub" style="margin:0 auto 3.5rem">No hidden fees. No per-seat gotchas. Cancel anytime.</p>
-      <div class="pricing-grid">
-        <div class="pricing-card">
-          <p class="plan-name">Starter</p>
-          <div class="plan-price">$0<span> / mo</span></div>
-          <p class="plan-desc">For individuals and small projects.</p>
-          <ul class="plan-features">
-            <li>Up to 3 dashboards</li>
-            <li>100k events / month</li>
-            <li>7-day data retention</li>
-            <li>Community support</li>
-          </ul>
-          <a href="/dashboard" class="plan-btn plan-btn-ghost">Get started free</a>
-        </div>
-        <div class="pricing-card featured">
-          <span class="featured-badge">Most popular</span>
-          <p class="plan-name">Pro</p>
-          <div class="plan-price">$49<span> / mo</span></div>
-          <p class="plan-desc">For growing teams that need more power.</p>
-          <ul class="plan-features">
-            <li>Unlimited dashboards</li>
-            <li>10M events / month</li>
-            <li>90-day data retention</li>
-            <li>Slack &amp; email alerts</li>
-            <li>AI anomaly detection</li>
-            <li>Priority support</li>
-          </ul>
-          <a href="/dashboard" class="plan-btn plan-btn-primary">Start 14-day trial</a>
-        </div>
-        <div class="pricing-card">
-          <p class="plan-name">Enterprise</p>
-          <div class="plan-price">Custom</div>
-          <p class="plan-desc">For mission-critical requirements.</p>
-          <ul class="plan-features">
-            <li>Unlimited everything</li>
-            <li>Custom data retention</li>
-            <li>SSO &amp; SAML</li>
-            <li>Dedicated onboarding</li>
-            <li>SLA guarantee</li>
-            <li>On-premise option</li>
-          </ul>
-          <a href="mailto:sales@vela.io" class="plan-btn plan-btn-ghost">Talk to sales</a>
+    <!-- ===== LOGOS ===== -->
+    <section class="logos-strip" aria-label="Trusted by">
+      <div class="container">
+        <p class="logos-label">Trusted by teams at</p>
+        <div class="logos-row">
+          <span class="logo-item">Meridian</span>
+          <span class="logo-item">Calloway</span>
+          <span class="logo-item">Fathom AI</span>
+          <span class="logo-item">Northstar</span>
+          <span class="logo-item">Axiom Labs</span>
+          <span class="logo-item">Solace Co.</span>
         </div>
       </div>
     </section>
 
-    <!-- ── CTA ── -->
-    <section id="cta" class="section-padded text-center" aria-labelledby="cta-heading">
-      <span class="section-label">Get started</span>
-      <h2 class="section-title" id="cta-heading">Ready to see clearly?</h2>
-      <p class="section-sub" style="margin:0 auto 2.5rem">Join 8,000+ teams. Free to start. No credit card required.</p>
-      <div class="hero-actions">
-        <a href="/dashboard" class="btn-primary">Start free trial</a>
-        <a href="mailto:sales@vela.io" class="btn-ghost">Talk to sales</a>
+    <!-- ===== FEATURES ===== -->
+    <section class="features" id="features" aria-label="Features">
+      <div class="container">
+        <div class="section-header">
+          <p class="section-label">Why Vela</p>
+          <h2 class="section-title">Every metric. Every moment.</h2>
+          <p class="section-sub">
+            Vela ingests data from all your sources and surfaces the signal — not the noise.
+          </p>
+        </div>
+
+        <div class="feature-grid">
+
+          <div class="feature-card tilt-card">
+            <div class="card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M3 12h4l3-9 4 18 3-9h4" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <h3>Real-Time Streams</h3>
+            <p>Sub-second data ingestion from every source. Watch your metrics breathe live.</p>
+            <div class="card-glare" aria-hidden="true"></div>
+          </div>
+
+          <div class="feature-card tilt-card">
+            <div class="card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="11" cy="11" r="8" stroke="#3b82f6" stroke-width="2"/>
+                <path d="M21 21l-4.35-4.35" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <h3>AI-Powered Insights</h3>
+            <p>Vela's model detects anomalies and surfaces actionable insights without configuration.</p>
+            <div class="card-glare" aria-hidden="true"></div>
+          </div>
+
+          <div class="feature-card tilt-card">
+            <div class="card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <rect x="3" y="3" width="7" height="7" rx="1" stroke="#3b82f6" stroke-width="2"/>
+                <rect x="14" y="3" width="7" height="7" rx="1" stroke="#3b82f6" stroke-width="2"/>
+                <rect x="3" y="14" width="7" height="7" rx="1" stroke="#3b82f6" stroke-width="2"/>
+                <rect x="14" y="14" width="7" height="7" rx="1" stroke="#3b82f6" stroke-width="2"/>
+              </svg>
+            </div>
+            <h3>Custom Dashboards</h3>
+            <p>Drag-and-drop builder. 60+ chart types. Pixel-perfect for any screen.</p>
+            <div class="card-glare" aria-hidden="true"></div>
+          </div>
+
+          <div class="feature-card tilt-card">
+            <div class="card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"/>
+                <circle cx="9" cy="7" r="4" stroke="#3b82f6" stroke-width="2"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <h3>Team Collaboration</h3>
+            <p>Share views, annotate charts, and set alerts — together, in real time.</p>
+            <div class="card-glare" aria-hidden="true"></div>
+          </div>
+
+          <div class="feature-card tilt-card">
+            <div class="card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="#3b82f6" stroke-width="2" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <h3>Enterprise Security</h3>
+            <p>SOC 2 Type II. End-to-end encryption. SSO and RBAC out of the box.</p>
+            <div class="card-glare" aria-hidden="true"></div>
+          </div>
+
+          <div class="feature-card tilt-card">
+            <div class="card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <h3>Predictive Alerts</h3>
+            <p>Set thresholds or let Vela decide. Get Slack, email, or webhook notifications.</p>
+            <div class="card-glare" aria-hidden="true"></div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SCROLL SEQUENCE ===== -->
+    <section class="scroll-sequence" id="sequence" aria-label="How Vela works">
+      <div class="sequence-pin-wrap">
+
+        <div class="sequence-panel" data-panel="0">
+          <div class="panel-visual">
+            <div class="mock-dashboard" aria-hidden="true">
+              <div class="mock-header">
+                <div class="mock-dot red"></div>
+                <div class="mock-dot yellow"></div>
+                <div class="mock-dot green"></div>
+                <span class="mock-title">Vela Dashboard</span>
+              </div>
+              <div class="mock-body">
+                <div class="mock-stat-row">
+                  <div class="mock-stat"><div class="stat-label">Revenue</div><div class="stat-val">$1.24M</div><div class="stat-up">+18.2%</div></div>
+                  <div class="mock-stat"><div class="stat-label">Users</div><div class="stat-val">48,391</div><div class="stat-up">+9.4%</div></div>
+                  <div class="mock-stat"><div class="stat-label">Churn</div><div class="stat-val">1.3%</div><div class="stat-down">-0.4%</div></div>
+                </div>
+                <div class="mock-chart">
+                  <svg viewBox="0 0 280 80" preserveAspectRatio="none" aria-hidden="true">
+                    <defs>
+                      <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.4"/>
+                        <stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/>
+                      </linearGradient>
+                    </defs>
+                    <path d="M0,70 L35,55 L70,48 L105,30 L140,35 L175,18 L210,22 L245,10 L280,5 L280,80 L0,80 Z" fill="url(#chartGrad)"/>
+                    <path d="M0,70 L35,55 L70,48 L105,30 L140,35 L175,18 L210,22 L245,10 L280,5" stroke="#3b82f6" stroke-width="2" fill="none"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="panel-text">
+            <p class="panel-step">Step 01</p>
+            <h2>Connect your data sources</h2>
+            <p>One-click integrations with Postgres, Snowflake, Stripe, HubSpot, and 200+ more. Your data is live in minutes.</p>
+          </div>
+        </div>
+
+        <div class="sequence-panel" data-panel="1">
+          <div class="panel-visual">
+            <div class="mock-metric-focus" aria-hidden="true">
+              <div class="metric-ring">
+                <svg viewBox="0 0 120 120" aria-hidden="true">
+                  <circle cx="60" cy="60" r="50" stroke="#1e2d4a" stroke-width="10" fill="none"/>
+                  <circle cx="60" cy="60" r="50" stroke="#3b82f6" stroke-width="10" fill="none"
+                    stroke-dasharray="251.2" stroke-dashoffset="62.8" stroke-linecap="round"
+                    transform="rotate(-90 60 60)"/>
+                </svg>
+                <div class="metric-inner">
+                  <span class="metric-pct">75%</span>
+                  <span class="metric-name">Goal</span>
+                </div>
+              </div>
+              <div class="metric-insight">
+                <div class="insight-chip">AI Insight</div>
+                <p>Revenue on track to exceed Q2 target by <strong>$89K</strong> if current growth holds.</p>
+              </div>
+            </div>
+          </div>
+          <div class="panel-text">
+            <p class="panel-step">Step 02</p>
+            <h2>Surface what actually matters</h2>
+            <p>Vela's AI engine cuts through the noise and tells you exactly which metrics need your attention — and why.</p>
+          </div>
+        </div>
+
+        <div class="sequence-panel" data-panel="2">
+          <div class="panel-visual">
+            <div class="mock-results" aria-hidden="true">
+              <div class="result-row">
+                <div class="result-icon success">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><polyline points="3,8 6.5,11.5 13,4.5" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+                <div class="result-text">
+                  <strong>Q2 Revenue Goal Exceeded</strong>
+                  <span>$1.33M vs $1.24M target</span>
+                </div>
+              </div>
+              <div class="result-row">
+                <div class="result-icon success">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><polyline points="3,8 6.5,11.5 13,4.5" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+                <div class="result-text">
+                  <strong>Churn Reduced by 34%</strong>
+                  <span>After AI-recommended intervention</span>
+                </div>
+              </div>
+              <div class="result-row">
+                <div class="result-icon success">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><polyline points="3,8 6.5,11.5 13,4.5" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+                <div class="result-text">
+                  <strong>3.2× Faster Reporting</strong>
+                  <span>Average across 2,400+ teams</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="panel-text">
+            <p class="panel-step">Step 03</p>
+            <h2>See the results compound</h2>
+            <p>Teams on Vela ship 3× faster, reduce churn by a third, and make every quarterly review a victory lap.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ===== STATS ===== -->
+    <section class="stats-section" aria-label="Key statistics">
+      <div class="container">
+        <div class="stats-grid">
+          <div class="stat-item">
+            <span class="stat-number">3.2×</span>
+            <span class="stat-desc">Faster decision-making</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number">99.9%</span>
+            <span class="stat-desc">Uptime SLA</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number">200+</span>
+            <span class="stat-desc">Native integrations</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number">2,400+</span>
+            <span class="stat-desc">Data teams worldwide</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== PRICING ===== -->
+    <section class="pricing" id="pricing" aria-label="Pricing">
+      <div class="container">
+        <div class="section-header">
+          <p class="section-label">Pricing</p>
+          <h2 class="section-title">Straightforward. No surprises.</h2>
+        </div>
+
+        <div class="pricing-grid">
+
+          <div class="pricing-card tilt-card">
+            <p class="plan-name">Starter</p>
+            <div class="plan-price"><span class="price-amount">$0</span><span class="price-period">/mo</span></div>
+            <p class="plan-desc">For solo analysts and small experiments.</p>
+            <ul class="plan-features" role="list">
+              <li>5 data sources</li>
+              <li>3 dashboards</li>
+              <li>7-day data history</li>
+              <li>Community support</li>
+            </ul>
+            <a href="#cta" class="btn btn-outline btn-full">Get Started Free</a>
+            <div class="card-glare" aria-hidden="true"></div>
+          </div>
+
+          <div class="pricing-card pricing-card--featured tilt-card">
+            <div class="featured-badge">Most Popular</div>
+            <p class="plan-name">Pro</p>
+            <div class="plan-price"><span class="price-amount">$79</span><span class="price-period">/mo</span></div>
+            <p class="plan-desc">For growing teams who need real-time power.</p>
+            <ul class="plan-features" role="list">
+              <li>Unlimited sources</li>
+              <li>Unlimited dashboards</li>
+              <li>1-year data history</li>
+              <li>AI Insights</li>
+              <li>Priority support</li>
+            </ul>
+            <a href="#cta" class="btn btn-primary btn-full">Start Free Trial</a>
+            <div class="card-glare" aria-hidden="true"></div>
+          </div>
+
+          <div class="pricing-card tilt-card">
+            <p class="plan-name">Enterprise</p>
+            <div class="plan-price"><span class="price-amount">Custom</span></div>
+            <p class="plan-desc">For large teams with security and compliance needs.</p>
+            <ul class="plan-features" role="list">
+              <li>Everything in Pro</li>
+              <li>SSO &amp; RBAC</li>
+              <li>SOC 2 Type II</li>
+              <li>Dedicated CSM</li>
+              <li>SLA guarantee</li>
+            </ul>
+            <a href="mailto:sales@vela.io" class="btn btn-outline btn-full">Contact Sales</a>
+            <div class="card-glare" aria-hidden="true"></div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== CTA ===== -->
+    <section class="cta-section" id="cta" aria-label="Get started">
+      <div class="container">
+        <div class="cta-inner tilt-card">
+          <h2>Your data is talking.<br />Start listening.</h2>
+          <p>Join 2,400+ teams already using Vela to make faster, smarter decisions.</p>
+          <form class="cta-form" aria-label="Early access signup" novalidate>
+            <label for="cta-email" class="sr-only">Email address</label>
+            <input
+              type="email"
+              id="cta-email"
+              name="email"
+              placeholder="you@company.com"
+              autocomplete="email"
+              required
+              aria-required="true"
+            />
+            <button type="submit" class="btn btn-primary">Get Early Access</button>
+          </form>
+          <p class="cta-note">No credit card required. Cancel anytime.</p>
+          <div class="card-glare" aria-hidden="true"></div>
+        </div>
       </div>
     </section>
 
   </main>
 
-  <!-- ── FOOTER ── -->
-  <footer>
-    <div class="footer-inner">
-      <a href="#" class="footer-logo">Vel<span>a</span></a>
-      <nav class="footer-links" aria-label="Footer navigation">
-        <a href="#">Privacy</a>
-        <a href="#">Terms</a>
-        <a href="#">Security</a>
-        <a href="mailto:hello@vela.io">Contact</a>
-      </nav>
-      <span class="footer-copy">© 2026 Vela Inc.</span>
+  <!-- ===== FOOTER ===== -->
+  <footer class="site-footer" role="contentinfo">
+    <div class="container">
+      <div class="footer-inner">
+        <a href="#" class="nav-logo footer-logo" aria-label="Vela home">
+          <svg width="22" height="22" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+            <polygon points="14,2 26,24 2,24" fill="#3b82f6" opacity="0.9"/>
+            <polygon points="14,8 22,22 6,22" fill="#0a0f1f"/>
+            <circle cx="14" cy="17" r="2.5" fill="#3b82f6"/>
+          </svg>
+          <span>Vela</span>
+        </a>
+        <nav class="footer-nav" aria-label="Footer navigation">
+          <a href="#features">Features</a>
+          <a href="#pricing">Pricing</a>
+          <a href="#">Privacy</a>
+          <a href="#">Terms</a>
+        </nav>
+        <p class="footer-copy">&copy; 2026 Vela Analytics. All rights reserved.</p>
+      </div>
     </div>
   </footer>
 
-  <!-- GSAP -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+  <!-- Three.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+  <!-- GSAP + ScrollTrigger -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
   <script src="js/main.js"></script>
-
-  <style>.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;}</style>
 </body>
 </html>
