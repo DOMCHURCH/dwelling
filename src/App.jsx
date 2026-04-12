@@ -44,6 +44,7 @@ import { useSavedReports } from "./lib/useSavedReports"
 import SavedReportsModal from "./components/SavedReportsModal"
 import BrandingModal, { getBrandLogo, getBrandName } from "./components/BrandingModal"
 import PDFExportModal from "./components/PDFExportModal"
+import ExportModal from "./components/ExportModal"
 import BusinessDashboard from "./components/BusinessDashboard"
 
 // Reload once on chunk fetch failure (stale deployment — old HTML references old hashed filenames)
@@ -109,6 +110,7 @@ export default function App() {
   const [userType, setUserTypeState] = useState(() => getUserType())
   const [showSavedReports, setShowSavedReports] = useState(false)
   const [showBranding, setShowBranding] = useState(false)
+  const [showExportModal, setShowExportModal] = useState(false)
   const [showPDFExport, setShowPDFExport] = useState(false)
   const [showBusinessDashboard, setShowBusinessDashboard] = useState(false)
   const [compareResultC, setCompareResultC] = useState(null)
@@ -973,7 +975,7 @@ export default function App() {
                 {/* Business: HTML Export */}
                 {isBusiness && (
                   <button
-                    onClick={() => downloadAnalysisHTML(result)}
+                    onClick={() => setShowExportModal(true)}
                     style={{
                       borderRadius: 40,
                       padding: "8px 16px",
@@ -996,27 +998,6 @@ export default function App() {
                   </button>
                 )}
 
-                {/* Business: Branding */}
-                {isBusiness && (
-                  <button
-                    onClick={() => setShowBranding(true)}
-                    style={{
-                      borderRadius: 40,
-                      padding: "8px 16px",
-                      fontSize: 13,
-                      fontFamily: "'Barlow',sans-serif",
-                      color: "rgba(251,191,36,0.7)",
-                      border: "1px solid rgba(251,191,36,0.2)",
-                      cursor: "pointer",
-                      background: "rgba(251,191,36,0.06)",
-                      transition: "opacity 0.15s",
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.75")}
-                    onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
-                  >
-                    🏢 Brand
-                  </button>
-                )}
 
 
                 {/* Share */}
@@ -1363,6 +1344,7 @@ export default function App() {
         />
       )}
       {showBranding && <BrandingModal onClose={() => setShowBranding(false)} />}
+      {showExportModal && result && <ExportModal result={result} onClose={() => setShowExportModal(false)} />}
       {showPDFExport && result && <PDFExportModal result={result} onClose={() => setShowPDFExport(false)} />}
       {showBusinessDashboard && <BusinessDashboard onClose={() => setShowBusinessDashboard(false)} />}
       {showDeleteAccount && (
