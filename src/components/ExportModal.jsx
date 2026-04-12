@@ -61,18 +61,19 @@ export default function ExportModal({ result, onClose }) {
       style={{
         position: "fixed", inset: 0, zIndex: 900,
         background: "rgba(0,0,0,0.88)", backdropFilter: "blur(14px)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        padding: 20,
+        overflowY: "auto", overscrollBehavior: "contain",
+        padding: "20px",
       }}
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
+      <div style={{ display: "flex", justifyContent: "center", minHeight: "100%" }} onClick={e => e.target === e.currentTarget && onClose()}>
       <div
         className="liquid-glass-strong"
         style={{
           borderRadius: 20, width: "100%", maxWidth: 560,
-          maxHeight: "88vh", overflow: "auto",
           padding: 32, position: "relative",
           border: "1px solid rgba(255,255,255,0.1)",
+          alignSelf: "flex-start", marginTop: "auto", marginBottom: "auto",
         }}
       >
         <button
@@ -217,6 +218,7 @@ export default function ExportModal({ result, onClose }) {
         >
           {downloading ? "Generating..." : "Download HTML Report →"}
         </button>
+      </div>
       </div>
     </div>
   )
