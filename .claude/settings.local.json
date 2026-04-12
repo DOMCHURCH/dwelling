@@ -57,7 +57,8 @@
       "Bash(npx n8n-mcp:*)",
       "Skill(gsd-resume-work)",
       "mcp__plugin_claude-mem_mcp-search__smart_outline",
-      "mcp__plugin_claude-mem_mcp-search__get_observations"
+      "mcp__plugin_claude-mem_mcp-search__get_observations",
+      "Bash(ls src/components/Dashboard*)"
     ]
   },
   "hooks": {
