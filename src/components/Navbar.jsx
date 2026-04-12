@@ -10,6 +10,9 @@ export default function Navbar({
   trialDaysLeft,
   onSignOut,
   onHome,
+  onOpenSaved,
+  savedCount,
+  isPro,
   onOpenKeyModal,
   hasOwnKey,
   previewPlan,
@@ -27,13 +30,8 @@ export default function Navbar({
     window.addEventListener("scroll", h, { passive: true })
     return () => window.removeEventListener("scroll", h)
   }, [])
-  const links = [
-    { label: "Features", id: "features" },
-    { label: "How It Works", id: "how-it-works" },
-    { label: "Pricing", id: "pricing" },
-    { label: "FAQ", id: "faq" },
-  ]
   const low = typeof analysesLeft === "number" && analysesLeft <= 3
+  const canAccessDashboard = isPro || isBusiness
   return (
     <nav
       style={{
@@ -80,28 +78,64 @@ export default function Navbar({
           className="liquid-glass nav-links-desktop"
           style={{ borderRadius: 40, padding: "6px 8px", display: "flex", alignItems: "center", gap: 4 }}
         >
-          {links.map((link) => (
-            <button
-              key={link.id}
-              onClick={() => scrollTo(link.id)}
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                fontFamily: "'Barlow',sans-serif",
-                fontWeight: 400,
-                fontSize: 13,
-                color: "rgba(255,255,255,0.8)",
-                padding: "6px 14px",
-                borderRadius: 40,
-                transition: "background 0.15s",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.07)")}
-              onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
-            >
-              {link.label}
-            </button>
-          ))}
+          {/* Home */}
+          <button
+            onClick={onHome}
+            style={{
+              background: "none", border: "none", cursor: "pointer",
+              fontFamily: "'Barlow',sans-serif", fontWeight: 400, fontSize: 13,
+              color: "rgba(255,255,255,0.8)", padding: "6px 14px", borderRadius: 40,
+              transition: "background 0.15s",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.07)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
+          >
+            Home
+          </button>
+
+          {/* Saved Analysis */}
+          <button
+            onClick={onOpenSaved}
+            style={{
+              background: "none", border: "none", cursor: "pointer",
+              fontFamily: "'Barlow',sans-serif", fontWeight: 400, fontSize: 13,
+              color: "rgba(255,255,255,0.8)", padding: "6px 14px", borderRadius: 40,
+              transition: "background 0.15s",
+              display: "flex", alignItems: "center", gap: 6,
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.07)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
+          >
+            Saved Analysis
+            {savedCount > 0 && (
+              <span style={{
+                background: "rgba(56,189,248,0.2)", border: "1px solid rgba(56,189,248,0.3)",
+                borderRadius: 20, padding: "1px 7px", fontSize: 11, color: "#38bdf8",
+              }}>{savedCount}</span>
+            )}
+          </button>
+
+          {/* Dashboard — grayed for free users */}
+          <button
+            onClick={canAccessDashboard ? undefined : undefined}
+            disabled={!canAccessDashboard}
+            title={canAccessDashboard ? "Business Dashboard" : "Dashboard — Pro or Business only"}
+            style={{
+              background: "none", border: "none",
+              cursor: canAccessDashboard ? "pointer" : "default",
+              fontFamily: "'Barlow',sans-serif", fontWeight: 400, fontSize: 13,
+              color: canAccessDashboard ? "rgba(255,255,255,0.8)" : "rgba(255,255,255,0.25)",
+              padding: "6px 14px", borderRadius: 40,
+              transition: "background 0.15s",
+              userSelect: "none",
+            }}
+            onMouseEnter={(e) => {
+              if (canAccessDashboard) e.currentTarget.style.background = "rgba(255,255,255,0.07)"
+            }}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
+          >
+            Dashboard{!canAccessDashboard && <span style={{ marginLeft: 4, fontSize: 10 }}>🔒</span>}
+          </button>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           {user ? (

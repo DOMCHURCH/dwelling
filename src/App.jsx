@@ -805,10 +805,13 @@ export default function App() {
         previewPlan={previewPlan}
         onTogglePreview={() => setPreviewPlan((p) => (p === "pro" ? "free" : "pro"))}
         isBusiness={isBusiness}
+        isPro={isPro}
+        savedCount={savedReports.length}
         onHome={() => {
           setResult(null)
           window.scrollTo({ top: 0, behavior: "smooth" })
         }}
+        onOpenSaved={() => setShowSavedReports(true)}
         onOpenAuth={() => setShowAuthModal(true)}
         onDeleteAccount={() => setShowDeleteAccount(true)}
       />
@@ -967,7 +970,7 @@ export default function App() {
                 {/* Business: PDF Export */}
                 {isBusiness && (
                   <button
-                    onClick={() => setShowPDFExport(true)}
+                    onClick={() => window.print()}
                     style={{
                       borderRadius: 40,
                       padding: "8px 16px",
@@ -1012,27 +1015,6 @@ export default function App() {
                   </button>
                 )}
 
-                {/* Business: Dashboard */}
-                {isBusiness && (
-                  <button
-                    onClick={() => setShowBusinessDashboard(true)}
-                    style={{
-                      borderRadius: 40,
-                      padding: "8px 16px",
-                      fontSize: 13,
-                      fontFamily: "'Barlow',sans-serif",
-                      color: "rgba(251,191,36,0.7)",
-                      border: "1px solid rgba(251,191,36,0.2)",
-                      cursor: "pointer",
-                      background: "rgba(251,191,36,0.06)",
-                      transition: "opacity 0.15s",
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.75")}
-                    onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
-                  >
-                    📊 Dashboard
-                  </button>
-                )}
 
                 {/* Share */}
                 <button

@@ -6,11 +6,6 @@ export const PRICING_FREE = [
   'Investment Score preview',
   'Cost of Living breakdown',
   'Climate & weather data',
-  'Local Market News',
-  'Area Market Estimate',
-  'Walkability & school scores',
-  'Full Neighbourhood detail & safety',
-  'Own API key — full privacy, no platform limits',
 ]
 
 export const PRICING_PRO = [
@@ -27,8 +22,9 @@ export const PRICING_PRO = [
 
 export const PRICING_BUSINESS = [
   { text: '1,000–3,000 reports / month', highlight: false },
-  { text: '200 reports / day', highlight: false },
+  { text: '200–1,000 reports / day', highlight: false },
   { text: '3–10 team members', highlight: true },
+  { text: '5 API keys', highlight: true },
   { text: 'Team workspace', highlight: true },
   { text: 'Client sharing links', highlight: true },
   { text: 'Branded PDF reports', highlight: true },

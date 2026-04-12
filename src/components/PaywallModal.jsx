@@ -8,9 +8,9 @@ const ANNUAL_MONTHLY = 12
 const FREE_FEATURES = [
   { text: '10 free reports / month', highlight: false },
   { text: 'Area Verdict & AI Market Intelligence', highlight: false },
+  { text: 'Investment Score preview', highlight: false },
   { text: 'Cost of Living breakdown', highlight: false },
   { text: 'Climate & weather data', highlight: false },
-  { text: 'Walkability & school scores', highlight: false },
 ]
 const FREE_HIDDEN = 5 // "& 5 more" note
 
@@ -342,9 +342,10 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
             </div>
             <div style={{ flex: 1, marginBottom: 16 }}>
               {[
-                ['1,000–3,000 reports / month', true],
-                ['200 reports / day', false],
+                ['1,000–3,000 reports / month', false],
+                ['200–1,000 reports / day', false],
                 ['3–10 team members', true],
+                ['5 API keys', true],
                 ['Team workspace', true],
                 ['Client sharing links', true],
                 ['Branded PDF reports', true],
