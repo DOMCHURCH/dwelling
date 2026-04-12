@@ -53,8 +53,11 @@ function buildHTML(result, { brandName, clientName, logoUrl, inc }) {
   const aiSummary = n(areaIntelligence.summary || areaIntelligence.aiSummary || areaIntelligence.description, "")
   const bestFor = n(areaIntelligence.bestFor, "")
 
-  /* Property estimate — EXACT Dashboard field names */
-  const estValue = fmtK(propertyEstimate.estimatedValueUSD, sym)
+  /* Property estimate — area mode: estimatedValueUSD seeded from areaMetrics.medianPrice */
+  const estValue = fmtK(
+    propertyEstimate.estimatedValueUSD || areaMetrics?.medianPrice,
+    sym
+  )
   const pricePerSqft = fmtK(propertyEstimate.pricePerSqftUSD, sym)
   const rentMonthly = fmtK(propertyEstimate.rentEstimateMonthlyUSD, sym)
   const priceLow = fmtK(propertyEstimate.priceRange?.low, sym)
@@ -73,7 +76,12 @@ function buildHTML(result, { brandName, clientName, logoUrl, inc }) {
 
   /* Cost of living — exact field names */
   const monthlyBudget = fmtK(costOfLiving.monthlyBudgetUSD, sym)
-  const rent1br = fmtK(costOfLiving.rent1BRUSD || costOfLiving.rentOneBedroomUSD, sym)
+  /* 1-BR rent lives on propertyEstimate in area mode, costOfLiving in property mode */
+  const rent1br = fmtK(
+    costOfLiving.rent1BRUSD || costOfLiving.rentOneBedroomUSD ||
+    propertyEstimate.rentEstimateMonthlyUSD,
+    sym
+  )
   const groceries = fmtK(costOfLiving.groceriesMonthlyUSD, sym)
   const transport = fmtK(costOfLiving.transportMonthlyUSD, sym)
   const utilities = fmtK(costOfLiving.utilitiesMonthlyUSD, sym)
@@ -81,18 +89,22 @@ function buildHTML(result, { brandName, clientName, logoUrl, inc }) {
   const colIdx = costOfLiving.indexVsUSAverage != null ? `${costOfLiving.indexVsUSAverage > 0 ? "+" : ""}${Math.round(costOfLiving.indexVsUSAverage)}% vs US avg` : ""
   const colSummary = n(costOfLiving.summary, "")
 
-  /* Investment — exact field names */
+  /* Investment — area mode uses rentYield (string), property mode uses rentYieldPercent (number) */
   const investScore = investment.investmentScore ?? null
-  const rentYield = investment.rentYieldPercent != null ? `${investment.rentYieldPercent}%` : n(investment.rentYield, "")
-  const outlook = n(investment.appreciationOutlook, "")
+  const rentYieldRaw = investment.rentYieldPercent != null
+    ? `${investment.rentYieldPercent}%`
+    : n(investment.rentYield, "")
+  const rentYield = rentYieldRaw === "—" ? "" : rentYieldRaw
+  /* area mode: outlook, property mode: appreciationOutlook */
+  const outlook = n(investment.appreciationOutlook || investment.outlook, "")
   const outlookText = n(investment.appreciationOutlookText, "")
   const investSummary = n(investment.investmentSummary || investment.summary, "")
 
   /* Neighbourhood scores */
   const walkScore = realData?.neighborhoodScores?.walkScore ?? neighborhood.walkScore ?? null
   const transitScore = realData?.neighborhoodScores?.transitScore ?? neighborhood.transitScore ?? null
-  const schoolScore = realData?.neighborhoodScores?.schoolScore ?? neighborhood.schoolRating ?? null
-  const safetyScore = realData?.neighborhoodScores?.safetyScore ?? neighborhood.safetyScore ?? null
+  const schoolScore = realData?.neighborhoodScores?.schoolScore ?? neighborhood.schoolScore ?? neighborhood.schoolRating ?? null
+  const safetyScore = realData?.neighborhoodScores?.safetyScore ?? neighborhood.safetyScore ?? neighborhood.safetyRating ?? null
   const hoodSummary = n(neighborhood.summary || neighborhood.description || neighborhood.character, "")
   const hoodPros = Array.isArray(neighborhood.pros) ? neighborhood.pros : []
   const hoodCons = Array.isArray(neighborhood.cons) ? neighborhood.cons : []
