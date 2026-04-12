@@ -35,7 +35,7 @@ export function getCurrentUser() {
     // getAuthToken() will silently refresh before the next API call.
     if (!getRefreshToken()) { setToken(null); return null }
   }
-  return { id: payload.sub, email: payload.email, is_pro: payload.is_pro || false, is_admin: payload.is_admin || false }
+  return { id: payload.sub, email: payload.email, is_pro: payload.is_pro || false, is_business: payload.is_business || false, is_admin: payload.is_admin || false }
 }
 
 // Silently exchange the stored refresh token for a new access + refresh token.
@@ -85,7 +85,7 @@ export async function signUp(email, password) {
   if (!res.ok) throw new Error(data.error || 'Sign up failed')
   setToken(data.token)
   setRefreshToken(data.refreshToken || null)
-  return { id: data.userId, email: data.email, is_pro: data.is_pro }
+  return { id: data.userId, email: data.email, is_pro: data.is_pro, is_business: data.is_business || false }
 }
 
 export async function signIn(email, password) {
@@ -98,7 +98,7 @@ export async function signIn(email, password) {
   if (!res.ok) throw new Error(data.error || 'Sign in failed')
   setToken(data.token)
   setRefreshToken(data.refreshToken || null)
-  return { id: data.userId, email: data.email, is_pro: data.is_pro }
+  return { id: data.userId, email: data.email, is_pro: data.is_pro, is_business: data.is_business || false }
 }
 
 export function signOut() {

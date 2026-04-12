@@ -406,11 +406,11 @@ export default async function handler(req, res) {
       const payload = verify(authHeader.replace('Bearer ', ''))
       if (!payload) return res.status(401).json({ error: 'Invalid token' })
 
-      const result = await db.execute({ sql: 'SELECT analyses_used, is_pro, cerebras_key FROM users WHERE email = ?', args: [payload.email] })
-      if (result.rows.length === 0) return res.status(200).json({ analyses_used: 0, is_pro: false, has_own_key: false })
+      const result = await db.execute({ sql: 'SELECT analyses_used, is_pro, is_business, cerebras_key FROM users WHERE email = ?', args: [payload.email] })
+      if (result.rows.length === 0) return res.status(200).json({ analyses_used: 0, is_pro: false, is_business: false, has_own_key: false })
 
       const user = result.rows[0]
-      return res.status(200).json({ analyses_used: user.analyses_used, is_pro: !!user.is_pro, has_own_key: !!user.cerebras_key })
+      return res.status(200).json({ analyses_used: user.analyses_used, is_pro: !!user.is_pro, is_business: !!user.is_business, has_own_key: !!user.cerebras_key })
     }
 
     // ── save-key ────────────────────────────────────────────────────────────
@@ -522,7 +522,15 @@ export default async function handler(req, res) {
 
       const claims = typeof stored === 'string' ? JSON.parse(stored) : stored
       if (!claims?.email || !claims?.sub) return res.status(401).json({ error: 'Invalid refresh token.' })
-      const { accessToken, refreshToken: newRt } = await issueTokenPair(claims)
+      // Re-read plan flags from DB so grants made after last login take effect immediately
+      const db = getDb()
+      const freshRow = await db.execute({ sql: 'SELECT is_pro, is_business FROM users WHERE email = ?', args: [claims.email] })
+      if (freshRow.rows.length > 0) {
+        claims.is_pro = !!freshRow.rows[0].is_pro
+        claims.is_business = !!freshRow.rows[0].is_business
+      }
+      const is_admin = ADMIN_EMAILS.includes(claims.email)
+      const { accessToken, refreshToken: newRt } = await issueTokenPair({ ...claims, is_admin })
       return res.status(200).json({ token: accessToken, refreshToken: newRt })
     }
 
