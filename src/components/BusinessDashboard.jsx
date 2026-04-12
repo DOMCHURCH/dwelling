@@ -387,6 +387,168 @@ function ApiKeysTab({ keys, loading, error, onRefresh }) {
   )
 }
 
+/* ── Users ── */
+function UsersTab() {
+  const [team, setTeam] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [err, setErr] = useState(null)
+  const [teamName, setTeamName] = useState("")
+  const [creating, setCreating] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  const load = async () => {
+    setLoading(true); setErr(null)
+    try {
+      const token = await getAuthToken()
+      const res = await fetch("/api/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: "get-team" }),
+      })
+      const data = await res.json()
+      if (res.ok) setTeam(data.team || null)
+      else setErr(data.error || "Failed to load team")
+    } catch { setErr("Network error") }
+    finally { setLoading(false) }
+  }
+
+  const createTeam = async () => {
+    if (!teamName.trim()) return
+    setCreating(true)
+    try {
+      const token = await getAuthToken()
+      const res = await fetch("/api/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: "create-team", name: teamName.trim() }),
+      })
+      const data = await res.json()
+      if (res.ok) { await load() }
+      else setErr(data.error)
+    } catch { setErr("Failed to create team") }
+    finally { setCreating(false) }
+  }
+
+  const copyCode = () => {
+    if (!team?.invite_code) return
+    navigator.clipboard.writeText(team.invite_code)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  useEffect(() => { load() }, [])
+
+  if (loading) return <div style={{ padding: "40px 0", textAlign: "center", fontFamily: "monospace", fontSize: 11, color: c.label }}>LOADING...</div>
+
+  if (err) return <div style={{ padding: "16px", borderRadius: 8, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: c.red, fontFamily: "monospace", fontSize: 11 }}>{err}</div>
+
+  /* No team yet — create one */
+  if (!team) return (
+    <div>
+      <div style={{ fontSize: 9, fontFamily: "monospace", color: c.label, letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 20 }}>No Team Yet</div>
+      <div style={{ background: c.panel, border: `1px solid ${c.border}`, borderRadius: 12, padding: "24px", maxWidth: 440 }}>
+        <div style={{ fontFamily: "monospace", fontSize: 13, color: "#fff", marginBottom: 6 }}>Create your team workspace</div>
+        <div style={{ fontFamily: "monospace", fontSize: 10, color: c.muted, marginBottom: 20, lineHeight: 1.6 }}>
+          Give your team a name. You'll get an invite code to share with up to 9 other members.
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <input
+            autoFocus value={teamName} onChange={e => setTeamName(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && createTeam()}
+            placeholder="e.g. Northstar Realty"
+            style={{ ...termInput, flex: 1 }}
+            onFocus={e => (e.target.style.borderColor = c.amber)}
+            onBlur={e => (e.target.style.borderColor = c.border)}
+          />
+          <button onClick={createTeam} disabled={creating || !teamName.trim()} style={aBtn(c.amber, true)}>
+            {creating ? "..." : "CREATE"}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+
+  const members = team.members || []
+  const owner = members.find(m => m.role === "owner")
+  const nonOwners = members.filter(m => m.role !== "owner")
+
+  return (
+    <div>
+      {/* Team header */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 22, paddingBottom: 16, borderBottom: `1px solid ${c.border}` }}>
+        <div>
+          <div style={{ fontFamily: "monospace", fontSize: 18, color: "#fff", marginBottom: 4 }}>{team.name}</div>
+          <div style={{ fontFamily: "monospace", fontSize: 9, color: c.label, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+            {members.length} / 10 members · Business Team
+          </div>
+        </div>
+        {/* Invite code */}
+        <div style={{ background: c.amberDim, border: `1px solid ${c.amberBorder}`, borderRadius: 10, padding: "10px 14px", textAlign: "right" }}>
+          <div style={{ fontFamily: "monospace", fontSize: 8, color: c.amber, letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 4 }}>Invite Code</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontFamily: "monospace", fontSize: 18, color: "#fff", letterSpacing: "0.2em", fontWeight: 700 }}>{team.invite_code}</span>
+            <button onClick={copyCode} style={{ ...aBtn(c.amber), fontSize: 8 }}>{copied ? "✓ COPIED" : "COPY"}</button>
+          </div>
+          <div style={{ fontFamily: "monospace", fontSize: 8, color: c.muted, marginTop: 4 }}>Share with team members to join</div>
+        </div>
+      </div>
+
+      {/* Slot bar */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+          <span style={{ fontFamily: "monospace", fontSize: 9, color: c.muted, letterSpacing: "0.1em", textTransform: "uppercase" }}>Team Slots</span>
+          <span style={{ fontFamily: "monospace", fontSize: 9, color: members.length >= 10 ? c.red : c.green }}>{members.length}/10 used</span>
+        </div>
+        <div style={{ height: 4, background: "rgba(255,255,255,0.06)", borderRadius: 2 }}>
+          <div style={{ height: "100%", width: `${(members.length / 10) * 100}%`, background: members.length >= 10 ? c.red : c.amber, borderRadius: 2, transition: "width 0.4s" }} />
+        </div>
+      </div>
+
+      {/* Column headers */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 120px 140px 60px", gap: 10, padding: "0 12px 8px", borderBottom: `1px solid ${c.border}`, marginBottom: 8 }}>
+        {["Email", "Role", "Joined", ""].map(h => (
+          <div key={h} style={{ fontFamily: "monospace", fontSize: 8, color: c.label, letterSpacing: "0.12em", textTransform: "uppercase" }}>{h}</div>
+        ))}
+      </div>
+
+      {/* Members */}
+      {members.length === 0 ? (
+        <div style={{ padding: "32px 0", textAlign: "center", fontFamily: "monospace", fontSize: 11, color: c.label }}>No members yet — share the invite code above.</div>
+      ) : members.map((m, i) => (
+        <div key={m.email + i} style={{ display: "grid", gridTemplateColumns: "1fr 120px 140px 60px", gap: 10, padding: "10px 12px", borderRadius: 8, marginBottom: 4, background: i % 2 === 0 ? "transparent" : "rgba(255,255,255,0.015)" }}>
+          <div style={{ fontFamily: "monospace", fontSize: 12, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={m.email}>{m.email}</div>
+          <div>
+            <span style={{
+              fontFamily: "monospace", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase",
+              padding: "3px 8px", borderRadius: 4,
+              background: m.role === "owner" ? c.amberDim : "rgba(255,255,255,0.06)",
+              border: `1px solid ${m.role === "owner" ? c.amberBorder : c.border}`,
+              color: m.role === "owner" ? c.amber : c.muted,
+            }}>{m.role}</span>
+          </div>
+          <div style={{ fontFamily: "monospace", fontSize: 10, color: c.label, alignSelf: "center" }}>
+            {m.joined_at ? new Date(m.joined_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}
+          </div>
+          <div style={{ alignSelf: "center" }}>
+            {m.role !== "owner" && (
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: c.green }} title="Active" />
+            )}
+          </div>
+        </div>
+      ))}
+
+      <div style={{ marginTop: 20, padding: "12px 16px", background: c.panel, border: `1px solid ${c.border}`, borderRadius: 10 }}>
+        <div style={{ fontFamily: "monospace", fontSize: 9, color: c.label, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>How to Add Members</div>
+        <div style={{ fontFamily: "monospace", fontSize: 11, color: c.muted, lineHeight: 1.7 }}>
+          Share the invite code <span style={{ color: c.amber, letterSpacing: "0.1em" }}>{team.invite_code}</span> with your team.
+          They sign in to Dwelling and enter the code to join your workspace automatically.
+          Only the team owner can view and manage API keys.
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /* ── MAIN ── */
 export default function BusinessDashboard({ onClose }) {
   const [tab, setTab] = useState("overview")
@@ -440,7 +602,7 @@ export default function BusinessDashboard({ onClose }) {
         {/* Sidebar */}
         <div style={{ width: 190, flexShrink: 0, background: "rgba(0,0,0,0.3)", borderRight: `1px solid ${c.border}`, padding: "18px 10px", display: "flex", flexDirection: "column", gap: 3 }}>
           <div style={{ fontSize: 8, fontFamily: "monospace", color: c.label, letterSpacing: "0.16em", textTransform: "uppercase", marginBottom: 10, paddingLeft: 4 }}>Navigation</div>
-          {[["overview", "📊  Overview"], ["reports", "📁  Reports"], ["apikeys", "🔑  API Keys"]].map(([id, label]) => (
+          {[["overview", "📊  Overview"], ["reports", "📁  Reports"], ["apikeys", "🔑  API Keys"], ["users", "👥  Users"]].map(([id, label]) => (
             <button key={id} onClick={() => setTab(id)} style={{
               padding: "9px 12px", borderRadius: 6, textAlign: "left", cursor: "pointer", transition: "all 0.13s",
               background: tab === id ? c.amberDim : "none",
@@ -470,11 +632,13 @@ export default function BusinessDashboard({ onClose }) {
             <TabBtn active={tab === "overview"} onClick={() => setTab("overview")}>📊 Overview</TabBtn>
             <TabBtn active={tab === "reports"} onClick={() => setTab("reports")}>📁 Reports</TabBtn>
             <TabBtn active={tab === "apikeys"} onClick={() => setTab("apikeys")}>🔑 API Keys</TabBtn>
+            <TabBtn active={tab === "users"} onClick={() => setTab("users")}>👥 Users</TabBtn>
           </div>
 
           {tab === "overview" && <OverviewTab usage={usage} keys={keys} />}
           {tab === "reports" && <ReportsTab />}
           {tab === "apikeys" && <ApiKeysTab keys={keys} loading={loading} error={error} onRefresh={loadData} />}
+          {tab === "users" && <UsersTab />}
         </div>
       </div>
     </div>
