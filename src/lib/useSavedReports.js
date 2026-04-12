@@ -1,46 +1,97 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
+import { getAuthToken } from './localAuth'
 
-const KEY = 'dw_saved_reports'
-const MAX = 10
+export function useSavedReports(user) {
+  const [saved, setSaved] = useState([])
+  const [loading, setLoading] = useState(false)
+  const fetchedRef = useRef(false)
 
-function load() {
-  try { return JSON.parse(localStorage.getItem(KEY) || '[]') } catch { return [] }
-}
-
-export function useSavedReports() {
-  const [saved, setSaved] = useState(load)
-
-  const saveReport = useCallback((data) => {
-    const reports = load()
-    const address = data.geo?.displayName || 'Unknown area'
-    // Avoid exact duplicates
-    const deduped = reports.filter(r => r.address !== address)
-    const entry = {
-      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-      savedAt: new Date().toISOString(),
-      address,
-      city: data.geo?.displayName?.split(',')[0] || 'Unknown',
-      score: data.realData?.areaRiskScore?.score ?? null,
-      verdict: data.ai?.areaIntelligence?.verdict ?? null,
-      data,
-    }
-    const updated = [entry, ...deduped].slice(0, MAX)
-    localStorage.setItem(KEY, JSON.stringify(updated))
-    setSaved(updated)
-    return entry.id
+  const fetchReports = useCallback(async () => {
+    const token = await getAuthToken()
+    if (!token) return
+    setLoading(true)
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: 'list-reports' }),
+      })
+      if (res.ok) {
+        const { reports } = await res.json()
+        setSaved(reports || [])
+      }
+    } catch { /* network error — fail silently */ }
+    finally { setLoading(false) }
   }, [])
 
-  const deleteReport = useCallback((id) => {
-    const updated = load().filter(r => r.id !== id)
-    localStorage.setItem(KEY, JSON.stringify(updated))
-    setSaved(updated)
+  useEffect(() => {
+    if (user && !fetchedRef.current) {
+      fetchedRef.current = true
+      fetchReports()
+    }
+    if (!user) {
+      fetchedRef.current = false
+      setSaved([])
+    }
+  }, [user, fetchReports])
+
+  const saveReport = useCallback(async (data) => {
+    const token = await getAuthToken()
+    if (!token) return null
+    const address = data.geo?.displayName || 'Unknown area'
+    const city = data.geo?.displayName?.split(',')[0] || 'Unknown'
+    const score = data.realData?.areaRiskScore?.score ?? null
+    const verdict = data.ai?.areaIntelligence?.verdict ?? null
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: 'save-report', address, city, score, verdict, data }),
+      })
+      if (res.ok) {
+        const { id } = await res.json()
+        setSaved(prev => {
+          const deduped = prev.filter(r => r.address !== address)
+          return [{ id, address, city, score, verdict, created_at: new Date().toISOString() }, ...deduped]
+        })
+        return id
+      }
+    } catch { /* fail silently */ }
+    return null
+  }, [])
+
+  const loadReport = useCallback(async (id) => {
+    const token = await getAuthToken()
+    if (!token) return null
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: 'get-report', id }),
+      })
+      if (res.ok) return await res.json()
+    } catch { /* fail silently */ }
+    return null
+  }, [])
+
+  const deleteReport = useCallback(async (id) => {
+    const token = await getAuthToken()
+    if (!token) return
+    try {
+      await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: 'delete-report', id }),
+      })
+      setSaved(prev => prev.filter(r => r.id !== id))
+    } catch { /* fail silently */ }
   }, [])
 
   const isReportSaved = useCallback((data) => {
     const address = data?.geo?.displayName
     if (!address) return false
-    return load().some(r => r.address === address)
-  }, [])
+    return saved.some(r => r.address === address)
+  }, [saved])
 
-  return { saved, saveReport, deleteReport, isReportSaved }
+  return { saved, loading, saveReport, loadReport, deleteReport, isReportSaved, refetch: fetchReports }
 }

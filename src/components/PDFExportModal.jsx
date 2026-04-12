@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { getBrandLogo, getBrandName } from './BrandingModal'
 
 const SECTIONS = [
@@ -410,6 +410,11 @@ export default function PDFExportModal({ result, onClose }) {
   const [notes,       setNotes]       = useState('')
   const [generating,  setGenerating]  = useState(false)
 
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [])
+
   const toggle    = id  => setSelected(p => ({ ...p, [id]: !p[id] }))
   const allOn     = SECTIONS.every(s => selected[s.id])
   const toggleAll = () => setSelected(Object.fromEntries(SECTIONS.map(s => [s.id, !allOn])))
@@ -418,22 +423,34 @@ export default function PDFExportModal({ result, onClose }) {
   const handleGenerate = () => {
     if (count === 0) return
     setGenerating(true)
-    const html = buildHTML(result, selected, clientName, clientEmail, notes)
-    const win  = window.open('', '_blank', 'width=950,height=850')
-    if (win) { win.document.write(html); win.document.close() }
-    setTimeout(() => { setGenerating(false); onClose() }, 250)
+    try {
+      const html = buildHTML(result, selected, clientName, clientEmail, notes)
+      const blob = new Blob([html], { type: 'text/html' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      const filename = (result?.geo?.displayName || 'dwelling-report').replace(/[^a-z0-9\s-]/gi, '').trim() + '.html'
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } finally {
+      setGenerating(false)
+      onClose()
+    }
   }
 
   const area = result?.geo?.displayName?.split(',')[0] || 'Report'
 
   return (
     <div
-      style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(14px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 16px' }}
+      style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(14px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '24px 16px', overflowY: 'auto' }}
       onClick={e => e.target === e.currentTarget && onClose()}
     >
       <div
         className="liquid-glass-strong"
-        style={{ borderRadius: 24, width: '100%', maxWidth: 500, padding: '28px 24px', border: '1px solid rgba(255,255,255,0.1)', animation: 'fadeUp 0.25s ease', maxHeight: '92vh', overflowY: 'auto' }}
+        style={{ borderRadius: 24, width: '100%', maxWidth: 500, padding: '28px 24px', border: '1px solid rgba(255,255,255,0.1)', animation: 'fadeUp 0.25s ease', marginTop: 'auto', marginBottom: 'auto' }}
       >
         {/* Title */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
@@ -511,7 +528,7 @@ export default function PDFExportModal({ result, onClose }) {
           <button onClick={onClose} style={btnSec}>Cancel</button>
           <button onClick={handleGenerate} disabled={generating || count === 0}
             style={{ ...btnPri, flex: 1, opacity: count === 0 ? 0.4 : 1, cursor: count === 0 ? 'default' : 'pointer' }}>
-            {generating ? 'Opening...' : '📄 Generate Report'}
+            {generating ? 'Generating...' : '📄 Download Report'}
           </button>
         </div>
       </div>

@@ -1,4 +1,11 @@
-export default function SavedReportsModal({ saved, onLoad, onDelete, onClose }) {
+import { useEffect } from 'react'
+
+export default function SavedReportsModal({ saved, onLoad, onDelete, onClose, loading }) {
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [])
+
   if (!saved.length) return (
     <Overlay onClose={onClose}>
       <div style={{ textAlign: 'center', padding: '32px 0' }}>
@@ -15,7 +22,7 @@ export default function SavedReportsModal({ saved, onLoad, onDelete, onClose }) 
   return (
     <Overlay onClose={onClose}>
       <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 22, color: '#fff', marginBottom: 4 }}>Saved Reports</div>
-      <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.35)', marginBottom: 20 }}>{saved.length} / 10 saved</div>
+      <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.35)', marginBottom: 20 }}>{saved.length} saved</div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: '60vh', overflowY: 'auto' }}>
         {saved.map(r => (
@@ -24,7 +31,7 @@ export default function SavedReportsModal({ saved, onLoad, onDelete, onClose }) 
             display: 'flex', alignItems: 'center', gap: 12,
             cursor: 'pointer', transition: 'background 0.15s',
           }}
-            onClick={() => { onLoad(r.data); onClose() }}
+            onClick={() => { onLoad(r); onClose() }}
             onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.07)'}
             onMouseLeave={e => e.currentTarget.style.background = ''}
           >
@@ -32,7 +39,7 @@ export default function SavedReportsModal({ saved, onLoad, onDelete, onClose }) 
               <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 16, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.city}</div>
               <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.35)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 2 }}>{r.address}</div>
               <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 4 }}>
-                {new Date(r.savedAt).toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' })}
+                {new Date(r.created_at || r.savedAt).toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' })}
               </div>
             </div>
             {r.score != null && (
