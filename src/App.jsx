@@ -804,6 +804,7 @@ export default function App() {
         hasOwnKey={!!cerebrasKey || !!userRecord?.has_own_key}
         previewPlan={previewPlan}
         onTogglePreview={() => setPreviewPlan((p) => (p === "pro" ? "free" : "pro"))}
+        isBusiness={isBusiness}
         onHome={() => {
           setResult(null)
           window.scrollTo({ top: 0, behavior: "smooth" })

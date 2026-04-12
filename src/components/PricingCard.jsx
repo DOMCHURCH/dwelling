@@ -25,9 +25,8 @@ export const PRICING_PRO = [
 ]
 
 export const PRICING_BUSINESS = [
-  { text: "1,000–3,000 reports / month", highlight: false },
-  { text: "200 reports / day via API", highlight: false },
-  { text: "3–10 team members", highlight: true },
+  { text: "Up to 1,000 stars/day via API", highlight: false },
+  { text: "Up to 10 team members", highlight: true },
   { text: "Team workspace", highlight: true },
   { text: "Client sharing links", highlight: true },
   { text: "Branded PDF reports", highlight: true },

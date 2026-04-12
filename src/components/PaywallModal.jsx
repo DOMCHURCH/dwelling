@@ -15,7 +15,7 @@ const FREE_FEATURES = [
 const FREE_HIDDEN = 5 // "& 5 more" note
 
 const PRO_FEATURES = [
-  { text: "100–150 reports / month", highlight: false },
+  { text: "200 stars/month", highlight: false },
   { text: "Full AI reports — all sections unlocked", highlight: false },
   { text: "Investment Analysis & ROI score", highlight: true },
   { text: "Environmental & flood risk detection", highlight: true },
