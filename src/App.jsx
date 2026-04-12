@@ -490,14 +490,14 @@ export default function App() {
                   </button>
                 )}
 
-                {/* Pro/Business: PDF Download */}
+                {/* Pro: PDF Export */}
                 {isPro && (
-                  <button onClick={isBusiness ? () => setShowPDFExport(true) : handleDownloadPDF}
-                    style={{ borderRadius: 40, padding: '8px 16px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: isBusiness ? 'rgba(251,191,36,0.8)' : 'rgba(255,255,255,0.6)', border: isBusiness ? '1px solid rgba(251,191,36,0.2)' : 'none', cursor: 'pointer', background: isBusiness ? 'rgba(251,191,36,0.06)' : 'rgba(255,255,255,0.06)', transition: 'opacity 0.15s', display: 'flex', alignItems: 'center', gap: 5 }}
+                  <button onClick={() => setShowPDFExport(true)}
+                    style={{ borderRadius: 40, padding: '8px 16px', fontSize: 13, fontFamily: "'Barlow',sans-serif", color: 'rgba(255,255,255,0.6)', border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.06)', transition: 'opacity 0.15s', display: 'flex', alignItems: 'center', gap: 5 }}
                     onMouseEnter={e => e.currentTarget.style.opacity = '0.75'}
                     onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-                    title={isBusiness ? 'Export branded PDF with section selection' : 'Download PDF'}>
-                    {isBusiness ? '↓ PDF+' : '↓ PDF'}
+                    title="Export clean PDF report">
+                    📄 PDF
                   </button>
                 )}
 
