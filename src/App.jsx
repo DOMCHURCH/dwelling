@@ -99,7 +99,7 @@ export default function App() {
   const [guestResult, setGuestResult] = useState(null)
   const [compareResult, setCompareResult] = useState(null)
   const [comparingMode, setComparingMode] = useState(false)
-  const [previewPlan, setPreviewPlan] = useState("pro")
+  const [previewPlan, setPreviewPlan] = useState("free")
   const [cerebrasKey, setCerebrasKey] = useState(() => getCachedCerebrasKey())
   const [showKeyModal, setShowKeyModal] = useState(false)
   const [showOnboarding, setShowOnboarding] = useState(false)
@@ -504,7 +504,7 @@ export default function App() {
 
   const handleDownloadPDF = () => window.print()
 
-  const effectivePlan = user?.is_admin ? previewPlan : userRecord?.is_pro ? "pro" : "free"
+  const effectivePlan = previewPlan
   const isPro = effectivePlan === "pro" || effectivePlan === "business"
   const isBusiness = effectivePlan === "business"
 
@@ -803,6 +803,7 @@ export default function App() {
         onOpenKeyModal={() => setShowKeyModal(true)}
         hasOwnKey={!!cerebrasKey || !!userRecord?.has_own_key}
         previewPlan={previewPlan}
+        onSetPlan={setPreviewPlan}
         onTogglePreview={() => setPreviewPlan((p) => (p === "pro" ? "free" : "pro"))}
         isBusiness={isBusiness}
         isPro={isPro}
@@ -1075,7 +1076,7 @@ export default function App() {
                   </button>
                 )}
               </div>
-              {user?.is_admin && (
+              {user && (
                 <div
                   className="liquid-glass"
                   style={{
@@ -1288,10 +1289,10 @@ export default function App() {
           {result && !loading && !compareResult && (
             <Suspense fallback={<LoadingState step={0} />}>
               <Dashboard
-                key={user?.is_admin ? previewPlan : "fixed"}
+                key={previewPlan}
                 data={result}
                 onRecalculate={handleRecalculate}
-                previewPlan={user?.is_admin ? previewPlan : userRecord?.is_pro ? "pro" : "free"}
+                previewPlan={previewPlan}
                 onUpgrade={(section) => {
                   setPaywallTrigger(section || "section")
                   setShowPaywall(true)

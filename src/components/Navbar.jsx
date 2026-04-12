@@ -16,6 +16,7 @@ export default function Navbar({
   onOpenKeyModal,
   hasOwnKey,
   previewPlan,
+  onSetPlan,
   onTogglePreview,
   onDeleteAccount,
   onOpenAuth,
@@ -158,23 +159,39 @@ export default function Navbar({
               >
                 {user?.is_admin ? "⚡ Admin" : userRecord?.is_pro ? "★ Pro" : `${analysesLeft} / 10 left`}
               </span>
-              {user?.is_admin && (
-                <button
-                  onClick={onTogglePreview}
+              {user && (
+                <div
+                  className="liquid-glass"
                   style={{
-                    background: "rgba(167,139,250,0.1)",
-                    border: "1px solid rgba(167,139,250,0.25)",
-                    cursor: "pointer",
-                    fontFamily: "'Barlow',sans-serif",
-                    fontWeight: 300,
-                    fontSize: 11,
-                    color: "#a78bfa",
-                    padding: "5px 10px",
-                    borderRadius: 20,
+                    display: "flex",
+                    alignItems: "center",
+                    borderRadius: 40,
+                    padding: "3px",
+                    gap: 2,
                   }}
                 >
-                  Preview: {previewPlan === "pro" ? "Pro" : "Free"}
-                </button>
+                  {[["free", "Free"], ["pro", "Pro"], ["business", "Business"]].map(([val, label]) => (
+                    <button
+                      key={val}
+                      onClick={() => onSetPlan(val)}
+                      style={{
+                        borderRadius: 40,
+                        padding: "4px 12px",
+                        fontSize: 11,
+                        fontFamily: "'Barlow',sans-serif",
+                        fontWeight: previewPlan === val ? 600 : 300,
+                        border: "none",
+                        cursor: "pointer",
+                        background: previewPlan === val ? "#fff" : "transparent",
+                        color: previewPlan === val ? "#000" : "rgba(255,255,255,0.45)",
+                        transition: "all 0.15s",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
               )}
               <button
                 onClick={onOpenKeyModal}
