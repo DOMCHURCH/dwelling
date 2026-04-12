@@ -142,7 +142,8 @@ export default function App() {
     const u = getCurrentUser()
     if (u) {
       setUser(u)
-      setUserRecord({ is_pro: u.is_pro, analyses_used: 0 })
+      setUserRecord({ is_pro: u.is_pro, is_business: u.is_business, analyses_used: 0 })
+      if (u.is_admin) setPreviewPlan(u.is_business ? "business" : u.is_pro ? "pro" : "free")
       loadUserRecord()
       loadCerebrasKeyFromServer().then((k) => {
         if (k) setCerebrasKey(k)
@@ -509,7 +510,13 @@ export default function App() {
 
   const handleDownloadPDF = () => window.print()
 
-  const effectivePlan = previewPlan
+  const effectivePlan = user?.is_admin
+    ? previewPlan
+    : userRecord?.is_business
+      ? "business"
+      : userRecord?.is_pro
+        ? "pro"
+        : "free"
   const isPro = effectivePlan === "pro" || effectivePlan === "business"
   const isBusiness = effectivePlan === "business"
 
@@ -1062,7 +1069,7 @@ export default function App() {
                   </button>
                 )}
               </div>
-              {user && (
+              {user?.is_admin && (
                 <div
                   className="liquid-glass"
                   style={{

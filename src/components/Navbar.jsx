@@ -164,7 +164,7 @@ export default function Navbar({
               >
                 {user?.is_admin ? "⚡ Admin" : userRecord?.is_pro ? "★ Pro" : `${analysesLeft} / 10 left`}
               </span>
-              {user && (
+              {user?.is_admin && (
                 <div
                   className="liquid-glass"
                   style={{
