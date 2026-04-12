@@ -190,7 +190,7 @@ export default function App() {
   const handleAuth = async (u) => {
     const fullUser = getCurrentUser() || u
     setUser(fullUser)
-    setUserRecord({ is_pro: fullUser.is_pro, analyses_used: 0 })
+    setUserRecord({ is_pro: fullUser.is_pro, is_business: fullUser.is_business, analyses_used: 0 })
     loadUserRecord()
     // Show user type modal on first login if not yet answered
     if (!getUserType()) setTimeout(() => setShowUserTypeModal(true), 1200)

@@ -152,17 +152,19 @@ export default function Navbar({
                   fontFamily: "'Barlow',sans-serif",
                   color: user?.is_admin
                     ? "#a78bfa"
-                    : userRecord?.is_pro
-                      ? "#fbbf24"
-                      : low
-                        ? "#f87171"
-                        : "rgba(255,255,255,0.5)",
+                    : userRecord?.is_business
+                      ? "#f59e0b"
+                      : userRecord?.is_pro
+                        ? "#38bdf8"
+                        : low
+                          ? "#f87171"
+                          : "rgba(255,255,255,0.5)",
                   cursor: user?.is_admin ? "pointer" : "default",
                 }}
                 onClick={user?.is_admin ? onOpenAdmin : undefined}
                 title={user?.is_admin ? "Open Admin Panel" : undefined}
               >
-                {user?.is_admin ? "⚡ Admin" : userRecord?.is_pro ? "★ Pro" : `${analysesLeft} / 10 left`}
+                {user?.is_admin ? "⚡ Admin" : userRecord?.is_business ? "★ Business" : userRecord?.is_pro ? "★ Pro" : `${analysesLeft} / 10 left`}
               </span>
               {user?.is_admin && (
                 <div
