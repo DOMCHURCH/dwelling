@@ -5,5 +5,8 @@ export const HERO_POSTER = 'https://d2xsxph8kpxj0f.cloudfront.net/31051966346303
 
 export function scrollTo(id) {
   const el = document.getElementById(id)
-  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  if (!el) return
+  const navH = document.querySelector('nav')?.offsetHeight || 68
+  const top = el.getBoundingClientRect().top + window.scrollY - navH - 8
+  window.scrollTo({ top, behavior: 'smooth' })
 }

@@ -13,6 +13,7 @@ export default function Navbar({
   onOpenSaved,
   savedCount,
   isPro,
+  onOpenDashboard,
   onOpenKeyModal,
   hasOwnKey,
   previewPlan,
@@ -32,7 +33,7 @@ export default function Navbar({
     return () => window.removeEventListener("scroll", h)
   }, [])
   const low = typeof analysesLeft === "number" && analysesLeft <= 3
-  const canAccessDashboard = isPro || isBusiness
+  const canAccessDashboard = isBusiness
   return (
     <nav
       style={{
@@ -116,9 +117,9 @@ export default function Navbar({
             )}
           </button>
 
-          {/* Dashboard — grayed for free users */}
+          {/* Dashboard — business only */}
           <button
-            onClick={canAccessDashboard ? undefined : undefined}
+            onClick={canAccessDashboard ? onOpenDashboard : undefined}
             disabled={!canAccessDashboard}
             title={canAccessDashboard ? "Business Dashboard" : "Dashboard — Pro or Business only"}
             style={{
@@ -231,25 +232,6 @@ export default function Navbar({
               >
                 Sign out
               </button>
-              {isBusiness && (
-                <Link
-                  to="/dashboard"
-                  style={{
-                    textDecoration: "none",
-                    background: "rgba(251,191,36,0.1)",
-                    border: "1px solid rgba(251,191,36,0.25)",
-                    cursor: "pointer",
-                    fontFamily: "'Barlow',sans-serif",
-                    fontWeight: 300,
-                    fontSize: 11,
-                    color: "#fbbf24",
-                    padding: "5px 10px",
-                    borderRadius: 20,
-                  }}
-                >
-                  📊
-                </Link>
-              )}
               <button
                 onClick={onDeleteAccount}
                 title="Delete account"

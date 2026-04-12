@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, lazy, Suspense } from "react"
+import { downloadAnalysisHTML } from "./lib/exportHTML"
 import { getGSAP } from "../hooks/useScrollReveal"
 import AddressSearch from "./components/AddressSearch"
 import LoadingState from "./components/LoadingState"
@@ -808,6 +809,7 @@ export default function App() {
         isBusiness={isBusiness}
         isPro={isPro}
         savedCount={savedReports.length}
+        onOpenDashboard={() => setShowBusinessDashboard(true)}
         onHome={() => {
           setResult(null)
           window.scrollTo({ top: 0, behavior: "smooth" })
@@ -968,10 +970,10 @@ export default function App() {
                   </button>
                 )}
 
-                {/* Business: PDF Export */}
+                {/* Business: HTML Export */}
                 {isBusiness && (
                   <button
-                    onClick={() => window.print()}
+                    onClick={() => downloadAnalysisHTML(result)}
                     style={{
                       borderRadius: 40,
                       padding: "8px 16px",
@@ -988,9 +990,9 @@ export default function App() {
                     }}
                     onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.75")}
                     onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
-                    title="Export clean PDF report"
+                    title="Download HTML report"
                   >
-                    📄 PDF
+                    📄 Export HTML
                   </button>
                 )}
 
