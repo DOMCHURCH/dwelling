@@ -70,7 +70,7 @@ const Pricing = memo(function Pricing({ onUpgrade }) {
             annualSavings={annual}
           />
           <BusinessCard annual={annual} onCta={() => {
-            window.location.href = 'mailto:01dominique.c@gmail.com?subject=Dwelling Business Plan — Early Access'
+            window.open('https://cal.com/dwelling/business', '_blank')
           }} />
         </div>
       </div>

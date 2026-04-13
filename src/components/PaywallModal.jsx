@@ -121,10 +121,10 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
       <Overlay onClose={onClose}>
         <button onClick={() => setView('main')} style={backBtn}>← Back</button>
         <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 24, color: '#fff', marginBottom: 8 }}>
-          Get notified when Pro launches
+          Something went wrong with checkout.
         </div>
         <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.45)', marginBottom: 24, lineHeight: 1.6 }}>
-          Payments are launching shortly. Drop your email and you'll be first to know — and first to lock in the early price.
+          Something went wrong with checkout. Email <a href="mailto:hello@dwelling.one" style={{ color: '#38bdf8', textDecoration: 'none' }}>hello@dwelling.one</a> and we'll get you set up right away.
         </p>
         <form onSubmit={handleNotify}>
           <input
@@ -364,7 +364,7 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
               ))}
             </div>
             <button
-              onClick={() => { window.location.href = 'mailto:01dominique.c@gmail.com?subject=Dwelling Business Plan — Early Access' }}
+              onClick={() => { window.open('https://cal.com/dwelling/business', '_blank') }}
               style={{
                 width: '100%', padding: '11px', borderRadius: 40, border: 'none',
                 cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 700, fontSize: 12,
@@ -373,10 +373,10 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
               }}
               onMouseEnter={e => e.currentTarget.style.opacity = '0.88'}
               onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-            >Get Early Access →</button>
+            >Book a call →</button>
             <div style={{ marginTop: 10, padding: '8px 12px', borderRadius: 10, background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', textAlign: 'center' }}>
               <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 10, color: '#fbbf24', fontWeight: 500 }}>
-                🔔 Stripe payments coming soon — contact us to get early access
+                Contact us to get started — typically same-day response.
               </span>
             </div>
           </div>
