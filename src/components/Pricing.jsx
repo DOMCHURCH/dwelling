@@ -3,7 +3,7 @@ import { getAuthToken } from '../lib/localAuth'
 import { useScrollReveal } from '../../hooks/useScrollReveal'
 import PricingCard, { PRICING_FREE, PRICING_PRO, BusinessCard } from './PricingCard'
 
-const Pricing = memo(function Pricing({ onUpgrade }) {
+const Pricing = memo(function Pricing({ onUpgrade, onBusinessCta }) {
   const headRef = useScrollReveal({ y: 28, opacity: 0, duration: 0.85, ease: 'power3.out' })
   const cardsRef = useScrollReveal({ y: 40, opacity: 0, duration: 0.7, stagger: 0.15, selector: '.pricing-card-anim' })
   const [annual, setAnnual] = useState(false)
@@ -69,9 +69,7 @@ const Pricing = memo(function Pricing({ onUpgrade }) {
             popular={true}
             annualSavings={annual}
           />
-          <BusinessCard annual={annual} onCta={() => {
-            window.open('https://cal.com/dwelling/business', '_blank')
-          }} />
+          <BusinessCard annual={annual} onCta={onBusinessCta ?? (() => {})} />
         </div>
       </div>
     </section>

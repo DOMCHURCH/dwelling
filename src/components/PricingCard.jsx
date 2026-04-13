@@ -92,7 +92,7 @@ export function BusinessCard({ onCta, annual = false }) {
         </div>
 
         <button
-          onClick={onCta}
+          onClick={() => onCta(annual)}
           onMouseEnter={() => setHov(true)}
           onMouseLeave={() => setHov(false)}
           style={{

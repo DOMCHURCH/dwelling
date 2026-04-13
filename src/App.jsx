@@ -661,6 +661,23 @@ export default function App() {
 
   const handleDownloadPDF = () => window.print()
 
+  async function handleBusinessCheckout(annual) {
+    const token = await getAuthToken()
+    if (!token) { setShowAuthModal(true); return }
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: 'create-checkout', lookup_key: annual ? 'business_yearly' : 'business_monthly' }),
+      })
+      const data = await res.json()
+      if (data.url) { window.location.href = data.url; return }
+      alert(data.error || 'Something went wrong. Email hello@dwelling.one')
+    } catch {
+      alert('Something went wrong. Email hello@dwelling.one')
+    }
+  }
+
   async function handleShare() {
     if (!result) return
     const token = await getAuthToken()
@@ -1547,6 +1564,7 @@ export default function App() {
               setPaywallTrigger("pricing")
               setShowPaywall(true)
             }}
+            onBusinessCta={handleBusinessCheckout}
           />
           <FAQ />
           <CTAFooter
