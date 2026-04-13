@@ -23,6 +23,8 @@ export default function Navbar({
   onDeleteAccount,
   onOpenAuth,
   isBusiness,
+  onOpenPayments,
+  isTeamOwner,
 }) {
   const [scrolled, setScrolled] = useState(false)
   useEffect(() => {
@@ -122,7 +124,7 @@ export default function Navbar({
           <button
             onClick={canAccessDashboard ? onOpenDashboard : undefined}
             disabled={!canAccessDashboard}
-            title={canAccessDashboard ? "Business Dashboard" : "Dashboard — Pro or Business only"}
+            title={canAccessDashboard ? "Business Dashboard" : "Dashboard — Business only"}
             style={{
               background: "none", border: "none",
               cursor: canAccessDashboard ? "pointer" : "default",
@@ -139,6 +141,23 @@ export default function Navbar({
           >
             Dashboard{!canAccessDashboard && <span style={{ marginLeft: 4, fontSize: 10 }}>🔒</span>}
           </button>
+
+          {/* Payments — pro/business owner only */}
+          {(isPro || isBusiness) && (isTeamOwner || !isBusiness) && (
+            <button
+              onClick={onOpenPayments}
+              style={{
+                background: "none", border: "none", cursor: "pointer",
+                fontFamily: "'Barlow',sans-serif", fontWeight: 400, fontSize: 13,
+                color: "rgba(255,255,255,0.8)", padding: "6px 14px", borderRadius: 40,
+                transition: "background 0.15s",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.07)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
+            >
+              Payments
+            </button>
+          )}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           {user ? (

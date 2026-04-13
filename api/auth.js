@@ -117,6 +117,17 @@ async function ensureTable(db) {
       created_at TEXT
     )
   `)
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS team_invites (
+      token TEXT PRIMARY KEY,
+      team_id TEXT,
+      email TEXT,
+      nickname TEXT,
+      invited_by TEXT,
+      created_at TEXT,
+      accepted_at TEXT
+    )
+  `)
 }
 
 // ─── AES-256-GCM encryption for Cerebras API keys ────────────────────────────
@@ -834,7 +845,6 @@ export default async function handler(req, res) {
       const payload = verify(authHeader.replace('Bearer ', ''))
       if (!payload) return res.status(401).json({ error: 'Invalid token' })
       const userRow = await db.execute({ sql: 'SELECT is_business, team_id FROM users WHERE id = ?', args: [payload.sub] })
-      if (!userRow.rows[0]?.is_business) return res.status(403).json({ error: 'Business plan required' })
       if (userRow.rows[0]?.team_id) return res.status(409).json({ error: 'Already in a team' })
       const { inviteCode } = req.body
       if (!inviteCode) return res.status(400).json({ error: 'inviteCode required' })
@@ -916,6 +926,86 @@ export default async function handler(req, res) {
       if (logo.length > 2 * 1024 * 1024) return res.status(413).json({ error: 'Logo too large (max 2MB)' })
       await db.execute({ sql: 'UPDATE teams SET logo_data = ? WHERE id = ?', args: [logo, teamId] })
       return res.status(200).json({ success: true })
+    }
+
+    // ── Business Team: invite member by email ────────────────────────────────
+    if (action === 'invite-member') {
+      const authHeader = req.headers.authorization
+      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
+      const payload = verify(authHeader.replace('Bearer ', ''))
+      if (!payload) return res.status(401).json({ error: 'Invalid token' })
+      const userRow = await db.execute({ sql: 'SELECT team_id, email FROM users WHERE id = ?', args: [payload.sub] })
+      const teamId = userRow.rows[0]?.team_id
+      if (!teamId) return res.status(403).json({ error: 'Not in a team' })
+      // Only owner can invite
+      const teamRow = await db.execute({ sql: 'SELECT owner_id, name FROM teams WHERE id = ?', args: [teamId] })
+      if (teamRow.rows[0]?.owner_id !== payload.sub) return res.status(403).json({ error: 'Only the team owner can invite members' })
+      const { email: inviteeEmail, nickname } = req.body
+      if (!inviteeEmail || typeof inviteeEmail !== 'string') return res.status(400).json({ error: 'email required' })
+      // Check seat count (max 5 total including owner)
+      const memberCount = await db.execute({ sql: 'SELECT COUNT(*) as cnt FROM team_members WHERE team_id = ?', args: [teamId] })
+      if ((memberCount.rows[0]?.cnt || 0) >= 5) return res.status(409).json({ error: 'Team is full (5 members max)' })
+      const token = randomBytes(24).toString('hex')
+      await db.execute({
+        sql: 'INSERT OR REPLACE INTO team_invites (token, team_id, email, nickname, invited_by, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+        args: [token, teamId, inviteeEmail.toLowerCase().trim(), nickname || null, userRow.rows[0].email, new Date().toISOString()],
+      })
+      const inviteLink = `https://dwelling.one/?join=${token}`
+      const teamName = teamRow.rows[0]?.name || 'their team'
+      const fromName = userRow.rows[0]?.email
+      // Send email via Resend if API key is set
+      const resendKey = process.env.RESEND_API_KEY
+      if (resendKey) {
+        try {
+          await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              from: 'Dwelling <noreply@dwelling.one>',
+              to: [inviteeEmail.toLowerCase().trim()],
+              subject: `${fromName} invited you to ${teamName} on Dwelling`,
+              html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px">
+                <h2 style="margin:0 0 8px">You've been invited to ${teamName}</h2>
+                <p style="color:#666">${fromName} is using Dwelling Business to analyze properties — and wants you on their team.</p>
+                <p style="color:#666">As a team member you get access to Business-tier analyses, shared reports, and team API keys — no separate subscription needed.</p>
+                <a href="${inviteLink}" style="display:inline-block;background:#3b82f6;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;margin:16px 0">Accept Invitation</a>
+                <p style="color:#999;font-size:12px">This invite link expires in 7 days. If you already have a Dwelling account, sign in first then click the link.</p>
+              </div>`,
+            }),
+          })
+        } catch (emailErr) {
+          console.error('Failed to send invite email:', emailErr?.message)
+        }
+      } else {
+        console.log(`[invite] No RESEND_API_KEY set — invite link for ${inviteeEmail}: ${inviteLink}`)
+      }
+      return res.status(200).json({ success: true, token, inviteLink })
+    }
+
+    // ── Business Team: accept email invite ───────────────────────────────────
+    if (action === 'accept-invite') {
+      const authHeader = req.headers.authorization
+      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
+      const payload = verify(authHeader.replace('Bearer ', ''))
+      if (!payload) return res.status(401).json({ error: 'Invalid token' })
+      const { token: inviteToken } = req.body
+      if (!inviteToken) return res.status(400).json({ error: 'token required' })
+      const inviteRow = await db.execute({ sql: 'SELECT * FROM team_invites WHERE token = ?', args: [inviteToken] })
+      const invite = inviteRow.rows[0]
+      if (!invite) return res.status(404).json({ error: 'Invalid or expired invite' })
+      if (invite.accepted_at) return res.status(409).json({ error: 'Invite already used' })
+      // Check created within 7 days
+      const age = Date.now() - new Date(invite.created_at).getTime()
+      if (age > 7 * 24 * 60 * 60 * 1000) return res.status(410).json({ error: 'Invite has expired' })
+      const userRow = await db.execute({ sql: 'SELECT team_id FROM users WHERE id = ?', args: [payload.sub] })
+      if (userRow.rows[0]?.team_id) return res.status(409).json({ error: 'You are already in a team' })
+      // Check seat count
+      const memberCount = await db.execute({ sql: 'SELECT COUNT(*) as cnt FROM team_members WHERE team_id = ?', args: [invite.team_id] })
+      if ((memberCount.rows[0]?.cnt || 0) >= 5) return res.status(409).json({ error: 'Team is full' })
+      await db.execute({ sql: 'INSERT OR IGNORE INTO team_members (team_id, user_id, role, joined_at) VALUES (?, ?, ?, ?)', args: [invite.team_id, payload.sub, 'member', new Date().toISOString()] })
+      await db.execute({ sql: 'UPDATE users SET team_id = ?, is_business = 1 WHERE id = ?', args: [invite.team_id, payload.sub] })
+      await db.execute({ sql: 'UPDATE team_invites SET accepted_at = ? WHERE token = ?', args: [new Date().toISOString(), inviteToken] })
+      return res.status(200).json({ success: true, teamId: invite.team_id })
     }
 
     return res.status(400).json({ error: 'Unknown action' })

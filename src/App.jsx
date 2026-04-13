@@ -47,6 +47,8 @@ import AdminPanel from "./components/AdminPanel"
 import PDFExportModal from "./components/PDFExportModal"
 import ExportModal from "./components/ExportModal"
 import BusinessDashboard from "./components/BusinessDashboard"
+import BusinessOnboardingModal from "./components/BusinessOnboardingModal"
+import PaymentsPage from "./components/PaymentsPage"
 
 // Reload once on chunk fetch failure (stale deployment — old HTML references old hashed filenames)
 function lazyWithReload(factory) {
@@ -115,6 +117,10 @@ export default function App() {
   const [showAdminPanel, setShowAdminPanel] = useState(false)
   const [showPDFExport, setShowPDFExport] = useState(false)
   const [showBusinessDashboard, setShowBusinessDashboard] = useState(false)
+  const [showPaymentsPage, setShowPaymentsPage] = useState(false)
+  const [showBusinessOnboarding, setShowBusinessOnboarding] = useState(false)
+  const [isTeamOwner, setIsTeamOwner] = useState(false)
+  const [pendingJoinToken, setPendingJoinToken] = useState(() => new URLSearchParams(window.location.search).get("join") || null)
   const [compareResultC, setCompareResultC] = useState(null)
   const [comparingModeC, setComparingModeC] = useState(false)
   const { saved: savedReports, saveReport, deleteReport, isReportSaved } = useSavedReports()
@@ -138,6 +144,22 @@ export default function App() {
     } catch {}
   }
 
+  const loadTeamOwnerStatus = async () => {
+    try {
+      const token = await getAuthToken()
+      if (!token) return
+      const res = await fetch("/api/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: "get-team" }),
+      })
+      if (!res.ok) return
+      const data = await res.json()
+      const currentUser = getCurrentUser()
+      setIsTeamOwner(!!data.team && data.team.owner_id === currentUser?.id)
+    } catch {}
+  }
+
   useEffect(() => {
     const u = getCurrentUser()
     if (u) {
@@ -148,6 +170,12 @@ export default function App() {
       loadCerebrasKeyFromServer().then((k) => {
         if (k) setCerebrasKey(k)
       })
+      if (u.is_business) {
+        loadTeamOwnerStatus()
+        if (!localStorage.getItem("dw_business_onboarded")) {
+          setTimeout(() => setShowBusinessOnboarding(true), 1000)
+        }
+      }
     }
     setAuthLoading(false)
   }, [])
@@ -192,6 +220,31 @@ export default function App() {
     setUser(fullUser)
     setUserRecord({ is_pro: fullUser.is_pro, is_business: fullUser.is_business, analyses_used: 0 })
     loadUserRecord()
+    if (fullUser.is_business) {
+      loadTeamOwnerStatus()
+      if (!localStorage.getItem("dw_business_onboarded")) {
+        setTimeout(() => setShowBusinessOnboarding(true), 800)
+      }
+    }
+    // Handle pending team invite
+    if (pendingJoinToken) {
+      const token = await getAuthToken()
+      if (token) {
+        fetch("/api/auth", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ action: "accept-invite", token: pendingJoinToken }),
+        }).then(async (res) => {
+          if (res.ok) {
+            await loadUserRecord()
+            const updated = getCurrentUser()
+            if (updated) setUser({ ...updated })
+          }
+          setPendingJoinToken(null)
+          window.history.replaceState({}, "", window.location.pathname)
+        }).catch(() => { setPendingJoinToken(null) })
+      }
+    }
     // Show user type modal on first login if not yet answered
     if (!getUserType()) setTimeout(() => setShowUserTypeModal(true), 1200)
     const serverKey = await loadCerebrasKeyFromServer()
@@ -822,6 +875,8 @@ export default function App() {
         savedCount={savedReports.length}
         onOpenDashboard={() => setShowBusinessDashboard(true)}
         onOpenAdmin={() => setShowAdminPanel(true)}
+        onOpenPayments={() => setShowPaymentsPage(true)}
+        isTeamOwner={isTeamOwner}
         onHome={() => {
           setResult(null)
           window.scrollTo({ top: 0, behavior: "smooth" })
@@ -1358,6 +1413,21 @@ export default function App() {
       {showExportModal && result && <ExportModal result={result} onClose={() => setShowExportModal(false)} />}
       {showPDFExport && result && <PDFExportModal result={result} onClose={() => setShowPDFExport(false)} />}
       {showBusinessDashboard && <BusinessDashboard onClose={() => setShowBusinessDashboard(false)} />}
+      {showPaymentsPage && (
+        <PaymentsPage
+          onClose={() => setShowPaymentsPage(false)}
+          user={user}
+          userRecord={userRecord}
+          isTeamOwner={isTeamOwner}
+          onOpenDashboard={() => { setShowPaymentsPage(false); setShowBusinessDashboard(true) }}
+        />
+      )}
+      {showBusinessOnboarding && (
+        <BusinessOnboardingModal
+          onClose={() => setShowBusinessOnboarding(false)}
+          onOpenDashboard={() => { setShowBusinessOnboarding(false); setShowBusinessDashboard(true) }}
+        />
+      )}
       {showDeleteAccount && (
         <Suspense fallback={null}>
           <DeleteAccountModal
