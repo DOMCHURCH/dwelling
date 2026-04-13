@@ -8,8 +8,9 @@ import Stripe from 'stripe'
 
 const STRIPE_SECRET = process.env.STRIPE_SECRET_KEY
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET
-const STRIPE_PRICE_ID_MONTHLY = process.env.STRIPE_PRICE_ID_MONTHLY
-const STRIPE_PRICE_ID_ANNUAL = process.env.STRIPE_PRICE_ID_ANNUAL
+
+// Lookup keys must match exactly what you created in the Stripe dashboard
+const VALID_LOOKUP_KEYS = ['pro_monthly', 'pro_yearly', 'business_monthly', 'business_yearly']
 
 function getStripe() {
   if (!STRIPE_SECRET) throw new Error('STRIPE_SECRET_KEY not configured')
@@ -587,18 +588,30 @@ export default async function handler(req, res) {
       if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
       const payload = verify(authHeader.replace('Bearer ', ''))
       if (!payload) return res.status(401).json({ error: 'Invalid token' })
-      const { billing = 'monthly' } = req.body
-      const priceId = billing === 'annual' ? STRIPE_PRICE_ID_ANNUAL : STRIPE_PRICE_ID_MONTHLY
-      if (!priceId) return res.status(503).json({ error: 'Stripe price ID not configured' })
+
+      const { lookup_key } = req.body
+      if (!lookup_key || !VALID_LOOKUP_KEYS.includes(lookup_key)) {
+        return res.status(400).json({ error: `Invalid lookup_key. Must be one of: ${VALID_LOOKUP_KEYS.join(', ')}` })
+      }
+
       const stripe = getStripe()
+
+      // Resolve price from Stripe using the lookup key — no hardcoded price IDs
+      const prices = await stripe.prices.list({ lookup_keys: [lookup_key], active: true })
+      const price = prices.data[0]
+      if (!price) {
+        return res.status(404).json({ error: `No active price found for lookup_key "${lookup_key}". Create it in your Stripe dashboard.` })
+      }
+
       const session = await stripe.checkout.sessions.create({
         mode: 'subscription',
         customer_email: payload.email,
-        line_items: [{ price: priceId, quantity: 1 }],
+        line_items: [{ price: price.id, quantity: 1 }],
         success_url: `${BASE_URL}/?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${BASE_URL}/?checkout=cancelled`,
-        subscription_data: { metadata: { user_email: payload.email } },
-        metadata: { user_email: payload.email },
+        // Store lookup_key in metadata so verify-checkout can detect plan tier
+        subscription_data: { metadata: { user_email: payload.email, plan: lookup_key } },
+        metadata: { user_email: payload.email, plan: lookup_key },
         allow_promotion_codes: true,
       })
       return res.status(200).json({ url: session.url })
@@ -623,12 +636,15 @@ export default async function handler(req, res) {
       if (sessionEmail && sessionEmail !== payload.email.toLowerCase()) {
         return res.status(403).json({ error: 'Session does not belong to this account' })
       }
+      const plan = session.metadata?.plan ?? ''
+      const isBusiness = plan.startsWith('business')
+
       const db = getDb()
       await db.execute({
-        sql: 'UPDATE users SET is_pro = 1, stripe_customer_id = ?, stripe_subscription_id = ? WHERE email = ?',
-        args: [session.customer || null, session.subscription?.id || null, payload.email],
+        sql: 'UPDATE users SET is_pro = 1, is_business = ?, stripe_customer_id = ?, stripe_subscription_id = ? WHERE email = ?',
+        args: [isBusiness ? 1 : 0, session.customer || null, session.subscription?.id || null, payload.email],
       })
-      return res.status(200).json({ success: true, is_pro: true })
+      return res.status(200).json({ success: true, is_pro: true, is_business: isBusiness })
     }
 
     // ── Stripe: cancel-subscription ──────────────────────────────────────────

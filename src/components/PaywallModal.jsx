@@ -73,7 +73,7 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
       const res = await fetch('/api/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ action: 'create-checkout', billing: annual ? 'annual' : 'monthly' }),
+        body: JSON.stringify({ action: 'create-checkout', lookup_key: annual ? 'pro_yearly' : 'pro_monthly' }),
       })
       if (!res.ok) { setView('notify'); return }
       const { url } = await res.json()
