@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { getAuthToken } from '../lib/localAuth'
 
-const MONTHLY = 19
-const ANNUAL = 144
+const MONTHLY = 29
+const ANNUAL = 228
 const ANNUAL_MONTHLY = 12
 
 const FREE_FEATURES = [
@@ -271,7 +271,7 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
               <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 52, color: '#fff', lineHeight: 1 }}>${displayPrice}</span>
               <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.35)', marginLeft: 5 }}>/month</span>
               {annual && (
-                <div style={{ marginTop: 4, fontFamily: "'Barlow',sans-serif", fontSize: 11, color: '#38bdf8', fontWeight: 500 }}>Billed $144/year — save 37%</div>
+                <div style={{ marginTop: 4, fontFamily: "'Barlow',sans-serif", fontSize: 11, color: '#38bdf8', fontWeight: 500 }}>Billed $228/year — save 34%</div>
               )}
             </div>
 
