@@ -72,9 +72,19 @@ const CompareView = lazyWithReload(() => import("./components/CompareView"))
 
 const FREE_LIMIT = 10
 
+const STEP_KEYS = ['geo', 'market', 'scores', 'affordability', 'investment', 'ai']
+
+function getStepKey(stepNum, hasAIKey = false) {
+  const key = STEP_KEYS[stepNum] || 'geo'
+  // If no AI key and we're at or past the AI step, cap at investment
+  if (!hasAIKey && key === 'ai') return 'investment'
+  return key
+}
+
 export default function App() {
   const [loading, setLoading] = useState(false)
   const [loadStep, setLoadStep] = useState(0)
+  const [currentCity, setCurrentCity] = useState('')
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
   const [showTerms, setShowTerms] = useState(false)
@@ -299,6 +309,7 @@ export default function App() {
     setError(null)
     setResult(null)
     setLoadStep(0)
+    setCurrentCity(city)
     const isAreaMode = !street.trim()
     try {
       const geocodeInput = isAreaMode ? { street: "", city, state, country } : { street, city, state, country }
@@ -413,6 +424,7 @@ export default function App() {
     setLoading(true)
     setError(null)
     setLoadStep(0)
+    setCurrentCity(city)
     const isAreaMode = !street.trim()
     try {
       const geocodeInput = isAreaMode ? { street: "", city, state, country } : { street, city, state, country }
@@ -489,6 +501,7 @@ export default function App() {
     setLoading(true)
     setError(null)
     setLoadStep(0)
+    setCurrentCity(city)
     const isAreaMode = !street.trim()
     try {
       const { geocodeStructured } = await import("./lib/nominatim")
@@ -720,7 +733,7 @@ export default function App() {
               to run your own.
             </p>
           </div>
-          <Suspense fallback={<LoadingState step={0} />}>
+          <Suspense fallback={<LoadingState currentStep="geo" hasAIKey={true} city="" />}>
             <Dashboard data={DEMO_RESULT} onRecalculate={() => {}} />
           </Suspense>
         </div>
@@ -1273,7 +1286,7 @@ export default function App() {
               <AddressSearch onSearch={handleCompareCSearch} loading={loading} compact />
             </div>
           )}
-          {loading && <LoadingState step={loadStep} />}
+          {loading && <LoadingState currentStep={getStepKey(loadStep, !!cerebrasKey)} hasAIKey={!!cerebrasKey} city={currentCity} />}
           {error && (
             <div
               style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, padding: "40px 16px" }}
@@ -1335,7 +1348,7 @@ export default function App() {
             </Suspense>
           )}
           {result && !loading && !compareResult && (
-            <Suspense fallback={<LoadingState step={0} />}>
+            <Suspense fallback={<LoadingState currentStep="geo" hasAIKey={true} city="" />}>
               <Dashboard
                 key={previewPlan}
                 data={result}
