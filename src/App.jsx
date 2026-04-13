@@ -24,6 +24,7 @@ import TermsModal from "./components/TermsModal"
 import ApiKeyModal from "./components/ApiKeyModal"
 import { LOGO } from "./lib/appHelpers"
 import { DEMO_RESULT } from "./lib/demoData"
+import { buildDeterministicReport } from "./lib/deterministicReport"
 import { geocodeStructured } from "./lib/nominatim"
 import { getCurrentWeather, getClimateNormals } from "./lib/weather"
 import { analyzeProperty } from "./lib/cerebras"
@@ -70,11 +71,12 @@ const CookieBanner = lazyWithReload(() => import("./components/CookieBanner"))
 const DeleteAccountModal = lazyWithReload(() => import("./components/DeleteAccountModal"))
 const CompareView = lazyWithReload(() => import("./components/CompareView"))
 
-const FREE_LIMIT = 10
+const FREE_LIMIT = 3
 
 const STEP_KEYS = ['geo', 'market', 'scores', 'affordability', 'investment', 'ai']
 
 function getStepKey(stepNum, hasAIKey = false) {
+  if (typeof stepNum === 'string') return stepNum
   const key = STEP_KEYS[stepNum] || 'geo'
   // If no AI key and we're at or past the AI step, cap at investment
   if (!hasAIKey && key === 'ai') return 'investment'
@@ -83,9 +85,12 @@ function getStepKey(stepNum, hasAIKey = false) {
 
 export default function App() {
   const [loading, setLoading] = useState(false)
-  const [loadStep, setLoadStep] = useState(0)
+  const [loadStep, setLoadStep] = useState('geo')
   const [currentCity, setCurrentCity] = useState('')
   const [result, setResult] = useState(null)
+  const [showBYOKPrompt, setShowBYOKPrompt] = useState(false)
+  const [byokLoading, setByokLoading] = useState(false)
+  const [lastQuery, setLastQuery] = useState(null)
   const [error, setError] = useState(null)
   const [showTerms, setShowTerms] = useState(false)
   const [showPaywall, setShowPaywall] = useState(false)
@@ -294,6 +299,32 @@ export default function App() {
     }
   }
 
+  function mergeWithDeterministic(base, ai) {
+    return {
+      ...base,
+      ...ai,
+      investment: {
+        ...base.investment,
+        ...(ai?.investment ?? {}),
+      },
+      isDeterministic: false,
+    }
+  }
+
+  async function handleBYOKSubmit(key) {
+    setByokLoading(true)
+    try {
+      await saveCerebrasKey(key)
+      setCerebrasKey(key)
+      setShowBYOKPrompt(false)
+      if (lastQuery) await handleSearch(lastQuery)
+    } catch {
+      // key stays in prompt, error will show
+    } finally {
+      setByokLoading(false)
+    }
+  }
+
   const handleSearch = async ({ street, city, state, country: _country, knownFacts }) => {
     const country = "Canada"
     if (loading) return
@@ -305,23 +336,26 @@ export default function App() {
     const searchKey = `${street.trim().toLowerCase()}|${city.trim().toLowerCase()}|${state}`
     if (pendingSearchKeyRef.current === searchKey) return
     pendingSearchKeyRef.current = searchKey
+    setLastQuery({ street, city, state, country: _country, knownFacts })
     setLoading(true)
     setError(null)
     setResult(null)
-    setLoadStep(0)
+    setShowBYOKPrompt(false)
+    setLoadStep('geo')
     setCurrentCity(city)
     const isAreaMode = !street.trim()
     try {
       const geocodeInput = isAreaMode ? { street: "", city, state, country } : { street, city, state, country }
       const geo = await geocodeStructured(geocodeInput)
-      setLoadStep(1)
+
+      setLoadStep('market')
       const [weather, climate, neighborhoodScores] = await Promise.all([
         getCurrentWeather(geo.lat, geo.lon),
         getClimateNormals(geo.lat, geo.lon),
         getNeighborhoodScores(geo.lat, geo.lon),
       ])
-      setLoadStep(2)
-      setLoadStep(3)
+
+      setLoadStep('scores')
       const riskData = await getRiskData({
         lat: geo.lat,
         lon: geo.lon,
@@ -330,6 +364,7 @@ export default function App() {
         country,
       }).catch(() => null)
 
+      setLoadStep('affordability')
       const [bulkCompsRes, newsRes] = await Promise.allSettled([
         fetch("/api/comps", {
           method: "POST",
@@ -365,9 +400,26 @@ export default function App() {
         isAreaMode,
         compsSource,
       }
+
+      setLoadStep('investment')
+      const deterministicResult = buildDeterministicReport({ geo, weather, neighborhood: neighborhoodScores, areaMetrics, climate })
+
+      // Check for Cerebras key — if absent, show deterministic result and BYOK prompt
+      const key = getCachedCerebrasKey()
+      if (!key) {
+        const reportData = { geo, weather, climate, ai: deterministicResult, knownFacts: knownFacts ?? {}, realData, isAreaMode, isDeterministic: true }
+        setResult(reportData)
+        if (!user) setGuestResult(reportData)
+        setShowBYOKPrompt(true)
+        resetEngagement()
+        if (!getUserType()) setTimeout(() => setShowUserTypeModal(true), 1800)
+        setTimeout(() => loadUserRecord(), 800)
+        return
+      }
+
+      setLoadStep('ai')
       const ai = await analyzeProperty(geo, weather, climate, knownFacts ?? {}, realData, cerebrasKey)
-      setLoadStep(4)
-      const reportData = { geo, weather, climate, ai, knownFacts: knownFacts ?? {}, realData, isAreaMode }
+      const reportData = { geo, weather, climate, ai: mergeWithDeterministic(deterministicResult, ai), knownFacts: knownFacts ?? {}, realData, isAreaMode }
       setResult(reportData)
       if (!user) setGuestResult(reportData)
       resetEngagement()
@@ -593,6 +645,9 @@ export default function App() {
       ? "∞"
       : Math.max(0, FREE_LIMIT - (userRecord.analyses_used ?? 0))
     : "..."
+  const reportsLeft = userRecord && !userRecord.is_pro
+    ? Math.max(0, FREE_LIMIT - (userRecord.analyses_used ?? 0))
+    : null
 
   if (authLoading)
     return (
@@ -734,7 +789,14 @@ export default function App() {
             </p>
           </div>
           <Suspense fallback={<LoadingState currentStep="geo" hasAIKey={true} city="" />}>
-            <Dashboard data={DEMO_RESULT} onRecalculate={() => {}} />
+            <Dashboard
+                data={DEMO_RESULT}
+                onRecalculate={() => {}}
+                isPro={false}
+                isDemo={true}
+                onRunOwn={() => { setShowDemo(false); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+                onLockedInteraction={() => setShowAuthModal(true)}
+              />
           </Suspense>
         </div>
       </div>
@@ -1197,6 +1259,18 @@ export default function App() {
                   </span>
                 </div>
               )}
+              {!isPro && reportsLeft !== null && reportsLeft <= 2 && (
+                <div style={{
+                  background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)',
+                  borderRadius: 12, padding: '10px 20px', marginBottom: 12, textAlign: 'center',
+                  fontFamily: "'Barlow',sans-serif", fontSize: 13, color: 'rgba(255,255,255,0.7)'
+                }}>
+                  {reportsLeft === 1 ? '1 free report left' : `${reportsLeft} free reports left`}.{' '}
+                  <button onClick={() => setShowPaywall(true)} style={{ color: '#f87171', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit' }}>
+                    Upgrade for unlimited →
+                  </button>
+                </div>
+              )}
               <AddressSearch onSearch={handleSearch} loading={loading} compact />
             </div>
           )}
@@ -1365,6 +1439,10 @@ export default function App() {
                     setShowPaywall(true)
                   }
                 }}
+                showBYOKPrompt={showBYOKPrompt}
+                onBYOKSubmit={handleBYOKSubmit}
+                onBYOKDismiss={() => setShowBYOKPrompt(false)}
+                byokLoading={byokLoading}
               />
             </Suspense>
           )}

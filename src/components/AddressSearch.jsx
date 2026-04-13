@@ -362,7 +362,7 @@ export default function AddressSearch({ onSearch, loading, compact }) {
         onChange={e => { setQuery(e.target.value); setSelectedCity(''); setShowDropdown(true) }}
         onFocus={e => { focusStyle(e); setShowDropdown(true) }}
         onBlur={e => { blurStyle(e); setTimeout(() => setShowDropdown(false), 150) }}
-        placeholder="Search city — e.g. Ottawa, Vancouver, Calgary"
+        placeholder="City or neighbourhood — e.g. Ottawa, Vancouver, Calgary"
         disabled={loading}
         autoComplete="off"
         style={{ ...inputStyle, cursor: 'text', paddingRight: 36 }}
