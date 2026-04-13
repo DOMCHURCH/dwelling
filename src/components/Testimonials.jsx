@@ -18,7 +18,7 @@ const Testimonials = memo(function Testimonials() {
           {[
             { icon: '📍', text: 'Built for people relocating to a new city' },
             { icon: '📊', text: 'Grounded in real listing data, not AI guesses' },
-            { icon: '🌍', text: 'Works anywhere in the world, not just the US' },
+            { icon: '🇨🇦', text: 'Built for the Canadian market' },
           ].map(({ icon, text }) => (
             <div key={text} className="liquid-glass" style={{ borderRadius: 16, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
               <span style={{ fontSize: 20 }}>{icon}</span>
