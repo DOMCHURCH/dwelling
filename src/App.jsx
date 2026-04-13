@@ -436,7 +436,7 @@ export default function App() {
       }
 
       setLoadStep('ai')
-      const ai = await analyzeProperty(geo, weather, climate, knownFacts ?? {}, realData, cerebrasKey)
+      const ai = await analyzeProperty(geo, weather, climate, knownFacts ?? {}, realData, key)
       const reportData = { geo, weather, climate, ai: mergeWithDeterministic(deterministicResult, ai), knownFacts: knownFacts ?? {}, realData, isAreaMode }
       setResult(reportData)
       if (!user) setGuestResult(reportData)
@@ -475,8 +475,14 @@ export default function App() {
     setLoading(true)
     setError(null)
     try {
+      const key = getCachedCerebrasKey()
+      if (!key) {
+        setShowBYOKPrompt(true)
+        setLoading(false)
+        return
+      }
       const merged = { ...(result.knownFacts ?? {}), ...corrections }
-      const ai = await analyzeProperty(result.geo, result.weather, result.climate, merged, result.realData, cerebrasKey)
+      const ai = await analyzeProperty(result.geo, result.weather, result.climate, merged, result.realData, key)
       setResult((p) => ({ ...p, ai, knownFacts: merged }))
     } catch (err) {
       setError(err.message ?? "Recalculation failed.")
@@ -553,7 +559,7 @@ export default function App() {
         setLoading(false)
         return
       }
-      const ai = await analyzeProperty(geo, weather, climate, {}, realData, cerebrasKey)
+      const ai = await analyzeProperty(geo, weather, climate, {}, realData, key)
       setLoadStep('investment')
       setCompareResult({ geo, weather, climate, ai, knownFacts: {}, realData, isAreaMode })
       setComparingMode(false)
@@ -641,7 +647,7 @@ export default function App() {
         setLoading(false)
         return
       }
-      const ai = await analyzeProperty(geo, weather, climate, {}, realData, cerebrasKey)
+      const ai = await analyzeProperty(geo, weather, climate, {}, realData, key)
       setLoadStep('investment')
       setCompareResultC({ geo, weather, climate, ai, knownFacts: {}, realData, isAreaMode })
       setComparingModeC(false)
@@ -660,11 +666,13 @@ export default function App() {
 
   async function handleShare() {
     if (!result) return
+    const token = await getAuthToken()
+    if (!token) return
     setShareLoading(true)
     try {
       const res = await fetch('/api/auth', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAuthToken()}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ action: 'share-report', reportData: result }),
       })
       const { url } = await res.json()

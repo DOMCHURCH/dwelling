@@ -1020,6 +1020,11 @@ export default async function handler(req, res) {
     }
 
     if (action === 'share-report') {
+      const authHeader = req.headers.authorization
+      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
+      const payload = verify(authHeader.replace('Bearer ', ''))
+      if (!payload) return res.status(401).json({ error: 'Invalid token' })
+      const userId = payload.sub
       if (!userId) return res.status(401).json({ error: 'Not authenticated' })
       const { reportData } = body
       if (!reportData) return res.status(400).json({ error: 'reportData required' })
