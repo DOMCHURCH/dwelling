@@ -475,20 +475,20 @@ export default function App() {
     }
     setLoading(true)
     setError(null)
-    setLoadStep(0)
+    setLoadStep('geo')
     setCurrentCity(city)
     const isAreaMode = !street.trim()
     try {
       const geocodeInput = isAreaMode ? { street: "", city, state, country } : { street, city, state, country }
       const geo = await geocodeStructured(geocodeInput)
-      setLoadStep(1)
+      setLoadStep('market')
       const [weather, climate, neighborhoodScores] = await Promise.all([
         getCurrentWeather(geo.lat, geo.lon),
         getClimateNormals(geo.lat, geo.lon),
         getNeighborhoodScores(geo.lat, geo.lon),
       ])
-      setLoadStep(2)
-      setLoadStep(3)
+      setLoadStep('scores')
+      setLoadStep('affordability')
       const riskData = await fetch("/api/risk", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -529,8 +529,14 @@ export default function App() {
         isAreaMode,
         compsSource,
       }
+      const key = getCachedCerebrasKey()
+      if (!key) {
+        setShowBYOKPrompt(true)
+        setLoading(false)
+        return
+      }
       const ai = await analyzeProperty(geo, weather, climate, {}, realData, cerebrasKey)
-      setLoadStep(4)
+      setLoadStep('investment')
       setCompareResult({ geo, weather, climate, ai, knownFacts: {}, realData, isAreaMode })
       setComparingMode(false)
       setTimeout(() => loadUserRecord(), 800)
@@ -552,7 +558,7 @@ export default function App() {
     if (loading) return
     setLoading(true)
     setError(null)
-    setLoadStep(0)
+    setLoadStep('geo')
     setCurrentCity(city)
     const isAreaMode = !street.trim()
     try {
@@ -563,14 +569,14 @@ export default function App() {
       const { getNeighborhoodScores } = await import("./lib/overpass")
       const geocodeInput = isAreaMode ? { street: "", city, state, country } : { street, city, state, country }
       const geo = await geocodeStructured(geocodeInput)
-      setLoadStep(1)
+      setLoadStep('market')
       const [weather, climate, neighborhoodScores] = await Promise.all([
         getCurrentWeather(geo.lat, geo.lon),
         getClimateNormals(geo.lat, geo.lon),
         getNeighborhoodScores(geo.lat, geo.lon),
       ])
-      setLoadStep(2)
-      setLoadStep(3)
+      setLoadStep('scores')
+      setLoadStep('affordability')
       const riskData = await fetch("/api/risk", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -611,8 +617,14 @@ export default function App() {
         isAreaMode,
         compsSource,
       }
+      const key = getCachedCerebrasKey()
+      if (!key) {
+        setShowBYOKPrompt(true)
+        setLoading(false)
+        return
+      }
       const ai = await analyzeProperty(geo, weather, climate, {}, realData, cerebrasKey)
-      setLoadStep(4)
+      setLoadStep('investment')
       setCompareResultC({ geo, weather, climate, ai, knownFacts: {}, realData, isAreaMode })
       setComparingModeC(false)
     } catch (err) {
