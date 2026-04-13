@@ -1326,7 +1326,7 @@ export default function App() {
                   </span>
                 </div>
               )}
-              {!isPro && reportsLeft !== null && reportsLeft <= 2 && (
+              {!isPro && !cerebrasKey && reportsLeft !== null && reportsLeft <= 2 && (
                 <div style={{
                   background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)',
                   borderRadius: 12, padding: '10px 20px', marginBottom: 12, textAlign: 'center',

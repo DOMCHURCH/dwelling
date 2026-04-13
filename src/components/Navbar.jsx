@@ -183,7 +183,7 @@ export default function Navbar({
                 onClick={user?.is_admin ? onOpenAdmin : undefined}
                 title={user?.is_admin ? "Open Admin Panel" : undefined}
               >
-                {user?.is_admin ? "⚡ Admin" : userRecord?.is_business ? "★ Business" : userRecord?.is_pro ? "★ Pro" : `${analysesLeft} / 10 left`}
+                {user?.is_admin ? "⚡ Admin" : userRecord?.is_business ? "★ Business" : userRecord?.is_pro ? "★ Pro" : hasOwnKey ? "🔑 BYOK" : `${analysesLeft} / 3 left`}
               </span>
               {user?.is_admin && (
                 <div
