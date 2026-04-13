@@ -16,9 +16,6 @@
   "functions": {
     "api/*.js": {
       "maxDuration": 60
-    },
-    "api/stripe-webhook.js": {
-      "maxDuration": 30
     }
   },
   "headers": [
