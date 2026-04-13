@@ -220,6 +220,9 @@ export default function Dashboard({
   onBYOKSubmit,
   onBYOKDismiss,
   byokLoading = false,
+  onShare,
+  shareLoading = false,
+  shareSuccess = false,
 }) {
   const { geo, weather, climate, ai, knownFacts, realData, isAreaMode } = data
   const { areaMetrics, areaRiskScore, marketTemperature, newsData } = realData || {}
@@ -763,6 +766,32 @@ export default function Dashboard({
           onDismiss={onBYOKDismiss}
           loading={byokLoading}
         />
+      )}
+
+      {onShare && !isDemo && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '4px 0' }}>
+          <button
+            onClick={onShare}
+            disabled={shareLoading}
+            style={{
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              borderRadius: 8,
+              color: 'rgba(255,255,255,0.7)',
+              fontFamily: "'Barlow', sans-serif",
+              fontWeight: 500,
+              fontSize: 13,
+              padding: '7px 16px',
+              cursor: shareLoading ? 'not-allowed' : 'pointer',
+              opacity: shareLoading ? 0.6 : 1,
+            }}
+          >
+            {shareLoading ? 'Sharing…' : 'Share →'}
+          </button>
+          {shareSuccess && (
+            <span style={{ fontSize: 12, color: '#22c55e', marginLeft: 8 }}>Link copied!</span>
+          )}
+        </div>
       )}
 
       <p style={{ textAlign: 'center', fontSize: 12, color: 'rgba(255,255,255,0.25)', padding: '8px 0', fontFamily: "'Barlow', sans-serif", fontWeight: 300 }}>

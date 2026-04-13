@@ -138,6 +138,8 @@ export default function App() {
   const [pendingJoinToken, setPendingJoinToken] = useState(() => new URLSearchParams(window.location.search).get("join") || null)
   const [compareResultC, setCompareResultC] = useState(null)
   const [comparingModeC, setComparingModeC] = useState(false)
+  const [shareLoading, setShareLoading] = useState(false)
+  const [shareSuccess, setShareSuccess] = useState(false)
   const { saved: savedReports, saveReport, deleteReport, isReportSaved } = useSavedReports()
 
   // Prevent duplicate in-flight searches for the same normalised address
@@ -193,6 +195,22 @@ export default function App() {
       }
     }
     setAuthLoading(false)
+
+    // Detect shared report token in URL
+    const urlParams = new URLSearchParams(window.location.search)
+    const shareToken = urlParams.get('report')
+    if (shareToken) {
+      fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'get-shared-report', token: shareToken }),
+      })
+        .then(r => r.json())
+        .then(({ report }) => {
+          if (report) setResult({ ...report, isShared: true })
+        })
+        .catch(console.error)
+    }
   }, [])
 
   // Verify Stripe checkout success on return from Stripe
@@ -639,6 +657,28 @@ export default function App() {
   }
 
   const handleDownloadPDF = () => window.print()
+
+  async function handleShare() {
+    if (!result) return
+    setShareLoading(true)
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAuthToken()}` },
+        body: JSON.stringify({ action: 'share-report', reportData: result }),
+      })
+      const { url } = await res.json()
+      if (url) {
+        await navigator.clipboard.writeText(url)
+        setShareSuccess(true)
+        setTimeout(() => setShareSuccess(false), 2500)
+      }
+    } catch (e) {
+      console.error('Share failed', e)
+    } finally {
+      setShareLoading(false)
+    }
+  }
 
   const effectivePlan = user?.is_admin
     ? previewPlan
@@ -1455,6 +1495,9 @@ export default function App() {
                 onBYOKSubmit={handleBYOKSubmit}
                 onBYOKDismiss={() => setShowBYOKPrompt(false)}
                 byokLoading={byokLoading}
+                onShare={user && !result?.isShared ? handleShare : undefined}
+                shareLoading={shareLoading}
+                shareSuccess={shareSuccess}
               />
             </Suspense>
           )}
