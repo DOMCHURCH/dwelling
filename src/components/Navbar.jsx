@@ -219,26 +219,28 @@ export default function Navbar({
                   ))}
                 </div>
               )}
-              <button
-                onClick={onOpenKeyModal}
-                title="Use your own Cerebras API key"
-                style={{
-                  background: hasOwnKey ? "rgba(74,222,128,0.1)" : "none",
-                  border: hasOwnKey ? "1px solid rgba(74,222,128,0.25)" : "none",
-                  cursor: "pointer",
-                  fontFamily: "'Barlow',sans-serif",
-                  fontWeight: 300,
-                  fontSize: 11,
-                  color: hasOwnKey ? "#4ade80" : "rgba(255,255,255,0.35)",
-                  padding: "5px 10px",
-                  borderRadius: 20,
-                  transition: "color 0.2s",
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = hasOwnKey ? "#4ade80" : "rgba(255,255,255,0.7)")}
-                onMouseLeave={(e) => (e.currentTarget.style.color = hasOwnKey ? "#4ade80" : "rgba(255,255,255,0.35)")}
-              >
-                {hasOwnKey ? "🔑 Own Key" : "🔑 API Key"}
-              </button>
+              {hasOwnKey && (
+                <button
+                  onClick={onOpenKeyModal}
+                  title="Manage your Cerebras API key"
+                  style={{
+                    background: "rgba(74,222,128,0.1)",
+                    border: "1px solid rgba(74,222,128,0.25)",
+                    cursor: "pointer",
+                    fontFamily: "'Barlow',sans-serif",
+                    fontWeight: 300,
+                    fontSize: 11,
+                    color: "#4ade80",
+                    padding: "5px 10px",
+                    borderRadius: 20,
+                    transition: "color 0.2s",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = "#86efac")}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = "#4ade80")}
+                >
+                  🔑 Own Key
+                </button>
+              )}
               <button
                 onClick={onSignOut}
                 style={{

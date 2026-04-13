@@ -287,10 +287,7 @@ export default function App() {
     } else {
       sessionStorage.removeItem("dw_cerebras_key")
       setCerebrasKey("")
-      const alreadySeen = sessionStorage.getItem("dw_key_onboarding_seen")
-      if (!alreadySeen) {
-        setTimeout(() => setShowOnboarding(true), 600)
-      }
+      // BYOK prompt shown contextually after first report — no upfront modal
     }
   }
 
@@ -446,7 +443,7 @@ export default function App() {
       setTimeout(() => loadUserRecord(), 800)
     } catch (err) {
       if (err.message === "no_key") {
-        setShowKeyModal(true)
+        setShowBYOKPrompt(true)
         return
       }
       if (err.message?.includes("limit reached") || err.message?.includes("429")) {
@@ -566,7 +563,7 @@ export default function App() {
       setTimeout(() => loadUserRecord(), 800)
     } catch (err) {
       if (err.message === "no_key") {
-        setShowKeyModal(true)
+        setShowBYOKPrompt(true)
         return
       }
       if (err.message?.includes("limit reached") || err.message?.includes("429")) {
@@ -653,7 +650,7 @@ export default function App() {
       setComparingModeC(false)
     } catch (err) {
       if (err.message === "no_key") {
-        setShowKeyModal(true)
+        setShowBYOKPrompt(true)
         return
       }
       setError(err.message ?? "Something went wrong.")
@@ -976,14 +973,7 @@ export default function App() {
           isOnboarding={false}
         />
       )}
-      {showOnboarding && (
-        <ApiKeyModal
-          currentKey={cerebrasKey}
-          onSave={(k) => setCerebrasKey(k)}
-          onClose={() => setShowOnboarding(false)}
-          isOnboarding={true}
-        />
-      )}
+      {/* BYOK onboarding handled contextually via BYOKPrompt after first report */}
       {showPaywall && (
         <Suspense fallback={null}>
           <PaywallModal trigger={paywallTrigger} onClose={() => setShowPaywall(false)} />
