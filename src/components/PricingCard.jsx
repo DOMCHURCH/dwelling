@@ -103,9 +103,9 @@ export function BusinessCard({ onCta, annual = false }) {
             transform: hov ? 'scale(1.01)' : 'scale(1)',
             letterSpacing: '0.01em',
           }}
-        >Get Early Access →</button>
+        >Book a call →</button>
         <div style={{ marginTop: 10, padding: '7px 12px', borderRadius: 10, background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', textAlign: 'center' }}>
-          <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 10, color: '#fbbf24', fontWeight: 500 }}>🔔 Stripe payments coming soon</span>
+          <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 10, color: '#fbbf24', fontWeight: 500 }}>Contact us to get started — typically same-day response.</span>
         </div>
       </div>
     </div>
@@ -149,7 +149,7 @@ export default function PricingCard({ plan, price, desc, features, cta, onCta, p
         <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: popular ? 56 : 42, color: popular ? '#fff' : 'rgba(255,255,255,0.45)', lineHeight: 1 }}>${price}</span>
         <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.25)', marginLeft: 5 }}>/month</span>
         {popular && annualSavings && (
-          <div style={{ marginTop: 5, fontFamily: "'Barlow',sans-serif", fontSize: 11, color: '#38bdf8', fontWeight: 500 }}>Billed $144/year — save 37%</div>
+          <div style={{ marginTop: 5, fontFamily: "'Barlow',sans-serif", fontSize: 11, color: '#38bdf8', fontWeight: 500 }}>Billed $228/year — save 34%</div>
         )}
       </div>
 

@@ -1,4 +1,4 @@
-import { createHash, createHmac, timingSafeEqual, randomBytes, createCipheriv, createDecipheriv, pbkdf2 as _pbkdf2 } from 'crypto'
+import { createHash, createHmac, timingSafeEqual, randomBytes, randomUUID, createCipheriv, createDecipheriv, pbkdf2 as _pbkdf2 } from 'crypto'
 import { promisify } from 'util'
 import { createClient } from '@libsql/client'
 import { Resend } from 'resend'
@@ -126,6 +126,17 @@ async function ensureTable(db) {
       invited_by TEXT,
       created_at TEXT,
       accepted_at TEXT
+    )
+  `)
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS shared_reports (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      token TEXT UNIQUE NOT NULL,
+      user_id TEXT,
+      data TEXT NOT NULL,
+      city TEXT,
+      created_at INTEGER DEFAULT (unixepoch()),
+      expires_at INTEGER NOT NULL
     )
   `)
 }
@@ -1006,6 +1017,44 @@ export default async function handler(req, res) {
       await db.execute({ sql: 'UPDATE users SET team_id = ?, is_business = 1 WHERE id = ?', args: [invite.team_id, payload.sub] })
       await db.execute({ sql: 'UPDATE team_invites SET accepted_at = ? WHERE token = ?', args: [new Date().toISOString(), inviteToken] })
       return res.status(200).json({ success: true, teamId: invite.team_id })
+    }
+
+    if (action === 'share-report') {
+      const authHeader = req.headers.authorization
+      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
+      const payload = verify(authHeader.replace('Bearer ', ''))
+      if (!payload) return res.status(401).json({ error: 'Invalid token' })
+      const userId = payload.sub
+      if (!userId) return res.status(401).json({ error: 'Not authenticated' })
+      const { reportData } = body
+      if (!reportData) return res.status(400).json({ error: 'reportData required' })
+
+      const token = randomUUID()
+      const expiresAt = Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60) // 30 days
+      const city = reportData?.geo?.displayName ?? 'Unknown'
+
+      await db.execute({
+        sql: 'INSERT INTO shared_reports (token, user_id, data, city, expires_at) VALUES (?, ?, ?, ?, ?)',
+        args: [token, userId, JSON.stringify(reportData), city, expiresAt],
+      })
+
+      return res.json({ token, url: `https://dwelling.one/report/${token}` })
+    }
+
+    if (action === 'get-shared-report') {
+      const { token } = body
+      if (!token) return res.status(400).json({ error: 'token required' })
+
+      const now = Math.floor(Date.now() / 1000)
+      const row = await db.execute({
+        sql: 'SELECT data, city FROM shared_reports WHERE token = ? AND expires_at > ?',
+        args: [token, now],
+      })
+
+      const record = row.rows[0]
+      if (!record) return res.status(404).json({ error: 'Report not found or expired' })
+
+      return res.json({ report: JSON.parse(record.data), city: record.city })
     }
 
     return res.status(400).json({ error: 'Unknown action' })

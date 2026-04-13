@@ -41,7 +41,7 @@ const ProShowcase = memo(function ProShowcase({ onUpgrade }) {
               Immigration-driven demand and limited new construction support a bullish 3–5 year outlook. Gross yields above national average.
             </p>
             <button onClick={onUpgrade} style={{ width: '100%', padding: '11px', borderRadius: 40, border: 'none', background: '#fff', color: '#000', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
-              Unlock for $19/mo →
+              Unlock for $29/mo →
             </button>
           </div>
 
@@ -74,7 +74,7 @@ const ProShowcase = memo(function ProShowcase({ onUpgrade }) {
               <div style={{ position: 'absolute', top: 6, right: 10, fontSize: 9, color: '#b98aff', fontFamily: "'Barlow',sans-serif" }}>— projected</div>
             </div>
             <button onClick={onUpgrade} style={{ width: '100%', padding: '11px', borderRadius: 40, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.06)', color: '#fff', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
-              Unlock for $19/mo →
+              Unlock for $29/mo →
             </button>
           </div>
 
@@ -101,7 +101,7 @@ const ProShowcase = memo(function ProShowcase({ onUpgrade }) {
               Run two cities in parallel and compare investment score, cost of living, climate, and neighbourhood quality side by side.
             </p>
             <button onClick={onUpgrade} style={{ width: '100%', padding: '11px', borderRadius: 40, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.06)', color: '#fff', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
-              Unlock for $19/mo →
+              Unlock for $29/mo →
             </button>
           </div>
 

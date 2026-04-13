@@ -7,9 +7,9 @@ const Pricing = memo(function Pricing({ onUpgrade }) {
   const headRef = useScrollReveal({ y: 28, opacity: 0, duration: 0.85, ease: 'power3.out' })
   const cardsRef = useScrollReveal({ y: 40, opacity: 0, duration: 0.7, stagger: 0.15, selector: '.pricing-card-anim' })
   const [annual, setAnnual] = useState(false)
-  const monthlyPrice = 19
-  const annualPrice = 144
-  const displayPrice = annual ? 12 : monthlyPrice
+  const monthlyPrice = 29
+  const annualPrice = 228
+  const displayPrice = annual ? Math.round(annualPrice / 12) : monthlyPrice
 
   return (
     <section id="pricing" style={{ position: 'relative', overflow: 'hidden', padding: 'clamp(80px, 10vw, 120px) 20px' }}>
@@ -61,16 +61,16 @@ const Pricing = memo(function Pricing({ onUpgrade }) {
             popular={false}
           />
           <PricingCard
-            plan="Pro" price={String(displayPrice)} desc={annual ? "Billed $144/year — cancel anytime" : "Full intelligence, no limits"}
+            plan="Pro" price={String(displayPrice)} desc={annual ? "Billed $228/year — cancel anytime" : "Full intelligence, no limits"}
             priceLabel={annual ? '/mo · billed yearly' : '/month'}
             features={PRICING_PRO}
-            cta={annual ? `Get Pro — $144/year →` : "Upgrade to Pro →"}
+            cta={annual ? `Get Pro — $228/year →` : "Upgrade to Pro →"}
             onCta={onUpgrade}
             popular={true}
             annualSavings={annual}
           />
           <BusinessCard annual={annual} onCta={() => {
-            window.location.href = 'mailto:01dominique.c@gmail.com?subject=Dwelling Business Plan — Early Access'
+            window.open('https://cal.com/dwelling/business', '_blank')
           }} />
         </div>
       </div>

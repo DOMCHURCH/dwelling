@@ -1,6 +1,9 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import SectionCard from './SectionCard'
 import StatCard from './StatCard'
+import VerdictCard from './VerdictCard'
+import LockedSection from './LockedSection'
+import BYOKPrompt from './BYOKPrompt'
 
 // Score label helpers
 function scoreLabel(score, type) {
@@ -204,87 +207,23 @@ const DISPLAY_CURRENCIES = [
   { code: 'ZAR', label: 'South African Rand' }, { code: 'AED', label: 'UAE Dirham' },
 ]
 
-/**
- * Locked content section with:
- * - Progressive blur/fade gradient over peek content
- * - Delayed CTA (appears after 900ms so it doesn't interrupt initial read)
- * - Hover reduces blur to hint at content beneath
- * - Calls onInteraction on hover + click for engagement tracking
- */
-function LockedSection({ title, description, onUpgrade, onInteraction, peekContent, icon = '🔒' }) {
-  const [showCTA, setShowCTA] = useState(false)
-  const [hovered, setHovered] = useState(false)
-  const timerRef = useRef(null)
-
-  useEffect(() => {
-    timerRef.current = setTimeout(() => setShowCTA(true), 900)
-    return () => clearTimeout(timerRef.current)
-  }, [])
-
-  const handleHover = () => {
-    setHovered(true)
-    onInteraction?.('hover')
-  }
-
-  const handleClick = () => {
-    onInteraction?.('click')
-    onUpgrade()
-  }
-
-  return (
-    <div
-      style={{ cursor: 'pointer' }}
-      onClick={handleClick}
-      onMouseEnter={handleHover}
-      onMouseLeave={() => setHovered(false)}
-    >
-      {/* Peek content with progressive gradient fade */}
-      {peekContent && (
-        <div style={{
-          position: 'relative',
-          overflow: 'hidden',
-          maxHeight: 90,
-          userSelect: 'none',
-          pointerEvents: 'none',
-          filter: hovered ? 'blur(3px)' : 'blur(7px)',
-          WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.4) 45%, transparent 100%)',
-          maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.4) 45%, transparent 100%)',
-          transition: 'filter 0.35s ease',
-          marginBottom: 12,
-        }}>
-          {peekContent}
-        </div>
-      )}
-
-      {/* CTA — fades in after delay so it doesn't block immediate reading */}
-      <div style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center',
-        justifyContent: 'center', padding: peekContent ? '8px 16px 16px' : '28px 16px',
-        gap: 8,
-        opacity: showCTA ? 1 : 0,
-        transform: showCTA ? 'translateY(0)' : 'translateY(6px)',
-        transition: 'opacity 0.45s ease, transform 0.45s ease',
-      }}>
-        <span style={{ fontSize: 22 }}>{icon}</span>
-        <div style={{ textAlign: 'center', padding: '0 16px' }}>
-          <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 15, color: '#fff', marginBottom: 4 }}>{title}</div>
-          <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 14, lineHeight: 1.5 }}>{description}</div>
-          <div style={{
-            display: 'inline-block', background: '#fff', color: '#000',
-            borderRadius: 40, padding: '7px 18px',
-            fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 12,
-            boxShadow: hovered ? '0 0 20px rgba(255,255,255,0.15)' : 'none',
-            transition: 'box-shadow 0.2s',
-          }}>
-            Upgrade to Pro →
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', onUpgrade, onLockedInteraction }) {
+export default function Dashboard({
+  data,
+  onRecalculate,
+  previewPlan = 'pro',
+  onUpgrade,
+  onLockedInteraction,
+  isPro = false,
+  isDemo = false,
+  onRunOwn,
+  showBYOKPrompt = false,
+  onBYOKSubmit,
+  onBYOKDismiss,
+  byokLoading = false,
+  onShare,
+  shareLoading = false,
+  shareSuccess = false,
+}) {
   const { geo, weather, climate, ai, knownFacts, realData, isAreaMode } = data
   const { areaMetrics, areaRiskScore, marketTemperature, newsData } = realData || {}
   const { propertyEstimate, costOfLiving, neighborhood, investment, localInsights, areaIntelligence, riskData: aiRiskData } = ai
@@ -328,6 +267,25 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Demo mode banner */}
+      {isDemo && (
+        <div style={{
+          background: 'rgba(56,189,248,0.08)', border: '1px solid rgba(56,189,248,0.2)',
+          borderRadius: 14, padding: '12px 20px', marginBottom: 20,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16,
+          fontFamily: "'Barlow',sans-serif", fontSize: 13,
+        }}>
+          <span style={{ color: 'rgba(255,255,255,0.6)' }}>
+            📍 <strong style={{ color: '#fff' }}>Sample report — Toronto, ON.</strong> Run your own →
+          </span>
+          {onRunOwn && (
+            <button onClick={onRunOwn} style={{ background: '#38bdf8', color: '#000', border: 'none', borderRadius: 8, padding: '7px 14px', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>
+              Analyse a city →
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Plan preview banner — admin only */}
       {previewPlan === 'free' && (
         <div style={{ borderRadius: 14, padding: '12px 18px', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -596,6 +554,16 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
         <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow', sans-serif", fontWeight: 300, lineHeight: 1.7 }}>{propertyEstimate.priceContext}</p>
       </SectionCard>
 
+      {/* Verdict Card — shown when investment verdict is available */}
+      {ai?.investment?.verdict && (
+        <VerdictCard
+          verdict={ai.investment.verdict}
+          roiEstimate={ai.investment?.roiEstimate}
+          isPro={isPro}
+          onUpgrade={() => onLockedInteraction?.({ section: 'investment' })}
+        />
+      )}
+
       {/* Cost of Living */}
       <SectionCard title="Cost of Living" icon="💰" delay={100} pdfSection="costliving">
         <IncomeSlider costOfLiving={costOfLiving} sym={sym} />
@@ -690,19 +658,9 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
           {isLocked('pricehistory') ? (
             <LockedSection
               title="Price History & Projections"
-              description="Market trends & 3-year price projections are Pro only."
-              onUpgrade={() => onUpgrade('pricehistory')}
-              onInteraction={type => onLockedInteraction?.('pricehistory', type)}
-              peekContent={
-                <div style={{ display: 'flex', gap: 10, padding: '0 0 4px' }}>
-                  {['2022','2023','2024','2025','2026'].map((yr, i) => (
-                    <div key={yr} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                      <div style={{ width: '100%', height: [40,55,48,62,78][i], background: 'rgba(255,255,255,0.15)', borderRadius: 4 }} />
-                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontFamily: "'Barlow',sans-serif" }}>{yr}</div>
-                    </div>
-                  ))}
-                </div>
-              }
+              icon="📊"
+              ctaText="Unlock price trajectory →"
+              onUnlock={() => onLockedInteraction?.({ section: 'pricehistory' })}
             />
           ) : (
             <PriceHistoryChart priceHistory={ai.priceHistory} convert={convert} sym={sym} />
@@ -717,20 +675,9 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
           {isLocked('risk') ? (
             <LockedSection
               title="Environmental & Flood Risk"
-              description="Flood, fire, seismic, pollution & noise risk — Pro only."
-              onUpgrade={() => onUpgrade('risk')}
-              onInteraction={type => onLockedInteraction?.('risk', type)}
-              peekContent={
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
-                  {[['🌊','Flood'],['🔥','Fire'],['🌍','Seismic'],['💨','Pollution'],['🔊','Noise']].map(([ic, label]) => (
-                    <div key={label} className="liquid-glass" style={{ borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
-                      <div style={{ fontSize: 14, marginBottom: 4 }}>{ic}</div>
-                      <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', fontFamily: "'Barlow',sans-serif", marginBottom: 6 }}>{label}</div>
-                      <div style={{ height: 8, background: 'rgba(255,255,255,0.1)', borderRadius: 4 }} />
-                    </div>
-                  ))}
-                </div>
-              }
+              icon="🌊"
+              ctaText="Unlock risk assessment →"
+              onUnlock={() => onLockedInteraction?.({ section: 'risk' })}
             />
           ) : (
             <div>
@@ -760,26 +707,10 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
       <SectionCard title="Investment Analysis" icon="📈" delay={300} pdfSection="investment">
         {isLocked('investment') ? (
           <LockedSection
-            title="Investment Analysis"
-            description="Unlock rent yield, investment score & full outlook."
-            onUpgrade={() => onUpgrade('investment')}
-            onInteraction={type => onLockedInteraction?.('investment', type)}
-            peekContent={
-              <div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12, marginBottom: 14 }}>
-                  {[['Rent Yield','5.2%','#4ade80','annual gross'],['Investment Score','74/100','#fff','based on 12 factors'],['Outlook','BULLISH','#4ade80','3–5 yr horizon']].map(([label, val, color, sub]) => (
-                    <div key={label} className="liquid-glass" style={{ borderRadius: 14, padding: '14px 12px' }}>
-                      <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6, fontFamily: "'Barlow',sans-serif" }}>{label}</div>
-                      <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 22, color, lineHeight: 1 }}>{val}</div>
-                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 4, fontFamily: "'Barlow',sans-serif" }}>{sub}</div>
-                    </div>
-                  ))}
-                </div>
-                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', lineHeight: 1.7, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>
-                  Immigration-driven demand and a persistent construction shortfall support a bullish 3–5 year outlook. Gross yields above national average at current listing prices.
-                </p>
-              </div>
-            }
+            title="Investment Analysis & ROI"
+            icon="📈"
+            ctaText="Unlock ROI breakdown →"
+            onUnlock={() => onLockedInteraction?.({ section: 'investment' })}
           />
         ) : investment ? (
           <div>
@@ -828,6 +759,40 @@ export default function Dashboard({ data, onRecalculate, previewPlan = 'pro', on
           </div>
         </div>
       </SectionCard>
+
+      {showBYOKPrompt && !isPro && (
+        <BYOKPrompt
+          onKeySubmit={onBYOKSubmit}
+          onDismiss={onBYOKDismiss}
+          loading={byokLoading}
+        />
+      )}
+
+      {onShare && !isDemo && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '4px 0' }}>
+          <button
+            onClick={onShare}
+            disabled={shareLoading}
+            style={{
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              borderRadius: 8,
+              color: 'rgba(255,255,255,0.7)',
+              fontFamily: "'Barlow', sans-serif",
+              fontWeight: 500,
+              fontSize: 13,
+              padding: '7px 16px',
+              cursor: shareLoading ? 'not-allowed' : 'pointer',
+              opacity: shareLoading ? 0.6 : 1,
+            }}
+          >
+            {shareLoading ? 'Sharing…' : 'Share →'}
+          </button>
+          {shareSuccess && (
+            <span style={{ fontSize: 12, color: '#22c55e', marginLeft: 8 }}>Link copied!</span>
+          )}
+        </div>
+      )}
 
       <p style={{ textAlign: 'center', fontSize: 12, color: 'rgba(255,255,255,0.25)', padding: '8px 0', fontFamily: "'Barlow', sans-serif", fontWeight: 300 }}>
         All property estimates and scores are AI-generated approximations for informational purposes only. Not financial or legal advice.
