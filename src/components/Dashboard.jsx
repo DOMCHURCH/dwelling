@@ -224,10 +224,11 @@ export default function Dashboard({
   shareLoading = false,
   shareSuccess = false,
 }) {
+  if (!data) return null
   const { geo, weather, climate, ai, knownFacts, realData, isAreaMode } = data
   const { areaMetrics, areaRiskScore, marketTemperature, newsData } = realData || {}
-  const { propertyEstimate, costOfLiving, neighborhood, investment, localInsights, areaIntelligence, riskData: aiRiskData } = ai
-  const risk = realData.riskData || aiRiskData
+  const { propertyEstimate, costOfLiving, neighborhood, investment, localInsights, areaIntelligence, riskData: aiRiskData } = ai || {}
+  const risk = realData?.riskData || aiRiskData
   // Currency converter
   const nativeCurrency = ai.priceHistory?.currency || getCurrencyFromCountry(geo.userCountry || '') || 'USD'
   const [displayCurrency, setDisplayCurrency] = useState(nativeCurrency)

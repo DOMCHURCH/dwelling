@@ -1139,31 +1139,33 @@ export default function App() {
                   ⚖️ Compare
                 </button>
 
-                {/* Pro: Save Report */}
-                {isPro && (
-                  <button
-                    onClick={handleSave}
-                    style={{
-                      borderRadius: 40,
-                      padding: "8px 16px",
-                      fontSize: 13,
-                      fontFamily: "'Barlow',sans-serif",
-                      color: saveSuccess ? "#4ade80" : isReportSaved(result) ? "#4ade80" : "rgba(255,255,255,0.6)",
-                      border: "none",
-                      cursor: "pointer",
-                      background: "rgba(255,255,255,0.06)",
-                      transition: "opacity 0.15s",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 5,
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.75")}
-                    onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
-                    title="Save this report"
-                  >
-                    {saveSuccess ? "★ Saved!" : isReportSaved(result) ? "★ Saved" : "☆ Save"}
-                  </button>
-                )}
+                {/* Save Report — visible to all, Pro gate on click */}
+                <button
+                  onClick={isPro ? handleSave : () => { setPaywallTrigger('save'); setShowPaywall(true) }}
+                  style={{
+                    borderRadius: 40,
+                    padding: "8px 16px",
+                    fontSize: 13,
+                    fontFamily: "'Barlow',sans-serif",
+                    color: isPro
+                      ? (saveSuccess ? "#4ade80" : isReportSaved(result) ? "#4ade80" : "rgba(255,255,255,0.6)")
+                      : "rgba(255,255,255,0.25)",
+                    border: "none",
+                    cursor: "pointer",
+                    background: isPro ? "rgba(255,255,255,0.06)" : "transparent",
+                    transition: "opacity 0.15s",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 5,
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.75")}
+                  onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+                  title={isPro ? "Save this report" : "Save reports with Pro →"}
+                >
+                  {isPro
+                    ? (saveSuccess ? "★ Saved!" : isReportSaved(result) ? "★ Saved" : "☆ Save")
+                    : "☆ Save"}
+                </button>
 
                 {/* Pro: Saved reports list */}
                 {isPro && savedReports.length > 0 && (

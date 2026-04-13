@@ -107,7 +107,7 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
             You're on the list.
           </div>
           <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 14, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7, marginBottom: 28 }}>
-            You'll be first to know when Pro launches — and first to lock in the early price.
+            Your email has been saved. We'll reach out directly to get you set up.
           </p>
           <button onClick={onClose} style={btnPrimary}>Back to my report →</button>
         </div>
@@ -124,7 +124,7 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
           Something went wrong with checkout.
         </div>
         <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.45)', marginBottom: 24, lineHeight: 1.6 }}>
-          Something went wrong with checkout. Email <a href="mailto:hello@dwelling.one" style={{ color: '#38bdf8', textDecoration: 'none' }}>hello@dwelling.one</a> and we'll get you set up right away.
+          Leave your email and we'll get you set up directly — or email <a href="mailto:hello@dwelling.one" style={{ color: '#38bdf8', textDecoration: 'none' }}>hello@dwelling.one</a> right now.
         </p>
         <form onSubmit={handleNotify}>
           <input
@@ -139,7 +139,7 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
             onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.12)'}
           />
           <button type="submit" disabled={notifyLoading} style={{ ...btnPrimary, opacity: notifyLoading ? 0.6 : 1 }}>
-            {notifyLoading ? 'Saving...' : 'Notify me →'}
+            {notifyLoading ? 'Saving...' : 'Send me access →'}
           </button>
         </form>
       </Overlay>
@@ -189,7 +189,7 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
         </button>
         <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 13, color: annual ? '#fff' : 'rgba(255,255,255,0.35)', fontWeight: 400, transition: 'color 0.2s' }}>
           Annual
-          <span style={{ marginLeft: 6, background: 'rgba(56,189,248,0.15)', border: '1px solid rgba(56,189,248,0.3)', borderRadius: 20, padding: '2px 8px', fontSize: 11, color: '#38bdf8' }}>Save 37%</span>
+          <span style={{ marginLeft: 6, background: 'rgba(56,189,248,0.15)', border: '1px solid rgba(56,189,248,0.3)', borderRadius: 20, padding: '2px 8px', fontSize: 11, color: '#38bdf8' }}>Save 34%</span>
         </span>
       </div>
 

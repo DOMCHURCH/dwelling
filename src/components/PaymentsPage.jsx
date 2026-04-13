@@ -170,7 +170,7 @@ function BusinessOwnerView({ user, onOpenDashboard, onInvite }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       <Panel title="SUBSCRIPTION" badge={{ label: "BUSINESS", color: AMBER }}>
         <Row label="Plan" value="Business" accent={AMBER} />
-        <Row label="Price" value="$199 / month" />
+        <Row label="Price" value="$149 / month" />
         <Row label="Billing cycle" value="Monthly" />
         <Row label="Next invoice" value="Stripe integration coming soon" accent="rgba(255,255,255,0.25)" />
         <Row label="Status" value="Active" accent="#4ade80" />
