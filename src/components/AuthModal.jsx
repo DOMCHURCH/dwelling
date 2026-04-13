@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { signIn, signUp, saveCerebrasKey } from '../lib/localAuth'
+import { signIn, signUp } from '../lib/localAuth'
 
 const TERMS = [
   {
@@ -79,11 +79,6 @@ export default function AuthModal({ onAuth, onDemo }) {
   const [showPass, setShowPass] = useState(false)
   const [showNewPass, setShowNewPass] = useState(false)
   const [showConfirmPass, setShowConfirmPass] = useState(false)
-  const [signupUser, setSignupUser] = useState(null)
-  const [apiKey, setApiKey] = useState('')
-  const [savingKey, setSavingKey] = useState(false)
-  const [keyError, setKeyError] = useState(null)
-
   // Lock body scroll while modal is open
   useEffect(() => {
     const prev = document.body.style.overflow
@@ -125,8 +120,7 @@ export default function AuthModal({ onAuth, onDemo }) {
     setLoading(true); setError(null)
     try {
       const user = await signUp(email.trim(), password)
-      setSignupUser(user)
-      setMode('apikey')
+      onAuth(user)
     } catch (e) {
       setError(e.message || 'Something went wrong.')
     } finally { setLoading(false) }
@@ -158,16 +152,6 @@ export default function AuthModal({ onAuth, onDemo }) {
     } finally { setLoading(false) }
   }
 
-  const handleSaveKey = async () => {
-    setSavingKey(true); setKeyError(null)
-    try {
-      await saveCerebrasKey(apiKey.trim())
-      onAuth(signupUser)
-    } catch {
-      setKeyError('Failed to save key. You can add it later from the 🔑 button.')
-    } finally { setSavingKey(false) }
-  }
-
   const handleTermsScroll = (e) => {
     const el = e.target
     if (el.scrollHeight - el.scrollTop <= el.clientHeight + 40) setScrolledToBottom(true)
@@ -186,7 +170,7 @@ export default function AuthModal({ onAuth, onDemo }) {
               DW<span style={{ opacity: 0.4 }}>.</span>ELLING
             </div>
             <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>
-              {mode === 'apikey' ? 'One more step' : mode === 'signup' ? 'Create your account' : mode === 'forgot' ? 'Reset your password' : mode === 'reset' ? 'Choose a new password' : 'Welcome back'}
+              {mode === 'signup' ? 'Create your account' : mode === 'forgot' ? 'Reset your password' : mode === 'reset' ? 'Choose a new password' : 'Welcome back'}
             </p>
           </div>
 
@@ -237,53 +221,6 @@ export default function AuthModal({ onAuth, onDemo }) {
             </>
           )}
 
-          {/* ── API KEY ONBOARDING (post-signup) ── */}
-          {mode === 'apikey' && (
-            <>
-              <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.55)', lineHeight: 1.75, marginBottom: 18 }}>
-                Dwelling runs its AI reports through Cerebras. To use it, you paste in a free API key — a personal passcode that connects your account directly to Cerebras on your behalf.
-              </p>
-              <div className="liquid-glass" style={{ borderRadius: 14, padding: '14px 18px', marginBottom: 20 }}>
-                {[
-                  ['🆓', 'Free forever. Sign up at Cerebras in under a minute — no credit card required.'],
-                  ['🔒', 'Private by design. Your searches go straight from you to Cerebras. Dwelling never sees them.'],
-                  ['⚡', 'No limits. Free accounts get 1M tokens/minute — hundreds of reports, no cap.'],
-                ].map(([icon, text]) => (
-                  <div key={text} style={{ display: 'flex', gap: 10, marginBottom: 8, alignItems: 'flex-start' }}>
-                    <span style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}>{icon}</span>
-                    <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12.5, color: 'rgba(255,255,255,0.6)', lineHeight: 1.6 }}>{text}</span>
-                  </div>
-                ))}
-              </div>
-              <div style={{ marginBottom: 8 }}>
-                <label style={{ display: 'block', fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 6, fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase' }}>Cerebras API Key</label>
-                <input
-                  type="text"
-                  value={apiKey}
-                  onChange={e => setApiKey(e.target.value)}
-                  placeholder="csk-..."
-                  style={inp}
-                  onFocus={focus}
-                  onBlur={unfocus}
-                  onKeyDown={e => e.key === 'Enter' && apiKey.trim() && handleSaveKey()}
-                  autoFocus
-                />
-              </div>
-              <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.35)', marginBottom: 20, lineHeight: 1.6 }}>
-                Get yours at{' '}
-                <a href="https://cloud.cerebras.ai" target="_blank" rel="noreferrer" style={{ color: 'rgba(255,255,255,0.6)', textDecoration: 'underline', textUnderlineOffset: 3 }}>cloud.cerebras.ai</a>
-                {' '}→ API Keys.
-              </p>
-              {keyError && <ErrorBox msg={keyError} />}
-              <button onClick={handleSaveKey} disabled={savingKey || !apiKey.trim()} style={btnStyle(savingKey || !apiKey.trim())}>
-                {savingKey ? 'Saving...' : 'Save Key & Get Started →'}
-              </button>
-              <div style={{ textAlign: 'center', marginTop: 14 }}>
-                <button onClick={() => { sessionStorage.setItem('dw_key_onboarding_seen', '1'); onAuth(signupUser) }} style={linkBtn}>Skip for now — I'll add it later</button>
-              </div>
-            </>
-          )}
-
           {/* ── SIGN IN / SIGN UP ── */}
           {(mode === 'signin' || mode === 'signup') && (
             <>
@@ -295,6 +232,10 @@ export default function AuthModal({ onAuth, onDemo }) {
                   </button>
                 ))}
               </div>
+
+              <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.5)', marginBottom: 20, lineHeight: 1.6 }}>
+                {mode === 'signup' ? 'Get 3 free reports. No credit card required.' : 'Analyse any Canadian city — free, no card required.'}
+              </p>
 
               <div style={{ marginBottom: 12 }}>
                 <label style={{ display: 'block', fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 6, fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase' }}>Email</label>
