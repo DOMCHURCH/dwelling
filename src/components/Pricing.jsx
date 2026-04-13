@@ -9,7 +9,7 @@ const Pricing = memo(function Pricing({ onUpgrade }) {
   const [annual, setAnnual] = useState(false)
   const monthlyPrice = 29
   const annualPrice = 228
-  const displayPrice = annual ? 12 : monthlyPrice
+  const displayPrice = annual ? Math.round(annualPrice / 12) : monthlyPrice
 
   return (
     <section id="pricing" style={{ position: 'relative', overflow: 'hidden', padding: 'clamp(80px, 10vw, 120px) 20px' }}>

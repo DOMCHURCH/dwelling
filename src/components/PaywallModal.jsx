@@ -3,7 +3,7 @@ import { getAuthToken } from '../lib/localAuth'
 
 const MONTHLY = 29
 const ANNUAL = 228
-const ANNUAL_MONTHLY = 12
+const ANNUAL_MONTHLY = 19
 
 const FREE_FEATURES = [
   { text: '10 free reports / month', highlight: false },
