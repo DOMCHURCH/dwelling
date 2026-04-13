@@ -3,39 +3,53 @@
 import { Ratelimit } from '@upstash/ratelimit'
 import { Redis } from '@upstash/redis'
 
-let redis
+let _redis
 export function getRedis() {
-  if (!redis) redis = Redis.fromEnv() // reads UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN
-  return redis
+  if (!_redis) _redis = Redis.fromEnv() // reads UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN
+  return _redis
 }
 
-// 5 signup attempts per IP per hour
-export const signupLimiter = new Ratelimit({
-  redis: { pipeline: (...a) => getRedis().pipeline(...a), eval: (...a) => getRedis().eval(...a) },
-  limiter: Ratelimit.slidingWindow(5, '1 h'),
-  prefix: 'rl:signup',
-})
+// Limiters are created lazily so Redis.fromEnv() is only called when a
+// request actually arrives — safe if env vars aren't set locally.
+let _signupLimiter, _signinLimiter, _resetLimiter, _apiLimiter
 
-// 10 signin attempts per IP per 15 minutes
-export const signinLimiter = new Ratelimit({
-  redis: { pipeline: (...a) => getRedis().pipeline(...a), eval: (...a) => getRedis().eval(...a) },
-  limiter: Ratelimit.slidingWindow(10, '15 m'),
-  prefix: 'rl:signin',
-})
+export function getSignupLimiter() {
+  return (_signupLimiter ??= new Ratelimit({
+    redis: getRedis(),
+    limiter: Ratelimit.slidingWindow(5, '1 h'),
+    prefix: 'rl:signup',
+  }))
+}
 
-// 3 password reset requests per IP per hour
-export const resetLimiter = new Ratelimit({
-  redis: { pipeline: (...a) => getRedis().pipeline(...a), eval: (...a) => getRedis().eval(...a) },
-  limiter: Ratelimit.slidingWindow(3, '1 h'),
-  prefix: 'rl:reset',
-})
+export function getSigninLimiter() {
+  return (_signinLimiter ??= new Ratelimit({
+    redis: getRedis(),
+    limiter: Ratelimit.slidingWindow(10, '15 m'),
+    prefix: 'rl:signin',
+  }))
+}
 
-// 30 analysis requests per IP per hour (unauthenticated endpoints)
-export const apiLimiter = new Ratelimit({
-  redis: { pipeline: (...a) => getRedis().pipeline(...a), eval: (...a) => getRedis().eval(...a) },
-  limiter: Ratelimit.slidingWindow(30, '1 h'),
-  prefix: 'rl:api',
-})
+export function getResetLimiter() {
+  return (_resetLimiter ??= new Ratelimit({
+    redis: getRedis(),
+    limiter: Ratelimit.slidingWindow(3, '1 h'),
+    prefix: 'rl:reset',
+  }))
+}
+
+export function getApiLimiter() {
+  return (_apiLimiter ??= new Ratelimit({
+    redis: getRedis(),
+    limiter: Ratelimit.slidingWindow(30, '1 h'),
+    prefix: 'rl:api',
+  }))
+}
+
+// Legacy named exports so existing import sites don't need to change
+export const signupLimiter = { limit: (...a) => getSignupLimiter().limit(...a) }
+export const signinLimiter = { limit: (...a) => getSigninLimiter().limit(...a) }
+export const resetLimiter  = { limit: (...a) => getResetLimiter().limit(...a) }
+export const apiLimiter    = { limit: (...a) => getApiLimiter().limit(...a) }
 
 /**
  * Apply a rate limiter. Returns true if the request should be blocked.
