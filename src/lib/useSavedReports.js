@@ -1,15 +1,15 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { getAuthToken } from './localAuth'
 
-export function useSavedReports(user) {
-  const [saved, setSaved] = useState([])
+export function useSavedReports(isPro) {
+  const [savedReports, setSavedReports] = useState([])
   const [loading, setLoading] = useState(false)
   const fetchedRef = useRef(false)
 
-  const fetchReports = useCallback(async () => {
+  const fetchSaved = useCallback(async () => {
+    if (!isPro) return
     const token = await getAuthToken()
     if (!token) return
-    setLoading(true)
     try {
       const res = await fetch('/api/auth', {
         method: 'POST',
@@ -18,46 +18,52 @@ export function useSavedReports(user) {
       })
       if (res.ok) {
         const { reports } = await res.json()
-        setSaved(reports || [])
+        setSavedReports(reports ?? [])
       }
-    } catch { /* network error — fail silently */ }
-    finally { setLoading(false) }
-  }, [])
+    } catch (e) {
+      console.error('Failed to fetch saved reports', e)
+    }
+  }, [isPro])
 
   useEffect(() => {
-    if (user && !fetchedRef.current) {
+    if (isPro && !fetchedRef.current) {
       fetchedRef.current = true
-      fetchReports()
+      fetchSaved()
     }
-    if (!user) {
+    if (!isPro) {
       fetchedRef.current = false
-      setSaved([])
+      setSavedReports([])
     }
-  }, [user, fetchReports])
+  }, [isPro, fetchSaved])
 
   const saveReport = useCallback(async (data) => {
     const token = await getAuthToken()
-    if (!token) return null
-    const address = data.geo?.displayName || 'Unknown area'
-    const city = data.geo?.displayName?.split(',')[0] || 'Unknown'
-    const score = data.realData?.areaRiskScore?.score ?? null
-    const verdict = data.ai?.areaIntelligence?.verdict ?? null
+    if (!token) return { error: 'Not authenticated' }
+    setLoading(true)
+    const address = data?.geo?.displayName || 'Unknown area'
+    const city = data?.geo?.displayName?.split(',')[0] || 'Unknown'
+    const score = data?.realData?.areaRiskScore?.score ?? null
+    const verdict = data?.ai?.areaIntelligence?.verdict ?? null
     try {
       const res = await fetch('/api/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ action: 'save-report', address, city, score, verdict, data }),
       })
-      if (res.ok) {
-        const { id } = await res.json()
-        setSaved(prev => {
+      const json = await res.json()
+      if (res.ok && json.id) {
+        setSavedReports(prev => {
           const deduped = prev.filter(r => r.address !== address)
-          return [{ id, address, city, score, verdict, created_at: new Date().toISOString() }, ...deduped]
+          return [{ id: json.id, address, city, score, verdict, created_at: new Date().toISOString() }, ...deduped]
         })
-        return id
+        return { success: true, id: json.id }
       }
-    } catch { /* fail silently */ }
-    return null
+      return { error: json.error || 'Failed to save' }
+    } catch (e) {
+      return { error: 'Failed to save report' }
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   const loadReport = useCallback(async (id) => {
@@ -69,8 +75,13 @@ export function useSavedReports(user) {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ action: 'get-report', id }),
       })
-      if (res.ok) return await res.json()
-    } catch { /* fail silently */ }
+      if (res.ok) {
+        const row = await res.json()
+        return typeof row.data === 'string' ? JSON.parse(row.data) : row.data
+      }
+    } catch (e) {
+      console.error('Failed to load report', e)
+    }
     return null
   }, [])
 
@@ -83,15 +94,17 @@ export function useSavedReports(user) {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ action: 'delete-report', id }),
       })
-      setSaved(prev => prev.filter(r => r.id !== id))
-    } catch { /* fail silently */ }
+      setSavedReports(prev => prev.filter(r => r.id !== id))
+    } catch (e) {
+      console.error('Failed to delete report', e)
+    }
   }, [])
 
   const isReportSaved = useCallback((data) => {
     const address = data?.geo?.displayName
     if (!address) return false
-    return saved.some(r => r.address === address)
-  }, [saved])
+    return savedReports.some(r => r.address === address)
+  }, [savedReports])
 
-  return { saved, loading, saveReport, loadReport, deleteReport, isReportSaved, refetch: fetchReports }
+  return { savedReports, loading, saveReport, loadReport, deleteReport, isReportSaved, refetch: fetchSaved }
 }

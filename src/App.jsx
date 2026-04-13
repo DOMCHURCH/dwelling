@@ -140,7 +140,7 @@ export default function App() {
   const [comparingModeC, setComparingModeC] = useState(false)
   const [shareLoading, setShareLoading] = useState(false)
   const [shareSuccess, setShareSuccess] = useState(false)
-  const { saved: savedReports, saveReport, deleteReport, isReportSaved } = useSavedReports()
+  // useSavedReports is called below after isPro is defined
 
   // Prevent duplicate in-flight searches for the same normalised address
   const pendingSearchKeyRef = useRef(null)
@@ -690,6 +690,23 @@ export default function App() {
   const isPro = effectivePlan === "pro" || effectivePlan === "business"
   const isBusiness = effectivePlan === "business"
 
+  const { savedReports, saveReport, loadReport, deleteReport, isReportSaved } = useSavedReports(isPro)
+  const [saveSuccess, setSaveSuccess] = useState(false)
+
+  async function handleSave() {
+    if (!isPro) {
+      setPaywallTrigger('save')
+      setShowPaywall(true)
+      return
+    }
+    if (!result) return
+    const res = await saveReport(result)
+    if (res?.success) {
+      setSaveSuccess(true)
+      setTimeout(() => setSaveSuccess(false), 2000)
+    }
+  }
+
   const trialDaysLeft = null
   const isInTrial = false
   const analysesLeft = userRecord
@@ -1117,15 +1134,13 @@ export default function App() {
                 {/* Pro: Save Report */}
                 {isPro && (
                   <button
-                    onClick={() => {
-                      saveReport(result)
-                    }}
+                    onClick={handleSave}
                     style={{
                       borderRadius: 40,
                       padding: "8px 16px",
                       fontSize: 13,
                       fontFamily: "'Barlow',sans-serif",
-                      color: isReportSaved(result) ? "#4ade80" : "rgba(255,255,255,0.6)",
+                      color: saveSuccess ? "#4ade80" : isReportSaved(result) ? "#4ade80" : "rgba(255,255,255,0.6)",
                       border: "none",
                       cursor: "pointer",
                       background: "rgba(255,255,255,0.06)",
@@ -1138,7 +1153,7 @@ export default function App() {
                     onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
                     title="Save this report"
                   >
-                    {isReportSaved(result) ? "★ Saved" : "☆ Save"}
+                    {saveSuccess ? "★ Saved!" : isReportSaved(result) ? "★ Saved" : "☆ Save"}
                   </button>
                 )}
 
@@ -1546,8 +1561,9 @@ export default function App() {
       {showSavedReports && (
         <SavedReportsModal
           saved={savedReports}
-          onLoad={(r) => {
-            setResult(r)
+          onLoad={async (r) => {
+            const fullData = await loadReport(r.id)
+            if (fullData) setResult(fullData)
             setShowSavedReports(false)
           }}
           onDelete={deleteReport}
