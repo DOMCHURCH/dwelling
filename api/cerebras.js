@@ -5,7 +5,7 @@ import { createClient } from '@libsql/client'
 const SECRET = process.env.AUTH_SECRET
 if (!SECRET) throw new Error('FATAL: AUTH_SECRET env var is not set. Refusing to start.')
 
-const FREE_LIMIT = 10
+const FREE_LIMIT = 3
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'https://dwelling.one'
 

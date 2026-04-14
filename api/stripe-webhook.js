@@ -24,11 +24,12 @@ import { createClient } from '@libsql/client'
 
 const STRIPE_SECRET = process.env.STRIPE_SECRET_KEY
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET
-const TURSO_DATABASE_URL = process.env.TURSO_DATABASE_URL
-const TURSO_AUTH_TOKEN = process.env.TURSO_AUTH_TOKEN
 
 function getDb() {
-  return createClient({ url: TURSO_DATABASE_URL, authToken: TURSO_AUTH_TOKEN })
+  return createClient({
+    url: process.env.TURSO_URL,
+    authToken: process.env.TURSO_TOKEN,
+  })
 }
 
 /** Read raw body bytes from the request stream before any parsing. */

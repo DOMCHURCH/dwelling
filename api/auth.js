@@ -51,7 +51,11 @@ function getDb() {
   })
 }
 
+// Module-level flag — ensureTable runs once per cold-start instance, not on every request.
+let _tableReady = false
+
 async function ensureTable(db) {
+  if (_tableReady) return
   await db.execute(`
     CREATE TABLE IF NOT EXISTS users (
       email TEXT PRIMARY KEY,
@@ -152,6 +156,7 @@ async function ensureTable(db) {
       expires_at INTEGER NOT NULL
     )
   `)
+  _tableReady = true
 }
 
 // ─── AES-256-GCM encryption for Cerebras API keys ────────────────────────────
@@ -671,7 +676,11 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Payment not completed' })
       }
       const sessionEmail = (session.customer_email || session.customer_details?.email || '').toLowerCase()
-      if (sessionEmail && sessionEmail !== payload.email.toLowerCase()) {
+      // Always require a verifiable email — reject if Stripe didn't collect one
+      if (!sessionEmail) {
+        return res.status(400).json({ error: 'Could not verify payment session ownership — no email on session' })
+      }
+      if (sessionEmail !== payload.email.toLowerCase()) {
         return res.status(403).json({ error: 'Session does not belong to this account' })
       }
       const plan = session.metadata?.plan ?? ''
@@ -951,6 +960,11 @@ export default async function handler(req, res) {
       if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
       const payload = verify(authHeader.replace('Bearer ', ''))
       if (!payload) return res.status(401).json({ error: 'Invalid token' })
+      // Server-side Pro gate — client-only check is bypassable
+      const planRow = await db.execute({ sql: 'SELECT is_pro, is_business FROM users WHERE id = ?', args: [payload.sub] })
+      if (!planRow.rows[0]?.is_pro && !planRow.rows[0]?.is_business) {
+        return res.status(403).json({ error: 'Pro plan required to save reports' })
+      }
       const { address, city, score, verdict, data } = req.body
       if (!data) return res.status(400).json({ error: 'data required' })
       const id = randomBytes(12).toString('hex')
@@ -1190,8 +1204,8 @@ export default async function handler(req, res) {
       const memberCount = await db.execute({ sql: 'SELECT COUNT(*) as cnt FROM team_members WHERE team_id = ?', args: [invite.team_id] })
       if ((memberCount.rows[0]?.cnt || 0) >= 10) return res.status(409).json({ error: 'Team is full (10 members max)' })
       await db.execute({ sql: 'INSERT OR IGNORE INTO team_members (team_id, user_id, role, joined_at) VALUES (?, ?, ?, ?)', args: [invite.team_id, payload.sub, 'member', new Date().toISOString()] })
-      // Team members join the team but don't get is_business flag - only owner has paying plan
-      await db.execute({ sql: 'UPDATE users SET team_id = ? WHERE id = ?', args: [invite.team_id, payload.sub] })
+      // Grant business access to invited members — they share the owner's Business plan
+      await db.execute({ sql: 'UPDATE users SET team_id = ?, is_pro = 1, is_business = 1 WHERE id = ?', args: [invite.team_id, payload.sub] })
       await db.execute({ sql: 'UPDATE team_invites SET accepted_at = ? WHERE token = ?', args: [new Date().toISOString(), inviteToken] })
       return res.status(200).json({ success: true, teamId: invite.team_id })
     }
@@ -1203,8 +1217,11 @@ export default async function handler(req, res) {
       if (!payload) return res.status(401).json({ error: 'Invalid token' })
       const userId = payload.sub
       if (!userId) return res.status(401).json({ error: 'Not authenticated' })
-      const { reportData } = body
+      const { reportData } = req.body
       if (!reportData) return res.status(400).json({ error: 'reportData required' })
+      // Guard against oversized payloads clogging Turso storage
+      const serialized = JSON.stringify(reportData)
+      if (serialized.length > 512 * 1024) return res.status(413).json({ error: 'Report data too large to share' })
 
       const token = randomUUID()
       const expiresAt = Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60) // 30 days
@@ -1212,14 +1229,14 @@ export default async function handler(req, res) {
 
       await db.execute({
         sql: 'INSERT INTO shared_reports (token, user_id, data, city, expires_at) VALUES (?, ?, ?, ?, ?)',
-        args: [token, userId, JSON.stringify(reportData), city, expiresAt],
+        args: [token, userId, serialized, city, expiresAt],
       })
 
-      return res.json({ token, url: `https://dwelling.one/report/${token}` })
+      return res.json({ token, url: `${BASE_URL}/?report=${token}` })
     }
 
     if (action === 'get-shared-report') {
-      const { token } = body
+      const { token } = req.body
       if (!token) return res.status(400).json({ error: 'token required' })
 
       const now = Math.floor(Date.now() / 1000)

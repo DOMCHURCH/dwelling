@@ -33,6 +33,7 @@ import { getNeighborhoodScores } from "./lib/overpass"
 import {
   getCurrentUser,
   getAuthToken,
+  refreshSession,
   signOut as localSignOut,
   getUsage,
   saveCerebrasKey,
@@ -240,10 +241,14 @@ export default function App() {
           if (res.ok) {
             const data = await res.json()
             if (data.success) {
+              // Refresh JWT immediately so the new plan is reflected in localStorage
+              // before the user can trigger any other action.
+              await refreshSession()
               await loadUserRecord()
               const updated = getCurrentUser()
-              if (updated) setUser({ ...updated, is_pro: true })
-              setShowApiKeyModal(true)
+              if (updated) setUser({ ...updated })
+              // Only show API key prompt for Pro (not Business — they use team keys)
+              if (!data.is_business) setShowApiKeyModal(true)
             }
           }
         } catch {}
@@ -864,8 +869,8 @@ export default function App() {
                     textTransform: "uppercase",
                     letterSpacing: "0.08em",
                   }}
-                  onMouseEnter={e => !demoTier === tier && (e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)")}
-                  onMouseLeave={e => !demoTier === tier && (e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)")}
+                  onMouseEnter={e => demoTier !== tier && (e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)")}
+                  onMouseLeave={e => demoTier !== tier && (e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)")}
                 >
                   {tier === 'free' ? 'Free' : tier === 'pro' ? 'Pro' : 'Business'}
                 </button>
