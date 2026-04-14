@@ -297,7 +297,10 @@ export default function App() {
     } else {
       sessionStorage.removeItem("dw_cerebras_key")
       setCerebrasKey("")
-      // BYOK prompt shown contextually after first report — no upfront modal
+      // Pro/Business users with no API key → prompt to set one up
+      if (fullUser.is_pro || fullUser.is_business) {
+        setTimeout(() => setShowApiKeyModal(true), 1000)
+      }
     }
   }
 
@@ -1047,6 +1050,7 @@ export default function App() {
         <ApiKeyModal
           currentKey={cerebrasKey}
           isOnboarding={true}
+          isPro={!!(user?.is_pro || user?.is_business)}
           onSave={(key) => { setCerebrasKey(key); setShowApiKeyModal(false) }}
           onClose={() => setShowApiKeyModal(false)}
         />

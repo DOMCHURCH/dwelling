@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { saveCerebrasKey } from '../lib/localAuth'
 
-export default function ApiKeyModal({ currentKey, onSave, onClose, isOnboarding = false }) {
+export default function ApiKeyModal({ currentKey, onSave, onClose, isOnboarding = false, isPro = false }) {
   const [key, setKey] = useState(currentKey || '')
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
@@ -35,10 +35,12 @@ export default function ApiKeyModal({ currentKey, onSave, onClose, isOnboarding 
       <div className="liquid-glass-strong" style={{ borderRadius:24, maxWidth:480, width:'100%', padding:36, animation:'fadeUp 0.3s ease' }}>
 
         <div style={{ fontFamily:"'Instrument Serif',serif", fontStyle:'italic', fontSize:24, color:'#fff', marginBottom:8 }}>
-          Your Cerebras API Key
+          {isPro ? 'One last step to unlock everything' : 'Your Cerebras API Key'}
         </div>
         <p style={{ fontFamily:"'Barlow',sans-serif", fontWeight:300, fontSize:13, color:'rgba(255,255,255,0.5)', lineHeight:1.75, marginBottom:20 }}>
-          An API key is a free passcode that connects Dwelling directly to Cerebras AI on your behalf. Your searches go straight to Cerebras — Dwelling never sees them.
+          {isPro
+            ? "You're now Pro. Add your free Cerebras API key to activate full AI reports — investment analysis, flood risk, price history, and everything else."
+            : "An API key is a free passcode that connects Dwelling directly to Cerebras AI on your behalf. Your searches go straight to Cerebras — Dwelling never sees them."}
         </p>
 
         <div className="liquid-glass" style={{ borderRadius:14, padding:'14px 18px', marginBottom:24 }}>

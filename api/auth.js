@@ -12,9 +12,21 @@ const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET
 // Lookup keys must match exactly what you created in the Stripe dashboard
 const VALID_LOOKUP_KEYS = ['pro_monthly', 'pro_yearly', 'business_monthly', 'business_yearly']
 
+// In-memory price ID cache — avoids a stripe.prices.list round-trip on every checkout click
+const _priceIdCache = {}
+
 function getStripe() {
   if (!STRIPE_SECRET) throw new Error('STRIPE_SECRET_KEY not configured')
   return new Stripe(STRIPE_SECRET, { apiVersion: '2024-06-20' })
+}
+
+async function resolvePriceId(stripe, lookup_key) {
+  if (_priceIdCache[lookup_key]) return _priceIdCache[lookup_key]
+  const prices = await stripe.prices.list({ lookup_keys: [lookup_key], active: true, limit: 1 })
+  const price = prices.data[0]
+  if (!price) throw new Error(`No active price found for lookup_key "${lookup_key}". Create it in your Stripe dashboard.`)
+  _priceIdCache[lookup_key] = price.id
+  return price.id
 }
 
 // ─── Startup validation — refuse to run with missing critical secrets ─────────
@@ -623,27 +635,24 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: `Invalid lookup_key. Must be one of: ${VALID_LOOKUP_KEYS.join(', ')}` })
       }
 
-      const stripe = getStripe()
-
-      // Resolve price from Stripe using the lookup key — no hardcoded price IDs
-      const prices = await stripe.prices.list({ lookup_keys: [lookup_key], active: true })
-      const price = prices.data[0]
-      if (!price) {
-        return res.status(404).json({ error: `No active price found for lookup_key "${lookup_key}". Create it in your Stripe dashboard.` })
+      try {
+        const stripe = getStripe()
+        const priceId = await resolvePriceId(stripe, lookup_key)
+        const session = await stripe.checkout.sessions.create({
+          mode: 'subscription',
+          customer_email: payload.email,
+          line_items: [{ price: priceId, quantity: 1 }],
+          success_url: `${BASE_URL}/?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${BASE_URL}/?checkout=cancelled`,
+          subscription_data: { metadata: { user_email: payload.email, plan: lookup_key } },
+          metadata: { user_email: payload.email, plan: lookup_key },
+          allow_promotion_codes: true,
+        })
+        return res.status(200).json({ url: session.url })
+      } catch (err) {
+        console.error('create-checkout error:', err.message)
+        return res.status(500).json({ error: err.message || 'Checkout failed' })
       }
-
-      const session = await stripe.checkout.sessions.create({
-        mode: 'subscription',
-        customer_email: payload.email,
-        line_items: [{ price: price.id, quantity: 1 }],
-        success_url: `${BASE_URL}/?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${BASE_URL}/?checkout=cancelled`,
-        // Store lookup_key in metadata so verify-checkout can detect plan tier
-        subscription_data: { metadata: { user_email: payload.email, plan: lookup_key } },
-        metadata: { user_email: payload.email, plan: lookup_key },
-        allow_promotion_codes: true,
-      })
-      return res.status(200).json({ url: session.url })
     }
 
     // ── Stripe: verify-checkout ──────────────────────────────────────────────
