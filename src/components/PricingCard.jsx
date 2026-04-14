@@ -103,9 +103,9 @@ export function BusinessCard({ onCta, annual = false }) {
             transform: hov ? 'scale(1.01)' : 'scale(1)',
             letterSpacing: '0.01em',
           }}
-        >Book a call →</button>
+        >Start Business →</button>
         <div style={{ marginTop: 10, padding: '7px 12px', borderRadius: 10, background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', textAlign: 'center' }}>
-          <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 10, color: '#fbbf24', fontWeight: 500 }}>Contact us to get started — typically same-day response.</span>
+          <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 10, color: '#fbbf24', fontWeight: 500 }}>Subscribe now to unlock team features</span>
         </div>
       </div>
     </div>
