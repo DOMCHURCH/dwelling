@@ -113,6 +113,7 @@ export default function App() {
   }, [])
 
   const [showDemo, setShowDemo] = useState(false)
+  const [demoTier, setDemoTier] = useState('pro')
   const [showAuthModal, setShowAuthModal] = useState(
     () => !!new URLSearchParams(window.location.search).get("reset_token"),
   )
@@ -821,23 +822,32 @@ export default function App() {
               </span>
             </div>
             <div
-              className="liquid-glass"
-              style={{ borderRadius: 40, padding: "6px 16px", display: "flex", alignItems: "center", gap: 8 }}
+              style={{ display: "flex", alignItems: "center", gap: 8 }}
             >
-              <span
-                style={{
-                  fontSize: 11,
-                  color: "rgba(255,255,255,0.4)",
-                  fontFamily: "'Barlow',sans-serif",
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
-                }}
-              >
-                Sample Report
-              </span>
-              <span
-                style={{ width: 6, height: 6, borderRadius: "50%", background: "#4ade80", display: "inline-block" }}
-              />
+              {['free', 'pro', 'business'].map(tier => (
+                <button
+                  key={tier}
+                  onClick={() => setDemoTier(tier)}
+                  style={{
+                    padding: "6px 14px",
+                    borderRadius: 20,
+                    border: demoTier === tier ? "1px solid rgba(245,158,11,0.5)" : "1px solid rgba(255,255,255,0.1)",
+                    background: demoTier === tier ? "rgba(245,158,11,0.15)" : "transparent",
+                    color: demoTier === tier ? "#fbbf24" : "rgba(255,255,255,0.4)",
+                    fontFamily: "'Barlow',sans-serif",
+                    fontSize: 11,
+                    fontWeight: demoTier === tier ? 600 : 300,
+                    cursor: "pointer",
+                    transition: "all 0.15s",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                  }}
+                  onMouseEnter={e => !demoTier === tier && (e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)")}
+                  onMouseLeave={e => !demoTier === tier && (e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)")}
+                >
+                  {tier === 'free' ? 'Free' : tier === 'pro' ? 'Pro' : 'Business'}
+                </button>
+              ))}
             </div>
             <button
               onClick={() => setShowDemo(false)}
@@ -915,6 +925,7 @@ export default function App() {
                 onRecalculate={() => {}}
                 isPro={false}
                 isDemo={true}
+                previewPlan={demoTier}
                 onRunOwn={() => { setShowDemo(false); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
                 onLockedInteraction={() => setShowAuthModal(true)}
               />
@@ -1034,7 +1045,7 @@ export default function App() {
                 handleAuth(u)
                 setShowAuthModal(false)
               }}
-              onDemo={() => setShowAuthModal(false)}
+              onDemo={() => { setShowAuthModal(false); setShowDemo(true) }}
             />
           </Suspense>
         </div>
