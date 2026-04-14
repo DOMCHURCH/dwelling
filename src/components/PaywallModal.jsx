@@ -47,11 +47,8 @@ function CircleCheck({ highlight }) {
   )
 }
 
-export default function PaywallModal({ onClose, trigger = 'limit' }) {
-  const [annual, setAnnual] = useState(true)
-  const [view, setView] = useState('main') // 'main' | 'notify' | 'success'
-  const [notifyEmail, setNotifyEmail] = useState('')
-  const [notifyLoading, setNotifyLoading] = useState(false)
+export default function PaywallModal({ onClose, trigger = 'limit', initialAnnual = false, onShowAuth }) {
+  const [annual, setAnnual] = useState(initialAnnual)
   const [upgrading, setUpgrading] = useState(false)
 
   useEffect(() => {
@@ -64,86 +61,42 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
   const displayPrice = annual ? ANNUAL_MONTHLY : MONTHLY
   const priceDesc = annual ? `Billed $${ANNUAL}/year — cancel anytime` : 'Full intelligence, no limits'
 
-  // Try Stripe checkout; fall back to notify form
+  // Stripe checkout for Pro
   const handleUpgrade = async () => {
     setUpgrading(true)
     try {
       const token = await getAuthToken()
-      if (!token) { setView('notify'); return }
+      if (!token) {
+        onShowAuth?.()
+        setUpgrading(false)
+        return
+      }
       const res = await fetch('/api/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ action: 'create-checkout', lookup_key: annual ? 'pro_yearly' : 'pro_monthly' }),
       })
-      if (!res.ok) { setView('notify'); return }
-      const { url } = await res.json()
-      if (url) { window.location.href = url } else { setView('notify') }
-    } catch { setView('notify') }
+      const data = await res.json()
+      if (data.url) { window.location.href = data.url; return }
+      alert(data.error || 'Something went wrong. Email hello@dwelling.one')
+    } catch { alert('Something went wrong. Email hello@dwelling.one') }
     setUpgrading(false)
   }
 
-  const handleNotify = async (e) => {
-    e.preventDefault()
-    if (!notifyEmail.trim()) return
-    setNotifyLoading(true)
+  // Stripe checkout for Business
+  const handleBusinessUpgrade = async () => {
     try {
-      await fetch('/api/auth', {
+      const token = await getAuthToken()
+      if (!token) { onShowAuth?.(); return }
+      const res = await fetch('/api/auth', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'notify-pro', email: notifyEmail.trim() }),
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: 'create-checkout', lookup_key: annual ? 'business_yearly' : 'business_monthly' }),
       })
-    } catch { /* non-critical */ }
-    setNotifyLoading(false)
-    setView('success')
-  }
-
-  // ── Success ─────────────────────────────────────────────────────────────────
-  if (view === 'success') {
-    return (
-      <Overlay onClose={onClose}>
-        <div style={{ textAlign: 'center', padding: '32px 0' }}>
-          <div style={{ fontSize: 52, marginBottom: 16 }}>🎉</div>
-          <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 28, color: '#fff', marginBottom: 10 }}>
-            You're on the list.
-          </div>
-          <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 14, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7, marginBottom: 28 }}>
-            Your email has been saved. We'll reach out directly to get you set up.
-          </p>
-          <button onClick={onClose} style={btnPrimary}>Back to my report →</button>
-        </div>
-      </Overlay>
-    )
-  }
-
-  // ── Notify fallback ──────────────────────────────────────────────────────────
-  if (view === 'notify') {
-    return (
-      <Overlay onClose={onClose}>
-        <button onClick={() => setView('main')} style={backBtn}>← Back</button>
-        <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 24, color: '#fff', marginBottom: 8 }}>
-          Something went wrong with checkout.
-        </div>
-        <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.45)', marginBottom: 24, lineHeight: 1.6 }}>
-          Leave your email and we'll get you set up directly — or email <a href="mailto:hello@dwelling.one" style={{ color: '#38bdf8', textDecoration: 'none' }}>hello@dwelling.one</a> right now.
-        </p>
-        <form onSubmit={handleNotify}>
-          <input
-            autoFocus
-            type="email"
-            value={notifyEmail}
-            onChange={e => setNotifyEmail(e.target.value)}
-            placeholder="you@example.com"
-            required
-            style={{ ...inputStyle, marginBottom: 10 }}
-            onFocus={e => e.target.style.borderColor = 'rgba(255,255,255,0.35)'}
-            onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.12)'}
-          />
-          <button type="submit" disabled={notifyLoading} style={{ ...btnPrimary, opacity: notifyLoading ? 0.6 : 1 }}>
-            {notifyLoading ? 'Saving...' : 'Send me access →'}
-          </button>
-        </form>
-      </Overlay>
-    )
+      const data = await res.json()
+      if (data.url) { window.location.href = data.url; return }
+      alert(data.error || 'Something went wrong. Email hello@dwelling.one')
+    } catch { alert('Something went wrong. Email hello@dwelling.one') }
   }
 
   // ── Main ────────────────────────────────────────────────────────────────────
@@ -303,7 +256,7 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
               {upgrading ? 'Redirecting...' : (annual ? `Get Pro — $${ANNUAL}/year →` : 'Upgrade to Pro →')}
             </button>
             <div style={{ textAlign: 'center', marginTop: 8 }}>
-              <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.22)', fontWeight: 300 }}>Cancel anytime · Test cards accepted</span>
+              <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.22)', fontWeight: 300 }}>Cancel anytime</span>
             </div>
           </div>
         </div>
@@ -364,7 +317,7 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
               ))}
             </div>
             <button
-              onClick={() => { window.open('https://cal.com/dwelling/business', '_blank') }}
+              onClick={handleBusinessUpgrade}
               style={{
                 width: '100%', padding: '11px', borderRadius: 40, border: 'none',
                 cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 700, fontSize: 12,
@@ -373,11 +326,9 @@ export default function PaywallModal({ onClose, trigger = 'limit' }) {
               }}
               onMouseEnter={e => e.currentTarget.style.opacity = '0.88'}
               onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-            >Book a call →</button>
-            <div style={{ marginTop: 10, padding: '8px 12px', borderRadius: 10, background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', textAlign: 'center' }}>
-              <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 10, color: '#fbbf24', fontWeight: 500 }}>
-                Contact us to get started — typically same-day response.
-              </span>
+            >{annual ? `Start Business — $1,440/year →` : 'Start Business →'}</button>
+            <div style={{ textAlign: 'center', marginTop: 8 }}>
+              <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.22)', fontWeight: 300 }}>Cancel anytime</span>
             </div>
           </div>
         </div>
@@ -439,20 +390,3 @@ function Overlay({ children, onClose, wide }) {
   )
 }
 
-const btnPrimary = {
-  width: '100%', padding: '13px 20px', borderRadius: 40, border: 'none',
-  cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 14,
-  background: 'linear-gradient(90deg, #38bdf8, #818cf8)', color: '#000', transition: 'opacity 0.15s',
-}
-
-const inputStyle = {
-  width: '100%', padding: '13px 16px', borderRadius: 40, boxSizing: 'border-box',
-  background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)',
-  color: '#fff', fontFamily: "'Barlow',sans-serif", fontSize: 14, outline: 'none',
-}
-
-const backBtn = {
-  background: 'none', border: 'none', cursor: 'pointer',
-  fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12,
-  color: 'rgba(255,255,255,0.35)', padding: '0 0 16px 0', display: 'block',
-}

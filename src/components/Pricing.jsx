@@ -65,7 +65,7 @@ const Pricing = memo(function Pricing({ onUpgrade, onBusinessCta }) {
             priceLabel={annual ? '/mo · billed yearly' : '/month'}
             features={PRICING_PRO}
             cta={annual ? `Get Pro — $228/year →` : "Upgrade to Pro →"}
-            onCta={onUpgrade}
+            onCta={() => onUpgrade(annual)}
             popular={true}
             annualSavings={annual}
           />

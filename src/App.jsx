@@ -89,6 +89,7 @@ export default function App() {
   const [currentCity, setCurrentCity] = useState('')
   const [result, setResult] = useState(null)
   const [showBYOKPrompt, setShowBYOKPrompt] = useState(false)
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false)
   const [byokLoading, setByokLoading] = useState(false)
   const [lastQuery, setLastQuery] = useState(null)
   const [error, setError] = useState(null)
@@ -242,6 +243,7 @@ export default function App() {
               await loadUserRecord()
               const updated = getCurrentUser()
               if (updated) setUser({ ...updated, is_pro: true })
+              setShowApiKeyModal(true)
             }
           }
         } catch {}
@@ -692,6 +694,23 @@ export default function App() {
 
   const handleDownloadPDF = () => window.print()
 
+  async function handleProCheckout(annual) {
+    const token = await getAuthToken()
+    if (!token) { setShowAuthModal(true); return }
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: 'create-checkout', lookup_key: annual ? 'pro_yearly' : 'pro_monthly' }),
+      })
+      const data = await res.json()
+      if (data.url) { window.location.href = data.url; return }
+      alert(data.error || 'Something went wrong. Email hello@dwelling.one')
+    } catch {
+      alert('Something went wrong. Email hello@dwelling.one')
+    }
+  }
+
   async function handleBusinessCheckout(annual) {
     const token = await getAuthToken()
     if (!token) { setShowAuthModal(true); return }
@@ -1024,9 +1043,21 @@ export default function App() {
         </div>
       )}
       {/* BYOK management is now in AccountSettings within the dashboard */}
+      {showApiKeyModal && (
+        <ApiKeyModal
+          currentKey={cerebrasKey}
+          isOnboarding={true}
+          onSave={(key) => { setCerebrasKey(key); setShowApiKeyModal(false) }}
+          onClose={() => setShowApiKeyModal(false)}
+        />
+      )}
       {showPaywall && (
         <Suspense fallback={null}>
-          <PaywallModal trigger={paywallTrigger} onClose={() => setShowPaywall(false)} />
+          <PaywallModal
+            trigger={paywallTrigger}
+            onClose={() => setShowPaywall(false)}
+            onShowAuth={() => { setShowPaywall(false); setShowAuthModal(true) }}
+          />
         </Suspense>
       )}
       {showAuthModal && (
@@ -1585,16 +1616,10 @@ export default function App() {
           <Stats />
           <Testimonials />
           <ProShowcase
-            onUpgrade={() => {
-              setPaywallTrigger("pricing")
-              setShowPaywall(true)
-            }}
+            onUpgrade={() => handleProCheckout(false)}
           />
           <Pricing
-            onUpgrade={() => {
-              setPaywallTrigger("pricing")
-              setShowPaywall(true)
-            }}
+            onUpgrade={handleProCheckout}
             onBusinessCta={handleBusinessCheckout}
           />
           <FAQ />
