@@ -93,12 +93,11 @@ function StepApiKey({ onNext, onSkip }) {
         <Badge color="#4ade80">API KEYS</Badge>
       </div>
       <h2 style={{ fontFamily: MONO, fontSize: 18, fontWeight: 700, color: "#fff", margin: "0 0 8px" }}>
-        Transfer your API key to the dashboard
+        Switch your API to the dashboard
       </h2>
       <p style={{ fontFamily: MONO, fontSize: 12, color: "rgba(255,255,255,0.5)", margin: "0 0 28px", lineHeight: 1.6 }}>
-        Your Business plan supports up to 5 Cerebras API keys — one per seat.
-        Save your existing key to the team dashboard so all members can use it,
-        or skip and add keys later.
+        API keys have moved from the top-right to your dashboard. You have <strong style={{ color: "#fbbf24" }}>4 more slots</strong> to add Cerebras API keys.
+        Save your current key now, or add keys anytime in your dashboard.
       </p>
 
       <div style={{
@@ -119,7 +118,7 @@ function StepApiKey({ onNext, onSkip }) {
             : "No API key saved locally"}
         </div>
         <div style={{ color: "rgba(245,158,11,0.6)", fontSize: 10, marginTop: 8 }}>
-          {done ? "✓ Saved to dashboard" : `${5 - 1} more key slots available`}
+          {done ? "✓ Saved to dashboard" : "4 more key slots available"}
         </div>
       </div>
 
@@ -151,7 +150,7 @@ function StepTeam({ onDone }) {
   }
 
   const addRow = () => {
-    if (rows.length < 4) setRows(r => [...r, { email: "", nickname: "" }])
+    if (rows.length < 9) setRows(r => [...r, { email: "", nickname: "" }])
   }
 
   const sendInvite = async (i) => {
@@ -184,11 +183,11 @@ function StepTeam({ onDone }) {
         <Badge color="#38bdf8">TEAM</Badge>
       </div>
       <h2 style={{ fontFamily: MONO, fontSize: 18, fontWeight: 700, color: "#fff", margin: "0 0 8px" }}>
-        Add your team
+        Invite your team (1–9 people)
       </h2>
       <p style={{ fontFamily: MONO, fontSize: 12, color: "rgba(255,255,255,0.5)", margin: "0 0 28px", lineHeight: 1.6 }}>
-        Each person gets an email invitation to create a Dwelling account and join your team.
-        They'll have full access to Business features — no separate subscription needed.
+        You're already counted as one team member. Invite 1–9 additional people to collaborate.
+        They'll receive an email invite to join your team workspace.
       </p>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 20 }}>
@@ -231,12 +230,15 @@ function StepTeam({ onDone }) {
       </div>
 
       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-        {rows.length < 4 && (
+        {rows.length < 9 && (
           <Btn onClick={addRow} variant="secondary">+ Add another</Btn>
         )}
         <div style={{ flex: 1 }} />
         <Btn onClick={onDone} variant="primary">Done — Go to Dashboard →</Btn>
       </div>
+      {rows.length >= 9 && (
+        <div style={{ marginTop: 12, fontSize: 10, color: "rgba(255,255,255,0.3)", fontFamily: MONO }}>Max 9 team members reached</div>
+      )}
     </div>
   )
 }
