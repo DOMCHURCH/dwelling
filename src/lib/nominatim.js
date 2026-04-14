@@ -6,7 +6,9 @@ async function nominatimFetch(params) {
   params.set('limit', 1)
   const res = await fetch(`${BASE}/search?${params}`, {
     headers: { 'Accept-Language': 'en', 'User-Agent': 'DwellingApp/1.0' },
+    signal: AbortSignal.timeout(10000), // 10 s — Nominatim is usually <300 ms
   })
+  if (!res.ok) throw new Error(`Geocoding service error (${res.status})`)
   return res.json()
 }
 

@@ -146,6 +146,9 @@ export default function App() {
 
   // Prevent duplicate in-flight searches for the same normalised address
   const pendingSearchKeyRef = useRef(null)
+  // Generation counter — incremented on every new search so stale async results
+  // from a previous search never overwrite a newer one (two-tab / rapid-click safety)
+  const searchGenerationRef = useRef(0)
 
   // Engagement tracking (analytics only — does not gate the paywall)
   const { trackEvent, reset: resetEngagement } = useEngagement({ enabled: !!result })
@@ -369,6 +372,8 @@ export default function App() {
     const searchKey = `${street.trim().toLowerCase()}|${city.trim().toLowerCase()}|${state}`
     if (pendingSearchKeyRef.current === searchKey) return
     pendingSearchKeyRef.current = searchKey
+    // Stamp this search invocation so stale results from a previous search are discarded
+    const generation = ++searchGenerationRef.current
     setLastQuery({ street, city, state, country: _country, knownFacts })
     setLoading(true)
     setError(null)
@@ -443,6 +448,8 @@ export default function App() {
         // User has provided their own Cerebras key — get full AI analysis
         setLoadStep('ai')
         const ai = await analyzeProperty(geo, weather, climate, knownFacts ?? {}, realData, key)
+        // Discard if a newer search has already fired
+        if (searchGenerationRef.current !== generation) return
         const reportData = { geo, weather, climate, ai: mergeWithDeterministic(deterministicResult, ai), knownFacts: knownFacts ?? {}, realData, isAreaMode }
         setResult(reportData)
         if (!user) setGuestResult(reportData)
@@ -453,6 +460,8 @@ export default function App() {
 
       // No key — show deterministic result (works for free users and guests)
       const reportData = { geo, weather, climate, ai: deterministicResult, knownFacts: knownFacts ?? {}, realData, isAreaMode, isDeterministic: true }
+      // Discard if a newer search has already fired
+      if (searchGenerationRef.current !== generation) return
       setResult(reportData)
       if (!user) setGuestResult(reportData)
       resetEngagement()

@@ -92,6 +92,24 @@ export default async function handler(req, res) {
   const { type, data } = event
 
   try {
+    // ── Idempotency guard — Stripe re-delivers unacknowledged events ──────────
+    // INSERT OR IGNORE: if the event_id already exists, rowsAffected = 0 → skip.
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS processed_stripe_events (
+        event_id     TEXT PRIMARY KEY,
+        event_type   TEXT NOT NULL,
+        processed_at TEXT NOT NULL
+      )
+    `)
+    const dedup = await db.execute({
+      sql: 'INSERT OR IGNORE INTO processed_stripe_events (event_id, event_type, processed_at) VALUES (?, ?, ?)',
+      args: [event.id, type, new Date().toISOString()],
+    })
+    if (dedup.rowsAffected === 0) {
+      console.log(`[stripe-webhook] Duplicate event ${event.id} (${type}) — already processed, skipping`)
+      return res.status(200).json({ received: true, duplicate: true })
+    }
+
     // ── Subscription activated or renewed ─────────────────────────────────────
     if (type === 'customer.subscription.created' || type === 'customer.subscription.updated') {
       const sub = data.object

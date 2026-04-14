@@ -156,6 +156,14 @@ async function ensureTable(db) {
       expires_at INTEGER NOT NULL
     )
   `)
+  // Prevents verify-checkout replay and cross-user session theft
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS verified_checkout_sessions (
+      session_id   TEXT PRIMARY KEY,
+      user_email   TEXT NOT NULL,
+      verified_at  TEXT NOT NULL
+    )
+  `)
   _tableReady = true
 }
 
@@ -687,6 +695,31 @@ export default async function handler(req, res) {
       const isBusiness = plan.startsWith('business')
 
       const db = getDb()
+
+      // Idempotency + replay prevention: INSERT fails if session already claimed.
+      // Also prevents a different authenticated user from claiming the same session.
+      try {
+        const claimed = await db.execute({
+          sql: 'INSERT INTO verified_checkout_sessions (session_id, user_email, verified_at) VALUES (?, ?, ?)',
+          args: [sessionId, payload.email.toLowerCase(), new Date().toISOString()],
+        })
+        if (claimed.rowsAffected === 0) throw new Error('conflict')
+      } catch (e) {
+        // Session already in table — check ownership
+        const existing = await db.execute({
+          sql: 'SELECT user_email FROM verified_checkout_sessions WHERE session_id = ?',
+          args: [sessionId],
+        })
+        const owner = existing.rows[0]?.user_email
+        if (owner && owner !== payload.email.toLowerCase()) {
+          return res.status(403).json({ error: 'Session already claimed by a different account' })
+        }
+        // Same user re-verifying (e.g. page reload) — idempotent success
+        const userRow = await db.execute({ sql: 'SELECT is_pro, is_business FROM users WHERE email = ?', args: [payload.email] })
+        const u = userRow.rows[0]
+        return res.status(200).json({ success: true, is_pro: !!u?.is_pro, is_business: !!u?.is_business })
+      }
+
       await db.execute({
         sql: 'UPDATE users SET is_pro = 1, is_business = ?, stripe_customer_id = ?, stripe_subscription_id = ? WHERE email = ?',
         args: [isBusiness ? 1 : 0, session.customer || null, session.subscription?.id || null, payload.email],
@@ -1095,22 +1128,34 @@ export default async function handler(req, res) {
       const userRow = await db.execute({ sql: 'SELECT team_id, email FROM users WHERE id = ?', args: [payload.sub] })
       const teamId = userRow.rows[0]?.team_id
       if (!teamId) return res.status(200).json({ logged: false }) // not in a team, silently skip
-      const teamRow = await db.execute({ sql: 'SELECT usage_today, usage_date, daily_limit FROM teams WHERE id = ?', args: [teamId] })
-      const team = teamRow.rows[0]
       const today = new Date().toISOString().slice(0, 10)
-      const usageToday = team.usage_date === today ? (team.usage_today || 0) : 0
-      if (usageToday >= team.daily_limit) return res.status(429).json({ error: 'Team daily limit reached (3000 analyses/day)' })
+
+      // Atomic increment: only succeeds if current count < daily_limit.
+      // Eliminates the read-check-write race condition under concurrent requests.
+      // CASE resets to 1 on a new day, otherwise increments.
+      const atomicUpdate = await db.execute({
+        sql: `UPDATE teams
+              SET usage_today = CASE WHEN usage_date = ? THEN usage_today + 1 ELSE 1 END,
+                  usage_date  = ?
+              WHERE id = ?
+                AND (CASE WHEN usage_date = ? THEN usage_today ELSE 0 END) < daily_limit`,
+        args: [today, today, teamId, today],
+      })
+
+      if (atomicUpdate.rowsAffected === 0) {
+        return res.status(429).json({ error: 'Team daily limit reached (3000 analyses/day)' })
+      }
+
       const { address, city, score, verdict, data } = req.body
       const reportId = randomBytes(12).toString('hex')
       await db.execute({
         sql: 'INSERT INTO team_reports (id, team_id, user_id, user_email, address, city, score, verdict, data, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         args: [reportId, teamId, payload.sub, userRow.rows[0].email, address || '', city || '', score ?? null, verdict || null, JSON.stringify(data || {}), new Date().toISOString()],
       })
-      await db.execute({
-        sql: 'UPDATE teams SET usage_today = ?, usage_date = ? WHERE id = ?',
-        args: [usageToday + 1, today, teamId],
-      })
-      return res.status(200).json({ logged: true, usageToday: usageToday + 1 })
+
+      // Read back the new count for the response
+      const teamRow = await db.execute({ sql: 'SELECT usage_today FROM teams WHERE id = ?', args: [teamId] })
+      return res.status(200).json({ logged: true, usageToday: teamRow.rows[0]?.usage_today ?? 1 })
     }
 
     // ── Business Team: save logo ─────────────────────────────────────────────
@@ -1211,6 +1256,7 @@ export default async function handler(req, res) {
     }
 
     if (action === 'share-report') {
+      if (await applyLimit(apiLimiter, clientIp, res)) return
       const authHeader = req.headers.authorization
       if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
       const payload = verify(authHeader.replace('Bearer ', ''))

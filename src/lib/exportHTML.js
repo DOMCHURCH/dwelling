@@ -12,8 +12,17 @@ export function downloadAnalysisHTML(result, config = {}) {
   URL.revokeObjectURL(url)
 }
 
+/* ── HTML output encoding — applied to all AI-sourced and user-supplied strings ── */
+const esc = (s) => String(s ?? "")
+  .replace(/&/g, "&amp;")
+  .replace(/</g, "&lt;")
+  .replace(/>/g, "&gt;")
+  .replace(/"/g, "&quot;")
+  .replace(/'/g, "&#039;")
+
 /* ── value helpers ── */
-const n = (v, fb = "—") => (v == null || v === "" || v === 0) ? fb : String(v)
+// n() auto-escapes: all AI text goes through this before HTML interpolation
+const n = (v, fb = "—") => (v == null || v === "" || v === 0) ? fb : esc(String(v))
 const fmtK = (v, sym = "$") => {
   if (!v || v === 0) return "—"
   if (v >= 1_000_000) return `${sym}${(v / 1_000_000).toFixed(2).replace(/\.?0+$/, "")}M`
@@ -28,7 +37,11 @@ function scoreBar(label, score) {
   return `<div class="sr"><span class="sl">${label}</span><div class="st"><div style="width:${score}%;height:100%;background:${sc(score)};border-radius:3px"></div></div><span class="sn" style="color:${sc(score)}">${score}</span></div>`
 }
 
-function buildHTML(result, { brandName, clientName, logoUrl, inc }) {
+function buildHTML(result, { brandName: _brandName, clientName: _clientName, logoUrl: _logoUrl, inc }) {
+  // Escape user-supplied config values — these come from BrandingModal inputs
+  const brandName = esc(_brandName || "Dwelling")
+  const clientName = esc(_clientName || "")
+  const logoUrl = esc(_logoUrl || "")
   const geo = result?.geo || {}
   const ai = result?.ai || {}
   const weather = result?.weather || {}
@@ -298,8 +311,8 @@ ${inc("proscons") && (pros.length > 0 || cons.length > 0) ? `
 <div class="sec">
   <div class="st">Pros & Cons</div>
   <div class="pcg">
-    <div class="pros"><div class="pcl">Pros</div><ul class="plist">${pros.map(p => `<li>${n(p)}</li>`).join("")}</ul></div>
-    <div class="cons"><div class="pcl">Cons</div><ul class="plist">${cons.map(c => `<li>${n(c)}</li>`).join("")}</ul></div>
+    <div class="pros"><div class="pcl">Pros</div><ul class="plist">${pros.map(p => `<li>${esc(String(p ?? ""))}</li>`).join("")}</ul></div>
+    <div class="cons"><div class="pcl">Cons</div><ul class="plist">${cons.map(c => `<li>${esc(String(c ?? ""))}</li>`).join("")}</ul></div>
   </div>
 </div>` : ""}
 
@@ -342,7 +355,7 @@ ${inc("insights") && (knownFor || attractions.length > 0 || localTip) ? `
 <div class="sec">
   <div class="st">Local Insights</div>
   ${knownFor ? `<div class="quote">${knownFor}</div>` : ""}
-  ${attractions.length > 0 ? `<div style="margin-top:14px"><div style="font-family:sans-serif;font-size:9px;color:#aaa;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px">Top Attractions</div><ul class="alist">${attractions.map((a,i)=>`<li><span class="anum">${String(i+1).padStart(2,"0")}</span>${n(a)}</li>`).join("")}</ul></div>` : ""}
+  ${attractions.length > 0 ? `<div style="margin-top:14px"><div style="font-family:sans-serif;font-size:9px;color:#aaa;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px">Top Attractions</div><ul class="alist">${attractions.map((a,i)=>`<li><span class="anum">${String(i+1).padStart(2,"00")}</span>${esc(String(a ?? ""))}</li>`).join("")}</ul></div>` : ""}
   ${localTip ? `<div class="tip"><strong>Local tip:</strong> ${localTip}</div>` : ""}
   ${languageNote ? `<p class="sb" style="margin-top:12px">${languageNote}</p>` : ""}
 </div>` : ""}

@@ -12,7 +12,10 @@ export async function getCurrentWeather(lat, lon) {
     temperature_unit: 'celsius',
     wind_speed_unit: 'kmh',
   })
-  const res = await fetch(`${BASE}/forecast?${params}`)
+  const res = await fetch(`${BASE}/forecast?${params}`, {
+    signal: AbortSignal.timeout(10000),
+  })
+  if (!res.ok) throw new Error(`Weather fetch failed (${res.status})`)
   return res.json()
 }
 
@@ -31,7 +34,10 @@ export async function getClimateNormals(lat, lon) {
     timezone: 'auto',
     temperature_unit: 'celsius',
   })
-  const res = await fetch(`${ARCHIVE}/archive?${params}`)
+  const res = await fetch(`${ARCHIVE}/archive?${params}`, {
+    signal: AbortSignal.timeout(12000), // climate archive can be slower
+  })
+  if (!res.ok) return null // non-fatal — climate normals are supplementary
   const data = await res.json()
 
   if (!data.daily) return null

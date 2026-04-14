@@ -51,7 +51,9 @@ function getDb() {
   return createClient({ url: process.env.TURSO_URL, authToken: process.env.TURSO_TOKEN })
 }
 
+let _compsTableReady = false
 async function ensureCompsTable(db) {
+  if (_compsTableReady) return
   await db.execute(`
     CREATE TABLE IF NOT EXISTS cached_comps (
       address_hash TEXT PRIMARY KEY,
@@ -60,6 +62,7 @@ async function ensureCompsTable(db) {
       expires_at   TEXT NOT NULL
     )
   `)
+  _compsTableReady = true
 }
 
 async function getCachedComps(cacheKey) {
