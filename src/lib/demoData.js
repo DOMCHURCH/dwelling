@@ -75,11 +75,11 @@ export const DEMO_RESULT = {
     localInsights: {
       knownFor: 'Toronto is known for its diverse neighborhoods, world-class museums, and vibrant waterfront. The CN Tower, historic architecture, and thriving arts scene make it one of Canada\'s most dynamic cities.',
       topAttractions: [
-        { name: 'CN Tower', type: 'Landmark' },
-        { name: 'Art Gallery of Ontario', type: 'Museum' },
-        { name: 'St. Lawrence Market', type: 'Market' },
-        { name: 'Ripley\'s Aquarium', type: 'Attraction' },
-        { name: 'Toronto Islands', type: 'Park' },
+        'CN Tower',
+        'Art Gallery of Ontario',
+        'St. Lawrence Market',
+        'Toronto Islands',
+        'Ripley\'s Aquarium',
       ],
       localTip: 'Toronto is very walkable with excellent public transit. Most neighborhoods have great restaurants, cafes, and shops within walking distance. The waterfront is especially beautiful in summer.',
       languageNote: 'English is the primary language, with diverse multilingual communities throughout the city.',
