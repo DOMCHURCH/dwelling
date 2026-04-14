@@ -427,27 +427,49 @@ export default function App() {
       setLoadStep('investment')
       const deterministicResult = buildDeterministicReport({ geo, weather, neighborhood: neighborhoodScores, areaMetrics, climate })
 
-      // Check for Cerebras key — if absent, show deterministic result and BYOK prompt
+      // Check for Cerebras key — if user has one, get full AI analysis
       const key = getCachedCerebrasKey()
-      if (!key) {
-        const reportData = { geo, weather, climate, ai: deterministicResult, knownFacts: knownFacts ?? {}, realData, isAreaMode, isDeterministic: true }
+      if (key) {
+        // User has provided their own Cerebras key — get full AI analysis
+        setLoadStep('ai')
+        const ai = await analyzeProperty(geo, weather, climate, knownFacts ?? {}, realData, key)
+        const reportData = { geo, weather, climate, ai: mergeWithDeterministic(deterministicResult, ai), knownFacts: knownFacts ?? {}, realData, isAreaMode }
         setResult(reportData)
         if (!user) setGuestResult(reportData)
-        setShowBYOKPrompt(true)
         resetEngagement()
         if (!getUserType()) setTimeout(() => setShowUserTypeModal(true), 1800)
-        setTimeout(() => loadUserRecord(), 800)
         return
       }
 
-      setLoadStep('ai')
-      const ai = await analyzeProperty(geo, weather, climate, knownFacts ?? {}, realData, key)
-      const reportData = { geo, weather, climate, ai: mergeWithDeterministic(deterministicResult, ai), knownFacts: knownFacts ?? {}, realData, isAreaMode }
+      // No key — show deterministic result (works for free users and guests)
+      const reportData = { geo, weather, climate, ai: deterministicResult, knownFacts: knownFacts ?? {}, realData, isAreaMode, isDeterministic: true }
       setResult(reportData)
       if (!user) setGuestResult(reportData)
       resetEngagement()
-      // Show user type modal once, after first successful report
       if (!getUserType()) setTimeout(() => setShowUserTypeModal(true), 1800)
+
+      // Track usage for logged-in users
+      if (user) {
+        try {
+          const token = await getAuthToken()
+          if (token) {
+            const res = await fetch('/api/auth', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+              body: JSON.stringify({ action: 'increment-analysis' }),
+            })
+            const data = await res.json()
+            if (data.atLimit && !isPro) {
+              // Show paywall if free user hit limit
+              setShowPaywall(true)
+              setPaywallTrigger('limit')
+            }
+            if (res.ok) loadUserRecord()
+          }
+        } catch (e) {
+          console.error('[increment-analysis]', e.message)
+        }
+      }
       setTimeout(() => loadUserRecord(), 800)
     } catch (err) {
       if (err.message === "no_key") {
@@ -477,15 +499,16 @@ export default function App() {
 
   const handleRecalculate = async (corrections) => {
     if (!result) return
+    const key = getCachedCerebrasKey()
+    if (!key) {
+      // Free users need Pro to use custom facts
+      setShowPaywall(true)
+      setPaywallTrigger('recalculate')
+      return
+    }
     setLoading(true)
     setError(null)
     try {
-      const key = getCachedCerebrasKey()
-      if (!key) {
-        setShowBYOKPrompt(true)
-        setLoading(false)
-        return
-      }
       const merged = { ...(result.knownFacts ?? {}), ...corrections }
       const ai = await analyzeProperty(result.geo, result.weather, result.climate, merged, result.realData, key)
       setResult((p) => ({ ...p, ai, knownFacts: merged }))

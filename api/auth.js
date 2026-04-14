@@ -436,6 +436,35 @@ export default async function handler(req, res) {
       return res.status(200).json({ analyses_used: user.analyses_used, is_pro: !!user.is_pro, is_business: !!user.is_business, has_own_key: !!user.cerebras_key })
     }
 
+    // ── increment-analysis (track free tier usage) ─────────────────────────────
+    if (action === 'increment-analysis') {
+      const authHeader = req.headers.authorization
+      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
+      const payload = verify(authHeader.replace('Bearer ', ''))
+      if (!payload) return res.status(401).json({ error: 'Invalid token' })
+
+      const FREE_LIMIT = 3
+      const db = getDb()
+
+      // Get current count
+      const currentResult = await db.execute({ sql: 'SELECT analyses_used, is_pro FROM users WHERE email = ?', args: [payload.email] })
+      if (currentResult.rows.length === 0) return res.status(404).json({ error: 'User not found' })
+
+      const user = currentResult.rows[0]
+      // Only track for free users — pro/business users have unlimited
+      if (user.is_pro) {
+        return res.status(200).json({ analyses_used: 9999, remaining: 9999, atLimit: false, isPro: true })
+      }
+
+      const newCount = (user.analyses_used ?? 0) + 1
+      const atLimit = newCount >= FREE_LIMIT
+
+      // Update count
+      await db.execute({ sql: 'UPDATE users SET analyses_used = ? WHERE email = ?', args: [newCount, payload.email] })
+
+      return res.status(200).json({ analyses_used: newCount, remaining: Math.max(0, FREE_LIMIT - newCount), atLimit, isPro: false })
+    }
+
     // ── save-key ────────────────────────────────────────────────────────────
     if (action === 'save-key') {
       if (await applyLimit(apiLimiter, clientIp, res)) return
