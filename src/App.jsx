@@ -298,7 +298,7 @@ export default function App() {
       sessionStorage.removeItem("dw_cerebras_key")
       setCerebrasKey("")
       // Pro/Business users with no API key → prompt to set one up
-      if (fullUser.is_pro || fullUser.is_business) {
+      if (fullUser.is_pro && !fullUser.is_business) {
         setTimeout(() => setShowApiKeyModal(true), 1000)
       }
     }

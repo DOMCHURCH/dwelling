@@ -140,8 +140,8 @@ export default function Navbar({
             Dashboard{!canAccessDashboard && <span style={{ marginLeft: 4, fontSize: 10 }}>🔒</span>}
           </button>
 
-          {/* Payments — pro/business owner only */}
-          {(isPro || isBusiness) && (isTeamOwner || !isBusiness) && (
+          {/* Account — all logged-in users */}
+          {user && (
             <button
               onClick={onOpenPayments}
               style={{
@@ -153,7 +153,7 @@ export default function Navbar({
               onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.07)")}
               onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
             >
-              Payments
+              Account
             </button>
           )}
         </div>

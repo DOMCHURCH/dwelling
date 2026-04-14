@@ -705,6 +705,61 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, message: 'Subscription will cancel at end of billing period' })
     }
 
+    // ── change-password ───────────────────────────────────────────────────────
+    if (action === 'change-password') {
+      const authHeader = req.headers.authorization
+      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
+      const payload = verify(authHeader.replace('Bearer ', ''))
+      if (!payload) return res.status(401).json({ error: 'Invalid token' })
+      const { currentPassword, newPassword } = req.body
+      if (!currentPassword || !newPassword) return res.status(400).json({ error: 'Both passwords required' })
+      if (newPassword.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' })
+      const db = getDb()
+      const result = await db.execute({ sql: 'SELECT password, salt FROM users WHERE email = ?', args: [payload.email] })
+      if (!result.rows[0]) return res.status(404).json({ error: 'User not found' })
+      const { password: storedHash, salt } = result.rows[0]
+      const { ok } = await verifyPassword(currentPassword, storedHash, salt)
+      if (!ok) return res.status(403).json({ error: 'Current password is incorrect' })
+      const hashed = await hashPassword(newPassword)
+      await db.execute({ sql: 'UPDATE users SET password = ? WHERE email = ?', args: [hashed, payload.email] })
+      return res.status(200).json({ success: true })
+    }
+
+    // ── get-subscription ──────────────────────────────────────────────────────
+    if (action === 'get-subscription') {
+      const authHeader = req.headers.authorization
+      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
+      const payload = verify(authHeader.replace('Bearer ', ''))
+      if (!payload) return res.status(401).json({ error: 'Invalid token' })
+      if (!STRIPE_SECRET) return res.status(200).json({ subscription: null })
+      const db = getDb()
+      const result = await db.execute({
+        sql: 'SELECT stripe_subscription_id, stripe_customer_id, is_pro, is_business FROM users WHERE email = ?',
+        args: [payload.email],
+      })
+      const row = result.rows[0]
+      if (!row?.stripe_subscription_id) return res.status(200).json({ subscription: null })
+      try {
+        const stripe = getStripe()
+        const sub = await stripe.subscriptions.retrieve(row.stripe_subscription_id, { expand: ['items.data.price'] })
+        const item = sub.items.data[0]
+        const price = item?.price
+        return res.status(200).json({
+          subscription: {
+            status: sub.status,
+            cancel_at_period_end: sub.cancel_at_period_end,
+            current_period_end: sub.current_period_end,
+            amount: price ? price.unit_amount / 100 : null,
+            currency: price?.currency || 'usd',
+            interval: price?.recurring?.interval || 'month',
+            plan: sub.metadata?.plan || (row.is_business ? 'business_monthly' : 'pro_monthly'),
+          },
+        })
+      } catch (err) {
+        return res.status(200).json({ subscription: null, error: err.message })
+      }
+    }
+
     // ── Stripe: portal ────────────────────────────────────────────────────────
     if (action === 'portal') {
       if (!STRIPE_SECRET) return res.status(503).json({ error: 'Payments not yet configured' })
