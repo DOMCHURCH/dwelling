@@ -49,7 +49,7 @@ export default function AdminPanel({ onClose }) {
       const res = await fetch("/api/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ action: "admin-grant-pro", targetEmail: grantTarget.trim(), grant: true, plan: grantPlan }),
+        body: JSON.stringify({ action: "admin-grant-pro", targetEmail: grantTarget.trim(), plan: grantPlan }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
@@ -58,6 +58,24 @@ export default function AdminPanel({ onClose }) {
       loadUsers()
     } catch (e) { flash(e.message, true) }
     finally { setGranting(false) }
+  }
+
+  const cancelSubscriptionAction = async (email) => {
+    if (!window.confirm(`Cancel subscription for ${email}?`)) return
+    setSaving(true)
+    try {
+      const token = await getAuthToken()
+      const res = await fetch("/api/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: "admin-cancel-subscription", targetEmail: email }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      flash(`✓ ${email} reverted to free`)
+      loadUsers()
+    } catch (e) { flash(e.message, true) }
+    finally { setSaving(false) }
   }
 
   const saveUsage = async (email, value) => {
@@ -175,8 +193,8 @@ export default function AdminPanel({ onClose }) {
           ) : (
             <>
               {/* Column headers */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 90px 100px 120px 80px", gap: 10, padding: "0 10px 8px", borderBottom: "1px solid rgba(255,255,255,0.07)", marginBottom: 6 }}>
-                {["Email", "Plan", "Used", "Analyses Left", ""].map(h => (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 90px 100px 120px 140px", gap: 10, padding: "0 10px 8px", borderBottom: "1px solid rgba(255,255,255,0.07)", marginBottom: 6 }}>
+                {["Email", "Plan", "Used", "Analyses Left", "Actions"].map(h => (
                   <div key={h} style={{ fontSize: 9, fontFamily: "'Barlow',sans-serif", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.25)" }}>{h}</div>
                 ))}
               </div>
@@ -190,7 +208,7 @@ export default function AdminPanel({ onClose }) {
                   const left = u.is_pro ? "∞" : Math.max(0, FREE_LIMIT - used)
                   const isEdit = editing?.userId === u.id
                   return (
-                    <div key={u.id} style={{ display: "grid", gridTemplateColumns: "1fr 90px 100px 120px 80px", gap: 10, padding: "10px 10px", borderRadius: 8, marginBottom: 4, background: isEdit ? "rgba(255,255,255,0.04)" : "transparent", transition: "background 0.15s" }}
+                    <div key={u.id} style={{ display: "grid", gridTemplateColumns: "1fr 90px 100px 120px 140px", gap: 10, padding: "10px 10px", borderRadius: 8, marginBottom: 4, background: isEdit ? "rgba(255,255,255,0.04)" : "transparent", transition: "background 0.15s" }}
                       onMouseEnter={e => { if (!isEdit) e.currentTarget.style.background = "rgba(255,255,255,0.025)" }}
                       onMouseLeave={e => { if (!isEdit) e.currentTarget.style.background = "transparent" }}>
 
@@ -229,7 +247,12 @@ export default function AdminPanel({ onClose }) {
                             <button onClick={() => setEditing(null)} style={{ padding: "4px 8px", borderRadius: 6, border: "none", background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.5)", fontFamily: "'Barlow',sans-serif", fontSize: 10, cursor: "pointer" }}>✕</button>
                           </>
                         ) : (
-                          <button onClick={() => setEditing({ userId: u.id, value: String(used) })} style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.1)", background: "none", color: "rgba(255,255,255,0.4)", fontFamily: "'Barlow',sans-serif", fontSize: 10, cursor: "pointer" }}>Edit</button>
+                          <>
+                            <button onClick={() => setEditing({ userId: u.id, value: String(used) })} style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.1)", background: "none", color: "rgba(255,255,255,0.4)", fontFamily: "'Barlow',sans-serif", fontSize: 10, cursor: "pointer" }}>Edit</button>
+                            {u.is_pro && (
+                              <button onClick={() => cancelSubscriptionAction(u.email)} style={{ padding: "4px 8px", borderRadius: 6, border: "none", background: "rgba(239,68,68,0.15)", color: "#fca5a5", fontFamily: "'Barlow',sans-serif", fontSize: 10, cursor: "pointer" }}>Cancel</button>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>

@@ -721,29 +721,28 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true })
     }
 
-    // ── Stripe: admin-grant-pro ───────────────────────────────────────────────
+    // ── Admin: set user subscription tier ──────────────────────────────────────
     if (action === 'admin-grant-pro') {
       const authHeader = req.headers.authorization
       if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
       const payload = verify(authHeader.replace('Bearer ', ''))
       if (!payload?.is_admin) return res.status(403).json({ error: 'Admin access required' })
-      const { targetEmail, grant } = req.body
+      const { targetEmail, plan } = req.body
       if (!targetEmail || typeof targetEmail !== 'string') return res.status(400).json({ error: 'targetEmail required' })
+      if (!plan || !['free', 'pro', 'business'].includes(plan)) return res.status(400).json({ error: 'plan must be "free", "pro", or "business"' })
+
       const db = getDb()
-      const { plan } = req.body // 'pro' or 'business'
+      const isFree = plan === 'free'
       const isBusiness = plan === 'business'
+
       const grantResult = await db.execute({
-        sql: isBusiness
-          ? 'UPDATE users SET is_pro = ?, is_business = ? WHERE email = ?'
-          : 'UPDATE users SET is_pro = ?, is_business = 0 WHERE email = ?',
-        args: isBusiness
-          ? [grant ? 1 : 0, grant ? 1 : 0, targetEmail.trim().toLowerCase()]
-          : [grant ? 1 : 0, targetEmail.trim().toLowerCase()],
+        sql: 'UPDATE users SET is_pro = ?, is_business = ? WHERE LOWER(email) = LOWER(?)',
+        args: [isFree ? 0 : 1, isBusiness ? 1 : 0, targetEmail.trim().toLowerCase()],
       })
       if (grantResult.rowsAffected === 0) {
         return res.status(404).json({ error: `No user found with email ${targetEmail}` })
       }
-      return res.status(200).json({ success: true, granted: !!grant, plan: plan || 'pro', email: targetEmail.trim().toLowerCase() })
+      return res.status(200).json({ success: true, plan, email: targetEmail.trim().toLowerCase() })
     }
 
     // ── Admin: cancel user subscription (revert to free) ──────────────────────
