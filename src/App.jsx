@@ -1612,7 +1612,7 @@ export default function App() {
       {showAdminPanel && <AdminPanel onClose={() => setShowAdminPanel(false)} />}
       {showExportModal && result && <ExportModal result={result} onClose={() => setShowExportModal(false)} />}
       {showPDFExport && result && <PDFExportModal result={result} onClose={() => setShowPDFExport(false)} />}
-      {showBusinessDashboard && <BusinessDashboard onClose={() => setShowBusinessDashboard(false)} />}
+      {showBusinessDashboard && <BusinessDashboard onClose={() => setShowBusinessDashboard(false)} user={user} userRecord={userRecord} />}
       {showPaymentsPage && (
         <PaymentsPage
           onClose={() => setShowPaymentsPage(false)}

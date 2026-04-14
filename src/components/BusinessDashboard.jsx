@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { getAuthToken } from "../lib/localAuth"
 import { downloadAnalysisHTML } from "../lib/exportHTML"
+import AccountSettings from "./AccountSettings"
 
 const DAILY_LIMIT = 200
 
@@ -550,7 +551,7 @@ function UsersTab() {
 }
 
 /* ── MAIN ── */
-export default function BusinessDashboard({ onClose }) {
+export default function BusinessDashboard({ onClose, user, userRecord }) {
   const [tab, setTab] = useState("overview")
   const [keys, setKeys] = useState([])
   const [usage, setUsage] = useState({ totalUsage: 0, dailyLimit: DAILY_LIMIT, monthlyUsage: 0 })
@@ -602,7 +603,7 @@ export default function BusinessDashboard({ onClose }) {
         {/* Sidebar */}
         <div style={{ width: 190, flexShrink: 0, background: "rgba(0,0,0,0.3)", borderRight: `1px solid ${c.border}`, padding: "18px 10px", display: "flex", flexDirection: "column", gap: 3 }}>
           <div style={{ fontSize: 8, fontFamily: "monospace", color: c.label, letterSpacing: "0.16em", textTransform: "uppercase", marginBottom: 10, paddingLeft: 4 }}>Navigation</div>
-          {[["overview", "📊  Overview"], ["reports", "📁  Reports"], ["apikeys", "🔑  API Keys"], ["users", "👥  Users"]].map(([id, label]) => (
+          {[["overview", "📊  Overview"], ["reports", "📁  Reports"], ["apikeys", "🔑  API Keys"], ["users", "👥  Users"], ["settings", "⚙️  Settings"]].map(([id, label]) => (
             <button key={id} onClick={() => setTab(id)} style={{
               padding: "9px 12px", borderRadius: 6, textAlign: "left", cursor: "pointer", transition: "all 0.13s",
               background: tab === id ? c.amberDim : "none",
@@ -633,12 +634,14 @@ export default function BusinessDashboard({ onClose }) {
             <TabBtn active={tab === "reports"} onClick={() => setTab("reports")}>📁 Reports</TabBtn>
             <TabBtn active={tab === "apikeys"} onClick={() => setTab("apikeys")}>🔑 API Keys</TabBtn>
             <TabBtn active={tab === "users"} onClick={() => setTab("users")}>👥 Users</TabBtn>
+            <TabBtn active={tab === "settings"} onClick={() => setTab("settings")}>⚙️ Settings</TabBtn>
           </div>
 
           {tab === "overview" && <OverviewTab usage={usage} keys={keys} />}
           {tab === "reports" && <ReportsTab />}
           {tab === "apikeys" && <ApiKeysTab keys={keys} loading={loading} error={error} onRefresh={loadData} />}
           {tab === "users" && <UsersTab />}
+          {tab === "settings" && <AccountSettings user={user || userRecord} onClose={() => {}} />}
         </div>
       </div>
     </div>
