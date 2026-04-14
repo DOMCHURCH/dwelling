@@ -17,6 +17,8 @@ export default function AdminPanel({ onClose }) {
   const [grantPlan, setGrantPlan] = useState("pro")
   const [granting, setGranting] = useState(false)
   const [msg, setMsg] = useState(null)
+  const [testEmail, setTestEmail] = useState("")
+  const [testingOnboarding, setTestingOnboarding] = useState(false)
 
   const flash = (text, err = false) => {
     setMsg({ text, err })
@@ -76,6 +78,26 @@ export default function AdminPanel({ onClose }) {
       loadUsers()
     } catch (e) { flash(e.message, true) }
     finally { setSaving(false) }
+  }
+
+  const triggerBusinessOnboarding = async () => {
+    if (!testEmail.trim()) { flash("Enter test email", true); return }
+    setTestingOnboarding(true)
+    try {
+      const token = await getAuthToken()
+      // Set user to business for testing
+      const res = await fetch("/api/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: "admin-grant-pro", targetEmail: testEmail.trim(), plan: "business" }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      flash(`✓ Test user set to Business. They'll see onboarding on next login.`)
+      setTestEmail("")
+      loadUsers()
+    } catch (e) { flash(e.message, true) }
+    finally { setTestingOnboarding(false) }
   }
 
   const saveUsage = async (email, value) => {
@@ -171,6 +193,25 @@ export default function AdminPanel({ onClose }) {
                 {granting ? "Saving…" : "Grant →"}
               </button>
             </div>
+          </div>
+
+          {/* Test Business Onboarding */}
+          <div style={{ background: "rgba(167,139,250,0.1)", border: "1px solid rgba(167,139,250,0.3)", borderRadius: 12, padding: "16px 20px", marginBottom: 24 }}>
+            <div style={{ ...s.label, marginBottom: 12, color: "#c4b5fd" }}>Test Business Onboarding</div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <input
+                value={testEmail} onChange={e => setTestEmail(e.target.value)}
+                placeholder="test@example.com"
+                style={{ ...s.input, flex: 1, minWidth: 200 }}
+                onFocus={e => (e.target.style.borderColor = "rgba(167,139,250,0.5)")}
+                onBlur={e => (e.target.style.borderColor = "rgba(255,255,255,0.1)")}
+                onKeyDown={e => e.key === "Enter" && triggerBusinessOnboarding()}
+              />
+              <button onClick={triggerBusinessOnboarding} disabled={testingOnboarding || !testEmail.trim()} style={{ padding: "9px 18px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 12, background: testingOnboarding ? "rgba(167,139,250,0.2)" : "rgba(167,139,250,0.25)", color: testingOnboarding ? "rgba(196,181,253,0.5)" : "#c4b5fd" }}>
+                {testingOnboarding ? "Setting up…" : "Test Onboarding →"}
+              </button>
+            </div>
+            <div style={{ marginTop: 10, fontSize: 10, color: "rgba(196,181,253,0.6)", fontFamily: "'Barlow',sans-serif" }}>Sets user to Business plan. They'll see two-step onboarding on next login.</div>
           </div>
 
           {/* Search + filter */}
