@@ -1065,9 +1065,9 @@ export default async function handler(req, res) {
       if (teamRow.rows[0]?.owner_id !== payload.sub) return res.status(403).json({ error: 'Only the team owner can invite members' })
       const { email: inviteeEmail, nickname } = req.body
       if (!inviteeEmail || typeof inviteeEmail !== 'string') return res.status(400).json({ error: 'email required' })
-      // Check seat count (max 5 total including owner)
+      // Check seat count (max 10 total: owner + 9 members)
       const memberCount = await db.execute({ sql: 'SELECT COUNT(*) as cnt FROM team_members WHERE team_id = ?', args: [teamId] })
-      if ((memberCount.rows[0]?.cnt || 0) >= 5) return res.status(409).json({ error: 'Team is full (5 members max)' })
+      if ((memberCount.rows[0]?.cnt || 0) >= 10) return res.status(409).json({ error: 'Team is full (10 members max: owner + 9)' })
       const token = randomBytes(24).toString('hex')
       await db.execute({
         sql: 'INSERT OR REPLACE INTO team_invites (token, team_id, email, nickname, invited_by, created_at) VALUES (?, ?, ?, ?, ?, ?)',
@@ -1122,11 +1122,12 @@ export default async function handler(req, res) {
       if (age > 7 * 24 * 60 * 60 * 1000) return res.status(410).json({ error: 'Invite has expired' })
       const userRow = await db.execute({ sql: 'SELECT team_id FROM users WHERE id = ?', args: [payload.sub] })
       if (userRow.rows[0]?.team_id) return res.status(409).json({ error: 'You are already in a team' })
-      // Check seat count
+      // Check seat count (max 10 total)
       const memberCount = await db.execute({ sql: 'SELECT COUNT(*) as cnt FROM team_members WHERE team_id = ?', args: [invite.team_id] })
-      if ((memberCount.rows[0]?.cnt || 0) >= 5) return res.status(409).json({ error: 'Team is full' })
+      if ((memberCount.rows[0]?.cnt || 0) >= 10) return res.status(409).json({ error: 'Team is full (10 members max)' })
       await db.execute({ sql: 'INSERT OR IGNORE INTO team_members (team_id, user_id, role, joined_at) VALUES (?, ?, ?, ?)', args: [invite.team_id, payload.sub, 'member', new Date().toISOString()] })
-      await db.execute({ sql: 'UPDATE users SET team_id = ?, is_business = 1 WHERE id = ?', args: [invite.team_id, payload.sub] })
+      // Team members join the team but don't get is_business flag - only owner has paying plan
+      await db.execute({ sql: 'UPDATE users SET team_id = ? WHERE id = ?', args: [invite.team_id, payload.sub] })
       await db.execute({ sql: 'UPDATE team_invites SET accepted_at = ? WHERE token = ?', args: [new Date().toISOString(), inviteToken] })
       return res.status(200).json({ success: true, teamId: invite.team_id })
     }
