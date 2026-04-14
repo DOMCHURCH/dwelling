@@ -28,8 +28,10 @@ export const DEMO_RESULT = {
       estimatedValueUSD: 1_050_000,
       pricePerSqftUSD: 924,
       rentEstimateMonthlyUSD: 2_650,
-      confidence: 89,
+      confidenceScore: 89,
+      confidenceLevel: 'high',
       compsAnalyzed: 31,
+      compsUsed: 31,
       dataQuality: 'good',
     },
     costOfLiving: {
@@ -46,7 +48,7 @@ export const DEMO_RESULT = {
     neighborhood: {
       walkScore: 87,
       transitScore: 92,
-      schoolScore: 74,
+      schoolRating: 74,
       safetyScore: 68,
       walkLabel: "Walker's Paradise",
       transitLabel: 'Excellent Transit',
@@ -55,7 +57,9 @@ export const DEMO_RESULT = {
     },
     investment: {
       investmentScore: 74,
-      investmentOutlook: 'BULLISH',
+      appreciationOutlook: 'bullish',
+      appreciationOutlookText: 'Strong price appreciation expected due to market demand and limited supply.',
+      investmentSummary: 'Toronto represents a solid investment opportunity for long-term wealth building with moderate rental yields and strong capital appreciation potential.',
       rentYieldPercent: 5.2,
       capRatePercent: 4.8,
       verdict: {
@@ -112,6 +116,12 @@ export const DEMO_RESULT = {
     marketTemperature: 'hot',
     newsData: null,
     riskData: null,
+    neighborhoodScores: {
+      walkScore: 87,
+      transitScore: 92,
+      safetyScore: 68,
+      schoolScore: 74,
+    },
   },
   knownFacts: {},
   isAreaMode: true,
