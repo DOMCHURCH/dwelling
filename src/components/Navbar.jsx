@@ -15,8 +15,6 @@ export default function Navbar({
   isPro,
   onOpenDashboard,
   onOpenAdmin,
-  onOpenKeyModal,
-  hasOwnKey,
   previewPlan,
   onSetPlan,
   onTogglePreview,
@@ -218,28 +216,6 @@ export default function Navbar({
                     </button>
                   ))}
                 </div>
-              )}
-              {hasOwnKey && (
-                <button
-                  onClick={onOpenKeyModal}
-                  title="Manage your Cerebras API key"
-                  style={{
-                    background: "rgba(74,222,128,0.1)",
-                    border: "1px solid rgba(74,222,128,0.25)",
-                    cursor: "pointer",
-                    fontFamily: "'Barlow',sans-serif",
-                    fontWeight: 300,
-                    fontSize: 11,
-                    color: "#4ade80",
-                    padding: "5px 10px",
-                    borderRadius: 20,
-                    transition: "color 0.2s",
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.color = "#86efac")}
-                  onMouseLeave={(e) => (e.currentTarget.style.color = "#4ade80")}
-                >
-                  🔑 Own Key
-                </button>
               )}
               <button
                 onClick={onSignOut}

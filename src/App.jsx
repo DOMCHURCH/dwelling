@@ -121,7 +121,6 @@ export default function App() {
   const [comparingMode, setComparingMode] = useState(false)
   const [previewPlan, setPreviewPlan] = useState("free")
   const [cerebrasKey, setCerebrasKey] = useState(() => getCachedCerebrasKey())
-  const [showKeyModal, setShowKeyModal] = useState(false)
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [showDeleteAccount, setShowDeleteAccount] = useState(false)
   const [showUserTypeModal, setShowUserTypeModal] = useState(false)
@@ -1013,15 +1012,7 @@ export default function App() {
           </div>
         </div>
       )}
-      {showKeyModal && (
-        <ApiKeyModal
-          currentKey={cerebrasKey}
-          onSave={(k) => setCerebrasKey(k)}
-          onClose={() => setShowKeyModal(false)}
-          isOnboarding={false}
-        />
-      )}
-      {/* BYOK onboarding handled contextually via BYOKPrompt after first report */}
+      {/* BYOK management is now in AccountSettings within the dashboard */}
       {showPaywall && (
         <Suspense fallback={null}>
           <PaywallModal trigger={paywallTrigger} onClose={() => setShowPaywall(false)} />
@@ -1055,8 +1046,6 @@ export default function App() {
         isInTrial={isInTrial}
         trialDaysLeft={trialDaysLeft}
         onSignOut={handleSignOut}
-        onOpenKeyModal={() => setShowKeyModal(true)}
-        hasOwnKey={!!cerebrasKey || !!userRecord?.has_own_key}
         previewPlan={previewPlan}
         onSetPlan={setPreviewPlan}
         onTogglePreview={() => setPreviewPlan((p) => (p === "pro" ? "free" : "pro"))}
