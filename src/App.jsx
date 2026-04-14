@@ -218,6 +218,14 @@ export default function App() {
     const params = new URLSearchParams(window.location.search)
     const checkoutStatus = params.get("checkout")
     const sessionId = params.get("session_id")
+
+    if (checkoutStatus === "cancelled") {
+      // User cancelled checkout — clean URL and show notification
+      window.history.replaceState({}, "", window.location.pathname)
+      // Brief notification that they cancelled (optional — could add a toast here)
+      return
+    }
+
     if (checkoutStatus === "success" && sessionId) {
       window.history.replaceState({}, "", window.location.pathname)
       getAuthToken().then(async (token) => {
