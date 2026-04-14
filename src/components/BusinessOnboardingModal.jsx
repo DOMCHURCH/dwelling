@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { getAuthToken, saveCerebrasKey, getCachedCerebrasKey } from "../lib/localAuth"
+import AccountSettings from "./AccountSettings"
 
 const MONO = "'JetBrains Mono','Fira Mono','Courier New',monospace"
 const AMBER = "#f59e0b"
@@ -243,13 +244,40 @@ function StepTeam({ onDone }) {
   )
 }
 
-export default function BusinessOnboardingModal({ onClose, onOpenDashboard }) {
+export default function BusinessOnboardingModal({ onClose, onOpenDashboard, user }) {
   const [step, setStep] = useState(1)
+  const [showSettings, setShowSettings] = useState(false)
 
   const handleDone = () => {
     localStorage.setItem("dw_business_onboarded", "1")
-    onClose()
-    onOpenDashboard?.()
+    setShowSettings(true)
+    // After showing settings, close the modal and open dashboard
+    setTimeout(() => {
+      onClose()
+      onOpenDashboard?.()
+    }, 2000)
+  }
+
+  if (showSettings) {
+    return (
+      <div style={{
+        position: "fixed", inset: 0, zIndex: 200,
+        background: "rgba(0,0,0,0.75)", backdropFilter: "blur(12px)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        overflow: "auto", padding: 24,
+      }}>
+        <div style={{
+          background: BG,
+          border: "1px solid rgba(245,158,11,0.25)",
+          borderRadius: 12,
+          width: "100%",
+          maxWidth: 600,
+          boxShadow: "0 0 60px rgba(245,158,11,0.08)",
+        }}>
+          <AccountSettings user={user} onClose={onClose} />
+        </div>
+      </div>
+    )
   }
 
   return (
