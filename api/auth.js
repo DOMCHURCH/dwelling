@@ -746,6 +746,74 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, granted: !!grant, plan: plan || 'pro', email: targetEmail.trim().toLowerCase() })
     }
 
+    // ── Admin: cancel user subscription (revert to free) ──────────────────────
+    if (action === 'admin-cancel-subscription') {
+      const authHeader = req.headers.authorization
+      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
+      const payload = verify(authHeader.replace('Bearer ', ''))
+      if (!payload?.is_admin) return res.status(403).json({ error: 'Admin access required' })
+
+      const { targetEmail } = req.body
+      if (!targetEmail || typeof targetEmail !== 'string') return res.status(400).json({ error: 'targetEmail required' })
+
+      const db = getDb()
+      const userResult = await db.execute({
+        sql: 'SELECT stripe_subscription_id FROM users WHERE LOWER(email) = LOWER(?)',
+        args: [targetEmail.trim().toLowerCase()],
+      })
+
+      if (userResult.rows.length === 0) {
+        return res.status(404).json({ error: `No user found with email ${targetEmail}` })
+      }
+
+      const subId = userResult.rows[0].stripe_subscription_id
+
+      // Cancel the Stripe subscription if it exists
+      if (subId) {
+        const stripe = getStripe()
+        try {
+          await stripe.subscriptions.cancel(subId)
+        } catch (err) {
+          console.error(`[admin-cancel-subscription] Failed to cancel Stripe sub ${subId}:`, err.message)
+          // Continue anyway — update database even if Stripe call fails
+        }
+      }
+
+      // Revert user to free tier
+      await db.execute({
+        sql: 'UPDATE users SET is_pro = 0, is_business = 0, stripe_subscription_id = NULL WHERE LOWER(email) = LOWER(?)',
+        args: [targetEmail.trim().toLowerCase()],
+      })
+
+      return res.status(200).json({ success: true, message: `Subscription cancelled and ${targetEmail} reverted to free`, email: targetEmail.trim().toLowerCase() })
+    }
+
+    // ── Admin: change subscription type (pro ↔ business) ──────────────────────
+    if (action === 'admin-change-subscription-type') {
+      const authHeader = req.headers.authorization
+      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
+      const payload = verify(authHeader.replace('Bearer ', ''))
+      if (!payload?.is_admin) return res.status(403).json({ error: 'Admin access required' })
+
+      const { targetEmail, newPlan } = req.body
+      if (!targetEmail || typeof targetEmail !== 'string') return res.status(400).json({ error: 'targetEmail required' })
+      if (!newPlan || !['pro', 'business'].includes(newPlan)) return res.status(400).json({ error: 'newPlan must be "pro" or "business"' })
+
+      const db = getDb()
+      const isBusiness = newPlan === 'business'
+
+      const updateResult = await db.execute({
+        sql: 'UPDATE users SET is_pro = 1, is_business = ? WHERE LOWER(email) = LOWER(?)',
+        args: [isBusiness ? 1 : 0, targetEmail.trim().toLowerCase()],
+      })
+
+      if (updateResult.rowsAffected === 0) {
+        return res.status(404).json({ error: `No user found with email ${targetEmail}` })
+      }
+
+      return res.status(200).json({ success: true, message: `${targetEmail} changed to ${newPlan}`, email: targetEmail.trim().toLowerCase(), newPlan })
+    }
+
     // ── Stripe: webhook ───────────────────────────────────────────────────────
     // NOTE: Vercel pre-parses the request body so the raw bytes Stripe signed are
     // unavailable here. Signature verification via constructEvent() will always fail
