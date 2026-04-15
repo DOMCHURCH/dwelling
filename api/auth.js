@@ -481,11 +481,11 @@ export default async function handler(req, res) {
         return res.status(200).json({ analyses_used: 9999, remaining: 9999, atLimit: false, isPro: true })
       }
 
-      const newCount = (user.analyses_used ?? 0) + 1
+      // Atomic increment — eliminates SELECT→UPDATE race condition under concurrent requests.
+      await db.execute({ sql: 'UPDATE users SET analyses_used = analyses_used + 1 WHERE email = ? AND NOT is_pro', args: [payload.email] })
+      const freshResult = await db.execute({ sql: 'SELECT analyses_used FROM users WHERE email = ?', args: [payload.email] })
+      const newCount = freshResult.rows[0]?.analyses_used ?? 1
       const atLimit = newCount >= FREE_LIMIT
-
-      // Update count
-      await db.execute({ sql: 'UPDATE users SET analyses_used = ? WHERE email = ?', args: [newCount, payload.email] })
 
       return res.status(200).json({ analyses_used: newCount, remaining: Math.max(0, FREE_LIMIT - newCount), atLimit, isPro: false })
     }
@@ -919,6 +919,27 @@ export default async function handler(req, res) {
         args: [targetEmail.trim().toLowerCase()],
       })
 
+      // Also revoke all team members if this was a Business account owner
+      const revokedUserRow = await db.execute({
+        sql: 'SELECT id FROM users WHERE LOWER(email) = LOWER(?)',
+        args: [targetEmail.trim().toLowerCase()],
+      })
+      const revokedId = revokedUserRow.rows[0]?.id
+      if (revokedId) {
+        const revokedTeamRow = await db.execute({
+          sql: 'SELECT team_id FROM users WHERE id = ?',
+          args: [revokedId],
+        })
+        const teamId = revokedTeamRow.rows[0]?.team_id
+        if (teamId) {
+          const revokedMembers = await db.execute({
+            sql: 'UPDATE users SET is_pro = 0, is_business = 0 WHERE team_id = ? AND id != ?',
+            args: [teamId, revokedId],
+          })
+          console.log(`[admin-cancel-subscription] Revoked ${revokedMembers.rowsAffected} team member(s) for team ${teamId}`)
+        }
+      }
+
       return res.status(200).json({ success: true, message: `Subscription cancelled and ${targetEmail} reverted to free`, email: targetEmail.trim().toLowerCase() })
     }
 
@@ -967,10 +988,12 @@ export default async function handler(req, res) {
       if (type === 'customer.subscription.created' || type === 'customer.subscription.updated') {
         const sub = event.data?.object
         const email = sub?.metadata?.user_email
+        const plan = sub?.metadata?.plan ?? ''
+        const isBusiness = plan.startsWith('business')
         if (email && sub?.status === 'active') {
           await db.execute({
-            sql: 'UPDATE users SET is_pro = 1, stripe_subscription_id = ? WHERE email = ?',
-            args: [sub.id, email.toLowerCase()],
+            sql: 'UPDATE users SET is_pro = 1, is_business = ?, stripe_subscription_id = ? WHERE email = ?',
+            args: [isBusiness ? 1 : 0, sub.id, email.toLowerCase()],
           })
         }
       }
@@ -979,9 +1002,22 @@ export default async function handler(req, res) {
         const email = sub?.metadata?.user_email
         if (email) {
           await db.execute({
-            sql: 'UPDATE users SET is_pro = 0, stripe_subscription_id = NULL WHERE email = ?',
+            sql: 'UPDATE users SET is_pro = 0, is_business = 0, stripe_subscription_id = NULL WHERE email = ?',
             args: [email.toLowerCase()],
           })
+          // Revoke team members
+          const ownerRow = await db.execute({ sql: 'SELECT id FROM users WHERE email = ?', args: [email.toLowerCase()] })
+          const ownerId = ownerRow.rows[0]?.id
+          if (ownerId) {
+            const teamRow = await db.execute({ sql: 'SELECT team_id FROM users WHERE id = ?', args: [ownerId] })
+            const teamId = teamRow.rows[0]?.team_id
+            if (teamId) {
+              await db.execute({
+                sql: 'UPDATE users SET is_pro = 0, is_business = 0 WHERE team_id = ? AND id != ?',
+                args: [teamId, ownerId],
+              })
+            }
+          }
         }
       }
       return res.status(200).json({ received: true })
@@ -1082,11 +1118,21 @@ export default async function handler(req, res) {
       if (userRow.rows[0]?.team_id) return res.status(409).json({ error: 'Already in a team' })
       const { inviteCode } = req.body
       if (!inviteCode) return res.status(400).json({ error: 'inviteCode required' })
-      const teamRow = await db.execute({ sql: 'SELECT id FROM teams WHERE invite_code = ?', args: [inviteCode.trim().toUpperCase()] })
+      const teamRow = await db.execute({ sql: 'SELECT id, owner_id FROM teams WHERE invite_code = ?', args: [inviteCode.trim().toUpperCase()] })
       if (teamRow.rows.length === 0) return res.status(404).json({ error: 'Invalid invite code' })
       const teamId = teamRow.rows[0].id
+      const ownerId = teamRow.rows[0].owner_id
+      // Verify the team owner's Business plan is still active before granting access
+      const ownerPlanRow = await db.execute({ sql: 'SELECT is_business FROM users WHERE id = ?', args: [ownerId] })
+      if (!ownerPlanRow.rows[0]?.is_business) {
+        return res.status(403).json({ error: 'The team owner does not have an active Business plan' })
+      }
+      // Check seat limit
+      const memberCount = await db.execute({ sql: 'SELECT COUNT(*) as cnt FROM team_members WHERE team_id = ?', args: [teamId] })
+      if ((memberCount.rows[0]?.cnt || 0) >= 10) return res.status(409).json({ error: 'Team is full (10 members max)' })
       await db.execute({ sql: 'INSERT OR IGNORE INTO team_members (team_id, user_id, role, joined_at) VALUES (?, ?, ?, ?)', args: [teamId, payload.sub, 'member', new Date().toISOString()] })
-      await db.execute({ sql: 'UPDATE users SET team_id = ? WHERE id = ?', args: [teamId, payload.sub] })
+      // Grant Business plan access — member shares the owner's subscription
+      await db.execute({ sql: 'UPDATE users SET team_id = ?, is_pro = 1, is_business = 1 WHERE id = ?', args: [teamId, payload.sub] })
       return res.status(200).json({ success: true, teamId })
     }
 
@@ -1243,6 +1289,15 @@ export default async function handler(req, res) {
       // Check created within 7 days
       const age = Date.now() - new Date(invite.created_at).getTime()
       if (age > 7 * 24 * 60 * 60 * 1000) return res.status(410).json({ error: 'Invite has expired' })
+      // Verify team owner's Business plan is still active — don't grant access if owner cancelled
+      const ownerTeamRow = await db.execute({ sql: 'SELECT owner_id FROM teams WHERE id = ?', args: [invite.team_id] })
+      const teamOwnerId = ownerTeamRow.rows[0]?.owner_id
+      if (teamOwnerId) {
+        const ownerPlanRow = await db.execute({ sql: 'SELECT is_business FROM users WHERE id = ?', args: [teamOwnerId] })
+        if (!ownerPlanRow.rows[0]?.is_business) {
+          return res.status(403).json({ error: 'The team owner\'s Business plan is no longer active. Contact them to renew.' })
+        }
+      }
       const userRow = await db.execute({ sql: 'SELECT team_id FROM users WHERE id = ?', args: [payload.sub] })
       if (userRow.rows[0]?.team_id) return res.status(409).json({ error: 'You are already in a team' })
       // Check seat count (max 10 total)

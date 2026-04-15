@@ -140,11 +140,34 @@ export default async function handler(req, res) {
       const email = sub.metadata?.user_email
 
       if (email) {
+        // Revoke owner
         await db.execute({
           sql: 'UPDATE users SET is_pro = 0, is_business = 0, stripe_subscription_id = NULL WHERE LOWER(email) = LOWER(?)',
           args: [email],
         })
         console.log(`[stripe-webhook] Revoked subscription for ${email}`)
+
+        // Revoke all team members — they share the owner's Business plan,
+        // so cancellation must cascade to everyone in the team.
+        const ownerRow = await db.execute({
+          sql: 'SELECT id FROM users WHERE LOWER(email) = LOWER(?)',
+          args: [email],
+        })
+        const ownerId = ownerRow.rows[0]?.id
+        if (ownerId) {
+          const teamRow = await db.execute({
+            sql: 'SELECT team_id FROM users WHERE id = ?',
+            args: [ownerId],
+          })
+          const teamId = teamRow.rows[0]?.team_id
+          if (teamId) {
+            const memberUpdate = await db.execute({
+              sql: 'UPDATE users SET is_pro = 0, is_business = 0 WHERE team_id = ? AND id != ?',
+              args: [teamId, ownerId],
+            })
+            console.log(`[stripe-webhook] Revoked ${memberUpdate.rowsAffected} team member(s) for team ${teamId}`)
+          }
+        }
       }
     }
 
