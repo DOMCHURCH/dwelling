@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual, createDecipheriv } from 'crypto'
 import { createClient } from '@libsql/client'
+import { getUserEntitlementsByEmail } from './_entitlements.js'
 
 // ─── Startup validation ───────────────────────────────────────────────────────
 const SECRET = process.env.AUTH_SECRET
@@ -89,6 +90,13 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
+  // Guard against oversized bodies — validate before any DB or API work
+  // Vercel's default limit is 4.5 MB; we cap messages at 64 KB to prevent prompt-stuffing abuse
+  const bodyStr = JSON.stringify(req.body || {})
+  if (bodyStr.length > 64 * 1024) {
+    return res.status(413).json({ error: 'Request body too large (max 64 KB)' })
+  }
+
   // 1. Verify JWT
   const authHeader = req.headers.authorization
   if (!authHeader?.startsWith('Bearer ')) {
@@ -159,9 +167,12 @@ export default async function handler(req, res) {
     return res.status(r.status).json(data)
   }
 
-  // 4. Load user
+  // 4. Load user — use centralized entitlement function for plan check
   const db = getDb()
-  const result = await db.execute({ sql: 'SELECT * FROM users WHERE email = ?', args: [email] })
+  const ent = await getUserEntitlementsByEmail(db, email)
+
+  // Also load full user row for usage tracking fields
+  const result = await db.execute({ sql: 'SELECT analyses_used, analyses_reset_at FROM users WHERE LOWER(email) = LOWER(?)', args: [email] })
   let user = result.rows[0]
 
   if (!user) {
@@ -169,20 +180,22 @@ export default async function handler(req, res) {
       sql: 'INSERT OR IGNORE INTO users (email, id, salt, password, is_pro, analyses_used, analyses_reset_at) VALUES (?, ?, ?, ?, 0, 0, ?)',
       args: [email, payload.sub, '', '', new Date().toISOString()],
     })
-    user = { analyses_used: 0, is_pro: 0, analyses_reset_at: new Date().toISOString() }
+    user = { analyses_used: 0, analyses_reset_at: new Date().toISOString() }
   }
+
+  const isPro = ent.is_pro // always from DB, never JWT
 
   // 5. Monthly reset
   const resetAt = user.analyses_reset_at ? new Date(user.analyses_reset_at) : new Date(0)
   if ((Date.now() - resetAt.getTime()) / (1000 * 60 * 60 * 24) >= 30) {
-    await db.execute({ sql: 'UPDATE users SET analyses_used = 0, analyses_reset_at = ? WHERE email = ?', args: [new Date().toISOString(), email] })
+    await db.execute({ sql: 'UPDATE users SET analyses_used = 0, analyses_reset_at = ? WHERE LOWER(email) = LOWER(?)', args: [new Date().toISOString(), email] })
     user.analyses_used = 0
   }
 
   // 6. Enforce limit
   // X-Skip-Count is only honoured for pro users — never trust a free user's header
-  const skipCount = req.headers['x-skip-count'] === 'true' && !!user.is_pro
-  if (!user.is_pro && user.analyses_used >= FREE_LIMIT) {
+  const skipCount = req.headers['x-skip-count'] === 'true' && isPro
+  if (!isPro && user.analyses_used >= FREE_LIMIT) {
     return res.status(429).json({ error: 'limit reached' })
   }
 
@@ -203,12 +216,12 @@ export default async function handler(req, res) {
   }
 
   // 8. Increment counter
-  if (r.ok && !user.is_pro && !skipCount) {
-    await db.execute({ sql: 'UPDATE users SET analyses_used = analyses_used + 1 WHERE email = ?', args: [email] })
+  if (r.ok && !isPro && !skipCount) {
+    await db.execute({ sql: 'UPDATE users SET analyses_used = analyses_used + 1 WHERE LOWER(email) = LOWER(?)', args: [email] })
   }
 
   // C-1: Server-side paywall — strip premium fields before returning to free users.
   // This ensures premium data is never transmitted, even if client-side blur is bypassed.
-  const responseData = (r.ok && !user.is_pro) ? stripPremiumContent(data) : data
+  const responseData = (r.ok && !isPro) ? stripPremiumContent(data) : data
   res.status(r.status).json(responseData)
 }

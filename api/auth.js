@@ -4,6 +4,7 @@ import { createClient } from '@libsql/client'
 import { Resend } from 'resend'
 import { hash as argon2Hash, verify as argon2Verify } from '@node-rs/argon2'
 import { signupLimiter, signinLimiter, resetLimiter, apiLimiter, applyLimit, getRedis } from './_ratelimit.js'
+import { getUserEntitlements } from './_entitlements.js'
 import Stripe from 'stripe'
 
 const STRIPE_SECRET = process.env.STRIPE_SECRET_KEY
@@ -1029,17 +1030,20 @@ export default async function handler(req, res) {
       if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
       const payload = verify(authHeader.replace('Bearer ', ''))
       if (!payload) return res.status(401).json({ error: 'Invalid token' })
-      // Server-side Pro gate — client-only check is bypassable
-      const planRow = await db.execute({ sql: 'SELECT is_pro, is_business FROM users WHERE id = ?', args: [payload.sub] })
-      if (!planRow.rows[0]?.is_pro && !planRow.rows[0]?.is_business) {
+      // Server-side Pro gate — read from DB, never trust JWT claims
+      const ent = await getUserEntitlements(db, payload.sub)
+      if (!ent.is_pro && !ent.is_business) {
         return res.status(403).json({ error: 'Pro plan required to save reports' })
       }
       const { address, city, score, verdict, data } = req.body
       if (!data) return res.status(400).json({ error: 'data required' })
+      // Guard against oversized payloads clogging Turso storage (1 MB cap)
+      const serialized = JSON.stringify(data)
+      if (serialized.length > 1024 * 1024) return res.status(413).json({ error: 'Report data too large to save (max 1 MB)' })
       const id = randomBytes(12).toString('hex')
       await db.execute({
         sql: 'INSERT OR REPLACE INTO saved_reports (id, user_id, address, city, score, verdict, data, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        args: [id, payload.sub, address || '', city || '', score ?? null, verdict || null, JSON.stringify(data), new Date().toISOString()],
+        args: [id, payload.sub, address || '', city || '', score ?? null, verdict || null, serialized, new Date().toISOString()],
       })
       return res.status(200).json({ success: true, id })
     }
@@ -1171,6 +1175,9 @@ export default async function handler(req, res) {
       if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
       const payload = verify(authHeader.replace('Bearer ', ''))
       if (!payload) return res.status(401).json({ error: 'Invalid token' })
+      // Verify Business plan is still active — team_id alone doesn't guarantee active plan
+      const ent = await getUserEntitlements(db, payload.sub)
+      if (!ent.is_business && !ent.is_pro) return res.status(200).json({ logged: false })
       const userRow = await db.execute({ sql: 'SELECT team_id, email FROM users WHERE id = ?', args: [payload.sub] })
       const teamId = userRow.rows[0]?.team_id
       if (!teamId) return res.status(200).json({ logged: false }) // not in a team, silently skip
@@ -1193,10 +1200,13 @@ export default async function handler(req, res) {
       }
 
       const { address, city, score, verdict, data } = req.body
+      // Guard against oversized payloads clogging Turso storage (512 KB cap)
+      const teamReportSerialized = JSON.stringify(data || {})
+      if (teamReportSerialized.length > 512 * 1024) return res.status(413).json({ error: 'Report data too large (max 512 KB)' })
       const reportId = randomBytes(12).toString('hex')
       await db.execute({
         sql: 'INSERT INTO team_reports (id, team_id, user_id, user_email, address, city, score, verdict, data, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        args: [reportId, teamId, payload.sub, userRow.rows[0].email, address || '', city || '', score ?? null, verdict || null, JSON.stringify(data || {}), new Date().toISOString()],
+        args: [reportId, teamId, payload.sub, userRow.rows[0].email, address || '', city || '', score ?? null, verdict || null, teamReportSerialized, new Date().toISOString()],
       })
 
       // Read back the new count for the response
@@ -1213,6 +1223,9 @@ export default async function handler(req, res) {
       const userRow = await db.execute({ sql: 'SELECT team_id FROM users WHERE id = ?', args: [payload.sub] })
       const teamId = userRow.rows[0]?.team_id
       if (!teamId) return res.status(404).json({ error: 'Not in a team' })
+      // Only the team owner may change the logo
+      const teamRow = await db.execute({ sql: 'SELECT owner_id FROM teams WHERE id = ?', args: [teamId] })
+      if (teamRow.rows[0]?.owner_id !== payload.sub) return res.status(403).json({ error: 'Only the team owner can change the logo' })
       const { logo } = req.body
       if (!logo || typeof logo !== 'string') return res.status(400).json({ error: 'logo (base64) required' })
       if (logo.length > 2 * 1024 * 1024) return res.status(413).json({ error: 'Logo too large (max 2MB)' })
@@ -1226,6 +1239,9 @@ export default async function handler(req, res) {
       if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
       const payload = verify(authHeader.replace('Bearer ', ''))
       if (!payload) return res.status(401).json({ error: 'Invalid token' })
+      // Verify inviter still holds an active Business plan before sending any invite
+      const inviterEnt = await getUserEntitlements(db, payload.sub)
+      if (!inviterEnt.is_business) return res.status(403).json({ error: 'Active Business plan required to invite members' })
       const userRow = await db.execute({ sql: 'SELECT team_id, email FROM users WHERE id = ?', args: [payload.sub] })
       const teamId = userRow.rows[0]?.team_id
       if (!teamId) return res.status(403).json({ error: 'Not in a team' })
