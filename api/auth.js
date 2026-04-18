@@ -491,6 +491,20 @@ export default async function handler(req, res) {
       return res.status(200).json({ analyses_used: newCount, remaining: Math.max(0, FREE_LIMIT - newCount), atLimit, isPro: false })
     }
 
+    // ── decrement-analysis (refund a credit on failed analysis) ─────────────
+    if (action === 'decrement-analysis') {
+      const authHeader = req.headers.authorization
+      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
+      const payload = verify(authHeader.replace('Bearer ', ''))
+      if (!payload) return res.status(401).json({ error: 'Invalid token' })
+
+      const db = getDb()
+      await db.execute({ sql: 'UPDATE users SET analyses_used = MAX(0, analyses_used - 1) WHERE email = ? AND NOT is_pro', args: [payload.email] })
+      const freshResult = await db.execute({ sql: 'SELECT analyses_used FROM users WHERE email = ?', args: [payload.email] })
+      const newCount = freshResult.rows[0]?.analyses_used ?? 0
+      return res.status(200).json({ analyses_used: newCount, remaining: Math.max(0, FREE_LIMIT - newCount) })
+    }
+
     // ── save-key ────────────────────────────────────────────────────────────
     if (action === 'save-key') {
       if (await applyLimit(apiLimiter, clientIp, res)) return

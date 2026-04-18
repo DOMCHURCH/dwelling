@@ -439,16 +439,39 @@ export default function App() {
         compsSource,
       }
 
+      // Charge credit upfront for free logged-in users (refunded on failure below)
+      let creditCharged = false
+      if (user && !isPro) {
+        try {
+          const token = await getAuthToken()
+          if (token) {
+            const incRes = await fetch('/api/auth', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+              body: JSON.stringify({ action: 'increment-analysis' }),
+            })
+            const incData = await incRes.json()
+            if (incData.atLimit) {
+              setShowPaywall(true)
+              setPaywallTrigger('limit')
+              return
+            }
+            creditCharged = true
+            loadUserRecord()
+          }
+        } catch (e) {
+          console.error('[increment-analysis]', e.message)
+        }
+      }
+
       setLoadStep('investment')
       const deterministicResult = buildDeterministicReport({ geo, weather, neighborhood: neighborhoodScores, areaMetrics, climate })
 
       // Check for Cerebras key — if user has one, get full AI analysis
       const key = getCachedCerebrasKey()
       if (key) {
-        // User has provided their own Cerebras key — get full AI analysis
         setLoadStep('ai')
         const ai = await analyzeProperty(geo, weather, climate, knownFacts ?? {}, realData, key)
-        // Discard if a newer search has already fired
         if (searchGenerationRef.current !== generation) return
         const reportData = { geo, weather, climate, ai: mergeWithDeterministic(deterministicResult, ai), knownFacts: knownFacts ?? {}, realData, isAreaMode }
         setResult(reportData)
@@ -458,39 +481,26 @@ export default function App() {
         return
       }
 
-      // No key — show deterministic result (works for free users and guests)
+      // No key — show deterministic result
       const reportData = { geo, weather, climate, ai: deterministicResult, knownFacts: knownFacts ?? {}, realData, isAreaMode, isDeterministic: true }
-      // Discard if a newer search has already fired
       if (searchGenerationRef.current !== generation) return
       setResult(reportData)
       if (!user) setGuestResult(reportData)
       resetEngagement()
       if (!getUserType()) setTimeout(() => setShowUserTypeModal(true), 1800)
-
-      // Track usage for logged-in users
-      if (user) {
-        try {
-          const token = await getAuthToken()
-          if (token) {
-            const res = await fetch('/api/auth', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-              body: JSON.stringify({ action: 'increment-analysis' }),
-            })
-            const data = await res.json()
-            if (data.atLimit && !isPro) {
-              // Show paywall if free user hit limit
-              setShowPaywall(true)
-              setPaywallTrigger('limit')
-            }
-            if (res.ok) loadUserRecord()
-          }
-        } catch (e) {
-          console.error('[increment-analysis]', e.message)
-        }
-      }
       setTimeout(() => loadUserRecord(), 800)
     } catch (err) {
+      // Refund credit if analysis failed after charging
+      if (creditCharged) {
+        getAuthToken().then(token => {
+          if (!token) return
+          fetch('/api/auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ action: 'decrement-analysis' }),
+          }).then(() => loadUserRecord()).catch(() => {})
+        }).catch(() => {})
+      }
       if (err.message === "no_key") {
         if (isPro) setShowBYOKPrompt(true)
         else { setPaywallTrigger('limit'); setShowPaywall(true) }
