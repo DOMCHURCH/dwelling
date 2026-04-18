@@ -561,7 +561,7 @@ export default function Dashboard({
           verdict={ai.investment.verdict}
           roiEstimate={ai.investment?.roiEstimate}
           isPro={isPro}
-          onUpgrade={() => onLockedInteraction?.({ section: 'investment' })}
+          onUpgrade={() => onLockedInteraction?.('investment', 'click')}
         />
       )}
 
@@ -661,7 +661,7 @@ export default function Dashboard({
               title="Price History & Projections"
               icon="📊"
               ctaText="Unlock price trajectory →"
-              onUnlock={() => onLockedInteraction?.({ section: 'pricehistory' })}
+              onUnlock={() => onLockedInteraction?.('pricehistory', 'click')}
             />
           ) : (
             <PriceHistoryChart priceHistory={ai.priceHistory} convert={convert} sym={sym} />
@@ -678,7 +678,7 @@ export default function Dashboard({
               title="Environmental & Flood Risk"
               icon="🌊"
               ctaText="Unlock risk assessment →"
-              onUnlock={() => onLockedInteraction?.({ section: 'risk' })}
+              onUnlock={() => onLockedInteraction?.('risk', 'click')}
             />
           ) : (
             <div>
@@ -711,7 +711,7 @@ export default function Dashboard({
             title="Investment Analysis & ROI"
             icon="📈"
             ctaText="Unlock ROI breakdown →"
-            onUnlock={() => onLockedInteraction?.({ section: 'investment' })}
+            onUnlock={() => onLockedInteraction?.('investment', 'click')}
           />
         ) : investment ? (
           <div>
