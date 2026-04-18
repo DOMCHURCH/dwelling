@@ -579,7 +579,7 @@ export default function Dashboard({
               {[
                 { score: realData?.neighborhoodScores?.walkScore ?? neighborhood.walkScore, label: 'Walk', type: 'walk' },
                 { score: realData?.neighborhoodScores?.transitScore ?? neighborhood.transitScore, label: 'Transit', type: 'transit' },
-                { score: neighborhood.safetyRating, label: 'Safety', type: 'safety' },
+                { score: realData?.neighborhoodScores?.safetyScore ?? neighborhood.safetyScore ?? neighborhood.safetyRating, label: 'Safety', type: 'safety' },
                 { score: realData?.neighborhoodScores?.schoolScore ?? neighborhood.schoolRating, label: 'Schools', type: 'school' },
               ].map(({ score, label, type }) => (
                 <div key={label} style={{ textAlign: 'center' }}>

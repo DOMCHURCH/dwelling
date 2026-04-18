@@ -73,15 +73,14 @@ export const DEMO_RESULT = {
     priceHistory: {
       currency: 'CAD',
       data: [
-        { year: 2022, medianPrice: 920_000 },
-        { year: 2023, medianPrice: 960_000 },
-        { year: 2024, medianPrice: 1_010_000 },
-        { year: 2025, medianPrice: 1_050_000 },
+        { year: 2022, value: 920_000, type: 'historical' },
+        { year: 2023, value: 960_000, type: 'historical' },
+        { year: 2024, value: 1_010_000, type: 'historical' },
+        { year: 2025, value: 1_050_000, type: 'historical' },
+        { year: 2026, value: 1_085_000, type: 'projected' },
+        { year: 2027, value: 1_120_000, type: 'projected' },
       ],
-      projections: [
-        { year: 2026, projectedPrice: 1_085_000 },
-        { year: 2027, projectedPrice: 1_120_000 },
-      ],
+      marketNote: 'The market is currently stable. Economic growth and infrastructure development are expected to sustain demand.',
     },
     localInsights: {
       knownFor: 'Toronto is known for its diverse neighborhoods, world-class museums, and vibrant waterfront. The CN Tower, historic architecture, and thriving arts scene make it one of Canada\'s most dynamic cities.',

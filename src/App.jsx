@@ -492,7 +492,8 @@ export default function App() {
       setTimeout(() => loadUserRecord(), 800)
     } catch (err) {
       if (err.message === "no_key") {
-        setShowBYOKPrompt(true)
+        if (isPro) setShowBYOKPrompt(true)
+        else { setPaywallTrigger('limit'); setShowPaywall(true) }
         return
       }
       if (err.message?.includes("limit reached") || err.message?.includes("429")) {
@@ -602,7 +603,8 @@ export default function App() {
       }
       const key = getCachedCerebrasKey()
       if (!key) {
-        setShowBYOKPrompt(true)
+        if (isPro) setShowBYOKPrompt(true)
+        else { setPaywallTrigger('compare'); setShowPaywall(true) }
         setLoading(false)
         return
       }
@@ -613,7 +615,8 @@ export default function App() {
       setTimeout(() => loadUserRecord(), 800)
     } catch (err) {
       if (err.message === "no_key") {
-        setShowBYOKPrompt(true)
+        if (isPro) setShowBYOKPrompt(true)
+        else { setPaywallTrigger('compare'); setShowPaywall(true) }
         return
       }
       if (err.message?.includes("limit reached") || err.message?.includes("429")) {
@@ -690,7 +693,8 @@ export default function App() {
       }
       const key = getCachedCerebrasKey()
       if (!key) {
-        setShowBYOKPrompt(true)
+        if (isPro) setShowBYOKPrompt(true)
+        else { setPaywallTrigger('compare'); setShowPaywall(true) }
         setLoading(false)
         return
       }
@@ -700,7 +704,8 @@ export default function App() {
       setComparingModeC(false)
     } catch (err) {
       if (err.message === "no_key") {
-        setShowBYOKPrompt(true)
+        if (isPro) setShowBYOKPrompt(true)
+        else { setPaywallTrigger('compare'); setShowPaywall(true) }
         return
       }
       setError(err.message ?? "Something went wrong.")

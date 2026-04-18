@@ -85,7 +85,8 @@ function buildHTML(result, { brandName: _brandName, clientName: _clientName, log
   const medianDOM = areaMetrics?.medianDOM != null ? `${areaMetrics.medianDOM} days` : "—"
   const medianPPSF = areaMetrics?.medianPPSF ? fmtK(areaMetrics.medianPPSF, sym) : "—"
   const activeListings = n(areaMetrics?.count, "")
-  const mktTemp = n(marketTemperature || areaMetrics?.marketTemperature, "")
+  const mktTempRaw = marketTemperature || areaMetrics?.marketTemperature
+  const mktTemp = n(mktTempRaw?.label || (typeof mktTempRaw === "string" ? mktTempRaw : null), "")
 
   /* Cost of living — exact field names */
   const monthlyBudget = fmtK(costOfLiving.monthlyBudgetUSD, sym)
