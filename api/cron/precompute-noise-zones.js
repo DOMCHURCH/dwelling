@@ -31,7 +31,10 @@ const OVERPASS_URL = 'https://overpass-api.de/api/interpreter'
 const GRID_STEP = 0.01 // ~1 km
 
 export default async function handler(req, res) {
-  // Vercel Cron passes Authorization header — validate it
+  if (!process.env.CRON_SECRET) {
+    console.error('[precompute-noise-zones] FATAL: CRON_SECRET env var not set')
+    return res.status(500).json({ error: 'CRON_SECRET not configured' })
+  }
   if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
     return res.status(401).json({ error: 'Unauthorized' })
   }

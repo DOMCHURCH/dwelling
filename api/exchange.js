@@ -4,8 +4,14 @@ import { apiLimiter, applyLimit } from './_ratelimit.js'
 // Frankfurter is maintained by the European Central Bank
 // https://www.frankfurter.app
 
+const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'https://dwelling.one'
+
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', process.env.ALLOWED_ORIGIN || 'https://dwelling.one')
+  const origin = req.headers.origin
+  if (origin === ALLOWED_ORIGIN) {
+    res.setHeader('Access-Control-Allow-Origin', origin)
+  }
+  res.setHeader('Vary', 'Origin')
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
   // Cache for 1 hour — rates don't change that fast

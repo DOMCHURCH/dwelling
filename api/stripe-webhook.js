@@ -47,45 +47,37 @@ export default async function handler(req, res) {
   }
 
   if (!STRIPE_SECRET) {
+    console.error('[stripe-webhook] FATAL: STRIPE_SECRET_KEY env var not set')
     return res.status(503).json({ error: 'Stripe not configured' })
   }
 
-  const stripe = new Stripe(STRIPE_SECRET, { apiVersion: '2024-06-20' })
+  if (!STRIPE_WEBHOOK_SECRET) {
+    console.error('[stripe-webhook] FATAL: STRIPE_WEBHOOK_SECRET env var not set — refusing all webhook requests')
+    return res.status(500).json({ error: 'Webhook secret not configured. Set STRIPE_WEBHOOK_SECRET in environment variables.' })
+  }
+
   const sig = req.headers['stripe-signature']
+  if (!sig) {
+    console.error('[stripe-webhook] Missing stripe-signature header — request rejected')
+    return res.status(400).json({ error: 'Missing stripe-signature header' })
+  }
+
+  const stripe = new Stripe(STRIPE_SECRET, { apiVersion: '2024-06-20' })
   let event
 
-  if (STRIPE_WEBHOOK_SECRET) {
-    // Production: verify the webhook signature using raw body bytes
-    let rawBody
-    try {
-      rawBody = await getRawBody(req)
-    } catch (err) {
-      console.error('[stripe-webhook] Failed to read raw body:', err.message)
-      return res.status(400).json({ error: 'Could not read request body' })
-    }
+  let rawBody
+  try {
+    rawBody = await getRawBody(req)
+  } catch (err) {
+    console.error('[stripe-webhook] Failed to read raw body:', err.message)
+    return res.status(400).json({ error: 'Could not read request body' })
+  }
 
-    if (!sig) {
-      console.error('[stripe-webhook] Missing stripe-signature header')
-      return res.status(400).json({ error: 'Missing stripe-signature header' })
-    }
-
-    try {
-      event = stripe.webhooks.constructEvent(rawBody, sig, STRIPE_WEBHOOK_SECRET)
-    } catch (err) {
-      console.error('[stripe-webhook] Signature verification failed:', err.message)
-      return res.status(400).json({ error: `Webhook signature invalid: ${err.message}` })
-    }
-  } else {
-    // Development only: accept without signature verification
-    // NEVER deploy to production without STRIPE_WEBHOOK_SECRET set
-    console.warn('[stripe-webhook] STRIPE_WEBHOOK_SECRET not set — skipping verification (dev mode only)')
-    try {
-      const rawBody = await getRawBody(req)
-      event = JSON.parse(rawBody.toString('utf8'))
-    } catch {
-      return res.status(400).json({ error: 'Invalid JSON body' })
-    }
-    if (!event?.type) return res.status(400).json({ error: 'Invalid Stripe event' })
+  try {
+    event = stripe.webhooks.constructEvent(rawBody, sig, STRIPE_WEBHOOK_SECRET)
+  } catch (err) {
+    console.error('[stripe-webhook] Signature verification failed:', err.message)
+    return res.status(400).json({ error: `Webhook signature invalid: ${err.message}` })
   }
 
   const db = getDb()

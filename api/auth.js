@@ -423,6 +423,7 @@ export default async function handler(req, res) {
 
     // ── reset-password ──────────────────────────────────────────────────────
     if (action === 'reset-password') {
+      if (await applyLimit(resetLimiter, clientIp, res)) return
       const { token, password } = req.body
       if (!token || !password) return res.status(400).json({ error: 'Missing token or password.' })
       if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters.' })
@@ -764,6 +765,7 @@ export default async function handler(req, res) {
 
     // ── change-password ───────────────────────────────────────────────────────
     if (action === 'change-password') {
+      if (await applyLimit(resetLimiter, clientIp, res)) return
       const authHeader = req.headers.authorization
       if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
       const payload = verify(authHeader.replace('Bearer ', ''))
@@ -982,60 +984,6 @@ export default async function handler(req, res) {
       }
 
       return res.status(200).json({ success: true, message: `${targetEmail} changed to ${newPlan}`, email: targetEmail.trim().toLowerCase(), newPlan })
-    }
-
-    // ── Stripe: webhook ───────────────────────────────────────────────────────
-    // NOTE: Vercel pre-parses the request body so the raw bytes Stripe signed are
-    // unavailable here. Signature verification via constructEvent() will always fail
-    // in this handler because JSON.stringify(parsed) ≠ original bytes.
-    // For production-grade webhook verification, create a dedicated
-    // /api/stripe-webhook endpoint that buffers the raw stream before parsing.
-    // For test mode (no STRIPE_WEBHOOK_SECRET set), events are accepted as-is.
-    if (action === 'webhook') {
-      const event = req.body
-      // Guard: if a webhook secret is configured, reject unauthenticated calls
-      // until a raw-body endpoint replaces this handler.
-      if (STRIPE_WEBHOOK_SECRET) {
-        return res.status(501).json({ error: 'Webhook signature verification requires a raw-body endpoint. Configure /api/stripe-webhook instead.' })
-      }
-      const db = getDb()
-      const type = event.type || ''
-      if (type === 'customer.subscription.created' || type === 'customer.subscription.updated') {
-        const sub = event.data?.object
-        const email = sub?.metadata?.user_email
-        const plan = sub?.metadata?.plan ?? ''
-        const isBusiness = plan.startsWith('business')
-        if (email && sub?.status === 'active') {
-          await db.execute({
-            sql: 'UPDATE users SET is_pro = 1, is_business = ?, stripe_subscription_id = ? WHERE email = ?',
-            args: [isBusiness ? 1 : 0, sub.id, email.toLowerCase()],
-          })
-        }
-      }
-      if (type === 'customer.subscription.deleted') {
-        const sub = event.data?.object
-        const email = sub?.metadata?.user_email
-        if (email) {
-          await db.execute({
-            sql: 'UPDATE users SET is_pro = 0, is_business = 0, stripe_subscription_id = NULL WHERE email = ?',
-            args: [email.toLowerCase()],
-          })
-          // Revoke team members
-          const ownerRow = await db.execute({ sql: 'SELECT id FROM users WHERE email = ?', args: [email.toLowerCase()] })
-          const ownerId = ownerRow.rows[0]?.id
-          if (ownerId) {
-            const teamRow = await db.execute({ sql: 'SELECT team_id FROM users WHERE id = ?', args: [ownerId] })
-            const teamId = teamRow.rows[0]?.team_id
-            if (teamId) {
-              await db.execute({
-                sql: 'UPDATE users SET is_pro = 0, is_business = 0 WHERE team_id = ? AND id != ?',
-                args: [teamId, ownerId],
-              })
-            }
-          }
-        }
-      }
-      return res.status(200).json({ received: true })
     }
 
     // ── Saved Reports: save ──────────────────────────────────────────────────
