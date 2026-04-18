@@ -1,7 +1,7 @@
 /**
  * deterministicReport.js
  * Zero-cost report engine — produces full reports using heuristics only.
- * NO API calls. Safe fallbacks for all missing metrics.
+ * Output shape mirrors the AI response so Dashboard renders without changes.
  */
 
 function normalize(value, min, max) {
@@ -35,75 +35,101 @@ function deriveVerdict(score) {
   return             { label: 'AVOID', confidence: 'High',   riskLevel: 'High'   }
 }
 
-function deriveMarketHeat(areaMetrics = {}) {
-  const growth = areaMetrics.priceGrowth1yr ?? 0
-  const vacancy = areaMetrics.vacancyRate ?? 5
-  if (growth > 8 || vacancy < 2) return 'hot'
-  if (growth < 0 || vacancy > 8) return 'cold'
-  return 'medium'
-}
-
-function buildEst(areaMetrics = {}) {
-  return {
-    medianValue:    areaMetrics.medianPrice      ?? 650000,
-    pricePerSqft:   areaMetrics.pricePerSqft     ?? 700,
-    rentPerMonth:   areaMetrics.avgRent          ?? 2200,
-    confidence:     areaMetrics.dataConfidence   ?? 72,
-    compsAnalyzed:  areaMetrics.listingsAnalyzed ?? 12,
-  }
-}
-
-function buildCostOfLiving(areaMetrics = {}) {
-  const rent = areaMetrics.avgRent ?? 2200
-  const index = areaMetrics.colIndex ?? 105
-  return {
-    index,
-    rentAvg:    rent,
-    groceries:  Math.round(rent * 0.18),
-    transport:  Math.round(rent * 0.12),
-    utilities:  Math.round(rent * 0.08),
-    summary:    index > 110
-      ? 'Cost of living is above the national average.'
-      : index < 95
-      ? 'Cost of living is below the national average.'
-      : 'Cost of living is near the national average.',
-  }
-}
-
-function buildPriceHistory(areaMetrics = {}) {
-  const currentPrice = areaMetrics.medianPrice ?? 650000
-  const growth = areaMetrics.priceGrowth1yr ?? 3
-  const currentYear = new Date().getFullYear()
-
-  // Build 4 data points working backward
-  const data = [0, 1, 2, 3].map(yearsAgo => ({
-    year: currentYear - yearsAgo,
-    medianPrice: Math.round(currentPrice / Math.pow(1 + growth / 100, yearsAgo)),
-  })).reverse()
-
-  return { data, projections: null }
+function deriveOutlook(score) {
+  if (score >= 70) return 'bullish'
+  if (score >= 45) return 'neutral'
+  return 'bearish'
 }
 
 export function buildDeterministicReport({ geo, weather, neighborhood, areaMetrics, climate } = {}) {
-  const score = computeInvestmentScore(areaMetrics)
+  const am = areaMetrics || {}
+  const score = computeInvestmentScore(am)
+  const verdict = deriveVerdict(score)
+  const outlook = deriveOutlook(score)
+
+  const medianPrice = am.medianPrice ?? 650_000
+  const rent = am.avgRent ?? 2_200
+  const pricePerSqft = am.pricePerSqft ?? Math.round(medianPrice / 1000)
+  const growth = am.priceGrowth1yr ?? 3
+  const colIndex = am.colIndex ?? 105
+  const currentYear = new Date().getFullYear()
+
+  const rentYield = medianPrice > 0 ? +((rent * 12 / medianPrice) * 100).toFixed(1) : 4.0
+
+  // Price history — 4 historical years + 2 projected
+  const histData = [3, 2, 1, 0].map(yearsAgo => ({
+    year: currentYear - yearsAgo,
+    value: Math.round(medianPrice / Math.pow(1 + growth / 100, yearsAgo)),
+    type: 'historical',
+  }))
+  const projData = [1, 2].map(yearsAhead => ({
+    year: currentYear + yearsAhead,
+    value: Math.round(medianPrice * Math.pow(1 + growth / 100, yearsAhead)),
+    type: 'projected',
+  }))
+
+  const colSummary = colIndex > 110
+    ? 'Cost of living is above the national average.'
+    : colIndex < 95
+    ? 'Cost of living is below the national average.'
+    : 'Cost of living is near the national average.'
 
   return {
-    geo,
-    weather,
-    climate,
-    neighborhood,
-    est:          buildEst(areaMetrics),
-    investment: {
-      score,
-      verdict:        deriveVerdict(score),
-      roiEstimate:    null,
-      priceTrajectory: null,
+    propertyEstimate: {
+      estimatedValueUSD:       medianPrice,
+      pricePerSqftUSD:         pricePerSqft,
+      rentEstimateMonthlyUSD:  rent,
+      confidenceScore:         am.dataConfidence ?? 68,
+      confidenceLevel:         'medium',
+      compsAnalyzed:           am.listingsAnalyzed ?? am.count ?? 10,
+      compsUsed:               am.listingsAnalyzed ?? am.count ?? 10,
+      dataQuality:             'estimated',
     },
-    costOfLiving:  buildCostOfLiving(areaMetrics),
-    priceHistory:  buildPriceHistory(areaMetrics),
-    marketHeat:    deriveMarketHeat(areaMetrics),
-    risk:          null,
-    aiSummary:     null,
+    costOfLiving: {
+      index:                   colIndex,
+      indexVsUSAverage:        colIndex - 100,
+      monthlyBudgetUSD:        Math.round(rent + rent * 0.38),
+      rentEstimateMonthlyUSD:  rent,
+      groceriesMonthlyUSD:     Math.round(rent * 0.18),
+      transportMonthlyUSD:     Math.round(rent * 0.12),
+      utilitiesMonthlyUSD:     Math.round(rent * 0.08),
+      diningOutMonthlyUSD:     Math.round(rent * 0.14),
+      summary:                 colSummary,
+    },
+    neighborhood: {
+      walkScore:    neighborhood?.walkScore   ?? 55,
+      transitScore: neighborhood?.transitScore ?? 45,
+      schoolRating: neighborhood?.schoolScore  ?? neighborhood?.schoolRating ?? 55,
+      safetyScore:  neighborhood?.safetyScore  ?? neighborhood?.safetyRating ?? 55,
+    },
+    investment: {
+      investmentScore:          score,
+      appreciationOutlook:      outlook,
+      appreciationOutlookText:  `Market fundamentals suggest a ${outlook} outlook for this area.`,
+      investmentSummary:        `Based on available data, this area ${score >= 70 ? 'presents a solid investment opportunity' : score >= 45 ? 'warrants a hold-and-monitor approach' : 'carries elevated risk for investors'}.`,
+      rentYieldPercent:         rentYield,
+      capRatePercent:           +(rentYield * 0.85).toFixed(1),
+      verdict,
+      roiEstimate:              null,
+      priceTrajectory:          growth,
+    },
+    priceHistory: {
+      currency: 'CAD',
+      data: [...histData, ...projData],
+      marketNote: `Based on ${am.count ?? 'available'} local listings.`,
+    },
+    areaIntelligence: {
+      verdict:          score >= 70 ? 'Good' : score >= 45 ? 'Fair' : 'Caution',
+      verdictReason:    `Area analysis based on market data. ${colSummary}`,
+      marketConditions: am.medianDOM != null
+        ? `Median days on market: ${am.medianDOM}. ${am.count ?? ''} active listings.`
+        : 'Market conditions estimated from available data.',
+      upsides:  [],
+      risks:    [],
+      bestFor:  'Buyers and investors seeking data-driven area insights.',
+    },
+    riskData:      null,
+    localInsights: null,
     isDeterministic: true,
   }
 }
