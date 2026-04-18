@@ -2,6 +2,7 @@
 // Fetches local housing market news via Google News RSS — no API key needed
 // Cache 2 hours per city since news doesn't change minute-to-minute
 import { apiLimiter, applyLimit } from './_ratelimit.js'
+import { getClientIp } from './_ratelimit.js'
 
 const _cache = new Map()
 const CACHE_TTL = 1000 * 60 * 60 * 2
@@ -15,7 +16,7 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 's-maxage=7200')
   if (req.method === 'OPTIONS') return res.status(204).end()
 
-  const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown'
+  const clientIp = getClientIp(req)
   if (await applyLimit(apiLimiter, clientIp, res)) return
 
   const { city, state, country } = req.method === 'POST' ? req.body : req.query

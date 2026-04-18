@@ -212,6 +212,7 @@ function findCity(cityName, dataset) {
 
 // ─── VERCEL HANDLER ──────────────────────────────────────────────────────────
 import { apiLimiter, applyLimit } from './_ratelimit.js'
+import { getClientIp } from './_ratelimit.js'
 
 export default async function handler(req, res) {
   if ((req.headers.origin || '') === (process.env.ALLOWED_ORIGIN || 'https://dwelling.one'))
@@ -222,7 +223,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end()
   res.setHeader('Cache-Control', 'public, s-maxage=3600')
 
-  const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown'
+  const clientIp = getClientIp(req)
   if (await applyLimit(apiLimiter, clientIp, res)) return
 
   const { city, country } = req.method === 'POST' ? req.body : req.query

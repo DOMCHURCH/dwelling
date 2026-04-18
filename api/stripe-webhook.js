@@ -120,6 +120,14 @@ export default async function handler(req, res) {
           args: [isBusiness ? 1 : 0, sub.id, email],
         })
         console.log(`[stripe-webhook] Activated ${isBusiness ? 'business' : 'pro'} for ${email}`)
+      } else if (sub.status === 'canceled') {
+        // Immediate cancellation fires subscription.updated with status=canceled
+        // before subscription.deleted — revoke access here too to avoid access gap
+        await db.execute({
+          sql: 'UPDATE users SET is_pro = 0, is_business = 0, stripe_subscription_id = NULL WHERE LOWER(email) = LOWER(?)',
+          args: [email],
+        })
+        console.log(`[stripe-webhook] Revoked access (canceled status) for ${email}`)
       } else if (sub.status === 'past_due' || sub.status === 'unpaid') {
         // Stripe retries payment automatically — don't revoke yet, just log
         console.warn(`[stripe-webhook] Subscription ${sub.id} for ${email} is ${sub.status} — awaiting retry`)

@@ -2,6 +2,7 @@
 // Merges what were two separate files to stay within Vercel Hobby's 12-function limit.
 // Both API keys (HUD_TOKEN, CENSUS_API_KEY) are server-side only — never in client bundle.
 import { apiLimiter, applyLimit } from './_ratelimit.js'
+import { getClientIp } from './_ratelimit.js'
 
 const HUD_TOKEN = process.env.HUD_TOKEN ?? ''
 const CENSUS_KEY = process.env.CENSUS_API_KEY ?? ''
@@ -112,7 +113,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown'
+  const clientIp = getClientIp(req)
   if (await applyLimit(apiLimiter, clientIp, res)) return
 
   const { action } = req.body || {}

@@ -3,7 +3,7 @@ import { promisify } from 'util'
 import { createClient } from '@libsql/client'
 import { Resend } from 'resend'
 import { hash as argon2Hash, verify as argon2Verify } from '@node-rs/argon2'
-import { signupLimiter, signinLimiter, resetLimiter, apiLimiter, applyLimit, getRedis } from './_ratelimit.js'
+import { signupLimiter, signinLimiter, resetLimiter, apiLimiter, applyLimit, getRedis, getClientIp } from './_ratelimit.js'
 import { getUserEntitlements } from './_entitlements.js'
 import Stripe from 'stripe'
 
@@ -327,7 +327,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
   const { action } = req.body || {}
-  const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown'
+  const clientIp = getClientIp(req)
   const db = getDb()
 
   try {
@@ -494,6 +494,7 @@ export default async function handler(req, res) {
 
     // ── decrement-analysis (refund a credit on failed analysis) ─────────────
     if (action === 'decrement-analysis') {
+      if (await applyLimit(resetLimiter, clientIp, res)) return
       const authHeader = req.headers.authorization
       if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
       const payload = verify(authHeader.replace('Bearer ', ''))
@@ -569,7 +570,10 @@ export default async function handler(req, res) {
         } catch { key = null }
       }
 
-      return res.status(200).json({ key })
+      // Return redacted key — client only needs to know if a key is set and its last 4 chars for confirmation.
+      // Never return the plaintext key to prevent XSS-based key exfiltration.
+      const redacted = key ? `csk-...${key.slice(-4)}` : null
+      return res.status(200).json({ key: redacted, hasKey: !!key })
     }
 
     // ── delete-account ──────────────────────────────────────────────────────
@@ -638,6 +642,10 @@ export default async function handler(req, res) {
 
     if (action === 'notify-pro') {
       if (await applyLimit(apiLimiter, clientIp, res)) return
+      const authHeader = req.headers.authorization
+      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
+      const payload = verify(authHeader.replace('Bearer ', ''))
+      if (!payload) return res.status(401).json({ error: 'Invalid token' })
       const { email: notifyEmail } = req.body
       if (!notifyEmail || typeof notifyEmail !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(notifyEmail)) {
         return res.status(400).json({ error: 'Invalid email.' })
@@ -1093,10 +1101,14 @@ export default async function handler(req, res) {
       if (!ownerPlanRow.rows[0]?.is_business) {
         return res.status(403).json({ error: 'The team owner does not have an active Business plan' })
       }
-      // Check seat limit
-      const memberCount = await db.execute({ sql: 'SELECT COUNT(*) as cnt FROM team_members WHERE team_id = ?', args: [teamId] })
-      if ((memberCount.rows[0]?.cnt || 0) >= 10) return res.status(409).json({ error: 'Team is full (10 members max)' })
-      await db.execute({ sql: 'INSERT OR IGNORE INTO team_members (team_id, user_id, role, joined_at) VALUES (?, ?, ?, ?)', args: [teamId, payload.sub, 'member', new Date().toISOString()] })
+      // Atomic seat-limit check + insert — prevents concurrent join race condition
+      const joinResult = await db.execute({
+        sql: `INSERT OR IGNORE INTO team_members (team_id, user_id, role, joined_at)
+              SELECT ?, ?, 'member', ?
+              WHERE (SELECT COUNT(*) FROM team_members WHERE team_id = ?) < 10`,
+        args: [teamId, payload.sub, new Date().toISOString(), teamId],
+      })
+      if (joinResult.rowsAffected === 0) return res.status(409).json({ error: 'Team is full (10 members max)' })
       // Grant Business plan access — member shares the owner's subscription
       await db.execute({ sql: 'UPDATE users SET team_id = ?, is_pro = 1, is_business = 1 WHERE id = ?', args: [teamId, payload.sub] })
       return res.status(200).json({ success: true, teamId })
@@ -1190,6 +1202,9 @@ export default async function handler(req, res) {
       if (teamRow.rows[0]?.owner_id !== payload.sub) return res.status(403).json({ error: 'Only the team owner can change the logo' })
       const { logo } = req.body
       if (!logo || typeof logo !== 'string') return res.status(400).json({ error: 'logo (base64) required' })
+      if (!/^data:image\/(png|jpeg|gif|webp);base64,/.test(logo)) {
+        return res.status(400).json({ error: 'logo must be a base64-encoded image (PNG, JPEG, GIF, or WebP)' })
+      }
       if (logo.length > 2 * 1024 * 1024) return res.status(413).json({ error: 'Logo too large (max 2MB)' })
       await db.execute({ sql: 'UPDATE teams SET logo_data = ? WHERE id = ?', args: [logo, teamId] })
       return res.status(200).json({ success: true })
@@ -1264,6 +1279,9 @@ export default async function handler(req, res) {
       const invite = inviteRow.rows[0]
       if (!invite) return res.status(404).json({ error: 'Invalid or expired invite' })
       if (invite.accepted_at) return res.status(409).json({ error: 'Invite already used' })
+      if (invite.email && invite.email.toLowerCase() !== payload.email.toLowerCase()) {
+        return res.status(403).json({ error: 'This invite was sent to a different email address' })
+      }
       // Check created within 7 days
       const age = Date.now() - new Date(invite.created_at).getTime()
       if (age > 7 * 24 * 60 * 60 * 1000) return res.status(410).json({ error: 'Invite has expired' })
@@ -1278,10 +1296,14 @@ export default async function handler(req, res) {
       }
       const userRow = await db.execute({ sql: 'SELECT team_id FROM users WHERE id = ?', args: [payload.sub] })
       if (userRow.rows[0]?.team_id) return res.status(409).json({ error: 'You are already in a team' })
-      // Check seat count (max 10 total)
-      const memberCount = await db.execute({ sql: 'SELECT COUNT(*) as cnt FROM team_members WHERE team_id = ?', args: [invite.team_id] })
-      if ((memberCount.rows[0]?.cnt || 0) >= 10) return res.status(409).json({ error: 'Team is full (10 members max)' })
-      await db.execute({ sql: 'INSERT OR IGNORE INTO team_members (team_id, user_id, role, joined_at) VALUES (?, ?, ?, ?)', args: [invite.team_id, payload.sub, 'member', new Date().toISOString()] })
+      // Atomic seat-limit check + insert — prevents concurrent accept race condition
+      const acceptResult = await db.execute({
+        sql: `INSERT OR IGNORE INTO team_members (team_id, user_id, role, joined_at)
+              SELECT ?, ?, 'member', ?
+              WHERE (SELECT COUNT(*) FROM team_members WHERE team_id = ?) < 10`,
+        args: [invite.team_id, payload.sub, new Date().toISOString(), invite.team_id],
+      })
+      if (acceptResult.rowsAffected === 0) return res.status(409).json({ error: 'Team is full (10 members max)' })
       // Grant business access to invited members — they share the owner's Business plan
       await db.execute({ sql: 'UPDATE users SET team_id = ?, is_pro = 1, is_business = 1 WHERE id = ?', args: [invite.team_id, payload.sub] })
       await db.execute({ sql: 'UPDATE team_invites SET accepted_at = ? WHERE token = ?', args: [new Date().toISOString(), inviteToken] })
@@ -1315,6 +1337,7 @@ export default async function handler(req, res) {
     }
 
     if (action === 'get-shared-report') {
+      if (await applyLimit(apiLimiter, clientIp, res)) return
       const { token } = req.body
       if (!token) return res.status(400).json({ error: 'token required' })
 

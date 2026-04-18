@@ -1,5 +1,6 @@
 // api/exchange.js
 import { apiLimiter, applyLimit } from './_ratelimit.js'
+import { getClientIp } from './_ratelimit.js'
 // Fetches live exchange rates using Frankfurter API — completely free, no key needed
 // Frankfurter is maintained by the European Central Bank
 // https://www.frankfurter.app
@@ -18,7 +19,7 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate')
   if (req.method === 'OPTIONS') return res.status(204).end()
 
-  const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown'
+  const clientIp = getClientIp(req)
   if (await applyLimit(apiLimiter, clientIp, res)) return
 
   const { base = 'USD' } = req.query

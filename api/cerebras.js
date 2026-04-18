@@ -1,6 +1,9 @@
 import { createHmac, timingSafeEqual, createDecipheriv } from 'crypto'
 import { createClient } from '@libsql/client'
 import { getUserEntitlementsByEmail } from './_entitlements.js'
+import { getClientIp } from './_ratelimit.js'
+
+const ALLOWED_MODELS = ['llama-4-scout-17b-16e-instruct', 'llama-3.3-70b']
 
 // ─── Startup validation ───────────────────────────────────────────────────────
 const SECRET = process.env.AUTH_SECRET
@@ -155,13 +158,17 @@ export default async function handler(req, res) {
     })
   }
 
-  // 3. Admin bypass
+  // 3. Admin bypass — still subject to model allowlist and stream guard
   if (isAdmin) {
     const { model, messages, temperature, max_tokens, stream } = req.body
+    if (!ALLOWED_MODELS.includes(model)) {
+      return res.status(400).json({ error: `Invalid model. Allowed: ${ALLOWED_MODELS.join(', ')}` })
+    }
+    if (stream) return res.status(400).json({ error: 'Streaming not supported via this endpoint' })
     const r = await fetch('https://api.cerebras.ai/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({ model, messages, temperature, max_tokens, stream }),
+      body: JSON.stringify({ model, messages, temperature, max_tokens: Math.min(max_tokens || 4096, 8192) }),
     })
     const data = await r.json()
     return res.status(r.status).json(data)
@@ -192,11 +199,18 @@ export default async function handler(req, res) {
     user.analyses_used = 0
   }
 
-  // 6. Enforce limit
-  // X-Skip-Count is only honoured for pro users — never trust a free user's header
+  // 6. Enforce limit — atomic pre-flight increment eliminates check-then-use race condition.
+  // We increment before calling Cerebras and refund on failure, so concurrent requests
+  // cannot both pass the gate at the same time.
   const skipCount = req.headers['x-skip-count'] === 'true' && isPro
-  if (!isPro && user.analyses_used >= FREE_LIMIT) {
-    return res.status(429).json({ error: 'limit reached' })
+  if (!isPro && !skipCount) {
+    const incResult = await db.execute({
+      sql: 'UPDATE users SET analyses_used = analyses_used + 1 WHERE LOWER(email) = LOWER(?) AND NOT is_pro AND analyses_used < ?',
+      args: [email, FREE_LIMIT],
+    })
+    if (incResult.rowsAffected === 0) {
+      return res.status(429).json({ error: 'limit reached' })
+    }
   }
 
   // 7. Call Cerebras
@@ -206,6 +220,15 @@ export default async function handler(req, res) {
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
     body: JSON.stringify({ model, messages, temperature, max_tokens, stream }),
   })
+
+  // Refund the pre-flight credit if Cerebras failed — ensures free users aren't charged for API errors
+  if (!r.ok && !isPro && !skipCount) {
+    await db.execute({
+      sql: 'UPDATE users SET analyses_used = MAX(0, analyses_used - 1) WHERE LOWER(email) = LOWER(?) AND NOT is_pro',
+      args: [email],
+    }).catch(() => {}) // best-effort refund
+  }
+
   const data = await r.json()
 
   if (r.status === 401 || data.error?.code === 'wrong_api_key') {
@@ -213,11 +236,6 @@ export default async function handler(req, res) {
       ? 'The platform API key is invalid. Please contact the administrator.'
       : 'Your Cerebras API key is invalid. Please check your settings.'
     return res.status(401).json({ error: 'invalid_key', message: msg })
-  }
-
-  // 8. Increment counter
-  if (r.ok && !isPro && !skipCount) {
-    await db.execute({ sql: 'UPDATE users SET analyses_used = analyses_used + 1 WHERE LOWER(email) = LOWER(?)', args: [email] })
   }
 
   // C-1: Server-side paywall — strip premium fields before returning to free users.

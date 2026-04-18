@@ -98,7 +98,8 @@
       "Bash(curl -s -w '\\\\nHTTP:%{http_code}' -X POST https://www.dwelling.one/api/auth -H 'Content-Type: application/json' -H 'Origin: https://www.dwelling.one' -d '{\"action\":\"create-checkout\",\"plan\":\"pro\",\"billing\":\"monthly\"}')",
       "Bash(<\\\\|\\\\.html\\\\b\\\\|htmlContent\\\\|generateHTML\\\\|innerHTML\\\\|escapeHtml\" /c/Users/Dominique/dwelling/src/components/PDFExportModal.jsx | head -30)",
       "mcp__plugin_claude-mem_mcp-search__smart_search",
-      "Bash(xargs cat *)"
+      "Bash(xargs cat *)",
+      "Bash(python3 *)"
     ]
   },
   "hooks": {

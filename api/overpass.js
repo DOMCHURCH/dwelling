@@ -2,6 +2,7 @@
 // Runs server-side so browser never sees 504s, results are cached per city
 
 import { apiLimiter, applyLimit } from './_ratelimit.js'
+import { getClientIp } from './_ratelimit.js'
 
 const BASES = [
   'https://overpass-api.de/api/interpreter',
@@ -21,7 +22,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'POST') return res.status(405).end()
 
-  const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown'
+  const clientIp = getClientIp(req)
   if (await applyLimit(apiLimiter, clientIp, res)) return
 
   const { lat, lon } = req.body

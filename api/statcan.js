@@ -1,5 +1,6 @@
 // api/statcan.js
 import { apiLimiter, applyLimit } from './_ratelimit.js'
+import { getClientIp } from './_ratelimit.js'
 // Fetches Statistics Canada New Housing Price Index (NHPI) for Canadian cities
 // Completely free — no API key required
 // Also fetches municipal assessment data from Edmonton/Calgary/Vancouver open data
@@ -13,7 +14,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown'
+  const clientIp = getClientIp(req)
   if (await applyLimit(apiLimiter, clientIp, res)) return
 
   const { city, province, lat, lon } = req.body

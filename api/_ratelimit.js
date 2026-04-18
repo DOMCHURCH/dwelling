@@ -52,6 +52,24 @@ export const resetLimiter  = { limit: (...a) => getResetLimiter().limit(...a) }
 export const apiLimiter    = { limit: (...a) => getApiLimiter().limit(...a) }
 
 /**
+ * Extract the real client IP from a Vercel request.
+ * Vercel appends the actual client IP as the LAST entry in x-forwarded-for,
+ * so we take the rightmost value. x-real-ip is set by Vercel's edge and
+ * cannot be spoofed by the client — prefer it when available.
+ */
+export function getClientIp(req) {
+  const xRealIp = req.headers['x-real-ip']
+  if (xRealIp) return xRealIp.trim()
+  const xfwd = req.headers['x-forwarded-for'] || ''
+  if (xfwd) {
+    const ips = xfwd.split(',').map(s => s.trim()).filter(Boolean)
+    // Take the rightmost IP — leftmost entries are client-controlled
+    return ips[ips.length - 1] || 'unknown'
+  }
+  return req.socket?.remoteAddress || 'unknown'
+}
+
+/**
  * Apply a rate limiter. Returns true if the request should be blocked.
  * Sets Retry-After header automatically.
  */
