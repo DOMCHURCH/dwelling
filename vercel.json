@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/precompute-noise-zones",
       "schedule": "0 3 * * 0"
+    },
+    {
+      "path": "/api/cron/redis-keepalive",
+      "schedule": "0 6 * * *"
     }
   ],
   "buildCommand": "npm run build",
