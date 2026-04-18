@@ -13,7 +13,9 @@ const cache = new Map()
 const CACHE_TTL = 1000 * 60 * 60 * 6 // 6 hours
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', process.env.ALLOWED_ORIGIN || 'https://dwelling.one')
+  if ((req.headers.origin || '') === (process.env.ALLOWED_ORIGIN || 'https://dwelling.one'))
+    res.setHeader('Access-Control-Allow-Origin', req.headers.origin)
+  res.setHeader('Vary', 'Origin')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
   if (req.method === 'OPTIONS') return res.status(204).end()
