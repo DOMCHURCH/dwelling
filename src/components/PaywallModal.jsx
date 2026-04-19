@@ -6,7 +6,7 @@ const ANNUAL = 228
 const ANNUAL_MONTHLY = 19
 
 const FREE_FEATURES = [
-  { text: '10 free reports / month', highlight: false },
+  { text: '3 free reports / month', highlight: false },
   { text: 'Area Verdict & AI Market Intelligence', highlight: false },
   { text: 'Investment Score preview', highlight: false },
   { text: 'Cost of Living breakdown', highlight: false },
@@ -31,7 +31,7 @@ const SECTION_HOOK = {
   pricehistory: { icon: '📊', text: "See where prices have been — and where they're going." },
   risk: { icon: '🛡', text: 'Find out what risks this area carries before you commit.' },
   neighborhood: { icon: '🏘', text: "You've seen the scores. Now get the full neighbourhood story." },
-  limit: { icon: null, text: "You've used all 10 free reports this month." },
+  limit: { icon: null, text: "You've used all 3 free reports this month." },
 }
 
 function CircleCheck({ highlight }) {

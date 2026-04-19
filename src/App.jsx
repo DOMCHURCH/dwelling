@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, lazy, Suspense } from "react"
 import { downloadAnalysisHTML } from "./lib/exportHTML"
 import { getGSAP } from "../hooks/useScrollReveal"
 import AddressSearch from "./components/AddressSearch"
-import LoadingState from "./components/LoadingState"
+import LiquidLoading from "./components/LiquidLoading"
 import CountUp from "./components/CountUp"
 import Navbar from "./components/Navbar"
 import Hero from "./components/Hero"
@@ -813,12 +813,12 @@ export default function App() {
 
   const trialDaysLeft = null
   const isInTrial = false
-  const analysesLeft = userRecord
-    ? userRecord.is_pro
-      ? "∞"
-      : Math.max(0, FREE_LIMIT - (userRecord.analyses_used ?? 0))
-    : "..."
-  const reportsLeft = userRecord && !userRecord.is_pro
+  const analysesLeft = user?.is_admin || userRecord?.is_pro
+    ? "∞"
+    : userRecord
+      ? Math.max(0, FREE_LIMIT - (userRecord.analyses_used ?? 0))
+      : "..."
+  const reportsLeft = (!user?.is_admin && userRecord && !userRecord.is_pro)
     ? Math.max(0, FREE_LIMIT - (userRecord.analyses_used ?? 0))
     : null
 
@@ -970,7 +970,7 @@ export default function App() {
               to run your own.
             </p>
           </div>
-          <Suspense fallback={<LoadingState currentStep="geo" hasAIKey={true} city="" />}>
+          <Suspense fallback={<LiquidLoading />}>
             <Dashboard
                 data={DEMO_RESULT}
                 onRecalculate={() => {}}
@@ -1028,7 +1028,7 @@ export default function App() {
                 color: "rgba(255,255,255,0.45)",
               }}
             >
-              Sign up free to get 10 analyses/month — no credit card required.
+              Sign up free to get 3 analyses/month — no credit card required.
             </div>
           </div>
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -1539,7 +1539,7 @@ export default function App() {
               <AddressSearch onSearch={handleCompareCSearch} loading={loading} compact />
             </div>
           )}
-          {loading && <LoadingState currentStep={getStepKey(loadStep, !!cerebrasKey)} hasAIKey={!!cerebrasKey} city={currentCity} />}
+          {loading && <LiquidLoading city={currentCity} />}
           {error && (
             <div
               style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, padding: "40px 16px" }}
@@ -1601,7 +1601,7 @@ export default function App() {
             </Suspense>
           )}
           {result && !loading && !compareResult && (
-            <Suspense fallback={<LoadingState currentStep="geo" hasAIKey={true} city="" />}>
+            <Suspense fallback={<LiquidLoading />}>
               <Dashboard
                 key={previewPlan}
                 data={result}

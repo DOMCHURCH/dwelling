@@ -3,7 +3,7 @@ import { getAuthToken } from "../lib/localAuth"
 
 const PLAN_LABEL = (u) => u.is_business ? "Business" : u.is_pro ? "Pro" : "Free"
 const PLAN_COLOR = (u) => u.is_business ? "#f59e0b" : u.is_pro ? "#38bdf8" : "rgba(255,255,255,0.35)"
-const FREE_LIMIT = 10
+const FREE_LIMIT = 3
 
 export default function AdminPanel({ onClose }) {
   const [users, setUsers] = useState([])

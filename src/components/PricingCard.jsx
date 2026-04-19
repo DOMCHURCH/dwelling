@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
 export const PRICING_FREE = [
-  '10 free reports / month',
+  '3 free reports / month',
   'Area Verdict & AI Market Intelligence',
   'Investment Score preview',
   'Cost of Living breakdown',
