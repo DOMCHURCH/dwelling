@@ -81,10 +81,21 @@ async function ensureTable(db) {
     'ALTER TABLE users ADD COLUMN stripe_subscription_id TEXT',
     'ALTER TABLE users ADD COLUMN is_business INTEGER DEFAULT 0',
     'ALTER TABLE users ADD COLUMN team_id TEXT',
+    // Invite code hardening — add expiry and attempt-tracking columns
+    'ALTER TABLE teams ADD COLUMN invite_code_expires_at TEXT',
   ]
   for (const sql of migrations) {
     try { await db.execute(sql) } catch { /* already exists */ }
   }
+
+  // DB-based brute-force tracking for invite code guessing — independent of Redis
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS invite_code_attempts (
+      user_id    TEXT NOT NULL,
+      attempted_at TEXT NOT NULL,
+      succeeded  INTEGER DEFAULT 0
+    )
+  `)
 
   // ── New tables ──────────────────────────────────────────────────────────────
   await db.execute(`
@@ -1072,10 +1083,12 @@ export default async function handler(req, res) {
       const { name } = req.body
       if (!name || typeof name !== 'string') return res.status(400).json({ error: 'name required' })
       const teamId = randomBytes(12).toString('hex')
-      const inviteCode = randomBytes(6).toString('hex').toUpperCase()
+      // 128-bit entropy invite code — replaces the old 48-bit (6-byte) code
+      const inviteCode = randomBytes(16).toString('hex')
+      const inviteCodeExpiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString()
       await db.execute({
-        sql: 'INSERT INTO teams (id, name, owner_id, invite_code, daily_limit, usage_today, usage_date, created_at) VALUES (?, ?, ?, ?, 3000, 0, ?, ?)',
-        args: [teamId, name.trim(), payload.sub, inviteCode, new Date().toISOString().slice(0, 10), new Date().toISOString()],
+        sql: 'INSERT INTO teams (id, name, owner_id, invite_code, invite_code_expires_at, daily_limit, usage_today, usage_date, created_at) VALUES (?, ?, ?, ?, ?, 3000, 0, ?, ?)',
+        args: [teamId, name.trim(), payload.sub, inviteCode, inviteCodeExpiresAt, new Date().toISOString().slice(0, 10), new Date().toISOString()],
       })
       await db.execute({ sql: 'INSERT INTO team_members (team_id, user_id, role, joined_at) VALUES (?, ?, ?, ?)', args: [teamId, payload.sub, 'owner', new Date().toISOString()] })
       await db.execute({ sql: 'UPDATE users SET team_id = ? WHERE id = ?', args: [teamId, payload.sub] })
@@ -1090,17 +1103,51 @@ export default async function handler(req, res) {
       if (!payload) return res.status(401).json({ error: 'Invalid token' })
       const userRow = await db.execute({ sql: 'SELECT is_business, team_id FROM users WHERE id = ?', args: [payload.sub] })
       if (userRow.rows[0]?.team_id) return res.status(409).json({ error: 'Already in a team' })
+
+      // DB-based brute-force guard — independent of Redis so Redis outage cannot bypass this.
+      // 5 failed attempts per user per 15-minute window triggers a hard block.
+      const windowStart = new Date(Date.now() - 15 * 60 * 1000).toISOString()
+      const recentAttempts = await db.execute({
+        sql: 'SELECT COUNT(*) as cnt FROM invite_code_attempts WHERE user_id = ? AND attempted_at > ? AND succeeded = 0',
+        args: [payload.sub, windowStart],
+      })
+      if ((recentAttempts.rows[0]?.cnt || 0) >= 5) {
+        return res.status(429).json({ error: 'Too many failed attempts. Please wait 15 minutes before trying again.' })
+      }
+
       const { inviteCode } = req.body
       if (!inviteCode) return res.status(400).json({ error: 'inviteCode required' })
-      const teamRow = await db.execute({ sql: 'SELECT id, owner_id FROM teams WHERE invite_code = ?', args: [inviteCode.trim().toUpperCase()] })
-      if (teamRow.rows.length === 0) return res.status(404).json({ error: 'Invalid invite code' })
-      const teamId = teamRow.rows[0].id
-      const ownerId = teamRow.rows[0].owner_id
+
+      const teamRow = await db.execute({
+        sql: 'SELECT id, owner_id, invite_code_expires_at FROM teams WHERE invite_code = ?',
+        args: [inviteCode.trim().toLowerCase()],
+      })
+
+      if (teamRow.rows.length === 0) {
+        // Log failed attempt to DB regardless of Redis state
+        await db.execute({
+          sql: 'INSERT INTO invite_code_attempts (user_id, attempted_at, succeeded) VALUES (?, ?, 0)',
+          args: [payload.sub, new Date().toISOString()],
+        })
+        return res.status(404).json({ error: 'Invalid invite code' })
+      }
+
+      const team = teamRow.rows[0]
+
+      // Enforce invite code expiration
+      if (team.invite_code_expires_at && new Date(team.invite_code_expires_at) < new Date()) {
+        return res.status(410).json({ error: 'This invite code has expired. Ask the team owner to generate a new one.' })
+      }
+
+      const teamId = team.id
+      const ownerId = team.owner_id
+
       // Verify the team owner's Business plan is still active before granting access
       const ownerPlanRow = await db.execute({ sql: 'SELECT is_business FROM users WHERE id = ?', args: [ownerId] })
       if (!ownerPlanRow.rows[0]?.is_business) {
         return res.status(403).json({ error: 'The team owner does not have an active Business plan' })
       }
+
       // Atomic seat-limit check + insert — prevents concurrent join race condition
       const joinResult = await db.execute({
         sql: `INSERT OR IGNORE INTO team_members (team_id, user_id, role, joined_at)
@@ -1109,9 +1156,39 @@ export default async function handler(req, res) {
         args: [teamId, payload.sub, new Date().toISOString(), teamId],
       })
       if (joinResult.rowsAffected === 0) return res.status(409).json({ error: 'Team is full (10 members max)' })
+
+      // Record successful attempt (resets the failure pattern for this user)
+      await db.execute({
+        sql: 'INSERT INTO invite_code_attempts (user_id, attempted_at, succeeded) VALUES (?, ?, 1)',
+        args: [payload.sub, new Date().toISOString()],
+      })
+
       // Grant Business plan access — member shares the owner's subscription
       await db.execute({ sql: 'UPDATE users SET team_id = ?, is_pro = 1, is_business = 1 WHERE id = ?', args: [teamId, payload.sub] })
       return res.status(200).json({ success: true, teamId })
+    }
+
+    // ── Business Team: rotate invite code ────────────────────────────────────
+    if (action === 'rotate-invite-code') {
+      const authHeader = req.headers.authorization
+      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
+      const payload = verify(authHeader.replace('Bearer ', ''))
+      if (!payload) return res.status(401).json({ error: 'Invalid token' })
+      const userRow = await db.execute({ sql: 'SELECT team_id FROM users WHERE id = ?', args: [payload.sub] })
+      const teamId = userRow.rows[0]?.team_id
+      if (!teamId) return res.status(404).json({ error: 'Not in a team' })
+      const teamRow = await db.execute({ sql: 'SELECT owner_id FROM teams WHERE id = ?', args: [teamId] })
+      if (teamRow.rows[0]?.owner_id !== payload.sub) {
+        return res.status(403).json({ error: 'Only the team owner can rotate the invite code' })
+      }
+      // Generate new 128-bit code and reset 72h expiry window
+      const newCode = randomBytes(16).toString('hex')
+      const newExpiry = new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString()
+      await db.execute({
+        sql: 'UPDATE teams SET invite_code = ?, invite_code_expires_at = ? WHERE id = ?',
+        args: [newCode, newExpiry, teamId],
+      })
+      return res.status(200).json({ success: true, inviteCode: newCode, expiresAt: newExpiry })
     }
 
     // ── Business Team: get portal data ───────────────────────────────────────
@@ -1123,7 +1200,7 @@ export default async function handler(req, res) {
       const userRow = await db.execute({ sql: 'SELECT team_id FROM users WHERE id = ?', args: [payload.sub] })
       const teamId = userRow.rows[0]?.team_id
       if (!teamId) return res.status(404).json({ error: 'Not in a team' })
-      const teamRow = await db.execute({ sql: 'SELECT id, name, invite_code, daily_limit, usage_today, usage_date, logo_data FROM teams WHERE id = ?', args: [teamId] })
+      const teamRow = await db.execute({ sql: 'SELECT id, name, invite_code, invite_code_expires_at, daily_limit, usage_today, usage_date, logo_data FROM teams WHERE id = ?', args: [teamId] })
       if (teamRow.rows.length === 0) return res.status(404).json({ error: 'Team not found' })
       const team = teamRow.rows[0]
       // Reset usage if it's a new day
