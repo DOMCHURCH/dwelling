@@ -382,6 +382,7 @@ export default function App() {
     setLoadStep('geo')
     setCurrentCity(city)
     const isAreaMode = !street.trim()
+    let creditCharged = false
     try {
       const geocodeInput = isAreaMode ? { street: "", city, state, country } : { street, city, state, country }
       const geo = await geocodeStructured(geocodeInput)
@@ -440,7 +441,6 @@ export default function App() {
       }
 
       // Charge credit upfront for free logged-in users (refunded on failure below)
-      let creditCharged = false
       if (user && !isPro && !user?.is_admin) {
         try {
           const token = await getAuthToken()
