@@ -514,9 +514,10 @@ export default function App() {
         return
       }
       if (
-        err.message?.includes("Not authenticated") ||
+        (err.message?.includes("Not authenticated") ||
         err.message?.includes("Session expired") ||
-        err.message?.includes("sign in")
+        err.message?.includes("sign in")) &&
+        !err.message?.includes("Invalid Cerebras")
       ) {
         setShowAuthModal(true)
         return

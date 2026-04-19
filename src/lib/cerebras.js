@@ -6,7 +6,7 @@ import { formatMarketDataForPrompt, getMarketData, getLiveMarketData } from './m
 import { formatAreaContextForPrompt } from './areaAnalysis'
 
 const CEREBRAS_BASE = '/api/cerebras'
-const MODEL = 'llama-3.3-70b'
+const MODEL = 'llama-3.1-8b'
 
 // getAuthToken imported from localAuth
 
@@ -34,6 +34,7 @@ async function cerebrasChat(messages, json = false, skipCount = false, userApiKe
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
     if (res.status === 401) {
+      if (err.error === 'invalid_key') throw new Error(err.message ?? 'Invalid Cerebras API key.')
       throw new Error('Session expired. Please sign in again.')
     }
     if (res.status === 400 && err.error === 'no_key') {
