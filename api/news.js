@@ -1,8 +1,7 @@
 // api/news.js
 // Fetches local housing market news via Google News RSS — no API key needed
 // Cache 2 hours per city since news doesn't change minute-to-minute
-import { apiLimiter, applyLimit } from './_ratelimit.js'
-import { getClientIp } from './_ratelimit.js'
+import { apiLimiter, applyLimit, getClientIp } from './_ratelimit.js'
 
 const _cache = new Map()
 const CACHE_TTL = 1000 * 60 * 60 * 2

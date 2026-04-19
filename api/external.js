@@ -1,8 +1,7 @@
 // api/external.js — server-side proxy for HUD Fair Market Rent + US Census ACS
 // Merges what were two separate files to stay within Vercel Hobby's 12-function limit.
 // Both API keys (HUD_TOKEN, CENSUS_API_KEY) are server-side only — never in client bundle.
-import { apiLimiter, applyLimit } from './_ratelimit.js'
-import { getClientIp } from './_ratelimit.js'
+import { apiLimiter, applyLimit, getClientIp } from './_ratelimit.js'
 
 const HUD_TOKEN = process.env.HUD_TOKEN ?? ''
 const CENSUS_KEY = process.env.CENSUS_API_KEY ?? ''

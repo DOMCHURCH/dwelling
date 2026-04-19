@@ -1,8 +1,7 @@
 // Serverless proxy for Overpass API
 // Runs server-side so browser never sees 504s, results are cached per city
 
-import { apiLimiter, applyLimit } from './_ratelimit.js'
-import { getClientIp } from './_ratelimit.js'
+import { apiLimiter, applyLimit, getClientIp } from './_ratelimit.js'
 
 const BASES = [
   'https://overpass-api.de/api/interpreter',

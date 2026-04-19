@@ -1,6 +1,5 @@
 // api/exchange.js
-import { apiLimiter, applyLimit } from './_ratelimit.js'
-import { getClientIp } from './_ratelimit.js'
+import { apiLimiter, applyLimit, getClientIp } from './_ratelimit.js'
 // Fetches live exchange rates using Frankfurter API — completely free, no key needed
 // Frankfurter is maintained by the European Central Bank
 // https://www.frankfurter.app

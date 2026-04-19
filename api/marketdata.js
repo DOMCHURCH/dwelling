@@ -211,8 +211,7 @@ function findCity(cityName, dataset) {
 }
 
 // ─── VERCEL HANDLER ──────────────────────────────────────────────────────────
-import { apiLimiter, applyLimit } from './_ratelimit.js'
-import { getClientIp } from './_ratelimit.js'
+import { apiLimiter, applyLimit, getClientIp } from './_ratelimit.js'
 
 export default async function handler(req, res) {
   if ((req.headers.origin || '') === (process.env.ALLOWED_ORIGIN || 'https://dwelling.one'))
