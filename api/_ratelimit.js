@@ -52,6 +52,27 @@ export const resetLimiter  = { limit: (...a) => getResetLimiter().limit(...a) }
 export const apiLimiter    = { limit: (...a) => getApiLimiter().limit(...a) }
 
 /**
+ * Global AI requests-per-minute cap enforced via Redis INCR on a minute-bucket key.
+ * Returns true if the global cap is exceeded (caller should return 429).
+ * Fails open if Redis is unavailable.
+ */
+export async function checkGlobalAiRpm(limit = 300) {
+  try {
+    const redis = getRedis()
+    const key = `global:ai:rpm:${Math.floor(Date.now() / 60000)}`
+    const count = await redis.incr(key)
+    if (count === 1) await redis.expire(key, 120) // 2-min TTL so key cleans itself up
+    if (count > limit) {
+      console.error(JSON.stringify({ event: 'global_ai_rpm_exceeded', count, limit }))
+      return true
+    }
+    return false
+  } catch {
+    return false // Redis down → fail open
+  }
+}
+
+/**
  * Extract the real client IP from a Vercel request.
  * Vercel appends the actual client IP as the LAST entry in x-forwarded-for,
  * so we take the rightmost value. x-real-ip is set by Vercel's edge and

@@ -4,6 +4,18 @@ import { apiLimiter, applyLimit, getClientIp } from './_ratelimit.js'
 // Frankfurter is maintained by the European Central Bank
 // https://www.frankfurter.app
 
+
+// Fetch with a hard timeout — prevents serverless functions from hanging on slow external APIs
+async function fetchWithTimeout(url, opts = {}, timeoutMs = 10000) {
+  const controller = new AbortController()
+  const id = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    return await fetch(url, { ...opts, signal: controller.signal })
+  } finally {
+    clearTimeout(id)
+  }
+}
+
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'https://dwelling.one'
 
 export default async function handler(req, res) {
@@ -29,7 +41,7 @@ export default async function handler(req, res) {
   try {
     // Frankfurter API — ECB rates, free, no key, updates daily
     const url = `https://api.frankfurter.app/latest?from=${base.toUpperCase()}`
-    const response = await fetch(url)
+    const response = await fetchWithTimeout(url, {}, 8000)
     if (!response.ok) throw new Error(`Frankfurter API error: ${response.status}`)
     const data = await response.json()
 

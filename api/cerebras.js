@@ -1,9 +1,11 @@
-import { createHmac, timingSafeEqual, createDecipheriv } from 'crypto'
+import { createHmac, timingSafeEqual, createDecipheriv, createHash } from 'crypto'
 import { createClient } from '@libsql/client'
 import { getUserEntitlementsByEmail } from './_entitlements.js'
-import { getClientIp } from './_ratelimit.js'
+import { getClientIp, getRedis, checkGlobalAiRpm } from './_ratelimit.js'
 
 const ALLOWED_MODELS = ['llama-4-scout-17b-16e-instruct', 'llama-3.3-70b']
+const PRO_DAILY_LIMIT = parseInt(process.env.PRO_DAILY_LIMIT || '200', 10)
+const CEREBRAS_TIMEOUT_MS = 45000 // 45s — Vercel maxDuration is 60s
 
 // ─── Startup validation ───────────────────────────────────────────────────────
 const SECRET = process.env.AUTH_SECRET
@@ -158,6 +160,28 @@ export default async function handler(req, res) {
     })
   }
 
+  // 3a. Global requests-per-minute cap — prevents cost explosion from bugs or attacks
+  if (await checkGlobalAiRpm(300)) {
+    return res.status(429).json({ error: 'Service is experiencing high demand. Please try again in a moment.' })
+  }
+
+  // 3b. Request deduplication — same user + same payload within 30s returns early.
+  // Prevents UI bugs or double-clicks from triggering redundant Cerebras calls.
+  if (!isAdmin) {
+    try {
+      const { model: _m, messages: _msg } = req.body
+      const dedupHash = createHash('sha256')
+        .update(`${email}:${_m}:${JSON.stringify(_msg)}`)
+        .digest('hex').slice(0, 32)
+      const redis = getRedis()
+      const set = await redis.set(`dedup:ai:${dedupHash}`, '1', { nx: true, ex: 30 })
+      if (!set) {
+        console.warn(JSON.stringify({ event: 'ai_dedup_hit', user: email }))
+        return res.status(429).json({ error: 'duplicate_request', message: 'Identical request already in progress. Please wait a moment.' })
+      }
+    } catch {} // Redis down → skip dedup
+  }
+
   // 3. Admin bypass — still subject to model allowlist and stream guard
   if (isAdmin) {
     const { model, messages, temperature, max_tokens, stream } = req.body
@@ -199,6 +223,22 @@ export default async function handler(req, res) {
     user.analyses_used = 0
   }
 
+  // 5b. Pro / Business daily hard cap — absolute safety net even if other logic breaks.
+  // Uses Redis day-bucket counter; fails open if Redis is unavailable.
+  if (isPro && !skipCount) {
+    try {
+      const redis = getRedis()
+      const today = new Date().toISOString().slice(0, 10)
+      const dailyKey = `daily:ai:${payload.sub}:${today}`
+      const dailyCount = await redis.incr(dailyKey)
+      if (dailyCount === 1) await redis.expire(dailyKey, 172800) // 48h TTL
+      if (dailyCount > PRO_DAILY_LIMIT) {
+        console.error(JSON.stringify({ event: 'pro_daily_limit_hit', user: email, count: dailyCount, limit: PRO_DAILY_LIMIT }))
+        return res.status(429).json({ error: 'daily_limit_reached', message: `Daily analysis limit of ${PRO_DAILY_LIMIT} reached. Resets at midnight UTC.` })
+      }
+    } catch {} // Redis down → fail open for paying users
+  }
+
   // 6. Enforce limit — atomic pre-flight increment eliminates check-then-use race condition.
   // We increment before calling Cerebras and refund on failure, so concurrent requests
   // cannot both pass the gate at the same time.
@@ -213,23 +253,49 @@ export default async function handler(req, res) {
     }
   }
 
-  // 7. Call Cerebras
+  // 7. Call Cerebras with hard timeout — prevents serverless function from hanging
   const { model, messages, temperature, max_tokens, stream } = req.body
-  const r = await fetch('https://api.cerebras.ai/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-    body: JSON.stringify({ model, messages, temperature, max_tokens, stream }),
-  })
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), CEREBRAS_TIMEOUT_MS)
+  const t0 = Date.now()
+  let r
+  try {
+    r = await fetch('https://api.cerebras.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({ model, messages, temperature, max_tokens, stream }),
+      signal: controller.signal,
+    })
+  } catch (fetchErr) {
+    clearTimeout(timeoutId)
+    const isTimeout = fetchErr.name === 'AbortError'
+    console.error(JSON.stringify({ event: 'cerebras_fetch_error', user: email, timeout: isTimeout, ms: Date.now() - t0 }))
+    if (!isPro && !skipCount) {
+      await db.execute({
+        sql: 'UPDATE users SET analyses_used = MAX(0, analyses_used - 1) WHERE LOWER(email) = LOWER(?) AND NOT is_pro',
+        args: [email],
+      }).catch(() => {})
+    }
+    return res.status(504).json({ error: isTimeout ? 'AI request timed out. Please try again.' : 'AI service unavailable.' })
+  } finally {
+    clearTimeout(timeoutId)
+  }
 
-  // Refund the pre-flight credit if Cerebras failed — ensures free users aren't charged for API errors
+  // Refund the pre-flight credit if Cerebras returned an error
   if (!r.ok && !isPro && !skipCount) {
     await db.execute({
       sql: 'UPDATE users SET analyses_used = MAX(0, analyses_used - 1) WHERE LOWER(email) = LOWER(?) AND NOT is_pro',
       args: [email],
-    }).catch(() => {}) // best-effort refund
+    }).catch(() => {})
   }
 
   const data = await r.json()
+  const latencyMs = Date.now() - t0
+  console.log(JSON.stringify({ event: 'cerebras_call', user: email, status: r.status, latency_ms: latencyMs, isPro, keySource }))
+
+  if (latencyMs > 30000) {
+    console.warn(JSON.stringify({ event: 'cerebras_slow_response', user: email, latency_ms: latencyMs }))
+  }
 
   if (r.status === 401 || data.error?.code === 'wrong_api_key') {
     const msg = keySource === 'platform_env'

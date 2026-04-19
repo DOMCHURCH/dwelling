@@ -91,11 +91,25 @@ async function ensureTable(db) {
   // DB-based brute-force tracking for invite code guessing — independent of Redis
   await db.execute(`
     CREATE TABLE IF NOT EXISTS invite_code_attempts (
-      user_id    TEXT NOT NULL,
+      user_id      TEXT NOT NULL,
       attempted_at TEXT NOT NULL,
-      succeeded  INTEGER DEFAULT 0
+      succeeded    INTEGER DEFAULT 0,
+      ip           TEXT,
+      invite_code  TEXT
     )
   `)
+
+  // Indexes for brute-force lookups — without these, every join-team does a full table scan
+  const indexes = [
+    'CREATE INDEX IF NOT EXISTS idx_ica_user_time ON invite_code_attempts(user_id, attempted_at)',
+    'CREATE INDEX IF NOT EXISTS idx_ica_code_time ON invite_code_attempts(invite_code, attempted_at)',
+    'CREATE INDEX IF NOT EXISTS idx_ica_ip_time   ON invite_code_attempts(ip, attempted_at)',
+    'CREATE INDEX IF NOT EXISTS idx_users_email   ON users(email)',
+    'CREATE INDEX IF NOT EXISTS idx_teams_code    ON teams(invite_code)',
+  ]
+  for (const sql of indexes) {
+    try { await db.execute(sql) } catch { /* already exists */ }
+  }
 
   // ── New tables ──────────────────────────────────────────────────────────────
   await db.execute(`
@@ -1104,39 +1118,72 @@ export default async function handler(req, res) {
       const userRow = await db.execute({ sql: 'SELECT is_business, team_id FROM users WHERE id = ?', args: [payload.sub] })
       if (userRow.rows[0]?.team_id) return res.status(409).json({ error: 'Already in a team' })
 
-      // DB-based brute-force guard — independent of Redis so Redis outage cannot bypass this.
-      // 5 failed attempts per user per 15-minute window triggers a hard block.
+      // DB-based brute-force guard — independent of Redis, always active.
+      // All failure paths return the SAME error message to prevent oracle attacks
+      // (attacker cannot distinguish valid-but-expired from non-existent codes).
+      const INVITE_ERROR = { error: 'Invalid or expired invite code' }
       const windowStart = new Date(Date.now() - 15 * 60 * 1000).toISOString()
-      const recentAttempts = await db.execute({
+      const ip = clientIp
+
+      // Per-user block: 5 failures in 15 min
+      const userAttempts = await db.execute({
         sql: 'SELECT COUNT(*) as cnt FROM invite_code_attempts WHERE user_id = ? AND attempted_at > ? AND succeeded = 0',
         args: [payload.sub, windowStart],
       })
-      if ((recentAttempts.rows[0]?.cnt || 0) >= 5) {
-        return res.status(429).json({ error: 'Too many failed attempts. Please wait 15 minutes before trying again.' })
+      if ((userAttempts.rows[0]?.cnt || 0) >= 5) {
+        console.warn(JSON.stringify({ event: 'invite_user_blocked', user: payload.sub }))
+        return res.status(429).json({ error: 'Too many failed attempts. Please wait 15 minutes.' })
+      }
+
+      // Per-IP block: 20 failures in 15 min (distributed attack protection)
+      if (ip && ip !== 'unknown') {
+        const ipAttempts = await db.execute({
+          sql: 'SELECT COUNT(*) as cnt FROM invite_code_attempts WHERE ip = ? AND attempted_at > ? AND succeeded = 0',
+          args: [ip, windowStart],
+        })
+        if ((ipAttempts.rows[0]?.cnt || 0) >= 20) {
+          console.warn(JSON.stringify({ event: 'invite_ip_blocked', ip }))
+          return res.status(429).json({ error: 'Too many failed attempts from this network. Please wait 15 minutes.' })
+        }
       }
 
       const { inviteCode } = req.body
       if (!inviteCode) return res.status(400).json({ error: 'inviteCode required' })
+      const normalizedCode = inviteCode.trim().toLowerCase()
+
+      // Per-code block: 20 failures in 15 min (prevents distributed brute-force of one code)
+      const codeAttempts = await db.execute({
+        sql: 'SELECT COUNT(*) as cnt FROM invite_code_attempts WHERE invite_code = ? AND attempted_at > ? AND succeeded = 0',
+        args: [normalizedCode, windowStart],
+      })
+      if ((codeAttempts.rows[0]?.cnt || 0) >= 20) {
+        console.warn(JSON.stringify({ event: 'invite_code_blocked', code: normalizedCode.slice(0, 8) + '...' }))
+        return res.status(429).json({ error: 'This invite code has been temporarily locked due to too many failed attempts.' })
+      }
+
+      const logFailure = () => db.execute({
+        sql: 'INSERT INTO invite_code_attempts (user_id, attempted_at, succeeded, ip, invite_code) VALUES (?, ?, 0, ?, ?)',
+        args: [payload.sub, new Date().toISOString(), ip, normalizedCode],
+      }).catch(() => {})
 
       const teamRow = await db.execute({
         sql: 'SELECT id, owner_id, invite_code_expires_at FROM teams WHERE invite_code = ?',
-        args: [inviteCode.trim().toLowerCase()],
+        args: [normalizedCode],
       })
 
       if (teamRow.rows.length === 0) {
-        // Log failed attempt to DB regardless of Redis state
-        await db.execute({
-          sql: 'INSERT INTO invite_code_attempts (user_id, attempted_at, succeeded) VALUES (?, ?, 0)',
-          args: [payload.sub, new Date().toISOString()],
-        })
-        return res.status(404).json({ error: 'Invalid invite code' })
+        await logFailure()
+        console.warn(JSON.stringify({ event: 'invite_invalid_code', user: payload.sub, ip }))
+        return res.status(404).json(INVITE_ERROR)
       }
 
       const team = teamRow.rows[0]
 
-      // Enforce invite code expiration
+      // Normalize expiration failure — same message as invalid code (oracle prevention)
       if (team.invite_code_expires_at && new Date(team.invite_code_expires_at) < new Date()) {
-        return res.status(410).json({ error: 'This invite code has expired. Ask the team owner to generate a new one.' })
+        await logFailure()
+        console.warn(JSON.stringify({ event: 'invite_expired_code', user: payload.sub }))
+        return res.status(404).json(INVITE_ERROR)
       }
 
       const teamId = team.id
@@ -1157,11 +1204,12 @@ export default async function handler(req, res) {
       })
       if (joinResult.rowsAffected === 0) return res.status(409).json({ error: 'Team is full (10 members max)' })
 
-      // Record successful attempt (resets the failure pattern for this user)
+      // Record successful attempt
       await db.execute({
-        sql: 'INSERT INTO invite_code_attempts (user_id, attempted_at, succeeded) VALUES (?, ?, 1)',
-        args: [payload.sub, new Date().toISOString()],
+        sql: 'INSERT INTO invite_code_attempts (user_id, attempted_at, succeeded, ip, invite_code) VALUES (?, ?, 1, ?, ?)',
+        args: [payload.sub, new Date().toISOString(), ip, normalizedCode],
       })
+      console.log(JSON.stringify({ event: 'invite_join_success', user: payload.sub, teamId }))
 
       // Grant Business plan access — member shares the owner's subscription
       await db.execute({ sql: 'UPDATE users SET team_id = ?, is_pro = 1, is_business = 1 WHERE id = ?', args: [teamId, payload.sub] })
