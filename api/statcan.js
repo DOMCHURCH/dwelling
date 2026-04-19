@@ -1,5 +1,15 @@
 // api/statcan.js
 import { apiLimiter, applyLimit, getClientIp } from './_ratelimit.js'
+
+async function fetchWithTimeout(url, opts = {}, timeoutMs = 10000) {
+  const controller = new AbortController()
+  const id = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    return await fetch(url, { ...opts, signal: controller.signal })
+  } finally {
+    clearTimeout(id)
+  }
+}
 // Fetches Statistics Canada New Housing Price Index (NHPI) for Canadian cities
 // Completely free — no API key required
 // Also fetches municipal assessment data from Edmonton/Calgary/Vancouver open data
@@ -80,7 +90,7 @@ async function fetchStatCanNHPI(city) {
   // StatCan WDS API: https://www150.statcan.gc.ca/t1/tbl1/en/dtbl/
   try {
     const url = `https://www150.statcan.gc.ca/t1/tbl1/en/dtbl/18-10-0205-01`
-    const res = await fetch(url, {
+    const res = await fetchWithTimeout(url, {
       headers: {
         'Accept': 'application/json',
         'User-Agent': 'DwellingApp/1.0',
@@ -249,7 +259,7 @@ async function fetchEdmontonAssessment(lat, lon) {
   try {
     // Edmonton property assessment — Socrata API
     const url = `https://data.edmonton.ca/resource/q7d6-ambg.json?$where=within_circle(location,${lat},${lon},500)&$limit=5&$select=house_number,street_name,assessed_value,year_built,garage,building_type`
-    const res = await fetch(url, {
+    const res = await fetchWithTimeout(url, {
       headers: { 'Accept': 'application/json', 'X-App-Token': 'DwellingApp' }
     })
     if (!res.ok) return null
@@ -280,7 +290,7 @@ async function fetchCalgaryAssessment(lat, lon) {
   try {
     // Calgary property assessment — Socrata API
     const url = `https://data.calgary.ca/resource/4bsw-nn7w.json?$where=within_circle(location,${lat},${lon},500)&$limit=5&$select=address,assessed_value,roll_year,property_type`
-    const res = await fetch(url, {
+    const res = await fetchWithTimeout(url, {
       headers: { 'Accept': 'application/json' }
     })
     if (!res.ok) return null
@@ -311,7 +321,7 @@ async function fetchVancouverAssessment(lat, lon) {
   try {
     // Vancouver property tax report — CKAN API
     const url = `https://opendata.vancouver.ca/api/explore/v2.1/catalog/datasets/property-tax-report/records?where=geo_point_2d%3Adistance(GEOM%2CGEOM'POINT(${lon}%20${lat})'%2C200m)&limit=5&select=from_civic_number%2Cto_civic_number%2Cstd_street%2Ccurrent_land_value%2Ccurrent_improvement_value%2Ctax_assessment_year`
-    const res = await fetch(url, {
+    const res = await fetchWithTimeout(url, {
       headers: { 'Accept': 'application/json' }
     })
     if (!res.ok) return null

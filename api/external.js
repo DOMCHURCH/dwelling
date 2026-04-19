@@ -3,6 +3,16 @@
 // Both API keys (HUD_TOKEN, CENSUS_API_KEY) are server-side only — never in client bundle.
 import { apiLimiter, applyLimit, getClientIp } from './_ratelimit.js'
 
+async function fetchWithTimeout(url, opts = {}, timeoutMs = 8000) {
+  const controller = new AbortController()
+  const id = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    return await fetch(url, { ...opts, signal: controller.signal })
+  } finally {
+    clearTimeout(id)
+  }
+}
+
 const HUD_TOKEN = process.env.HUD_TOKEN ?? ''
 const CENSUS_KEY = process.env.CENSUS_API_KEY ?? ''
 const HUD_BASE = 'https://www.huduser.gov/hudapi/public'
@@ -17,7 +27,7 @@ async function getFairMarketRent(zipCode) {
   const zip5 = zipCode.trim().match(/^(\d{5})(?:-\d{4})?$/)?.[1]
   if (!zip5) return null
   try {
-    const crosswalkRes = await fetch(
+    const crosswalkRes = await fetchWithTimeout(
       `${HUD_BASE}/usps?type=1&query=${zip5}`,
       { headers: { Authorization: `Bearer ${HUD_TOKEN}` } }
     )
@@ -26,7 +36,7 @@ async function getFairMarketRent(zipCode) {
     const countyCode = crosswalk?.data?.results?.[0]?.county
     if (!countyCode) return null
 
-    const fmrRes = await fetch(
+    const fmrRes = await fetchWithTimeout(
       `${HUD_BASE}/fmr/data/${countyCode}?year=2024`,
       { headers: { Authorization: `Bearer ${HUD_TOKEN}` } }
     )
@@ -57,7 +67,7 @@ async function getAddressTract(street, city, state) {
     layers: 'Census Tracts', format: 'json',
   })
   try {
-    const res = await fetch(`${GEOCODER_BASE}/geographies/address?${params}`)
+    const res = await fetchWithTimeout(`${GEOCODER_BASE}/geographies/address?${params}`)
     const data = await res.json()
     const match = data?.result?.addressMatches?.[0]
     if (!match) return null
@@ -78,7 +88,7 @@ async function getCensusData(street, city, state) {
   ].join(',')
   try {
     const url = `${CENSUS_BASE}/2022/acs/acs5?get=${variables}&for=tract:${tract.tract}&in=state:${tract.state}%20county:${tract.county}&key=${CENSUS_KEY}`
-    const res = await fetch(url)
+    const res = await fetchWithTimeout(url)
     const data = await res.json()
     if (!data || data.length < 2) return null
     const headers = data[0]
