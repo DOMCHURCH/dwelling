@@ -1,11 +1,11 @@
 {
   "crons": [
     {
-      "path": "/api/cron/precompute-noise-zones",
+      "path": "/api/cron/jobs?job=noise-zones",
       "schedule": "0 3 * * 0"
     },
     {
-      "path": "/api/cron/redis-keepalive",
+      "path": "/api/cron/jobs?job=keepalive",
       "schedule": "0 6 * * *"
     }
   ],
@@ -21,7 +21,7 @@
     "api/*.js": {
       "maxDuration": 60
     },
-    "api/cron/*.js": {
+    "api/cron/jobs.js": {
       "maxDuration": 300
     }
   },
