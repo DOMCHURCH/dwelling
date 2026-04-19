@@ -3,7 +3,7 @@ import { createClient } from '@libsql/client'
 import { getUserEntitlementsByEmail } from './_entitlements.js'
 import { getClientIp, getRedis, checkGlobalAiRpm } from './_ratelimit.js'
 
-const ALLOWED_MODELS = ['llama-4-scout-17b-16e-instruct', 'llama-3.3-70b']
+const ALLOWED_MODELS = ['llama-4-scout-17b-16e-instruct', 'llama-3.3-70b', 'llama-3.1-8b']
 const PRO_DAILY_LIMIT = parseInt(process.env.PRO_DAILY_LIMIT || '200', 10)
 const CEREBRAS_TIMEOUT_MS = 45000 // 45s — Vercel maxDuration is 60s
 
