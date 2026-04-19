@@ -83,6 +83,7 @@ async function ensureTable(db) {
     'ALTER TABLE users ADD COLUMN team_id TEXT',
     // Invite code hardening — add expiry and attempt-tracking columns
     'ALTER TABLE teams ADD COLUMN invite_code_expires_at TEXT',
+    'ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0',
   ]
   for (const sql of migrations) {
     try { await db.execute(sql) } catch { /* already exists */ }
@@ -412,6 +413,8 @@ export default async function handler(req, res) {
       }
 
       const is_admin = ADMIN_EMAILS.includes(key)
+      // Persist is_admin to DB so cerebras.js can verify without env var
+      if (is_admin) await db.execute({ sql: 'UPDATE users SET is_admin = 1 WHERE email = ?', args: [key] }).catch(() => {})
       const { accessToken, refreshToken } = await issueTokenPair({ sub: user.id, email: key, is_pro: !!user.is_pro, is_business: !!user.is_business, is_admin })
       return res.status(200).json({ token: accessToken, refreshToken, userId: user.id, email: key, is_pro: !!user.is_pro, is_business: !!user.is_business, is_admin })
     }

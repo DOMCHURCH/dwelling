@@ -114,7 +114,8 @@ export default async function handler(req, res) {
   }
 
   const email = payload.email
-  const isAdmin = ADMIN_EMAILS.includes(email)
+  // Trust JWT is_admin (cryptographically signed) OR env-var match
+  const isAdmin = ADMIN_EMAILS.includes(email) || !!payload.is_admin
 
   // 2. Resolve API key — header first, then DB (AES-decrypted)
   let userApiKey = req.headers['x-cerebras-key'] || null

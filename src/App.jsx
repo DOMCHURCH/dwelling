@@ -502,11 +502,13 @@ export default function App() {
         }).catch(() => {})
       }
       if (err.message === "no_key") {
-        if (isPro) setShowBYOKPrompt(true)
-        else { setPaywallTrigger('limit'); setShowPaywall(true) }
+        if (!user?.is_admin) {
+          if (isPro) setShowBYOKPrompt(true)
+          else { setPaywallTrigger('limit'); setShowPaywall(true) }
+        }
         return
       }
-      if (err.message?.includes("limit reached") || err.message?.includes("429")) {
+      if (!user?.is_admin && (err.message?.includes("limit reached") || err.message?.includes("429"))) {
         setPaywallTrigger("limit")
         setShowPaywall(true)
         return
