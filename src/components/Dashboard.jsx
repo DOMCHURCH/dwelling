@@ -767,7 +767,7 @@ export default function Dashboard({
         </>}
       </SectionCard>
 
-      {showBYOKPrompt && !isPro && (
+      {showBYOKPrompt && (
         <BYOKPrompt
           onKeySubmit={onBYOKSubmit}
           onDismiss={onBYOKDismiss}

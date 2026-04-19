@@ -467,9 +467,11 @@ export default function App() {
       setLoadStep('investment')
       const deterministicResult = buildDeterministicReport({ geo, weather, neighborhood: neighborhoodScores, areaMetrics, climate })
 
-      // Check for Cerebras key — admins and pro users use the platform key server-side
       const key = getCachedCerebrasKey()
-      if (key || user?.is_admin || isPro) {
+      const canUseAI = user?.is_admin || isPro
+
+      if (key) {
+        // Has key — run full AI analysis
         setLoadStep('ai')
         const ai = await analyzeProperty(geo, weather, climate, knownFacts ?? {}, realData, key)
         if (searchGenerationRef.current !== generation) return
@@ -481,7 +483,8 @@ export default function App() {
         return
       }
 
-      // No key — show deterministic result
+      // No key — show deterministic result, prompt admin/pro to add key
+      if (canUseAI) setShowBYOKPrompt(true)
       const reportData = { geo, weather, climate, ai: deterministicResult, knownFacts: knownFacts ?? {}, realData, isAreaMode, isDeterministic: true }
       if (searchGenerationRef.current !== generation) return
       setResult(reportData)
@@ -501,11 +504,9 @@ export default function App() {
           }).then(() => loadUserRecord()).catch(() => {})
         }).catch(() => {})
       }
-      if (err.message === "no_key") {
-        if (!user?.is_admin) {
-          if (isPro) setShowBYOKPrompt(true)
-          else { setPaywallTrigger('limit'); setShowPaywall(true) }
-        }
+      if (err.message === "no_key" || err.message?.includes("Invalid Cerebras") || err.message?.includes("invalid_key")) {
+        if (isPro || user?.is_admin) setShowBYOKPrompt(true)
+        else { setPaywallTrigger('limit'); setShowPaywall(true) }
         return
       }
       if (!user?.is_admin && (err.message?.includes("limit reached") || err.message?.includes("429"))) {
@@ -616,7 +617,7 @@ export default function App() {
       }
       const key = getCachedCerebrasKey()
       if (!key) {
-        if (isPro) setShowBYOKPrompt(true)
+        if (isPro || user?.is_admin) setShowBYOKPrompt(true)
         else { setPaywallTrigger('compare'); setShowPaywall(true) }
         setLoading(false)
         return
@@ -628,7 +629,7 @@ export default function App() {
       setTimeout(() => loadUserRecord(), 800)
     } catch (err) {
       if (err.message === "no_key") {
-        if (isPro) setShowBYOKPrompt(true)
+        if (isPro || user?.is_admin) setShowBYOKPrompt(true)
         else { setPaywallTrigger('compare'); setShowPaywall(true) }
         return
       }
@@ -706,7 +707,7 @@ export default function App() {
       }
       const key = getCachedCerebrasKey()
       if (!key) {
-        if (isPro) setShowBYOKPrompt(true)
+        if (isPro || user?.is_admin) setShowBYOKPrompt(true)
         else { setPaywallTrigger('compare'); setShowPaywall(true) }
         setLoading(false)
         return
@@ -717,7 +718,7 @@ export default function App() {
       setComparingModeC(false)
     } catch (err) {
       if (err.message === "no_key") {
-        if (isPro) setShowBYOKPrompt(true)
+        if (isPro || user?.is_admin) setShowBYOKPrompt(true)
         else { setPaywallTrigger('compare'); setShowPaywall(true) }
         return
       }
