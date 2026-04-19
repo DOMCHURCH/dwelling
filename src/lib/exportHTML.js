@@ -237,7 +237,7 @@ body{font-family:'Georgia',serif;background:#f9f8f5;color:#1a1a1a;line-height:1.
 
 <!-- Header -->
 <div style="margin-bottom:36px">
-  <div class="area-name">${areaName}${country ? ", " + country : ""}</div>
+  <div class="area-name">${areaName}${country && !areaName.includes(country) ? ", " + country : ""}</div>
   <div class="vrow">
     ${verdict ? `<div class="vbadge" style="color:${vc(verdict)}">${verdict}</div>` : ""}
     ${investScore != null ? `<div><div class="iscore" style="color:${sc(investScore)}">${investScore}<span style="font-size:14px;color:#aaa">/100</span></div><div class="ilabel">Investment Score</div></div>` : ""}
