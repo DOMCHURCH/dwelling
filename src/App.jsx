@@ -441,7 +441,7 @@ export default function App() {
 
       // Charge credit upfront for free logged-in users (refunded on failure below)
       let creditCharged = false
-      if (user && !isPro) {
+      if (user && !isPro && !user?.is_admin) {
         try {
           const token = await getAuthToken()
           if (token) {

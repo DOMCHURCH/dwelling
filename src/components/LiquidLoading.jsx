@@ -93,9 +93,6 @@ export default function LiquidLoading({ city = '' }) {
         })}
       </div>
 
-      <p style={{ fontFamily: "'Barlow',sans-serif", fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 8 }}>
-        Analysing your property…
-      </p>
     </div>
   )
 }
