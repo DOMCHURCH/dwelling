@@ -467,9 +467,9 @@ export default function App() {
       setLoadStep('investment')
       const deterministicResult = buildDeterministicReport({ geo, weather, neighborhood: neighborhoodScores, areaMetrics, climate })
 
-      // Check for Cerebras key — if user has one, get full AI analysis
+      // Check for Cerebras key — admins and pro users use the platform key server-side
       const key = getCachedCerebrasKey()
-      if (key) {
+      if (key || user?.is_admin || isPro) {
         setLoadStep('ai')
         const ai = await analyzeProperty(geo, weather, climate, knownFacts ?? {}, realData, key)
         if (searchGenerationRef.current !== generation) return
