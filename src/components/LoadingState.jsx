@@ -1,4 +1,5 @@
 import { memo, useEffect, useState } from 'react'
+import GooeyLoader from './GooeyLoader'
 
 const STEPS = [
   { key: 'geo',           icon: '📍', label: 'Locating city boundaries'         },
@@ -66,18 +67,8 @@ const LoadingState = memo(function LoadingState({ currentStep = 'geo', hasAIKey 
         })}
       </div>
 
-      {/* Progress bar */}
-      <div style={{ height: 3, background: 'rgba(255,255,255,0.08)', borderRadius: 99, overflow: 'hidden', marginBottom: 16 }}>
-        <div
-          style={{
-            height: '100%',
-            width: `${progress}%`,
-            background: 'linear-gradient(90deg, #38bdf8, #818cf8)',
-            borderRadius: 99,
-            transition: 'width 0.6s ease',
-          }}
-        />
-      </div>
+      {/* Gooey loader */}
+      <GooeyLoader style={{ marginBottom: 20 }} />
 
       {/* Anti-abandonment copy */}
       {isLate && (
