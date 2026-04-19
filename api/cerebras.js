@@ -149,7 +149,8 @@ export default async function handler(req, res) {
 
   // H-4: Validate user-provided key format before forwarding to Cerebras.
   // Platform key is admin-managed so we trust it; user-supplied keys are validated.
-  if (userApiKey && !/^csk-[A-Za-z0-9]{10,}$/.test(userApiKey)) {
+  // Admins bypass this check entirely.
+  if (userApiKey && !isAdmin && !/^csk-[A-Za-z0-9_-]{8,}$/.test(userApiKey)) {
     return res.status(400).json({
       error: 'invalid_key_format',
       message: 'Your Cerebras API key format is invalid. Keys must start with "csk-" followed by letters and numbers.',
