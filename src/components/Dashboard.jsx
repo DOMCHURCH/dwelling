@@ -735,7 +735,11 @@ export default function Dashboard({
 
       {/* Local Insights */}
       <SectionCard title="Local Insights" icon="🗺" delay={350} pdfSection="insights">
-        {!localInsights ? null : <>
+        {!localInsights ? (
+          <p style={{ fontFamily: "'Barlow',sans-serif", fontSize: 13, color: 'rgba(255,255,255,0.35)', fontWeight: 300 }}>
+            Local insights were not generated for this area. Try re-running the analysis.
+          </p>
+        ) : <>
         <p style={{ fontSize: 15, color: '#ffffff', marginBottom: 16, fontFamily: "'Instrument Serif', serif", fontStyle: 'italic' }}>"{localInsights.knownFor}"</p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
           <div>

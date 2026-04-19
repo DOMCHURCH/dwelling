@@ -46,10 +46,8 @@ function verifyToken(token) {
 }
 
 // C-1: Strip premium fields from AI JSON before returning to free-tier users.
-// Fields fully removed: investment, riskData, priceHistory
-// Neighborhood detail removed (character/pros/cons/bestFor) — basic scores remain
+// Only investment, riskData, priceHistory are gated — neighborhood detail is free.
 const PREMIUM_FIELDS = ['investment', 'riskData', 'priceHistory']
-const NEIGHBORHOOD_DETAIL_FIELDS = ['character', 'pros', 'cons', 'bestFor']
 
 function stripPremiumContent(cerebrasData) {
   try {
@@ -57,9 +55,6 @@ function stripPremiumContent(cerebrasData) {
     if (!content) return cerebrasData
     const analysis = JSON.parse(content)
     PREMIUM_FIELDS.forEach(f => { delete analysis[f] })
-    if (analysis.neighborhood) {
-      NEIGHBORHOOD_DETAIL_FIELDS.forEach(f => { delete analysis.neighborhood[f] })
-    }
     cerebrasData.choices[0].message.content = JSON.stringify(analysis)
   } catch (e) {
     console.error('cerebras: stripPremiumContent failed:', e.message)
