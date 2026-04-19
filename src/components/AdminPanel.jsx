@@ -134,10 +134,10 @@ export default function AdminPanel({ onClose }) {
   }
 
   const s = {
-    overlay: { position: "fixed", inset: 0, zIndex: 800, background: "rgba(0,0,0,0.92)", backdropFilter: "blur(14px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 },
+    overlay: { position: "fixed", inset: 0, zIndex: 800, background: "rgba(0,0,0,0.92)", backdropFilter: "blur(14px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, overflow: "hidden" },
     panel: { background: "#0d1117", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 20, width: "100%", maxWidth: 900, maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" },
     header: { padding: "20px 24px", borderBottom: "1px solid rgba(255,255,255,0.07)", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 },
-    body: { flex: 1, overflow: "auto", padding: 24 },
+    body: { flex: 1, overflow: "auto", overscrollBehavior: "contain", padding: 24 },
     label: { fontSize: 10, fontFamily: "'Barlow',sans-serif", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.35)", marginBottom: 6, display: "block" },
     input: { padding: "9px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.05)", color: "#fff", fontFamily: "'Barlow',sans-serif", fontSize: 13, outline: "none", transition: "border-color 0.2s" },
   }

@@ -37,24 +37,26 @@ export default function LiquidLoading({ city = '' }) {
         </div>
       )}
 
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 16, padding: '16px 0 24px' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 16, height: 140, padding: '0 0 24px' }}>
         {heights.map((height, i) => {
           const { from, to } = COLORS[i]
           const glow = GLOW[i]
           const absH = Math.abs(height)
 
           return (
-            <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              {/* top droplet */}
+            <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
+              {/* top droplet — absolutely positioned so it never affects layout height */}
               <div style={{
+                position: 'absolute',
+                bottom: `calc(${absH < 4 ? 4 : absH}px + 12px + 12px)`,
                 width: 16, height: 16, borderRadius: '50%',
                 background: `linear-gradient(135deg, ${from}, ${to})`,
-                marginBottom: 12,
                 opacity: droplets[i] ? 1 : 0,
-                transform: droplets[i] ? 'translateY(0) scale(1)' : 'translateY(10px) scale(0.5)',
+                transform: droplets[i] ? 'translateX(-50%) scale(1)' : 'translateX(-50%) translateY(10px) scale(0.5)',
                 transition: 'opacity 0.3s, transform 0.5s',
                 filter: 'blur(0.5px)',
                 boxShadow: droplets[i] ? `0 0 15px ${glow}60` : 'none',
+                left: '50%',
               }} />
 
               {/* main bar */}

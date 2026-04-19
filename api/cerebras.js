@@ -203,7 +203,7 @@ export default async function handler(req, res) {
   const ent = await getUserEntitlementsByEmail(db, email)
 
   // Also load full user row for usage tracking fields
-  const result = await db.execute({ sql: 'SELECT analyses_used, analyses_reset_at FROM users WHERE LOWER(email) = LOWER(?)', args: [email] })
+  const result = await db.execute({ sql: 'SELECT analyses_used, analyses_reset_at, is_admin FROM users WHERE LOWER(email) = LOWER(?)', args: [email] })
   let user = result.rows[0]
 
   if (!user) {
@@ -215,6 +215,7 @@ export default async function handler(req, res) {
   }
 
   const isPro = ent.is_pro // always from DB, never JWT
+  const isDbAdmin = !!(user?.is_admin) || isAdmin // env-var OR DB flag
 
   // 5. Monthly reset
   const resetAt = user.analyses_reset_at ? new Date(user.analyses_reset_at) : new Date(0)
@@ -222,6 +223,25 @@ export default async function handler(req, res) {
     await db.execute({ sql: 'UPDATE users SET analyses_used = 0, analyses_reset_at = ? WHERE LOWER(email) = LOWER(?)', args: [new Date().toISOString(), email] })
     user.analyses_used = 0
   }
+
+  // Admin bypass — unlimited analyses regardless of plan
+  if (isDbAdmin) {
+    const { model, messages, temperature, max_tokens, stream } = req.body
+    if (!ALLOWED_MODELS.includes(model)) {
+      return res.status(400).json({ error: `Invalid model. Allowed: ${ALLOWED_MODELS.join(', ')}` })
+    }
+    if (stream) return res.status(400).json({ error: 'Streaming not supported via this endpoint' })
+    const r2 = await fetch('https://api.cerebras.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({ model, messages, temperature, max_tokens: Math.min(max_tokens || 4096, 8192) }),
+    })
+    const data2 = await r2.json()
+    return res.status(r2.status).json(data2)
+  }
+
+  // declare before use — skipCount is referenced in the daily cap check below
+  const skipCount = req.headers['x-skip-count'] === 'true' && isPro
 
   // 5b. Pro / Business daily hard cap — absolute safety net even if other logic breaks.
   // Uses Redis day-bucket counter; fails open if Redis is unavailable.
@@ -240,9 +260,6 @@ export default async function handler(req, res) {
   }
 
   // 6. Enforce limit — atomic pre-flight increment eliminates check-then-use race condition.
-  // We increment before calling Cerebras and refund on failure, so concurrent requests
-  // cannot both pass the gate at the same time.
-  const skipCount = req.headers['x-skip-count'] === 'true' && isPro
   if (!isPro && !skipCount) {
     const incResult = await db.execute({
       sql: 'UPDATE users SET analyses_used = analyses_used + 1 WHERE LOWER(email) = LOWER(?) AND NOT is_pro AND analyses_used < ?',

@@ -11,7 +11,7 @@ const Stats = memo(function Stats() {
             {[
               { target: 16, suffix: '+', label: 'Data sources per report' },
               { target: 1737, suffix: '+', label: 'Canadian cities covered' },
-              { target: 10, suffix: '', label: 'Free analyses / month' },
+              { target: 3, suffix: "", label: "Free analyses / month" },
               { target: 30, prefix: '<', suffix: 's', label: 'Avg analysis time' },
             ].map(({ target, suffix, prefix, label }) => (
               <div key={label}>
