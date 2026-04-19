@@ -735,6 +735,7 @@ export default function Dashboard({
 
       {/* Local Insights */}
       <SectionCard title="Local Insights" icon="🗺" delay={350} pdfSection="insights">
+        {!localInsights ? null : <>
         <p style={{ fontSize: 15, color: '#ffffff', marginBottom: 16, fontFamily: "'Instrument Serif', serif", fontStyle: 'italic' }}>"{localInsights.knownFor}"</p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
           <div>
@@ -759,6 +760,7 @@ export default function Dashboard({
             )}
           </div>
         </div>
+        </>}
       </SectionCard>
 
       {showBYOKPrompt && !isPro && (
