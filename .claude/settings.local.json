@@ -99,7 +99,8 @@
       "Bash(<\\\\|\\\\.html\\\\b\\\\|htmlContent\\\\|generateHTML\\\\|innerHTML\\\\|escapeHtml\" /c/Users/Dominique/dwelling/src/components/PDFExportModal.jsx | head -30)",
       "mcp__plugin_claude-mem_mcp-search__smart_search",
       "Bash(xargs cat *)",
-      "Bash(python3 *)"
+      "Bash(python3 *)",
+      "Bash(npx vercel *)"
     ]
   },
   "hooks": {
