@@ -183,9 +183,9 @@ export async function loadCerebrasKeyFromServer() {
     })
     if (!res.ok) return null
     const data = await res.json()
-    if (data.key) {
-      sessionStorage.setItem('dw_cerebras_key', data.key)
-      return data.key
+    if (data.hasKey) {
+      sessionStorage.setItem('dw_cerebras_key', '__db__')
+      return '__db__'
     }
     return null
   } catch { return null }

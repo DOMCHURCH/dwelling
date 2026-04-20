@@ -430,7 +430,7 @@ export default function PaymentsPage({ onClose, user, userRecord, isTeamOwner })
           </div>
         </div>
 
-        <ApiKeyPanel />
+        {(isPaid || !!user?.is_admin) && <ApiKeyPanel />}
         <ChangePassword />
         <SubscriptionPanel user={user} userRecord={userRecord} isTeamOwner={isTeamOwner} />
         {isBusiness && isTeamOwner && <TeamPanel user={user} />}

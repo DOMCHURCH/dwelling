@@ -20,7 +20,7 @@ async function cerebrasChat(messages, json = false, skipCount = false, userApiKe
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
       ...(skipCount && { 'X-Skip-Count': 'true' }),
-      ...(userApiKey && { 'X-Cerebras-Key': userApiKey }),
+      ...(userApiKey && userApiKey !== '__db__' && { 'X-Cerebras-Key': userApiKey }),
     },
     body: JSON.stringify({
       model: MODEL,
