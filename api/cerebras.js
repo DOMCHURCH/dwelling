@@ -116,7 +116,7 @@ export default async function handler(req, res) {
   let userApiKey = req.headers['x-cerebras-key'] || null
   let keySource = 'header'
 
-  if (!userApiKey && !isAdmin) {
+  if (!userApiKey) {
     try {
       const db = getDb()
       const result = await db.execute({ sql: 'SELECT cerebras_key, cerebras_key_iv FROM users WHERE email = ?', args: [email] })
