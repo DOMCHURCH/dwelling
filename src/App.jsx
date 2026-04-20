@@ -470,8 +470,8 @@ export default function App() {
       const key = getCachedCerebrasKey()
       const canUseAI = user?.is_admin || isPro
 
-      if (key) {
-        // Has key — run full AI analysis
+      if (key && canUseAI) {
+        // Has key AND eligible plan — run full AI analysis
         setLoadStep('ai')
         const ai = await analyzeProperty(geo, weather, climate, knownFacts ?? {}, realData, key)
         if (searchGenerationRef.current !== generation) return
@@ -483,8 +483,8 @@ export default function App() {
         return
       }
 
-      // No key — show deterministic result, prompt admin/pro to add key
-      if (canUseAI) setShowBYOKPrompt(true)
+      // No key (or free plan) — show deterministic result, prompt paid users to add key
+      if (canUseAI && !key) setShowBYOKPrompt(true)
       const reportData = { geo, weather, climate, ai: deterministicResult, knownFacts: knownFacts ?? {}, realData, isAreaMode, isDeterministic: true }
       if (searchGenerationRef.current !== generation) return
       setResult(reportData)
