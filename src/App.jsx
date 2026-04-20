@@ -800,20 +800,19 @@ export default function App() {
 
   const { savedReports, saveReport, loadReport, deleteReport, isReportSaved } = useSavedReports(isPro)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const autoSavedRef = useRef(null)
 
-  async function handleSave() {
-    if (!isPro) {
-      setPaywallTrigger('save')
-      setShowPaywall(true)
-      return
-    }
-    if (!result) return
-    const res = await saveReport(result)
-    if (res?.success) {
-      setSaveSuccess(true)
-      setTimeout(() => setSaveSuccess(false), 2000)
-    }
-  }
+  // Auto-save every new analysis result for paid/admin users — no manual action needed
+  useEffect(() => {
+    if (!result || result.isShared) return
+    if (!user || (!isPro && !user?.is_admin)) return
+    const key = result?.geo?.displayName
+    if (!key || autoSavedRef.current === key) return
+    autoSavedRef.current = key
+    saveReport(result).then(res => {
+      if (res?.success) { setSaveSuccess(true); setTimeout(() => setSaveSuccess(false), 2500) }
+    })
+  }, [result, isPro, user])
 
   const trialDaysLeft = null
   const isInTrial = false
@@ -1246,52 +1245,28 @@ export default function App() {
                 </button>
 
                 {/* Save Report — visible to all, Pro gate on click */}
-                <button
-                  onClick={isPro ? handleSave : () => { setPaywallTrigger('save'); setShowPaywall(true) }}
-                  style={{
-                    borderRadius: 40,
-                    padding: "8px 16px",
-                    fontSize: 13,
+                {/* Save indicator — auto-saves for Pro/Admin; paywall teaser for free */}
+                {(isPro || user?.is_admin) ? (
+                  <span style={{
+                    borderRadius: 40, padding: "8px 16px", fontSize: 13,
                     fontFamily: "'Barlow',sans-serif",
-                    color: isPro
-                      ? (saveSuccess ? "#4ade80" : isReportSaved(result) ? "#4ade80" : "rgba(255,255,255,0.6)")
-                      : "rgba(255,255,255,0.25)",
-                    border: "none",
-                    cursor: "pointer",
-                    background: isPro ? "rgba(255,255,255,0.06)" : "transparent",
-                    transition: "opacity 0.15s",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 5,
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.75")}
-                  onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
-                  title={isPro ? "Save this report" : "Save reports with Pro →"}
-                >
-                  {isPro
-                    ? (saveSuccess ? "★ Saved!" : isReportSaved(result) ? "★ Saved" : "☆ Save")
-                    : "☆ Save"}
-                </button>
-
-                {/* Pro: Saved reports list */}
-                {isPro && savedReports.length > 0 && (
+                    color: saveSuccess ? "#4ade80" : isReportSaved(result) ? "#4ade80" : "rgba(255,255,255,0.4)",
+                    transition: "color 0.3s",
+                    userSelect: "none",
+                  }}>
+                    {saveSuccess ? "★ Saved!" : isReportSaved(result) ? "★ Saved" : "★"}
+                  </span>
+                ) : (
                   <button
-                    onClick={() => setShowSavedReports(true)}
+                    onClick={() => { setPaywallTrigger('save'); setShowPaywall(true) }}
                     style={{
-                      borderRadius: 40,
-                      padding: "8px 16px",
-                      fontSize: 13,
-                      fontFamily: "'Barlow',sans-serif",
-                      color: "rgba(255,255,255,0.5)",
-                      border: "none",
-                      cursor: "pointer",
-                      background: "rgba(255,255,255,0.04)",
-                      transition: "opacity 0.15s",
+                      borderRadius: 40, padding: "8px 16px", fontSize: 13,
+                      fontFamily: "'Barlow',sans-serif", color: "rgba(255,255,255,0.25)",
+                      border: "none", cursor: "pointer", background: "transparent",
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.75")}
-                    onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+                    title="Save reports with Pro →"
                   >
-                    📂 {savedReports.length}
+                    ☆ Save
                   </button>
                 )}
 
