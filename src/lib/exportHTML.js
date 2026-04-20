@@ -66,7 +66,8 @@ function buildHTML(result, { brandName: _brandName, clientName: _clientName, log
   const aiSummary = n(areaIntelligence.summary || areaIntelligence.aiSummary || areaIntelligence.description, "")
   const bestFor = n(areaIntelligence.bestFor, "")
 
-  /* Property estimate — area mode: estimatedValueUSD seeded from areaMetrics.medianPrice */
+  /* Property estimate — only use explicit AI value, not median fallback */
+  const hasAiEstimate = !!propertyEstimate.estimatedValueUSD
   const estValue = fmtK(
     propertyEstimate.estimatedValueUSD || areaMetrics?.medianPrice,
     sym
@@ -254,11 +255,11 @@ ${inc("market") ? `
 <div class="sec">
   <div class="st">Market & Property Estimate</div>
   <div class="g4" style="margin-bottom:12px">
-    <div class="stat"><div class="sl2">Estimated Value</div><div class="sv">${estValue}</div>${priceRange ? `<div class="ssub">${priceRange}</div>` : ""}</div>
-    ${medianPrice !== "—" ? `<div class="stat"><div class="sl2">Median Price</div><div class="sv">${medianPrice}</div></div>` : ""}
+    ${hasAiEstimate ? `<div class="stat"><div class="sl2">Estimated Value</div><div class="sv">${estValue}</div>${priceRange ? `<div class="ssub">${priceRange}</div>` : ""}</div>` : ""}
+    ${medianPrice !== "—" ? `<div class="stat"><div class="sl2">Median Price</div><div class="sv">${medianPrice}</div>${!hasAiEstimate && priceRange ? `<div class="ssub">${priceRange}</div>` : ""}</div>` : ""}
     ${avgPrice !== "—" ? `<div class="stat"><div class="sl2">Avg Price</div><div class="sv">${avgPrice}</div></div>` : ""}
-    ${rentMonthly !== "—" ? `<div class="stat"><div class="sl2">Rent / Month</div><div class="sv">${rentMonthly}</div><div class="ssub">area avg</div></div>` : ""}
-    ${pricePerSqft !== "—" ? `<div class="stat"><div class="sl2">Price / sqft</div><div class="sv">${pricePerSqft}</div></div>` : ""}
+    ${rentMonthly !== "—" && rentMonthly !== rent1br ? `<div class="stat"><div class="sl2">Rent / Month</div><div class="sv">${rentMonthly}</div><div class="ssub">area avg</div></div>` : ""}
+    ${pricePerSqft !== "—" && pricePerSqft !== medianPPSF ? `<div class="stat"><div class="sl2">Price / sqft</div><div class="sv">${pricePerSqft}</div></div>` : ""}
     ${medianPPSF !== "—" ? `<div class="stat"><div class="sl2">Median $/sqft</div><div class="sv">${medianPPSF}</div></div>` : ""}
     ${medianDOM !== "—" ? `<div class="stat"><div class="sl2">Median DOM</div><div class="sv">${medianDOM}</div></div>` : ""}
     ${activeListings ? `<div class="stat"><div class="sl2">Active Listings</div><div class="sv">${activeListings}</div></div>` : ""}
