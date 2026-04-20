@@ -250,8 +250,8 @@ export default function App() {
               await loadUserRecord()
               const updated = getCurrentUser()
               if (updated) setUser({ ...updated })
-              // Only show API key prompt for Pro (not Business — they use team keys)
-              if (!data.is_business) setShowApiKeyModal(true)
+              // Show API key prompt only if user doesn't already have one
+              if (!data.is_business && !getCachedCerebrasKey()) setShowApiKeyModal(true)
             }
           }
         } catch {}
@@ -300,13 +300,12 @@ export default function App() {
     if (!getUserType()) setTimeout(() => setShowUserTypeModal(true), 1200)
     const serverKey = await loadCerebrasKeyFromServer()
     if (serverKey) {
-      sessionStorage.removeItem("dw_cerebras_key")
       setCerebrasKey(serverKey)
     } else {
       sessionStorage.removeItem("dw_cerebras_key")
       setCerebrasKey("")
-      // Pro/Business users with no API key → prompt to set one up
-      if (fullUser.is_pro && !fullUser.is_business) {
+      // Paid/admin users with no API key → prompt to set one up
+      if (fullUser.is_pro || fullUser.is_admin) {
         setTimeout(() => setShowApiKeyModal(true), 1000)
       }
     }
@@ -798,7 +797,7 @@ export default function App() {
   const isPro = effectivePlan === "pro" || effectivePlan === "business"
   const isBusiness = effectivePlan === "business"
 
-  const { savedReports, saveReport, loadReport, deleteReport, isReportSaved } = useSavedReports(isPro)
+  const { savedReports, saveReport, loadReport, deleteReport, isReportSaved } = useSavedReports(isPro || !!user?.is_admin)
   const [saveSuccess, setSaveSuccess] = useState(false)
   const autoSavedRef = useRef(null)
 

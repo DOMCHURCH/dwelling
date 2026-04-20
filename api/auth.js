@@ -1028,9 +1028,10 @@ export default async function handler(req, res) {
       if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
       const payload = verify(authHeader.replace('Bearer ', ''))
       if (!payload) return res.status(401).json({ error: 'Invalid token' })
-      // Server-side Pro gate — read from DB, never trust JWT claims
+      // Server-side gate — read from DB, never trust JWT claims
       const ent = await getUserEntitlements(db, payload.sub)
-      if (!ent.is_pro && !ent.is_business) {
+      const isAdminUser = !!(await db.execute({ sql: 'SELECT is_admin FROM users WHERE id = ?', args: [payload.sub] })).rows[0]?.is_admin
+      if (!ent.is_pro && !ent.is_business && !isAdminUser) {
         return res.status(403).json({ error: 'Pro plan required to save reports' })
       }
       const { address, city, score, verdict, data } = req.body
