@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { getAuthToken } from "../lib/localAuth"
+import { getAuthToken, getCachedCerebrasKey, saveCerebrasKey } from "../lib/localAuth"
 
 const MONO = "'JetBrains Mono','Fira Mono','Courier New',monospace"
 const SANS = "'Barlow',sans-serif"
@@ -306,6 +306,86 @@ function TeamPanel({ user }) {
   )
 }
 
+// ── API Key Panel ─────────────────────────────────────────────────────────────
+function ApiKeyPanel() {
+  const [dbKey, setDbKey] = useState(null)
+  const [keyInput, setKeyInput] = useState("")
+  const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [msg, setMsg] = useState(null)
+
+  const flash = (text, err=false) => { setMsg({text,err}); setTimeout(()=>setMsg(null),4000) }
+
+  useEffect(() => { loadDbKey() }, [])
+
+  const loadDbKey = async () => {
+    try {
+      const token = await getAuthToken()
+      const res = await fetch("/api/auth", {
+        method:"POST",
+        headers:{"Content-Type":"application/json", Authorization:`Bearer ${token}`},
+        body:JSON.stringify({ action:"get-key" }),
+      })
+      if (res.ok) setDbKey(await res.json())
+    } catch {}
+  }
+
+  const handleSave = async () => {
+    if (!keyInput.trim()) return
+    setSaving(true)
+    try {
+      await saveCerebrasKey(keyInput.trim())
+      flash("✓ API key saved")
+      setKeyInput("")
+      await loadDbKey()
+    } catch (e) { flash(e.message, true) }
+    setSaving(false)
+  }
+
+  const handleDelete = async () => {
+    setDeleting(true)
+    try {
+      await saveCerebrasKey("")
+      flash("✓ API key removed")
+      setDbKey({ key: null, hasKey: false })
+    } catch (e) { flash(e.message, true) }
+    setDeleting(false)
+  }
+
+  const sessionKey = getCachedCerebrasKey()
+  const hasKey = dbKey?.hasKey || !!sessionKey
+  const displayKey = dbKey?.key || (sessionKey ? `${sessionKey.slice(0,8)}•••••••••••••${sessionKey.slice(-4)}` : null)
+
+  return (
+    <Panel title="CEREBRAS API KEY">
+      <Flash msg={msg} />
+      <div style={{ fontFamily:MONO, fontSize:11, color:"rgba(255,255,255,0.35)", marginBottom:16 }}>
+        Required for AI analyses. Get yours at cerebras.ai → Settings → API Keys.
+      </div>
+      {hasKey && displayKey && (
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, background:"rgba(74,222,128,0.06)", border:"1px solid rgba(74,222,128,0.15)", borderRadius:8, padding:"10px 14px", marginBottom:14 }}>
+          <div>
+            <div style={{ fontFamily:MONO, fontSize:10, color:"rgba(255,255,255,0.35)", marginBottom:4, textTransform:"uppercase", letterSpacing:"0.08em" }}>Saved Key</div>
+            <div style={{ fontFamily:MONO, fontSize:13, color:"#4ade80" }}>{displayKey}</div>
+          </div>
+          <Btn onClick={handleDelete} disabled={deleting} danger>{deleting?"Removing…":"Remove"}</Btn>
+        </div>
+      )}
+      <div style={{ display:"flex", gap:8 }}>
+        <input
+          type="password"
+          value={keyInput}
+          onChange={e=>setKeyInput(e.target.value)}
+          placeholder={hasKey?"Paste new key to replace…":"csk-…"}
+          onKeyDown={e=>e.key==="Enter"&&handleSave()}
+          style={{ flex:1, background:"rgba(255,255,255,0.04)", border:`1px solid ${BORDER}`, borderRadius:6, color:"#e5e7eb", fontFamily:MONO, fontSize:12, padding:"9px 12px", outline:"none" }}
+        />
+        <Btn onClick={handleSave} disabled={saving||!keyInput.trim()}>{saving?"Saving…":"Save"}</Btn>
+      </div>
+    </Panel>
+  )
+}
+
 // ── Main Account Page ─────────────────────────────────────────────────────────
 export default function PaymentsPage({ onClose, user, userRecord, isTeamOwner }) {
   const isBusiness = userRecord?.is_business
@@ -332,11 +412,25 @@ export default function PaymentsPage({ onClose, user, userRecord, isTeamOwner })
 
       {/* Content */}
       <div style={{ flex:1, maxWidth:720, width:"100%", margin:"0 auto", padding:"40px 32px", display:"flex", flexDirection:"column", gap:20 }}>
-        <div style={{ marginBottom:12 }}>
-          <h1 style={{ fontFamily:MONO, fontSize:22, fontWeight:700, color:"#fff", margin:"0 0 6px" }}>Account</h1>
-          <p style={{ fontFamily:MONO, fontSize:12, color:"rgba(255,255,255,0.4)", margin:0 }}>{user?.email}</p>
+        {/* Profile header */}
+        <div style={{ display:"flex", alignItems:"center", gap:16, background:"rgba(255,255,255,0.025)", border:`1px solid ${BORDER}`, borderRadius:10, padding:"20px 24px", marginBottom:8 }}>
+          <div style={{ width:52, height:52, borderRadius:"50%", flexShrink:0, background:"linear-gradient(135deg,#7c3aed 0%,#4f46e5 100%)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, fontWeight:700, color:"#fff", fontFamily:MONO, userSelect:"none" }}>
+            {(user?.email||"??").slice(0,2).toUpperCase()}
+          </div>
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ fontFamily:MONO, fontSize:14, fontWeight:600, color:"#fff", marginBottom:6, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{user?.email}</div>
+            <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+              {(() => {
+                const isAdmin = !!user?.is_admin
+                const plan = isAdmin ? "Admin" : isBusiness ? "Business" : isPaid ? "Pro" : "Free"
+                const color = isAdmin ? "#a78bfa" : isBusiness ? AMBER : isPaid ? BLUE : "rgba(255,255,255,0.35)"
+                return <span style={{ fontFamily:MONO, fontSize:10, fontWeight:700, letterSpacing:"0.1em", color, background:`${color}22`, border:`1px solid ${color}44`, borderRadius:4, padding:"2px 8px" }}>{plan.toUpperCase()}</span>
+              })()}
+            </div>
+          </div>
         </div>
 
+        <ApiKeyPanel />
         <ChangePassword />
         <SubscriptionPanel user={user} userRecord={userRecord} isTeamOwner={isTeamOwner} />
         {isBusiness && isTeamOwner && <TeamPanel user={user} />}
