@@ -1,10 +1,13 @@
 import { createHmac, timingSafeEqual, createDecipheriv, createHash } from 'crypto'
 import { createClient } from '@libsql/client'
 import { getUserEntitlementsByEmail } from './_entitlements.js'
-import { getClientIp, getRedis, checkGlobalAiRpm } from './_ratelimit.js'
+import { getClientIp, getRedis, checkGlobalAiRpm, checkAndIncrQuota, utcDay, utcMonth } from './_ratelimit.js'
 
 const ALLOWED_MODELS = ['llama-4-scout-17b-16e-instruct', 'llama-3.3-70b', 'llama-3.1-8b']
-const PRO_DAILY_LIMIT = parseInt(process.env.PRO_DAILY_LIMIT || '200', 10)
+const PRO_DAILY_LIMIT    = parseInt(process.env.PRO_DAILY_LIMIT    || '200',  10)
+const PRO_MONTHLY_LIMIT  = parseInt(process.env.PRO_MONTHLY_LIMIT  || '0',    10) // 0 = unlimited
+const BIZ_KEY_DAILY_LIM  = parseInt(process.env.BIZ_KEY_DAILY_LIM  || '200',  10)
+const BIZ_KEY_MONTH_LIM  = parseInt(process.env.BIZ_KEY_MONTH_LIM  || '2000', 10)
 const CEREBRAS_TIMEOUT_MS = 45000 // 45s — Vercel maxDuration is 60s
 
 // ─── Startup validation ───────────────────────────────────────────────────────
@@ -250,35 +253,79 @@ export default async function handler(req, res) {
     return res.status(r2.status).json(data2)
   }
 
-  // declare before use — skipCount is referenced in the daily cap check below
   const skipCount = req.headers['x-skip-count'] === 'true' && isPro
+  const isBusiness = ent.is_business
 
-  // 5b. Pro / Business daily hard cap — absolute safety net even if other logic breaks.
-  // Uses Redis day-bucket counter; fails open if Redis is unavailable.
-  if (isPro && !skipCount) {
+  // 5b. Unified quota enforcement — all tiers, atomic, calendar-based UTC resets.
+  // Single source of truth for AI call counting. Never trust frontend counters.
+  // Runs BEFORE the AI call so no charge occurs if the limit is exceeded.
+  if (!skipCount) {
+    const day = utcDay()
+    const month = utcMonth()
     try {
       const redis = getRedis()
-      const today = new Date().toISOString().slice(0, 10)
-      const dailyKey = `daily:ai:${payload.sub}:${today}`
-      const dailyCount = await redis.incr(dailyKey)
-      if (dailyCount === 1) await redis.expire(dailyKey, 172800) // 48h TTL
-      if (dailyCount > PRO_DAILY_LIMIT) {
-        console.error(JSON.stringify({ event: 'pro_daily_limit_hit', user: email, count: dailyCount, limit: PRO_DAILY_LIMIT }))
-        return res.status(429).json({ error: 'daily_limit_reached', message: `Daily analysis limit of ${PRO_DAILY_LIMIT} reached. Resets at midnight UTC.` })
-      }
-    } catch {} // Redis down → fail open for paying users
-  }
 
-  // 6. Read-only limit guard — auth.js increment-analysis is the single source of truth for
-  // credit deduction. This is a defence-in-depth check only; it never modifies analyses_used.
-  if (!isPro && !skipCount) {
-    const limitCheck = await db.execute({
-      sql: 'SELECT analyses_used FROM users WHERE LOWER(email) = LOWER(?)',
-      args: [email],
-    })
-    const used = limitCheck.rows[0]?.analyses_used ?? 0
-    if (used >= FREE_LIMIT) {
-      return res.status(429).json({ error: 'limit reached' })
+      if (isBusiness) {
+        // ── Business ──────────────────────────────────────────────────────────
+        // Require own API key — platform key is not available to Business tier.
+        // Track per-key (keyHash) so each key gets independent daily/monthly caps.
+        if (!userApiKey) {
+          return res.status(400).json({
+            error: 'api_key_required',
+            message: 'Business plan requires a Cerebras API key for each request.',
+          })
+        }
+        const keyHash = createHash('sha256').update(userApiKey).digest('hex').slice(0, 16)
+        const dKey = `quota:key:${keyHash}:daily:${day}`
+        const mKey = `quota:key:${keyHash}:monthly:${month}`
+
+        const daily = await checkAndIncrQuota(redis, dKey, BIZ_KEY_DAILY_LIM, 172800)
+        if (!daily.allowed) {
+          console.error(JSON.stringify({ event: 'biz_key_daily_limit', user: email, key: keyHash, count: daily.count }))
+          return res.status(429).json({ error: 'key_daily_limit', message: `This API key has reached its daily limit of ${BIZ_KEY_DAILY_LIM} analyses. Resets at midnight UTC.` })
+        }
+        const monthly = await checkAndIncrQuota(redis, mKey, BIZ_KEY_MONTH_LIM, 35 * 86400)
+        if (!monthly.allowed) {
+          redis.decr(dKey).catch(() => {}) // roll back the daily increment
+          console.error(JSON.stringify({ event: 'biz_key_monthly_limit', user: email, key: keyHash, count: monthly.count }))
+          return res.status(429).json({ error: 'key_monthly_limit', message: `This API key has reached its monthly limit of ${BIZ_KEY_MONTH_LIM} analyses. Resets on the 1st of next month.` })
+        }
+
+      } else if (isPro) {
+        // ── Pro ───────────────────────────────────────────────────────────────
+        // Daily hard cap; optional monthly cap (0 = unlimited).
+        const dKey = `quota:user:${payload.sub}:daily:${day}`
+        const daily = await checkAndIncrQuota(redis, dKey, PRO_DAILY_LIMIT, 172800)
+        if (!daily.allowed) {
+          console.error(JSON.stringify({ event: 'pro_daily_limit', user: email, count: daily.count, limit: PRO_DAILY_LIMIT }))
+          return res.status(429).json({ error: 'daily_limit_reached', message: `Daily limit of ${PRO_DAILY_LIMIT} analyses reached. Resets at midnight UTC.` })
+        }
+        if (PRO_MONTHLY_LIMIT > 0) {
+          const mKey = `quota:user:${payload.sub}:monthly:${month}`
+          const monthly = await checkAndIncrQuota(redis, mKey, PRO_MONTHLY_LIMIT, 35 * 86400)
+          if (!monthly.allowed) {
+            redis.decr(dKey).catch(() => {})
+            return res.status(429).json({ error: 'monthly_limit_reached', message: `Monthly limit of ${PRO_MONTHLY_LIMIT} analyses reached. Resets on the 1st of next month.` })
+          }
+        }
+
+      } else {
+        // ── Free ─────────────────────────────────────────────────────────────
+        // auth.js increment-analysis owns the free-tier counter (deterministic
+        // reports). This is defence-in-depth — free users normally can't reach
+        // the AI path (canUseAI gate in App.jsx), but enforce here too.
+        const used = parseInt(await redis.get(`quota:user:${payload.sub}:monthly:${month}`) || '0', 10)
+        if (used >= FREE_LIMIT) {
+          return res.status(429).json({ error: 'limit reached' })
+        }
+      }
+    } catch (quotaErr) {
+      // Redis down — fail open for Pro/Business (paying users), fail closed for Free.
+      if (!isPro && !isBusiness) {
+        console.error(JSON.stringify({ event: 'quota_redis_down_free', user: email }))
+        return res.status(503).json({ error: 'Service temporarily unavailable. Please try again.' })
+      }
+      console.error(JSON.stringify({ event: 'quota_redis_down_paid', user: email, error: quotaErr.message }))
     }
   }
 

@@ -3,8 +3,8 @@ import { promisify } from 'util'
 import { createClient } from '@libsql/client'
 import { Resend } from 'resend'
 import { hash as argon2Hash, verify as argon2Verify } from '@node-rs/argon2'
-import { signupLimiter, signinLimiter, resetLimiter, apiLimiter, applyLimit, getRedis, getClientIp } from './_ratelimit.js'
-import { getUserEntitlements } from './_entitlements.js'
+import { signupLimiter, signinLimiter, resetLimiter, apiLimiter, applyLimit, getRedis, getClientIp, checkAndIncrQuota, readUserQuota, utcDay, utcMonth } from './_ratelimit.js'
+import { getUserEntitlements, getUserEntitlementsByEmail } from './_entitlements.js'
 import Stripe from 'stripe'
 
 const STRIPE_SECRET = process.env.STRIPE_SECRET_KEY
@@ -42,6 +42,10 @@ if (ENCRYPTION_KEY.length !== 32) throw new Error('FATAL: CEREBRAS_ENCRYPTION_KE
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
 const BASE_URL = process.env.BASE_URL || `https://${process.env.VERCEL_URL}` || 'https://dwelling.one'
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'https://dwelling.one'
+
+const FREE_LIMIT       = 3
+const PRO_DAILY_LIMIT  = parseInt(process.env.PRO_DAILY_LIMIT  || '200', 10)
+const PRO_MONTHLY_LIMIT = parseInt(process.env.PRO_MONTHLY_LIMIT || '0', 10) // 0 = unlimited
 
 // Rate limiting handled by Upstash Redis via api/_ratelimit.js
 
@@ -491,38 +495,45 @@ export default async function handler(req, res) {
       return res.status(200).json({ analyses_used: user.analyses_used, is_pro: !!user.is_pro, is_business: !!user.is_business, has_own_key: !!user.cerebras_key })
     }
 
-    // ── increment-analysis (track free tier usage) ─────────────────────────────
+    // ── increment-analysis (free tier: charge one monthly credit) ───────────
     if (action === 'increment-analysis') {
       const authHeader = req.headers.authorization
       if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
       const payload = verify(authHeader.replace('Bearer ', ''))
       if (!payload) return res.status(401).json({ error: 'Invalid token' })
 
-      const FREE_LIMIT = 3
       const db = getDb()
-
-      // Single atomic operation — no pre-read, no race condition.
-      // The WHERE clause enforces all constraints simultaneously:
-      //   AND NOT is_pro       — pro users never consume credits
-      //   AND analyses_used < FREE_LIMIT — hard cap, cannot overshoot under any concurrency
-      // rowsAffected=0 means the user is pro, already at limit, or doesn't exist.
-      const incResult = await db.execute({
-        sql: 'UPDATE users SET analyses_used = analyses_used + 1 WHERE email = ? AND NOT is_pro AND analyses_used < ?',
-        args: [payload.email, FREE_LIMIT],
-      })
-
-      if (incResult.rowsAffected === 0) {
-        // Determine why the update was rejected (for response shape only — no decision made here).
-        const cur = await db.execute({ sql: 'SELECT analyses_used, is_pro FROM users WHERE email = ?', args: [payload.email] })
-        if (cur.rows.length === 0) return res.status(404).json({ error: 'User not found' })
-        const row = cur.rows[0]
-        if (row.is_pro) return res.status(200).json({ analyses_used: 9999, remaining: 9999, atLimit: false, isPro: true })
-        return res.status(200).json({ analyses_used: row.analyses_used ?? FREE_LIMIT, remaining: 0, atLimit: true, isPro: false })
+      const ent = await getUserEntitlementsByEmail(db, payload.email)
+      if (ent.is_pro || ent.is_business) {
+        return res.status(200).json({ analyses_used: 9999, remaining: 9999, atLimit: false, isPro: true })
       }
 
-      const freshResult = await db.execute({ sql: 'SELECT analyses_used FROM users WHERE email = ?', args: [payload.email] })
-      const newCount = freshResult.rows[0]?.analyses_used ?? 1
-      return res.status(200).json({ analyses_used: newCount, remaining: Math.max(0, FREE_LIMIT - newCount), atLimit: newCount >= FREE_LIMIT, isPro: false })
+      // Redis monthly counter — calendar month UTC, atomic INCR, TTL-based auto-reset.
+      // This is the single write path for free-tier analysis credits.
+      const month = utcMonth()
+      const mKey = `quota:user:${payload.sub}:monthly:${month}`
+      try {
+        const redis = getRedis()
+        const result = await checkAndIncrQuota(redis, mKey, FREE_LIMIT, 35 * 86400)
+        if (!result.allowed) {
+          return res.status(200).json({ analyses_used: result.count, remaining: 0, atLimit: true, isPro: false })
+        }
+        return res.status(200).json({ analyses_used: result.count, remaining: Math.max(0, FREE_LIMIT - result.count), atLimit: result.count >= FREE_LIMIT, isPro: false })
+      } catch {
+        // Redis down — fall back to DB atomic check to prevent silent bypass.
+        const incResult = await db.execute({
+          sql: 'UPDATE users SET analyses_used = analyses_used + 1 WHERE email = ? AND NOT is_pro AND analyses_used < ?',
+          args: [payload.email, FREE_LIMIT],
+        })
+        if (incResult.rowsAffected === 0) {
+          const cur = await db.execute({ sql: 'SELECT analyses_used FROM users WHERE email = ?', args: [payload.email] })
+          const count = cur.rows[0]?.analyses_used ?? FREE_LIMIT
+          return res.status(200).json({ analyses_used: count, remaining: 0, atLimit: true, isPro: false })
+        }
+        const fresh = await db.execute({ sql: 'SELECT analyses_used FROM users WHERE email = ?', args: [payload.email] })
+        const count = fresh.rows[0]?.analyses_used ?? 1
+        return res.status(200).json({ analyses_used: count, remaining: Math.max(0, FREE_LIMIT - count), atLimit: count >= FREE_LIMIT, isPro: false })
+      }
     }
 
     // ── decrement-analysis (refund a credit on failed analysis) ─────────────
@@ -533,11 +544,50 @@ export default async function handler(req, res) {
       const payload = verify(authHeader.replace('Bearer ', ''))
       if (!payload) return res.status(401).json({ error: 'Invalid token' })
 
-      const db = getDb()
-      await db.execute({ sql: 'UPDATE users SET analyses_used = MAX(0, analyses_used - 1) WHERE email = ? AND NOT is_pro', args: [payload.email] })
-      const freshResult = await db.execute({ sql: 'SELECT analyses_used FROM users WHERE email = ?', args: [payload.email] })
-      const newCount = freshResult.rows[0]?.analyses_used ?? 0
-      return res.status(200).json({ analyses_used: newCount, remaining: Math.max(0, FREE_LIMIT - newCount) })
+      const month = utcMonth()
+      const mKey = `quota:user:${payload.sub}:monthly:${month}`
+      try {
+        const redis = getRedis()
+        const current = parseInt(await redis.get(mKey) || '0', 10)
+        if (current > 0) await redis.decr(mKey).catch(() => {})
+        const newCount = Math.max(0, current - 1)
+        return res.status(200).json({ analyses_used: newCount, remaining: Math.max(0, FREE_LIMIT - newCount) })
+      } catch {
+        // Redis down — fall back to DB
+        const db = getDb()
+        await db.execute({ sql: 'UPDATE users SET analyses_used = MAX(0, analyses_used - 1) WHERE email = ? AND NOT is_pro', args: [payload.email] })
+        const fresh = await db.execute({ sql: 'SELECT analyses_used FROM users WHERE email = ?', args: [payload.email] })
+        const count = fresh.rows[0]?.analyses_used ?? 0
+        return res.status(200).json({ analyses_used: count, remaining: Math.max(0, FREE_LIMIT - count) })
+      }
+    }
+
+    // ── get-usage (dashboard: current daily + monthly counts for any tier) ──
+    if (action === 'get-usage') {
+      const authHeader = req.headers.authorization
+      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
+      const payload = verify(authHeader.replace('Bearer ', ''))
+      if (!payload) return res.status(401).json({ error: 'Invalid token' })
+
+      try {
+        const redis = getRedis()
+        const { daily, monthly, day, month } = await readUserQuota(redis, payload.sub)
+        const db = getDb()
+        const ent = await getUserEntitlementsByEmail(db, payload.email)
+        return res.status(200).json({
+          daily,
+          monthly,
+          day,
+          month,
+          limits: {
+            daily: ent.is_pro ? PRO_DAILY_LIMIT : null,
+            monthly: ent.is_pro ? (PRO_MONTHLY_LIMIT || null) : (ent.is_business ? null : FREE_LIMIT),
+          },
+          plan: ent.is_business ? 'business' : ent.is_pro ? 'pro' : 'free',
+        })
+      } catch {
+        return res.status(503).json({ error: 'Usage data temporarily unavailable.' })
+      }
     }
 
     // ── save-key ────────────────────────────────────────────────────────────

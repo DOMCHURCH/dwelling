@@ -109,3 +109,60 @@ export async function applyLimit(limiter, identifier, res) {
     return false
   }
 }
+
+// ─── Quota primitives (calendar-based, atomic) ────────────────────────────────
+// All quota keys use calendar day/month in UTC so resets are deterministic
+// and predictable to users regardless of server timezone.
+
+/** YYYY-MM-DD in UTC */
+export function utcDay() { return new Date().toISOString().slice(0, 10) }
+/** YYYY-MM in UTC */
+export function utcMonth() { return new Date().toISOString().slice(0, 7) }
+
+/**
+ * Atomically increment a quota counter and enforce a hard limit.
+ *
+ * Pattern: INCR → check → DECR on overage (best-effort rollback).
+ * The INCR is unconditional, ensuring no read-then-write window.
+ * In the rare case DECR fails after a rejected request, the counter is
+ * off by +1 until TTL expiry — a tolerable, self-healing overage rather
+ * than a silent bypass.
+ *
+ * @returns {{ allowed: boolean, count: number }}
+ *   count = post-increment value when allowed, pre-increment when blocked
+ */
+export async function checkAndIncrQuota(redis, key, limit, ttlSeconds) {
+  const count = await redis.incr(key)
+  if (count === 1) redis.expire(key, ttlSeconds).catch(() => {})
+  if (count > limit) {
+    redis.decr(key).catch(() => {})
+    return { allowed: false, count: count - 1 }
+  }
+  return { allowed: true, count }
+}
+
+/**
+ * Read user quota counters (daily + monthly) without modifying them.
+ * Returns 0 for any key that doesn't exist.
+ */
+export async function readUserQuota(redis, sub) {
+  const day = utcDay(), month = utcMonth()
+  const [d, m] = await Promise.all([
+    redis.get(`quota:user:${sub}:daily:${day}`).catch(() => null),
+    redis.get(`quota:user:${sub}:monthly:${month}`).catch(() => null),
+  ])
+  return { daily: parseInt(d || '0', 10), monthly: parseInt(m || '0', 10), day, month }
+}
+
+/**
+ * Read per-API-key quota counters (daily + monthly) without modifying them.
+ * keyHash = sha256(rawKey).slice(0,16) — non-reversible stable identifier.
+ */
+export async function readKeyQuota(redis, keyHash) {
+  const day = utcDay(), month = utcMonth()
+  const [d, m] = await Promise.all([
+    redis.get(`quota:key:${keyHash}:daily:${day}`).catch(() => null),
+    redis.get(`quota:key:${keyHash}:monthly:${month}`).catch(() => null),
+  ])
+  return { daily: parseInt(d || '0', 10), monthly: parseInt(m || '0', 10), day, month }
+}
