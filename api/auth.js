@@ -501,31 +501,28 @@ export default async function handler(req, res) {
       const FREE_LIMIT = 3
       const db = getDb()
 
-      // Get current count
-      const currentResult = await db.execute({ sql: 'SELECT analyses_used, is_pro FROM users WHERE email = ?', args: [payload.email] })
-      if (currentResult.rows.length === 0) return res.status(404).json({ error: 'User not found' })
-
-      const user = currentResult.rows[0]
-      // Only track for free users — pro/business users have unlimited
-      if (user.is_pro) {
-        return res.status(200).json({ analyses_used: 9999, remaining: 9999, atLimit: false, isPro: true })
-      }
-
-      // Atomic conditional increment — only increments if under the limit.
-      // If rowsAffected === 0 the user is already at/over the limit; no credit is consumed.
+      // Single atomic operation — no pre-read, no race condition.
+      // The WHERE clause enforces all constraints simultaneously:
+      //   AND NOT is_pro       — pro users never consume credits
+      //   AND analyses_used < FREE_LIMIT — hard cap, cannot overshoot under any concurrency
+      // rowsAffected=0 means the user is pro, already at limit, or doesn't exist.
       const incResult = await db.execute({
         sql: 'UPDATE users SET analyses_used = analyses_used + 1 WHERE email = ? AND NOT is_pro AND analyses_used < ?',
         args: [payload.email, FREE_LIMIT],
       })
+
       if (incResult.rowsAffected === 0) {
-        const cur = await db.execute({ sql: 'SELECT analyses_used FROM users WHERE email = ?', args: [payload.email] })
-        const count = cur.rows[0]?.analyses_used ?? FREE_LIMIT
-        return res.status(200).json({ analyses_used: count, remaining: 0, atLimit: true, isPro: false })
+        // Determine why the update was rejected (for response shape only — no decision made here).
+        const cur = await db.execute({ sql: 'SELECT analyses_used, is_pro FROM users WHERE email = ?', args: [payload.email] })
+        if (cur.rows.length === 0) return res.status(404).json({ error: 'User not found' })
+        const row = cur.rows[0]
+        if (row.is_pro) return res.status(200).json({ analyses_used: 9999, remaining: 9999, atLimit: false, isPro: true })
+        return res.status(200).json({ analyses_used: row.analyses_used ?? FREE_LIMIT, remaining: 0, atLimit: true, isPro: false })
       }
+
       const freshResult = await db.execute({ sql: 'SELECT analyses_used FROM users WHERE email = ?', args: [payload.email] })
       const newCount = freshResult.rows[0]?.analyses_used ?? 1
-      const atLimit = newCount >= FREE_LIMIT
-      return res.status(200).json({ analyses_used: newCount, remaining: Math.max(0, FREE_LIMIT - newCount), atLimit, isPro: false })
+      return res.status(200).json({ analyses_used: newCount, remaining: Math.max(0, FREE_LIMIT - newCount), atLimit: newCount >= FREE_LIMIT, isPro: false })
     }
 
     // ── decrement-analysis (refund a credit on failed analysis) ─────────────
