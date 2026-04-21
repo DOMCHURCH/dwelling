@@ -162,21 +162,34 @@ export default async function handler(req, res) {
     return res.status(429).json({ error: 'Service is experiencing high demand. Please try again in a moment.' })
   }
 
-  // 3b. Request deduplication — same user + same payload within 30s returns early.
-  // Prevents UI bugs or double-clicks from triggering redundant Cerebras calls.
+  // 3b. Request deduplication — blocks concurrent identical requests.
+  // TTL is 90s (> CEREBRAS_TIMEOUT_MS=45s) so a retry at 31s still sees 'pending'.
+  // Hash uses stable user sub + messages (not model, not email) keyed on actual content.
+  // Lock is released immediately on error/timeout so the user can retry right away.
+  // On success it transitions to 'done' with a 5s TTL — prevents rapid re-runs but
+  // allows a legitimate second analysis after a brief pause.
+  let _dedupKey = null
+  let _dedupRedis = null
   if (!isAdmin) {
     try {
-      const { model: _m, messages: _msg } = req.body
+      const { messages: _msg } = req.body
       const dedupHash = createHash('sha256')
-        .update(`${email}:${_m}:${JSON.stringify(_msg)}`)
+        .update(`${payload.sub}:${JSON.stringify(_msg)}`)
         .digest('hex').slice(0, 32)
-      const redis = getRedis()
-      const set = await redis.set(`dedup:ai:${dedupHash}`, '1', { nx: true, ex: 30 })
+      _dedupKey = `dedup:ai:${dedupHash}`
+      _dedupRedis = getRedis()
+      const set = await _dedupRedis.set(_dedupKey, 'pending', { nx: true, ex: 90 })
       if (!set) {
-        console.warn(JSON.stringify({ event: 'ai_dedup_hit', user: email }))
-        return res.status(429).json({ error: 'duplicate_request', message: 'Identical request already in progress. Please wait a moment.' })
+        const status = await _dedupRedis.get(_dedupKey).catch(() => null)
+        console.warn(JSON.stringify({ event: 'ai_dedup_hit', user: email, status }))
+        return res.status(429).json({
+          error: 'duplicate_request',
+          message: status === 'pending'
+            ? 'Your analysis is still in progress. Please wait for it to complete.'
+            : 'Identical request already processed. Please wait a moment.',
+        })
       }
-    } catch {} // Redis down → skip dedup
+    } catch { _dedupKey = null } // Redis down → skip dedup entirely
   }
 
   // 3. Admin bypass — still subject to model allowlist and stream guard
@@ -286,6 +299,8 @@ export default async function handler(req, res) {
     clearTimeout(timeoutId)
     const isTimeout = fetchErr.name === 'AbortError'
     console.error(JSON.stringify({ event: 'cerebras_fetch_error', user: email, timeout: isTimeout, ms: Date.now() - t0 }))
+    // Release dedup lock immediately so user can retry without waiting 90s.
+    if (_dedupKey && _dedupRedis) _dedupRedis.del(_dedupKey).catch(() => {})
     return res.status(504).json({ error: isTimeout ? 'AI request timed out. Please try again.' : 'AI service unavailable.' })
   } finally {
     clearTimeout(timeoutId)
@@ -309,5 +324,10 @@ export default async function handler(req, res) {
   // C-1: Server-side paywall — strip premium fields before returning to free users.
   // This ensures premium data is never transmitted, even if client-side blur is bypassed.
   const responseData = (r.ok && !isPro) ? stripPremiumContent(data) : data
+
+  // Transition dedup lock from 'pending' → 'done' (5s TTL).
+  // Blocks rapid re-runs of the identical request but allows a retry after a brief pause.
+  if (_dedupKey && _dedupRedis) _dedupRedis.set(_dedupKey, 'done', { ex: 5 }).catch(() => {})
+
   res.status(r.status).json(responseData)
 }
