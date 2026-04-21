@@ -439,8 +439,16 @@ export default function App() {
         compsSource,
       }
 
-      // Charge credit upfront for free logged-in users (refunded on failure below)
-      if (user && !isPro && !user?.is_admin) {
+      setLoadStep('investment')
+      const deterministicResult = buildDeterministicReport({ geo, weather, neighborhood: neighborhoodScores, areaMetrics, climate })
+
+      const key = getCachedCerebrasKey()
+      const canUseAI = user?.is_admin || isPro
+
+      // Charge credit only AFTER we know the report type and only for free users
+      // who will receive a deterministic report. canUseAI users (pro/admin) are
+      // unlimited and never reach this block. Never charge before eligibility is known.
+      if (user && !canUseAI) {
         try {
           const token = await getAuthToken()
           if (token) {
@@ -462,12 +470,6 @@ export default function App() {
           console.error('[increment-analysis]', e.message)
         }
       }
-
-      setLoadStep('investment')
-      const deterministicResult = buildDeterministicReport({ geo, weather, neighborhood: neighborhoodScores, areaMetrics, climate })
-
-      const key = getCachedCerebrasKey()
-      const canUseAI = user?.is_admin || isPro
 
       if (key && canUseAI) {
         // Has key AND eligible plan — run full AI analysis
