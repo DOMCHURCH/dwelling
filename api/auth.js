@@ -511,12 +511,20 @@ export default async function handler(req, res) {
         return res.status(200).json({ analyses_used: 9999, remaining: 9999, atLimit: false, isPro: true })
       }
 
-      // Atomic increment — eliminates SELECT→UPDATE race condition under concurrent requests.
-      await db.execute({ sql: 'UPDATE users SET analyses_used = analyses_used + 1 WHERE email = ? AND NOT is_pro', args: [payload.email] })
+      // Atomic conditional increment — only increments if under the limit.
+      // If rowsAffected === 0 the user is already at/over the limit; no credit is consumed.
+      const incResult = await db.execute({
+        sql: 'UPDATE users SET analyses_used = analyses_used + 1 WHERE email = ? AND NOT is_pro AND analyses_used < ?',
+        args: [payload.email, FREE_LIMIT],
+      })
+      if (incResult.rowsAffected === 0) {
+        const cur = await db.execute({ sql: 'SELECT analyses_used FROM users WHERE email = ?', args: [payload.email] })
+        const count = cur.rows[0]?.analyses_used ?? FREE_LIMIT
+        return res.status(200).json({ analyses_used: count, remaining: 0, atLimit: true, isPro: false })
+      }
       const freshResult = await db.execute({ sql: 'SELECT analyses_used FROM users WHERE email = ?', args: [payload.email] })
       const newCount = freshResult.rows[0]?.analyses_used ?? 1
       const atLimit = newCount >= FREE_LIMIT
-
       return res.status(200).json({ analyses_used: newCount, remaining: Math.max(0, FREE_LIMIT - newCount), atLimit, isPro: false })
     }
 

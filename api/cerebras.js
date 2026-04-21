@@ -256,13 +256,15 @@ export default async function handler(req, res) {
     } catch {} // Redis down → fail open for paying users
   }
 
-  // 6. Enforce limit — atomic pre-flight increment eliminates check-then-use race condition.
+  // 6. Read-only limit guard — auth.js increment-analysis is the single source of truth for
+  // credit deduction. This is a defence-in-depth check only; it never modifies analyses_used.
   if (!isPro && !skipCount) {
-    const incResult = await db.execute({
-      sql: 'UPDATE users SET analyses_used = analyses_used + 1 WHERE LOWER(email) = LOWER(?) AND NOT is_pro AND analyses_used < ?',
-      args: [email, FREE_LIMIT],
+    const limitCheck = await db.execute({
+      sql: 'SELECT analyses_used FROM users WHERE LOWER(email) = LOWER(?)',
+      args: [email],
     })
-    if (incResult.rowsAffected === 0) {
+    const used = limitCheck.rows[0]?.analyses_used ?? 0
+    if (used >= FREE_LIMIT) {
       return res.status(429).json({ error: 'limit reached' })
     }
   }
@@ -284,23 +286,9 @@ export default async function handler(req, res) {
     clearTimeout(timeoutId)
     const isTimeout = fetchErr.name === 'AbortError'
     console.error(JSON.stringify({ event: 'cerebras_fetch_error', user: email, timeout: isTimeout, ms: Date.now() - t0 }))
-    if (!isPro && !skipCount) {
-      await db.execute({
-        sql: 'UPDATE users SET analyses_used = MAX(0, analyses_used - 1) WHERE LOWER(email) = LOWER(?) AND NOT is_pro',
-        args: [email],
-      }).catch(() => {})
-    }
     return res.status(504).json({ error: isTimeout ? 'AI request timed out. Please try again.' : 'AI service unavailable.' })
   } finally {
     clearTimeout(timeoutId)
-  }
-
-  // Refund the pre-flight credit if Cerebras returned an error
-  if (!r.ok && !isPro && !skipCount) {
-    await db.execute({
-      sql: 'UPDATE users SET analyses_used = MAX(0, analyses_used - 1) WHERE LOWER(email) = LOWER(?) AND NOT is_pro',
-      args: [email],
-    }).catch(() => {})
   }
 
   const data = await r.json()
