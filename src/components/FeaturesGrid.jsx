@@ -5,8 +5,8 @@ import HoverGroupGrid from './HoverGroupGrid'
 const FeaturesGrid = memo(function FeaturesGrid() {
   const gridRef = useScrollReveal({ y: 28, opacity: 0, duration: 0.6, stagger: 0.08, selector: '.feature-grid-card' })
   const cards = [
-    { icon: '🍁', title: 'Canada-First', desc: 'Built specifically for Canadian cities. Realtor.ca MLS data, Statistics Canada demographics, and Canadian market context baked in.' },
-    { icon: '📊', title: 'Real MLS Data', desc: 'Active listings from Realtor.ca, StatCan NHPI price indices, and Open-Meteo climate normals. No made-up numbers.' },
+    { icon: '🍁', title: 'Canada-First', desc: 'Built specifically for Canadian real estate investors. Statistics Canada price data, Fraser Institute school rankings, and Canadian market context baked in.' },
+    { icon: '📊', title: 'Verified Data Sources', desc: 'StatCan NHPI price indices, Fraser Institute school rankings, Open-Meteo climate normals, OpenStreetMap walkability. No scraped or made-up numbers.' },
     { icon: '⚡', title: 'Instant Analysis', desc: 'Full city intelligence report in under 30 seconds — stability score, verdict, market temperature, investment outlook.' },
     { icon: '🔒', title: 'Secure & Private', desc: 'Your searches are never stored. End-to-end encryption tougher than most expect. Searches processed in real time and never retained.' },
   ]

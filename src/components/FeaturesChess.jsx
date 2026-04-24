@@ -6,12 +6,12 @@ const FeaturesChess = memo(function FeaturesChess() {
   const revealRef = useScrollReveal({ y: 0, opacity: 0, duration: 0.6, stagger: 0.12, selector: '.feature-chess-item' })
   const features = [
     {
-      title: 'City stability scored. Not guessed.',
-      desc: 'We pull active Realtor.ca listings per Canadian city and compute a real stability score — median price, days on market, price volatility, inventory level. Concrete data sourced directly from MLS.',
+      title: 'Investment signals. Scored, not guessed.',
+      desc: 'We synthesize Statistics Canada housing price baselines, demographic trends, rental yield estimates, and AI market analysis into a concrete investment score for any Canadian city.',
       stats: [
-        { val: 'Live', label: 'Listings analyzed' },
+        { val: 'StatCan', label: 'Price baseline' },
         { val: '<30s', label: 'Analysis time' },
-        { val: '100%', label: 'Real MLS data' },
+        { val: '0–100', label: 'Investment score' },
       ],
     },
     {

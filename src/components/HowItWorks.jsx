@@ -6,7 +6,7 @@ import HoverGroup from './HoverGroup'
 const HowItWorks = memo(function HowItWorks() {
   const steps = [
     { num: '01', icon: '📍', title: 'Enter any Canadian city', desc: 'Type a city name — no street address needed. Our city dropdown covers every major Canadian market from Halifax to Victoria.' },
-    { num: '02', icon: '⚡', title: 'We pull 16+ live data sources', desc: 'MLS listings, days on market, census demographics, climate risk, school ratings, crime data, walkability, and investment signals — all in real time.' },
+    { num: '02', icon: '⚡', title: 'We pull 8+ verified data sources', desc: 'StatCan price indices, census demographics, climate risk, school ratings, walkability, and AI investment signals — all synthesized in real time.' },
     { num: '03', icon: '🧠', title: 'AI builds your intelligence report', desc: 'Our AI synthesizes everything into a stability score, AI verdict, investment outlook, school ratings, crime data, and climate risk — in under 30 seconds.' },
   ]
   const headRef = useScrollReveal({ y: 32, opacity: 0, duration: 0.9, ease: 'power3.out' })
@@ -21,7 +21,7 @@ const HowItWorks = memo(function HowItWorks() {
             <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic' }}>Analyze. Understand. Decide.</span>
           </h2>
           <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 15, fontFamily: "'Barlow',sans-serif", fontWeight: 300, maxWidth: 500, lineHeight: 1.7, marginBottom: 56, margin: '0 auto 56px' }}>
-            Enter any city or neighbourhood. Our AI instantly processes listing data, demographics, risk scores, and market trends.
+            Enter any Canadian city. Our AI instantly processes price data, demographics, risk scores, and investment signals.
           </p>
         </div>
         <div ref={stepsRef}>

@@ -7,18 +7,12 @@ const DataPartnerships = memo(function DataPartnerships() {
   const partners = [
     {
       icon: '🏛️',
-      name: 'Realtor.ca / CREA',
-      type: 'MLS Data',
-      desc: 'Active listings across Canada sourced from Realtor.ca — 200+ listings per city, refreshed continuously to reflect current market conditions.',
+      name: 'Statistics Canada NHPI',
+      type: 'Housing Price Index',
+      desc: 'New Housing Price Index (NHPI) — median price baselines and appreciation trends for 30+ Canadian cities, derived from official government census and survey data.',
       status: 'live',
     },
-    {
-      icon: '📊',
-      name: 'Statistics Canada',
-      type: 'Price Indices',
-      desc: 'New Housing Price Index (NHPI) by CMA — 27 major Canadian cities, quarterly data for time-adjusting prices.',
-      status: 'live',
-    },
+
     {
       icon: '🗺️',
       name: 'OpenStreetMap / Overpass',
@@ -60,7 +54,7 @@ const DataPartnerships = memo(function DataPartnerships() {
             <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic' }}>Data you can actually trust.</span>
           </h2>
           <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 14, color: 'rgba(255,255,255,0.4)', maxWidth: 340, lineHeight: 1.7 }}>
-            Every data point is sourced from official providers, real MLS feeds, or government agencies — not scraped blogs or AI guesses.
+            Every data point is sourced from official providers, open datasets, or government agencies — not scraped blogs or AI guesses.
           </p>
         </div>
         <DataSourcesGrid partners={partners} />

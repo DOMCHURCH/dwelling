@@ -186,7 +186,6 @@ function getStatCanListings(city) {
       daysOnMarket: domBase[i] ?? 28,
       type: 'active_listing',
       source: 'statcan_estimate',
-      mlsNumber: null,
     }
   })
 }
