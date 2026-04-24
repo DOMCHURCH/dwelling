@@ -4,6 +4,69 @@ import { getUserEntitlementsByEmail } from './_entitlements.js'
 import { getClientIp, getRedis, checkGlobalAiRpm, checkAndIncrQuota, utcDay, utcMonth } from './_ratelimit.js'
 
 const ALLOWED_MODELS = ['llama-4-scout-17b-16e-instruct', 'llama-3.3-70b']
+
+function detectProvider(key, model = '') {
+  if (key.startsWith('csk-'))    return 'cerebras'
+  if (key.startsWith('gsk_'))    return 'groq'
+  if (key.startsWith('sk-or-'))  return 'openrouter'
+  if (key.startsWith('sk-ant-')) return 'anthropic'
+  if (key.startsWith('pplx-'))   return 'perplexity'
+  if (key.startsWith('fw-'))     return 'fireworks'
+  if (key.startsWith('nvapi-'))  return 'nvidia'
+  if (key.startsWith('xai-'))    return 'xai'
+  if (key.startsWith('AIza'))    return 'google'
+  if (key.startsWith('sk-')) {
+    if (model.startsWith('deepseek')) return 'deepseek'
+    return 'openai'
+  }
+  if (model.includes('mistral') || model.includes('mixtral')) return 'mistral'
+  return 'openai'
+}
+
+const PROVIDER_URLS = {
+  cerebras:   'https://api.cerebras.ai/v1/chat/completions',
+  groq:       'https://api.groq.com/openai/v1/chat/completions',
+  openrouter: 'https://openrouter.ai/api/v1/chat/completions',
+  openai:     'https://api.openai.com/v1/chat/completions',
+  perplexity: 'https://api.perplexity.ai/chat/completions',
+  fireworks:  'https://api.fireworks.ai/inference/v1/chat/completions',
+  nvidia:     'https://integrate.api.nvidia.com/v1/chat/completions',
+  xai:        'https://api.x.ai/v1/chat/completions',
+  deepseek:   'https://api.deepseek.com/v1/chat/completions',
+  mistral:    'https://api.mistral.ai/v1/chat/completions',
+  google:     'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+}
+
+async function callProvider(provider, key, body, signal) {
+  if (provider === 'anthropic') {
+    const sysMsg = body.messages.find(m => m.role === 'system')
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({
+        model: body.model, max_tokens: body.max_tokens || 4096,
+        messages: body.messages.filter(m => m.role !== 'system'),
+        ...(sysMsg && { system: sysMsg.content }),
+        ...(body.temperature !== undefined && { temperature: body.temperature }),
+      }),
+      ...(signal && { signal }),
+    })
+    if (!r.ok) return r
+    const d = await r.json()
+    const wrapped = {
+      choices: [{ message: { role: 'assistant', content: d.content?.[0]?.text ?? '' }, finish_reason: d.stop_reason }],
+      usage: { prompt_tokens: d.usage?.input_tokens, completion_tokens: d.usage?.output_tokens },
+    }
+    return new Response(JSON.stringify(wrapped), { status: 200, headers: { 'Content-Type': 'application/json' } })
+  }
+  const url = PROVIDER_URLS[provider] || PROVIDER_URLS.openai
+  return fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+    body: JSON.stringify(body),
+    ...(signal && { signal }),
+  })
+}
 const PRO_DAILY_LIMIT    = parseInt(process.env.PRO_DAILY_LIMIT    || '200',  10)
 const PRO_MONTHLY_LIMIT  = parseInt(process.env.PRO_MONTHLY_LIMIT  || '0',    10) // 0 = unlimited
 const BIZ_KEY_DAILY_LIM  = parseInt(process.env.BIZ_KEY_DAILY_LIM  || '200',  10)
@@ -150,14 +213,9 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'no_key', message: 'Please add your Cerebras API key in Settings (the 🔑 button).' })
   }
 
-  // H-4: Validate user-provided key format before forwarding to Cerebras.
-  // Platform key is admin-managed so we trust it; user-supplied keys are validated.
-  // Admins bypass this check entirely.
-  if (userApiKey && !isAdmin && !/^csk-[A-Za-z0-9_-]{8,}$/.test(userApiKey)) {
-    return res.status(400).json({
-      error: 'invalid_key_format',
-      message: 'Your Cerebras API key format is invalid. Keys must start with "csk-" followed by letters and numbers.',
-    })
+  // H-4: Basic length check on user-supplied keys. Provider is detected at call time.
+  if (userApiKey && !isAdmin && userApiKey.trim().length < 10) {
+    return res.status(400).json({ error: 'invalid_key_format', message: 'API key appears too short. Please check and re-paste it.' })
   }
 
   // 3a. Global requests-per-minute cap — prevents cost explosion from bugs or attacks
@@ -202,11 +260,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: `Invalid model. Allowed: ${ALLOWED_MODELS.join(', ')}` })
     }
     if (stream) return res.status(400).json({ error: 'Streaming not supported via this endpoint' })
-    const r = await fetch('https://api.cerebras.ai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({ model, messages, temperature, max_tokens: Math.min(max_tokens || 4096, 8192) }),
-    })
+    const r = await callProvider(detectProvider(apiKey, model), apiKey, { model, messages, temperature, max_tokens: Math.min(max_tokens || 4096, 8192) })
     const data = await r.json()
     return res.status(r.status).json(data)
   }
@@ -244,11 +298,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: `Invalid model. Allowed: ${ALLOWED_MODELS.join(', ')}` })
     }
     if (stream) return res.status(400).json({ error: 'Streaming not supported via this endpoint' })
-    const r2 = await fetch('https://api.cerebras.ai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({ model, messages, temperature, max_tokens: Math.min(max_tokens || 4096, 8192) }),
-    })
+    const r2 = await callProvider(detectProvider(apiKey, model), apiKey, { model, messages, temperature, max_tokens: Math.min(max_tokens || 4096, 8192) })
     const data2 = await r2.json()
     return res.status(r2.status).json(data2)
   }
@@ -336,12 +386,7 @@ export default async function handler(req, res) {
   const t0 = Date.now()
   let r
   try {
-    r = await fetch('https://api.cerebras.ai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({ model, messages, temperature, max_tokens, stream }),
-      signal: controller.signal,
-    })
+    r = await callProvider(detectProvider(apiKey, model), apiKey, { model, messages, temperature, max_tokens, stream }, controller.signal)
   } catch (fetchErr) {
     clearTimeout(timeoutId)
     const isTimeout = fetchErr.name === 'AbortError'

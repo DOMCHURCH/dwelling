@@ -190,3 +190,13 @@ export async function loadCerebrasKeyFromServer() {
     return null
   } catch { return null }
 }
+
+
+export function getCachedAiModel() {
+  return sessionStorage.getItem('dw_ai_model') || ''
+}
+
+export function cacheAiModel(model) {
+  if (model) sessionStorage.setItem('dw_ai_model', model)
+  else sessionStorage.removeItem('dw_ai_model')
+}

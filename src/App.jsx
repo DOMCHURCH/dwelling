@@ -39,6 +39,7 @@ import {
   saveCerebrasKey,
   getCachedCerebrasKey,
   loadCerebrasKeyFromServer,
+  cacheAiModel,
 } from "./lib/localAuth"
 import { useEngagement } from "./lib/useEngagement"
 import UserTypeModal, { getUserType, setUserType } from "./components/UserTypeModal"
@@ -346,11 +347,12 @@ export default function App() {
     }
   }
 
-  async function handleBYOKSubmit(key) {
+  async function handleBYOKSubmit(key, model) {
     setByokLoading(true)
     try {
       await saveCerebrasKey(key)
       setCerebrasKey(key)
+      cacheAiModel(model || null)
       setShowBYOKPrompt(false)
       if (lastQuery) await handleSearch(lastQuery)
     } catch {

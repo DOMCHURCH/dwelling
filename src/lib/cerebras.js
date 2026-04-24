@@ -6,7 +6,8 @@ import { formatMarketDataForPrompt, getMarketData, getLiveMarketData } from './m
 import { formatAreaContextForPrompt } from './areaAnalysis'
 
 const CEREBRAS_BASE = '/api/cerebras'
-const MODEL = 'llama-3.3-70b'
+const DEFAULT_MODEL = 'llama-3.3-70b'
+function getModel() { return sessionStorage.getItem('dw_ai_model') || DEFAULT_MODEL }
 
 // getAuthToken imported from localAuth
 
@@ -23,7 +24,7 @@ async function cerebrasChat(messages, json = false, skipCount = false, userApiKe
       ...(userApiKey && userApiKey !== '__db__' && { 'X-Cerebras-Key': userApiKey }),
     },
     body: JSON.stringify({
-      model: MODEL,
+      model: getModel(),
       messages,
       temperature: 0.15,
       max_tokens: 4096,
