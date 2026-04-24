@@ -100,7 +100,8 @@
       "mcp__plugin_claude-mem_mcp-search__smart_search",
       "Bash(xargs cat *)",
       "Bash(python3 *)",
-      "Bash(npx vercel *)"
+      "Bash(npx vercel *)",
+      "Bash(awk '{print $9, $5}')"
     ]
   },
   "hooks": {
