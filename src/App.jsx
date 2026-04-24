@@ -11,7 +11,6 @@ import HowItWorks from "./components/HowItWorks"
 import FeaturesChess from "./components/FeaturesChess"
 import FeaturesGrid from "./components/FeaturesGrid"
 import DataPartnerships from "./components/DataPartnerships"
-import BYOKSection from "./components/BYOKSection"
 import Stats from "./components/Stats"
 import Testimonials from "./components/Testimonials"
 import ProShowcase from "./components/ProShowcase"
@@ -21,7 +20,6 @@ import MortgageCalculator from "./components/MortgageCalculator"
 import RentalCalculator from "./components/RentalCalculator"
 import CTAFooter from "./components/CTAFooter"
 import TermsModal from "./components/TermsModal"
-import ApiKeyModal from "./components/ApiKeyModal"
 import { LOGO } from "./lib/appHelpers"
 import { DEMO_RESULT } from "./lib/demoData"
 import { buildDeterministicReport } from "./lib/deterministicReport"
@@ -37,10 +35,6 @@ import {
   signOut as localSignOut,
   getUsage,
   getQuotaUsage,
-  saveCerebrasKey,
-  getCachedCerebrasKey,
-  loadCerebrasKeyFromServer,
-  cacheAiModel,
 } from "./lib/localAuth"
 import { useEngagement } from "./lib/useEngagement"
 import UserTypeModal, { getUserType, setUserType } from "./components/UserTypeModal"
@@ -91,9 +85,6 @@ export default function App() {
   const [loadStep, setLoadStep] = useState('geo')
   const [currentCity, setCurrentCity] = useState('')
   const [result, setResult] = useState(null)
-  const [showBYOKPrompt, setShowBYOKPrompt] = useState(false)
-  const [showApiKeyModal, setShowApiKeyModal] = useState(false)
-  const [byokLoading, setByokLoading] = useState(false)
   const [lastQuery, setLastQuery] = useState(null)
   const [error, setError] = useState(null)
   const [showTerms, setShowTerms] = useState(false)
@@ -126,7 +117,6 @@ export default function App() {
   const [compareResult, setCompareResult] = useState(null)
   const [comparingMode, setComparingMode] = useState(false)
   const [previewPlan, setPreviewPlan] = useState("free")
-  const [cerebrasKey, setCerebrasKey] = useState(() => getCachedCerebrasKey())
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [showDeleteAccount, setShowDeleteAccount] = useState(false)
   const [showUserTypeModal, setShowUserTypeModal] = useState(false)
@@ -196,9 +186,6 @@ export default function App() {
       setUserRecord({ is_pro: u.is_pro, is_business: u.is_business, analyses_used: 0 })
       if (u.is_admin) setPreviewPlan(u.is_business ? "business" : u.is_pro ? "pro" : "free")
       loadUserRecord()
-      loadCerebrasKeyFromServer().then((k) => {
-        if (k) setCerebrasKey(k)
-      })
       if (u.is_business) {
         loadTeamOwnerStatus()
         if (!localStorage.getItem("dw_business_onboarded")) {
@@ -258,7 +245,6 @@ export default function App() {
               const updated = getCurrentUser()
               if (updated) setUser({ ...updated })
               // Show API key prompt only if user doesn't already have one
-              if (!data.is_business && !getCachedCerebrasKey()) setShowApiKeyModal(true)
             }
           }
         } catch {}
@@ -305,23 +291,10 @@ export default function App() {
     }
     // Show user type modal on first login if not yet answered
     if (!getUserType()) setTimeout(() => setShowUserTypeModal(true), 1200)
-    const serverKey = await loadCerebrasKeyFromServer()
-    if (serverKey) {
-      setCerebrasKey(serverKey)
-    } else {
-      sessionStorage.removeItem("dw_cerebras_key")
-      setCerebrasKey("")
-      // Paid/admin users with no API key → prompt to set one up
-      if (fullUser.is_pro || fullUser.is_admin) {
-        setTimeout(() => setShowApiKeyModal(true), 1000)
-      }
-    }
   }
 
   const handleSignOut = () => {
     localSignOut()
-    sessionStorage.removeItem("dw_cerebras_key")
-    setCerebrasKey("")
     setUser(null)
     setUserRecord(null)
     setResult(null)
@@ -353,21 +326,6 @@ export default function App() {
     }
   }
 
-  async function handleBYOKSubmit(key, model) {
-    setByokLoading(true)
-    try {
-      await saveCerebrasKey(key)
-      setCerebrasKey(key)
-      cacheAiModel(model || null)
-      setShowBYOKPrompt(false)
-      if (lastQuery) await handleSearch(lastQuery)
-    } catch {
-      // key stays in prompt, error will show
-    } finally {
-      setByokLoading(false)
-    }
-  }
-
   const handleSearch = async ({ street, city, state, country: _country, knownFacts }) => {
     const country = "Canada"
     if (loading) return
@@ -385,7 +343,6 @@ export default function App() {
     setLoading(true)
     setError(null)
     setResult(null)
-    setShowBYOKPrompt(false)
     setLoadStep('geo')
     setCurrentCity(city)
     const isAreaMode = !street.trim()
@@ -450,7 +407,6 @@ export default function App() {
       setLoadStep('investment')
       const deterministicResult = buildDeterministicReport({ geo, weather, neighborhood: neighborhoodScores, areaMetrics, climate })
 
-      const key = getCachedCerebrasKey()
       const canUseAI = user?.is_admin || isPro
 
       // Charge credit only AFTER we know the report type and only for free users
@@ -479,10 +435,10 @@ export default function App() {
         }
       }
 
-      if (key && canUseAI) {
-        // Has key AND eligible plan — run full AI analysis
+      if (canUseAI) {
+        // Pro/admin — run full AI analysis via platform backend
         setLoadStep('ai')
-        const ai = await analyzeProperty(geo, weather, climate, knownFacts ?? {}, realData, key)
+        const ai = await analyzeProperty(geo, weather, climate, knownFacts ?? {}, realData)
         if (searchGenerationRef.current !== generation) return
         const reportData = { geo, weather, climate, ai: mergeWithDeterministic(deterministicResult, ai), knownFacts: knownFacts ?? {}, realData, isAreaMode }
         setResult(reportData)
@@ -492,8 +448,7 @@ export default function App() {
         return
       }
 
-      // No key (or free plan) — show deterministic result, prompt paid users to add key
-      if (canUseAI && !key) setShowBYOKPrompt(true)
+      // Free plan — deterministic result only
       const reportData = { geo, weather, climate, ai: deterministicResult, knownFacts: knownFacts ?? {}, realData, isAreaMode, isDeterministic: true }
       if (searchGenerationRef.current !== generation) return
       setResult(reportData)
@@ -514,8 +469,8 @@ export default function App() {
         }).catch(() => {})
       }
       if (err.message === "no_key" || err.message?.includes("Invalid Cerebras") || err.message?.includes("invalid_key")) {
-        if (isPro || user?.is_admin) setShowBYOKPrompt(true)
-        else { setPaywallTrigger('limit'); setShowPaywall(true) }
+        setPaywallTrigger('limit')
+        setShowPaywall(true)
         return
       }
       if (!user?.is_admin && (err.message?.includes("limit reached") || err.message?.includes("429"))) {
@@ -542,9 +497,7 @@ export default function App() {
 
   const handleRecalculate = async (corrections) => {
     if (!result) return
-    const key = getCachedCerebrasKey()
-    if (!key) {
-      // Free users need Pro to use custom facts
+    if (!isPro && !user?.is_admin) {
       setShowPaywall(true)
       setPaywallTrigger('recalculate')
       return
@@ -553,7 +506,7 @@ export default function App() {
     setError(null)
     try {
       const merged = { ...(result.knownFacts ?? {}), ...corrections }
-      const ai = await analyzeProperty(result.geo, result.weather, result.climate, merged, result.realData, key)
+      const ai = await analyzeProperty(result.geo, result.weather, result.climate, merged, result.realData)
       setResult((p) => ({ ...p, ai, knownFacts: merged }))
     } catch (err) {
       setError(err.message ?? "Recalculation failed.")
@@ -624,22 +577,21 @@ export default function App() {
         isAreaMode,
         compsSource,
       }
-      const key = getCachedCerebrasKey()
-      if (!key) {
-        if (isPro || user?.is_admin) setShowBYOKPrompt(true)
-        else { setPaywallTrigger('compare'); setShowPaywall(true) }
+      if (!isPro && !user?.is_admin) {
+        setPaywallTrigger('compare')
+        setShowPaywall(true)
         setLoading(false)
         return
       }
-      const ai = await analyzeProperty(geo, weather, climate, {}, realData, key)
+      const ai = await analyzeProperty(geo, weather, climate, {}, realData)
       setLoadStep('investment')
       setCompareResult({ geo, weather, climate, ai, knownFacts: {}, realData, isAreaMode })
       setComparingMode(false)
       setTimeout(() => loadUserRecord(), 800)
     } catch (err) {
       if (err.message === "no_key") {
-        if (isPro || user?.is_admin) setShowBYOKPrompt(true)
-        else { setPaywallTrigger('compare'); setShowPaywall(true) }
+        setPaywallTrigger('compare')
+        setShowPaywall(true)
         return
       }
       if (err.message?.includes("limit reached") || err.message?.includes("429")) {
@@ -714,21 +666,20 @@ export default function App() {
         isAreaMode,
         compsSource,
       }
-      const key = getCachedCerebrasKey()
-      if (!key) {
-        if (isPro || user?.is_admin) setShowBYOKPrompt(true)
-        else { setPaywallTrigger('compare'); setShowPaywall(true) }
+      if (!isPro && !user?.is_admin) {
+        setPaywallTrigger('compare')
+        setShowPaywall(true)
         setLoading(false)
         return
       }
-      const ai = await analyzeProperty(geo, weather, climate, {}, realData, key)
+      const ai = await analyzeProperty(geo, weather, climate, {}, realData)
       setLoadStep('investment')
       setCompareResultC({ geo, weather, climate, ai, knownFacts: {}, realData, isAreaMode })
       setComparingModeC(false)
     } catch (err) {
       if (err.message === "no_key") {
-        if (isPro || user?.is_admin) setShowBYOKPrompt(true)
-        else { setPaywallTrigger('compare'); setShowPaywall(true) }
+        setPaywallTrigger('compare')
+        setShowPaywall(true)
         return
       }
       setError(err.message ?? "Something went wrong.")
@@ -1088,16 +1039,6 @@ export default function App() {
           </div>
         </div>
       )}
-      {/* BYOK management is now in AccountSettings within the dashboard */}
-      {showApiKeyModal && (
-        <ApiKeyModal
-          currentKey={cerebrasKey}
-          isOnboarding={true}
-          isPro={!!(user?.is_pro || user?.is_business)}
-          onSave={(key) => { setCerebrasKey(key); setShowApiKeyModal(false) }}
-          onClose={() => setShowApiKeyModal(false)}
-        />
-      )}
       {showPaywall && (
         <Suspense fallback={null}>
           <PaywallModal
@@ -1429,7 +1370,7 @@ export default function App() {
                   </span>
                 </div>
               )}
-              {!isPro && !cerebrasKey && reportsLeft !== null && reportsLeft <= 2 && (
+              {!isPro && reportsLeft !== null && reportsLeft <= 2 && (
                 <div style={{
                   background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)',
                   borderRadius: 12, padding: '10px 20px', marginBottom: 12, textAlign: 'center',
@@ -1609,10 +1550,6 @@ export default function App() {
                     setShowPaywall(true)
                   }
                 }}
-                showBYOKPrompt={showBYOKPrompt}
-                onBYOKSubmit={handleBYOKSubmit}
-                onBYOKDismiss={() => setShowBYOKPrompt(false)}
-                byokLoading={byokLoading}
                 onShare={user && !result?.isShared ? handleShare : undefined}
                 shareLoading={shareLoading}
                 shareSuccess={shareSuccess}
@@ -1636,7 +1573,6 @@ export default function App() {
           <MortgageCalculator activeCity={result?.geo?.userCity || null} />
           <RentalCalculator activeCity={result?.geo?.userCity || null} />
           <DataPartnerships />
-          <BYOKSection />
           <Stats />
           <Testimonials />
           <ProShowcase

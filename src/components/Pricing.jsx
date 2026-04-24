@@ -7,8 +7,8 @@ const Pricing = memo(function Pricing({ onUpgrade, onBusinessCta }) {
   const headRef = useScrollReveal({ y: 28, opacity: 0, duration: 0.85, ease: 'power3.out' })
   const cardsRef = useScrollReveal({ y: 40, opacity: 0, duration: 0.7, stagger: 0.15, selector: '.pricing-card-anim' })
   const [annual, setAnnual] = useState(false)
-  const monthlyPrice = 29
-  const annualPrice = 228
+  const monthlyPrice = 49
+  const annualPrice = 399
   const displayPrice = annual ? Math.round(annualPrice / 12) : monthlyPrice
 
   return (
@@ -24,7 +24,7 @@ const Pricing = memo(function Pricing({ onUpgrade, onBusinessCta }) {
         <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', padding: '5px 14px', fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Barlow',sans-serif", letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 20 }}>Pricing</div>
 
         <h2 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2.2rem,5vw,3.8rem)', color: '#fff', marginBottom: 12, lineHeight: 0.95, letterSpacing: '-0.02em' }}>
-          Know before you move.
+          Know before you invest.
         </h2>
         <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 16, color: 'rgba(255,255,255,0.45)', marginBottom: 56, lineHeight: 1.7, maxWidth: 500, margin: '0 auto 56px' }}>
           Start free. Upgrade when you need the full picture — Pro pays for itself the moment it helps you avoid the wrong neighbourhood.
@@ -48,7 +48,7 @@ const Pricing = memo(function Pricing({ onUpgrade, onBusinessCta }) {
           </button>
           <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 13, color: annual ? '#fff' : 'rgba(255,255,255,0.35)', fontWeight: 400 }}>
             Annual
-            <span style={{ marginLeft: 6, background: 'rgba(56,189,248,0.15)', border: '1px solid rgba(56,189,248,0.3)', borderRadius: 20, padding: '2px 8px', fontSize: 11, color: '#38bdf8' }}>Save 34%</span>
+            <span style={{ marginLeft: 6, background: 'rgba(56,189,248,0.15)', border: '1px solid rgba(56,189,248,0.3)', borderRadius: 20, padding: '2px 8px', fontSize: 11, color: '#38bdf8' }}>Save 32%</span>
           </span>
         </div>
 
@@ -61,10 +61,10 @@ const Pricing = memo(function Pricing({ onUpgrade, onBusinessCta }) {
             popular={false}
           />
           <PricingCard
-            plan="Pro" price={String(displayPrice)} desc={annual ? "Billed $228/year — cancel anytime" : "Full intelligence, no limits"}
+            plan="Pro" price={String(displayPrice)} desc={annual ? "Billed $399/year — cancel anytime" : "Unlimited analyses for serious investors"}
             priceLabel={annual ? '/mo · billed yearly' : '/month'}
             features={PRICING_PRO}
-            cta={annual ? `Get Pro — $228/year →` : "Upgrade to Pro →"}
+            cta={annual ? `Get Pro — $399/year →` : "Upgrade to Pro →"}
             onCta={() => onUpgrade(annual)}
             popular={true}
             annualSavings={annual}

@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual, createDecipheriv, createHash } from 'crypto'
+import { createHmac, timingSafeEqual, createHash } from 'crypto'
 import { createClient } from '@libsql/client'
 import { getUserEntitlementsByEmail } from './_entitlements.js'
 import { getClientIp, getRedis, checkGlobalAiRpm, checkAndIncrQuota, utcDay, utcMonth } from './_ratelimit.js'
@@ -128,22 +128,6 @@ function stripPremiumContent(cerebrasData) {
   return cerebrasData
 }
 
-// AES decrypt for Cerebras keys (mirrors auth.js)
-function decryptKey(encryptedHex, ivHex) {
-  try {
-    const encKeyHex = process.env.CEREBRAS_ENCRYPTION_KEY
-    if (!encKeyHex) return null
-    const ENCRYPTION_KEY = Buffer.from(encKeyHex, 'hex')
-    const iv = Buffer.from(ivHex, 'hex')
-    const data = Buffer.from(encryptedHex, 'hex')
-    const tag = data.subarray(0, 16)
-    const ciphertext = data.subarray(16)
-    const decipher = createDecipheriv('aes-256-gcm', ENCRYPTION_KEY, iv)
-    decipher.setAuthTag(tag)
-    return decipher.update(ciphertext) + decipher.final('utf8')
-  } catch { return null }
-}
-
 export default async function handler(req, res) {
   // CORS — locked to production domain
   const origin = req.headers.origin || ''
@@ -151,7 +135,7 @@ export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', origin || ALLOWED_ORIGIN)
   }
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Skip-Count, X-Cerebras-Key')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Skip-Count')
   res.setHeader('Vary', 'Origin')
   if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
@@ -178,44 +162,12 @@ export default async function handler(req, res) {
   // Trust JWT is_admin (cryptographically signed) OR env-var match
   const isAdmin = ADMIN_EMAILS.includes(email) || !!payload.is_admin
 
-  // 2. Resolve API key — header first, then DB (AES-decrypted)
-  let userApiKey = req.headers['x-cerebras-key'] || null
-  let keySource = 'header'
-
-  if (!userApiKey) {
-    try {
-      const db = getDb()
-      const result = await db.execute({ sql: 'SELECT cerebras_key, cerebras_key_iv FROM users WHERE email = ?', args: [email] })
-      if (result.rows.length > 0 && result.rows[0].cerebras_key) {
-        const row = result.rows[0]
-        if (row.cerebras_key_iv) {
-          // New AES-256-GCM encrypted
-          const decrypted = decryptKey(row.cerebras_key, row.cerebras_key_iv)
-          if (decrypted) { userApiKey = decrypted.trim(); keySource = 'database' }
-        } else {
-          // Legacy base64
-          try {
-            const decoded = Buffer.from(row.cerebras_key, 'base64').toString().trim()
-            if (decoded.length > 10) { userApiKey = decoded; keySource = 'database_legacy' }
-          } catch {}
-        }
-      }
-    } catch (e) {
-      console.error('cerebras: DB key lookup failed')
-    }
-  }
-
-  const platformKey = (process.env.CEREBRAS_API_KEY || '').trim()
-  const apiKey = (userApiKey || '').trim() || platformKey || null
-  if (!userApiKey && platformKey) keySource = 'platform_env'
+  // 2. Resolve API key — platform environment only
+  const apiKey = (process.env.CEREBRAS_API_KEY || '').trim()
+  const keySource = 'platform_env'
 
   if (!apiKey) {
-    return res.status(400).json({ error: 'no_key', message: 'Please add your Cerebras API key in Settings (the 🔑 button).' })
-  }
-
-  // H-4: Basic length check on user-supplied keys. Provider is detected at call time.
-  if (userApiKey && !isAdmin && userApiKey.trim().length < 10) {
-    return res.status(400).json({ error: 'invalid_key_format', message: 'API key appears too short. Please check and re-paste it.' })
+    return res.status(500).json({ error: 'service_unavailable', message: 'AI service is not configured. Please contact support.' })
   }
 
   // 3a. Global requests-per-minute cap — prevents cost explosion from bugs or attacks
@@ -317,28 +269,20 @@ export default async function handler(req, res) {
 
       if (isBusiness) {
         // ── Business ──────────────────────────────────────────────────────────
-        // Require own API key — platform key is not available to Business tier.
-        // Track per-key (keyHash) so each key gets independent daily/monthly caps.
-        if (!userApiKey) {
-          return res.status(400).json({
-            error: 'api_key_required',
-            message: 'Business plan requires a Cerebras API key for each request.',
-          })
-        }
-        const keyHash = createHash('sha256').update(userApiKey).digest('hex').slice(0, 16)
-        const dKey = `quota:key:${keyHash}:daily:${day}`
-        const mKey = `quota:key:${keyHash}:monthly:${month}`
+        // Track per-user daily/monthly caps for Business plan.
+        const dKey = `quota:user:${payload.sub}:daily:${day}`
+        const mKey = `quota:user:${payload.sub}:monthly:${month}`
 
         const daily = await checkAndIncrQuota(redis, dKey, BIZ_KEY_DAILY_LIM, 172800)
         if (!daily.allowed) {
-          console.error(JSON.stringify({ event: 'biz_key_daily_limit', user: email, key: keyHash, count: daily.count }))
-          return res.status(429).json({ error: 'key_daily_limit', message: `This API key has reached its daily limit of ${BIZ_KEY_DAILY_LIM} analyses. Resets at midnight UTC.` })
+          console.error(JSON.stringify({ event: 'biz_daily_limit', user: email, count: daily.count }))
+          return res.status(429).json({ error: 'daily_limit_reached', message: `Daily limit of ${BIZ_KEY_DAILY_LIM} analyses reached. Resets at midnight UTC.` })
         }
         const monthly = await checkAndIncrQuota(redis, mKey, BIZ_KEY_MONTH_LIM, 35 * 86400)
         if (!monthly.allowed) {
-          redis.decr(dKey).catch(() => {}) // roll back the daily increment
-          console.error(JSON.stringify({ event: 'biz_key_monthly_limit', user: email, key: keyHash, count: monthly.count }))
-          return res.status(429).json({ error: 'key_monthly_limit', message: `This API key has reached its monthly limit of ${BIZ_KEY_MONTH_LIM} analyses. Resets on the 1st of next month.` })
+          redis.decr(dKey).catch(() => {})
+          console.error(JSON.stringify({ event: 'biz_monthly_limit', user: email, count: monthly.count }))
+          return res.status(429).json({ error: 'monthly_limit_reached', message: `Monthly limit of ${BIZ_KEY_MONTH_LIM} analyses reached. Resets on the 1st of next month.` })
         }
 
       } else if (isPro) {

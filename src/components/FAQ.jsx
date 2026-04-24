@@ -1,13 +1,13 @@
 import { useState, memo } from 'react'
 
 const FAQ_ITEMS = [
-  { q: 'Which cities does Dwelling cover?', a: 'Currently all major Canadian cities — Toronto, Vancouver, Calgary, Ottawa, Montreal, Edmonton, Winnipeg, Halifax, and hundreds more. We started with Canada to build a rock-solid, data-rich pilot before expanding.' },
-  { q: 'Where does the data come from?', a: 'Realtor.ca active MLS listings (200+ per city), Statistics Canada price indices, OpenStreetMap walkability and amenities, Open-Meteo climate normals, and our proprietary AI engine for synthesis.' },
-  { q: 'What is the Stability Score?', a: 'A 0–100 score computed from real listing data: median days on market, price volatility (coefficient of variation), inventory levels, and percentage of listings sitting >60 days. Higher = more stable.' },
-  { q: 'Is Dwelling free to use?', a: 'Yes. Free users get 3 reports per month — area verdict, neighbourhood scores, cost of living, climate data, and an investment score preview. Pro ($29/month or $228/year) unlocks unlimited analyses, the full investment analysis, price history & projections, environmental risk, side-by-side city comparison, and BYOK for maximum privacy.' },
-  { q: 'Can I use the results to make a real estate decision?', a: 'No. All outputs are informational only and do not constitute financial, legal, or real estate advice. Always consult a qualified professional.' },
+  { q: 'Which cities does Dwelling cover?', a: 'All major Canadian cities and hundreds of smaller markets — Toronto, Vancouver, Calgary, Ottawa, Montreal, Edmonton, Winnipeg, Halifax, Victoria, Kelowna, and more. We started with Canada to build a data-rich, reliable investment analysis product before expanding.' },
+  { q: 'Where does the data come from?', a: 'Statistics Canada housing price indices (NHPI) and census demographics, Fraser Institute school performance rankings, Open-Meteo climate and weather data, OpenStreetMap for walkability and amenities, and our proprietary Dwelling AI engine for synthesis and scoring. All legitimate, licensed, or open-data sources.' },
+  { q: 'What is the Investment Score?', a: "A 0–100 score computed from price trend data (NHPI appreciation), rental yield estimates, market temperature (buyer's vs seller's), demographic growth indicators, and risk-adjusted return potential. Higher = stronger investment case based on available data." },
+  { q: 'Is Dwelling free to use?', a: 'Yes. Free users get 3 reports per month — area verdict, neighbourhood scores, cost of living, climate data, and an investment score preview. Pro ($49/month or $399/year) unlocks unlimited analyses, the full investment analysis, price history & projections, environmental risk, PDF export, and side-by-side city comparison.' },
+  { q: 'Can I use the results to make a real estate decision?', a: 'No. All outputs are informational only and do not constitute financial, legal, or real estate advice. Always consult a qualified professional before making investment decisions.' },
   { q: 'Does Dwelling store my searches?', a: 'No. Searches are processed in real time and discarded immediately. We store only your usage count to enforce free-tier limits.' },
-  { q: 'Why Canada only right now?', a: 'Depth over breadth. Starting with one country lets us build a genuinely reliable product — accurate data partnerships, verified sources, Canada-specific context — before expanding internationally.' },
+  { q: 'Why Canada only right now?', a: 'Depth over breadth. Starting with one country lets us build a genuinely reliable product — accurate data partnerships, verified sources, Canada-specific regulatory and market context — before expanding internationally.' },
 ]
 
 const FAQ = memo(function FAQ() {

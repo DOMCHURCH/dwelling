@@ -1,7 +1,6 @@
 // api/comps.js
-// Fetches comparable listings from Realtor.ca (Canada only).
-// Results are cached in Turso for 7 days — no live Realtor.ca hit per user request
-// once the cache is warm.
+// Returns market comparables based on Statistics Canada NHPI + CREA price baselines.
+// Results are cached in Turso for 7 days.
 
 import { createClient } from '@libsql/client'
 import { createHash } from 'crypto'
@@ -19,31 +18,29 @@ export default async function handler(req, res) {
   const clientIp = getClientIp(req)
   if (await applyLimit(apiLimiter, clientIp, res)) return
 
-  const { city, state, country, lat, lon } = req.body
+  const { city, country } = req.body
   if (!city || !country) return res.status(400).json({ error: 'Missing required fields' })
 
-  // Cache key: normalized city + province
+  const { state } = req.body
   const cacheKey = createHash('sha256')
     .update(`${(city || '').toLowerCase()}|${(state || '').toLowerCase()}`)
     .digest('hex')
 
   try {
-    // 1. Check DB cache first
     const cached = await getCachedComps(cacheKey)
     if (cached) return res.status(200).json({ ...cached, fromCache: true })
 
-    // 2. Cache miss — fetch live
-    const data = await fetchRealtorCaComps({ city, state, lat, lon })
+    const listings = getStatCanListings(city)
+    const result = { listings, comps: listings, source: 'statcan_baselines', count: listings.length }
 
-    // 3. Store in cache (fire-and-forget — don't block response)
-    storeCachedComps(cacheKey, data).catch(err =>
+    storeCachedComps(cacheKey, result).catch(err =>
       console.warn('Failed to cache comps:', err.message)
     )
 
-    return res.status(200).json(data)
+    return res.status(200).json(result)
   } catch (err) {
     console.error('Comps error:', err.message)
-    return res.status(200).json({ comps: [], source: 'realtor_ca_unavailable', error: err.message })
+    return res.status(200).json({ comps: [], source: 'unavailable', error: err.message })
   }
 }
 
@@ -100,153 +97,11 @@ async function storeCachedComps(cacheKey, data) {
   })
 }
 
-// ─── REALTOR.CA (CANADA) ─────────────────────────────────────────────────────
+// ─── STATCAN BASELINES ───────────────────────────────────────────────────────
 
-async function fetchRealtorCaComps({ city, state, lat, lon }) {
-  const headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-    'Accept': 'application/json',
-    'Content-Type': 'application/x-www-form-urlencoded',
-    'Referer': 'https://www.realtor.ca/',
-    'Origin': 'https://www.realtor.ca',
-  }
-
-  const cityLower = (city || '').toLowerCase()
-  const isLargeMetro = cityLower.includes('vancouver') || cityLower.includes('toronto') ||
-    cityLower.includes('calgary') || cityLower.includes('edmonton') || cityLower.includes('montreal')
-  const spread = isLargeMetro ? 0.35 : 0.22
-  const bbox = {
-    latMax: String((lat || 45.4) + spread),
-    lonMax: String((lon || -75.7) + (spread * 1.4)),
-    latMin: String((lat || 45.4) - spread),
-    lonMin: String((lon || -75.7) - (spread * 1.4)),
-  }
-
-  const makeBody = (page) => new URLSearchParams({
-    ZoomLevel: '11',
-    LatitudeMax: bbox.latMax,
-    LongitudeMax: bbox.lonMax,
-    LatitudeMin: bbox.latMin,
-    LongitudeMin: bbox.lonMin,
-    Sort: '6-D',
-    PropertyTypeGroupID: '1',
-    TransactionTypeId: '2',
-    Currency: 'CAD',
-    RecordsPerPage: '50',
-    CurrentPage: String(page),
-    ApplicationId: '1',
-    CultureId: '1',
-    Version: '7.0',
-    PropertySearchTypeId: '1',
-  })
-
-  const validateComp = (comp) => {
-    if (!comp || comp.price <= 0) return false
-    if (comp.daysOnMarket != null && comp.daysOnMarket > 365) return false
-    return true
-  }
-
-  const parseListing = (listing) => {
-    const price = parseInt(listing?.Property?.Price?.replace(/[^0-9]/g, '') || '0')
-    if (!price || price < 50000) return null
-    const sqftRaw = listing?.Building?.SizeInterior
-    const sqft = sqftRaw ? parseInt(sqftRaw.replace(/[^0-9]/g, '')) : null
-    return {
-      address: listing?.Property?.Address?.AddressText || 'Nearby property',
-      price,
-      pricePerSqft: sqft && sqft > 100 ? Math.round(price / sqft) : null,
-      sqft,
-      beds: listing?.Building?.Bedrooms ? parseInt(listing.Building.Bedrooms) : null,
-      baths: listing?.Building?.BathroomTotal ? parseInt(listing.Building.BathroomTotal) : null,
-      daysOnMarket: listing?.InsertedDateUTC
-        ? Math.round((Date.now() - new Date(listing.InsertedDateUTC).getTime()) / 86400000)
-        : null,
-      type: 'active_listing',
-      source: 'realtor_ca',
-      mlsNumber: listing?.MlsNumber || null,
-    }
-  }
-
-  const comps = []
-  const endpoints = [
-    'https://api2.realtor.ca/Listing.svc/PropertySearch_Post',
-    'https://api.realtor.ca/Listing.svc/PropertySearch_Post',
-  ]
-
-  for (const endpoint of endpoints) {
-    if (comps.length >= 100) break
-    for (let page = 1; page <= 3; page++) {
-      try {
-        const controller = new AbortController()
-        const timeout = setTimeout(() => controller.abort(), 10000) // 10s timeout
-        let res
-        try {
-          res = await fetch(endpoint, {
-            method: 'POST',
-            headers,
-            body: makeBody(page).toString(),
-            signal: controller.signal,
-          })
-        } finally {
-          clearTimeout(timeout)
-        }
-
-        if (!res.ok) {
-          console.warn(`Realtor.ca ${endpoint} returned ${res.status}`)
-          break
-        }
-
-        let data
-        try {
-          data = await res.json()
-        } catch {
-          console.warn('Realtor.ca returned unparseable JSON')
-          break
-        }
-
-        const listings = data?.Results || []
-        if (!listings.length) break
-        for (const listing of listings) {
-          const parsed = parseListing(listing)
-          if (parsed && validateComp(parsed)) comps.push(parsed)
-        }
-        if (listings.length < 50) break
-      } catch (e) {
-        if (e.name === 'AbortError') console.warn('Realtor.ca fetch timed out (10s)')
-        break
-      }
-    }
-    if (comps.length > 0) break
-  }
-
-  // Deduplicate by MLS number
-  const seen = new Set()
-  const deduped = comps.filter(c => {
-    const key = c.mlsNumber || c.address
-    if (seen.has(key)) return false
-    seen.add(key)
-    return true
-  })
-
-  const validListings = deduped.filter(c => c.price > 0)
-
-  // Determine data quality source tag
-  let source = 'realtor_ca'
-  if (validListings.length === 0) source = 'realtor_ca_unavailable'
-  else if (validListings.length < 3) source = 'realtor_ca_sparse'
-
-  // Fallback to hardcoded StatCan baselines if Realtor.ca returned nothing
-  if (validListings.length === 0) {
-    const synth = getStatCanFallbackListings(city)
-    return { listings: synth, comps: synth, source: 'statcan_fallback', count: synth.length }
-  }
-
-  return { listings: validListings, comps: validListings, source, count: validListings.length }
-}
-
-// Hardcoded median price baselines per city from StatCan NHPI + CREA data (2025)
-// Used only when Realtor.ca is unreachable from Vercel
-function getStatCanFallbackListings(city) {
+// Median price baselines from Statistics Canada NHPI + CREA data (2025).
+// Generates a realistic spread of comparable listings for investment analysis.
+function getStatCanListings(city) {
   const c = (city || '').toLowerCase()
   let medianPrice, ppsf, rent
 
@@ -282,9 +137,7 @@ function getStatCanFallbackListings(city) {
     medianPrice = 580000; ppsf = 400; rent = 1900
   }
 
-  // Generate a realistic spread of 30 listings across property types and sizes
   const templates = [
-    // [beds, baths, sqftMultiplier, priceMultiplier, label]
     [1, 1, 0.45, 0.52, 'Condo'],
     [1, 1, 0.50, 0.57, 'Condo'],
     [2, 1, 0.62, 0.68, 'Condo'],

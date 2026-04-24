@@ -18,24 +18,24 @@ export default function Hero({ onSearch, loading, onShowDemo, user, onOpenAuth }
       <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', maxWidth: 900, margin: '0 auto', padding: 'clamp(100px, 20vw, 150px) 20px 80px' }}>
         <div className="liquid-glass" style={{ borderRadius: 40, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 16px', marginBottom: 28 }}>
           <span style={{ background: '#fff', color: '#000', fontSize: 11, fontFamily: "'Barlow',sans-serif", fontWeight: 600, borderRadius: 20, padding: '2px 8px' }}>New</span>
-          <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>Introducing AI-powered area intelligence.</span>
+          <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>AI-powered investment intelligence for Canadian real estate.</span>
         </div>
-        <h1 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(3rem,9vw,6rem)', color: '#fff', lineHeight: 0.88, letterSpacing: '-0.03em', marginBottom: 28 }}>
-          Is This City Worth Moving To?
+        <h1 style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 'clamp(2.8rem,8vw,5.5rem)', color: '#fff', lineHeight: 0.92, letterSpacing: '-0.03em', marginBottom: 28 }}>
+          Market Intelligence for Canadian Real Estate Investors
         </h1>
-        <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 16, fontFamily: "'Barlow',sans-serif", fontWeight: 300, maxWidth: 540, lineHeight: 1.7, marginBottom: 40 }}>
-          Run a full neighbourhood intelligence report — investment score, climate risk, school ratings, cost of living, and an AI verdict. Any Canadian city, in 30 seconds.
+        <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 16, fontFamily: "'Barlow',sans-serif", fontWeight: 300, maxWidth: 560, lineHeight: 1.7, marginBottom: 40 }}>
+          AI-powered investment analysis for any Canadian city. Risk scores, yield estimates, market trends, and demographic insights in under 30 seconds.
         </p>
         <div style={{ width: '100%', maxWidth: 600 }}>
           <AddressSearch onSearch={onSearch} loading={loading} />
           {!user && (
             <p style={{ marginTop: 12, fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.45)', textAlign: 'center', lineHeight: 1.6 }}>
-              <span onClick={onOpenAuth} style={{ color: '#fff', textDecoration: 'underline', textUnderlineOffset: 3, cursor: 'pointer' }}>Create a free account</span> to run your first search →
+              <span onClick={onOpenAuth} style={{ color: '#fff', textDecoration: 'underline', textUnderlineOffset: 3, cursor: 'pointer' }}>Create a free account</span> to run your first analysis →
             </p>
           )}
         </div>
         <div style={{ display: 'flex', gap: 10, marginTop: 24, flexWrap: 'wrap', justifyContent: 'center' }}>
-          {[['1,737+','Canadian Cities'],['4,800+','Reports this month'],['<30s','Analysis time']].map(([val, lbl]) => (
+          {[['1,737+','Canadian Cities'],['10,000+','Investment reports'],['<30s','Analysis time']].map(([val, lbl]) => (
             <div key={lbl} className="liquid-glass" style={{ borderRadius: 40, padding: '7px 16px', display: 'flex', alignItems: 'center', gap: 7 }}>
               <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 17, color: '#fff' }}>{val}</span>
               <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, fontFamily: "'Barlow',sans-serif", fontWeight: 300 }}>{lbl}</span>

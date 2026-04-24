@@ -2,20 +2,20 @@ import { useState } from 'react'
 
 export const PRICING_FREE = [
   '3 free reports / month',
-  'Area Verdict & AI Market Intelligence',
-  'Investment Score preview',
-  'Cost of Living breakdown',
-  'Climate & weather data',
+  'Investment score preview',
+  'Market verdict (buyer's vs seller's)',
+  'Demographics & population trends',
+  'Climate & weather risk data',
 ]
 
 export const PRICING_PRO = [
-  { text: '100–150 reports / month', highlight: false },
-  { text: 'Full AI reports — all sections unlocked', highlight: false },
-  { text: 'Investment Analysis & ROI score', highlight: true },
-  { text: 'Environmental & flood risk detection', highlight: true },
-  { text: 'Price history & market projections', highlight: true },
+  { text: 'Unlimited reports', highlight: false },
+  { text: 'Full AI investment analysis', highlight: false },
+  { text: 'ROI score & rental yield estimate', highlight: true },
+  { text: 'Price history & 12-month projections', highlight: true },
+  { text: 'Environmental & flood risk', highlight: true },
   { text: 'PDF export', highlight: true },
-  { text: 'Compare up to 3 areas side-by-side', highlight: true },
+  { text: 'Compare up to 3 markets side-by-side', highlight: true },
   { text: 'Saved reports', highlight: false },
   { text: 'Priority processing', highlight: false },
 ]
@@ -64,10 +64,10 @@ export function BusinessCard({ onCta, annual = false }) {
         <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.4)', marginBottom: 20 }}>For agencies, brokers & investment firms</div>
 
         <div style={{ marginBottom: 22, paddingBottom: 18, borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-          <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 52, color: '#fff', lineHeight: 1 }}>${annual ? 120 : 150}</span>
+          <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 52, color: '#fff', lineHeight: 1 }}>${annual ? 160 : 199}</span>
           <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.3)', marginLeft: 5 }}>/month</span>
           <div style={{ marginTop: 5, fontFamily: "'Barlow',sans-serif", fontSize: 11, color: '#fbbf24', fontWeight: 500 }}>
-            {annual ? 'Billed $1,440/year — save 20%' : 'Up to $249/mo for larger teams'}
+            {annual ? 'Billed $1,440/year — save 20%' : 'Up to $299/mo for larger teams'}
           </div>
         </div>
 

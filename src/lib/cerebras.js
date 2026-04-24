@@ -11,7 +11,7 @@ function getModel() { return sessionStorage.getItem('dw_ai_model') || DEFAULT_MO
 
 // getAuthToken imported from localAuth
 
-async function cerebrasChat(messages, json = false, skipCount = false, userApiKey = '') {
+async function cerebrasChat(messages, json = false, skipCount = false) {
   const token = await getAuthToken()
   if (!token) throw new Error('Not authenticated. Please sign in again.')
 
@@ -21,7 +21,6 @@ async function cerebrasChat(messages, json = false, skipCount = false, userApiKe
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
       ...(skipCount && { 'X-Skip-Count': 'true' }),
-      ...(userApiKey && userApiKey !== '__db__' && { 'X-Cerebras-Key': userApiKey }),
     },
     body: JSON.stringify({
       model: getModel(),
@@ -308,7 +307,7 @@ function finalizeAnalysis(est, known, realData, currency, currencySymbol, city, 
   return est
 }
 
-export async function analyzeProperty(geoData, weatherData, climateData, knownFacts = {}, realData = {}, userApiKey = '') {
+export async function analyzeProperty(geoData, weatherData, climateData, knownFacts = {}, realData = {}) {
   const street = sanitizeLocation(geoData.userStreet || geoData.address?.road || '')
   const city = sanitizeLocation(geoData.userCity || geoData.address?.city || geoData.address?.town || '')
   const state = sanitizeLocation(geoData.userState || geoData.address?.state || '')
@@ -398,7 +397,7 @@ Be specific, honest, and evidence-based. End with: READY_FOR_JSON`
     const areaReasoning = await cerebrasChat([
       { role: 'system', content: `You are a licensed real estate analyst specializing in ${city}, ${country}. Provide precise, evidence-based area intelligence.` },
       { role: 'user', content: areaCot }
-    ], false, false, userApiKey)
+    ], false, false)
 
     const areaJsonPrompt = `Based on your analysis, produce a JSON area intelligence report. Return ONLY valid raw JSON, no markdown.
 
@@ -474,7 +473,7 @@ Be specific, honest, and evidence-based. End with: READY_FOR_JSON`
       { role: 'user', content: areaCot },
       { role: 'assistant', content: areaReasoning },
       { role: 'user', content: areaJsonPrompt }
-    ], true, true, userApiKey)
+    ], true, true)
 
     if (!areaRaw || typeof areaRaw !== 'string') throw new Error('AI returned empty response. Please try again.')
     let areaResult
@@ -643,7 +642,7 @@ End with: READY_FOR_JSON`
       content: `You are a licensed real estate appraiser and local market expert specializing in ${city}, ${country}. You provide precise, evidence-based analysis with specific numbers anchored to real market knowledge. You never use placeholder text, generic descriptions, or made-up comparable sales. You think systematically and show your reasoning before concluding.`
     },
     { role: 'user', content: cotPrompt }
-  ], false, false, userApiKey)
+  ], false, false)
 
   // Pass 2: Structured JSON output using the reasoning as context
   const jsonPrompt = `Based on your detailed analysis above, produce the final property intelligence report as a single JSON object. Every field must be substantive and specific to ${neighbourhood || city}, ${city}. No generic filler text.
@@ -729,7 +728,7 @@ FIELD REQUIREMENTS:
     { role: 'user', content: cotPrompt },
     { role: 'assistant', content: reasoning },
     { role: 'user', content: jsonPrompt }
-  ], true, true, userApiKey)
+  ], true, true)
 
   if (!raw || typeof raw !== 'string') throw new Error('AI returned an empty response. Please try again.')
 
