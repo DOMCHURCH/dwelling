@@ -368,7 +368,7 @@ export default function App() {
       }).catch(() => null)
 
       setLoadStep('affordability')
-      const [bulkCompsRes, newsRes] = await Promise.allSettled([
+      const [bulkCompsRes, newsRes, nhpiRes] = await Promise.allSettled([
         fetch("/api/comps", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -383,11 +383,19 @@ export default function App() {
         })
           .then((r) => r.json())
           .catch(() => null),
+        fetch("/api/nhpi", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ city, country }),
+        })
+          .then((r) => r.json())
+          .catch(() => null),
       ])
 
       const bulkListings =
         bulkCompsRes.status === "fulfilled" ? bulkCompsRes.value?.listings || bulkCompsRes.value?.comps || [] : []
       const newsData = newsRes.status === "fulfilled" ? newsRes.value : null
+      const nhpiData = nhpiRes?.status === 'fulfilled' && nhpiRes.value?.months?.length ? nhpiRes.value : null
       const compsSource = bulkCompsRes.status === "fulfilled" ? bulkCompsRes.value?.source || null : null
       const areaMetrics = aggregateListings(bulkListings) || null
       const areaRiskScore = computeRiskScore(areaMetrics, null) || null
@@ -402,6 +410,7 @@ export default function App() {
         newsData,
         isAreaMode,
         compsSource,
+        nhpiData,
       }
 
       setLoadStep('investment')
@@ -544,7 +553,7 @@ export default function App() {
       })
         .then((r) => (r.ok ? r.json() : null))
         .catch(() => null)
-      const [bulkCompsRes, newsRes] = await Promise.allSettled([
+      const [bulkCompsRes, newsRes, nhpiRes] = await Promise.allSettled([
         fetch("/api/comps", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -559,10 +568,18 @@ export default function App() {
         })
           .then((r) => r.json())
           .catch(() => null),
+        fetch("/api/nhpi", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ city, country }),
+        })
+          .then((r) => r.json())
+          .catch(() => null),
       ])
       const bulkListings =
         bulkCompsRes.status === "fulfilled" ? bulkCompsRes.value?.listings || bulkCompsRes.value?.comps || [] : []
       const newsData = newsRes.status === "fulfilled" ? newsRes.value : null
+      const nhpiData = nhpiRes?.status === 'fulfilled' && nhpiRes.value?.months?.length ? nhpiRes.value : null
       const compsSource = bulkCompsRes.status === "fulfilled" ? bulkCompsRes.value?.source || null : null
       const areaMetrics = aggregateListings(bulkListings) || null
       const areaRiskScore = computeRiskScore(areaMetrics, null) || null
@@ -576,6 +593,7 @@ export default function App() {
         newsData,
         isAreaMode,
         compsSource,
+        nhpiData,
       }
       if (!isPro && !user?.is_admin) {
         setPaywallTrigger('compare')
@@ -633,7 +651,7 @@ export default function App() {
       })
         .then((r) => (r.ok ? r.json() : null))
         .catch(() => null)
-      const [bulkCompsRes, newsRes] = await Promise.allSettled([
+      const [bulkCompsRes, newsRes, nhpiRes] = await Promise.allSettled([
         fetch("/api/comps", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -648,10 +666,18 @@ export default function App() {
         })
           .then((r) => r.json())
           .catch(() => null),
+        fetch("/api/nhpi", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ city, country }),
+        })
+          .then((r) => r.json())
+          .catch(() => null),
       ])
       const bulkListings =
         bulkCompsRes.status === "fulfilled" ? bulkCompsRes.value?.listings || bulkCompsRes.value?.comps || [] : []
       const newsData = newsRes.status === "fulfilled" ? newsRes.value : null
+      const nhpiData = nhpiRes?.status === 'fulfilled' && nhpiRes.value?.months?.length ? nhpiRes.value : null
       const compsSource = bulkCompsRes.status === "fulfilled" ? bulkCompsRes.value?.source || null : null
       const areaMetrics = aggregateListings(bulkListings) || null
       const areaRiskScore = computeRiskScore(areaMetrics, null) || null
@@ -665,6 +691,7 @@ export default function App() {
         newsData,
         isAreaMode,
         compsSource,
+        nhpiData,
       }
       if (!isPro && !user?.is_admin) {
         setPaywallTrigger('compare')

@@ -3,7 +3,7 @@ import { useState } from 'react'
 export const PRICING_FREE = [
   '3 free reports / month',
   'Investment score preview',
-  'Market verdict (buyer's vs seller's)',
+  "Market verdict (buyer's vs seller's)",
   'Demographics & population trends',
   'Climate & weather risk data',
 ]

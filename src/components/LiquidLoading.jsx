@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 
 const COLORS = [
   { from: '#c084fc', to: '#ec4899' },
@@ -56,34 +56,32 @@ export default function LiquidLoading({ city = '', loadStep = '' }) {
           const { from, to } = COLORS[i]
           const glow = GLOW[i]
           const absH = Math.abs(height)
+          const barH = absH < 4 ? 4 : absH
 
           return (
             <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
-              {/* top droplet -- absolutely positioned so it never affects layout height */}
               <div style={{
                 position: 'absolute',
-                bottom: ,
+                bottom: barH + 24,
                 width: 16, height: 16, borderRadius: '50%',
-                background: ,
+                background: `linear-gradient(135deg, ${from}, ${to})`,
                 opacity: droplets[i] ? 1 : 0,
                 transform: droplets[i] ? 'translateX(-50%) scale(1)' : 'translateX(-50%) translateY(10px) scale(0.5)',
                 transition: 'opacity 0.3s, transform 0.5s',
                 filter: 'blur(0.5px)',
-                boxShadow: droplets[i] ?  : 'none',
+                boxShadow: droplets[i] ? `0 0 15px ${glow}60` : 'none',
                 left: '50%',
               }} />
-
-              {/* main bar */}
               <div style={{
                 width: 40,
-                height: ,
+                height: barH,
                 borderRadius: 99,
-                background: ,
+                background: `linear-gradient(to top, ${from}, ${to})`,
                 transform: height < 0 ? 'scaleY(-1)' : 'scaleY(1)',
                 transformOrigin: 'bottom',
                 transition: 'height 0.12s ease-out',
                 filter: 'blur(0.3px)',
-                boxShadow: ,
+                boxShadow: `0 0 20px ${glow}50, inset 0 0 20px rgba(255,255,255,0.1)`,
                 position: 'relative',
                 overflow: 'hidden',
               }}>
@@ -93,20 +91,17 @@ export default function LiquidLoading({ city = '', loadStep = '' }) {
                   borderRadius: 99,
                 }} />
               </div>
-
-              {/* base dot */}
               <div style={{
                 width: 12, height: 12, borderRadius: '50%', marginTop: 8,
-                background: ,
+                background: `linear-gradient(135deg, ${from}, ${to})`,
                 opacity: 0.7,
                 filter: 'blur(0.2px)',
-                boxShadow: ,
+                boxShadow: `0 2px 8px ${glow}40`,
               }} />
             </div>
           )
         })}
       </div>
-
     </div>
   )
 }

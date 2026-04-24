@@ -307,6 +307,28 @@ function finalizeAnalysis(est, known, realData, currency, currencySymbol, city, 
   return est
 }
 
+
+function buildNhpiContext(nhpiData) {
+  if (!nhpiData?.months?.length || nhpiData.yoyChange == null) return ''
+  const { yoyChange, trend3m, nationalYoy, aboveNational, dataSource } = nhpiData
+  const sign = yoyChange >= 0 ? '+' : ''
+  const natSign = aboveNational >= 0 ? '+' : ''
+  const trendDesc = {
+    accelerating: 'Accelerating — appreciation is picking up pace',
+    rising: 'Rising steadily',
+    stable: 'Stable — price changes are minimal',
+    cooling: 'Cooling — appreciation is slowing',
+    decelerating: 'Decelerating — prices may be softening',
+  }[trend3m] || trend3m
+  return `
+STATISTICS CANADA NHPI (NEW HOUSING PRICE INDEX):
+- Year-over-year price change: ${sign}${yoyChange}%
+- 3-month momentum: ${trendDesc}
+- vs Canadian national average (${nationalYoy}%): ${natSign}${aboveNational}% (${aboveNational >= 0 ? 'outperforming' : 'underperforming'} national)
+- Source: StatCan Table 18-10-0205-01 (${dataSource === 'statcan_live' ? 'live monthly data' : 'StatCan estimates'})
+Incorporate this momentum data into your PRICE TRENDS analysis and INVESTMENT OUTLOOK sections.`
+}
+
 export async function analyzeProperty(geoData, weatherData, climateData, knownFacts = {}, realData = {}) {
   const street = sanitizeLocation(geoData.userStreet || geoData.address?.road || '')
   const city = sanitizeLocation(geoData.userCity || geoData.address?.city || geoData.address?.town || '')
@@ -341,6 +363,7 @@ OPENSTREETMAP REAL DATA:
 
   // StatCan anchor — warn and inject context when falling back to synthesised data
   let statcanAnchor = ''
+  const nhpiContext = buildNhpiContext(realData.nhpiData)
   if (realData.compsSource === 'statcan_fallback' || realData.compsSource === 'statcan_estimate' || !realData.areaMetrics?.count) {
     console.log('AVM: using StatCan anchor (Realtor.ca unavailable from Vercel)')
     const nhpi = realData.priceIndex?.nhpi || realData.priceIndex
@@ -383,6 +406,7 @@ ${areaContext}
 ${marketContext2}
 ${riskContext}
 ${statcanAnchor}
+${nhpiContext}
 
 Analyze this area across 6 dimensions:
 1. MARKET CONDITIONS: What do the listing data signals mean? Is supply rising or falling? Who has negotiating power?

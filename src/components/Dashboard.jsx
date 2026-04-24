@@ -207,6 +207,84 @@ const DISPLAY_CURRENCIES = [
   { code: 'ZAR', label: 'South African Rand' }, { code: 'AED', label: 'UAE Dirham' },
 ]
 
+// ── NHPI Price Trends Chart ────────────────────────────────────────────────────
+const MONTH_LABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+
+function fmtMonth(dateStr) {
+  if (!dateStr) return ''
+  const [y, m] = dateStr.split('-')
+  return (MONTH_LABELS[+m - 1] || '') + ' ' + y
+}
+
+function NhpiChart({ nhpiData }) {
+  if (!nhpiData?.months?.length || nhpiData.yoyChange == null) return null
+  const { months, yoyChange, trend3m, nationalYoy, aboveNational, dataSource } = nhpiData
+  const vals = months.map(m => m.value)
+  const min = Math.min(...vals), max = Math.max(...vals)
+  const range = max - min || 1
+  const W = 480, H = 90, PX = 8, PY = 6
+
+  const pts = months.map((m, i) => {
+    const x = PX + (i / (months.length - 1)) * (W - PX * 2)
+    const y = PY + (1 - (m.value - min) / range) * (H - PY * 2)
+    return [x, y]
+  })
+  const polyline = pts.map(([x, y]) => x + ',' + y).join(' ')
+  const fillPath = 'M' + pts[0][0] + ',' + (H - PY) + ' L' + polyline + ' L' + pts[pts.length - 1][0] + ',' + (H - PY) + ' Z'
+
+  const yoyColor = yoyChange >= 0 ? '#4ade80' : '#f87171'
+  const trendIcon = { accelerating: '↑↑', rising: '↑', stable: '→', cooling: '↓', decelerating: '↓↓' }[trend3m] || '→'
+  const trendColor = ['accelerating', 'rising'].includes(trend3m) ? '#4ade80' : trend3m === 'stable' ? '#fbbf24' : '#f87171'
+  const aboveColor = aboveNational >= 0 ? '#4ade80' : '#f87171'
+
+  return (
+    <div>
+      <svg viewBox={'0 0 ' + W + ' ' + H} style={{ width: '100%', height: 80, marginBottom: 16, display: 'block', overflow: 'visible' }}>
+        <defs>
+          <linearGradient id="nhpiLine" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="#60a5fa" />
+            <stop offset="100%" stopColor="#c084fc" />
+          </linearGradient>
+          <linearGradient id="nhpiFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#60a5fa" stopOpacity="0.18" />
+            <stop offset="100%" stopColor="#60a5fa" stopOpacity="0.01" />
+          </linearGradient>
+        </defs>
+        <path d={fillPath} fill="url(#nhpiFill)" />
+        <polyline points={polyline} fill="none" stroke="url(#nhpiLine)" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+        <text x={PX} y={H} fontSize={9} fill="rgba(255,255,255,0.22)" fontFamily="Barlow,sans-serif">{fmtMonth(months[0].date)}</text>
+        <text x={W - PX} y={H} fontSize={9} fill="rgba(255,255,255,0.22)" fontFamily="Barlow,sans-serif" textAnchor="end">{fmtMonth(months[months.length - 1].date)}</text>
+      </svg>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 12 }}>
+        <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: '12px 14px' }}>
+          <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 22, color: yoyColor, lineHeight: 1 }}>
+            {yoyChange >= 0 ? '+' : ''}{yoyChange}%
+          </div>
+          <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 4 }}>Year-over-year</div>
+        </div>
+        <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: '12px 14px' }}>
+          <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 22, color: trendColor, lineHeight: 1 }}>
+            {trendIcon} {trend3m.charAt(0).toUpperCase() + trend3m.slice(1)}
+          </div>
+          <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 4 }}>3-month trend</div>
+        </div>
+        <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: '12px 14px' }}>
+          <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 22, color: aboveColor, lineHeight: 1 }}>
+            {aboveNational >= 0 ? '+' : ''}{aboveNational}%
+          </div>
+          <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 4 }}>vs national avg ({nationalYoy}%)</div>
+        </div>
+      </div>
+
+      <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>
+        Statistics Canada NHPI Table 18-10-0205-01 · {dataSource === 'statcan_live' ? 'Live monthly data' : 'StatCan estimates'} · Updated monthly
+      </div>
+    </div>
+  )
+}
+
+
 export default function Dashboard({
   data,
   onRecalculate,
@@ -496,6 +574,13 @@ export default function Dashboard({
               ))}
             </div>
           )}
+        </SectionCard>
+      )}
+
+      {/* Price Trends -- StatCan NHPI */}
+      {realData?.nhpiData?.months?.length > 0 && (
+        <SectionCard title="Price Trends" icon="📈" delay={47} pdfSection="pricetrends">
+          <NhpiChart nhpiData={realData.nhpiData} />
         </SectionCard>
       )}
 
