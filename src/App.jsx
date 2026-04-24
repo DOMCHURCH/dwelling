@@ -36,6 +36,7 @@ import {
   refreshSession,
   signOut as localSignOut,
   getUsage,
+  getQuotaUsage,
   saveCerebrasKey,
   getCachedCerebrasKey,
   loadCerebrasKeyFromServer,
@@ -100,6 +101,7 @@ export default function App() {
   const [paywallTrigger, setPaywallTrigger] = useState("limit")
   const [user, setUser] = useState(null)
   const [userRecord, setUserRecord] = useState(null)
+  const [quotaData, setQuotaData] = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
 
   // ── Lenis smooth scroll ──────────────────────────────────────────────────
@@ -164,6 +166,10 @@ export default function App() {
     try {
       const usage = await getUsage()
       setUserRecord((prev) => ({ ...(prev || {}), ...usage }))
+    } catch {}
+    try {
+      const quota = await getQuotaUsage()
+      if (quota) setQuotaData(quota)
     } catch {}
   }
 
@@ -819,11 +825,13 @@ export default function App() {
 
   const trialDaysLeft = null
   const isInTrial = false
-  const analysesLeft = user?.is_admin || userRecord?.is_pro
+  const analysesLeft = user?.is_admin
     ? "∞"
-    : userRecord
-      ? Math.max(0, FREE_LIMIT - (userRecord.analyses_used ?? 0))
-      : "..."
+    : quotaData?.limits?.monthly != null
+      ? Math.max(0, quotaData.limits.monthly - (quotaData.monthly ?? 0))
+      : userRecord
+        ? Math.max(0, FREE_LIMIT - (userRecord.analyses_used ?? 0))
+        : "..."
   const reportsLeft = (!user?.is_admin && userRecord && !userRecord.is_pro)
     ? Math.max(0, FREE_LIMIT - (userRecord.analyses_used ?? 0))
     : null
@@ -1124,6 +1132,7 @@ export default function App() {
         user={user}
         userRecord={userRecord}
         analysesLeft={analysesLeft}
+        quotaData={quotaData}
         isInTrial={isInTrial}
         trialDaysLeft={trialDaysLeft}
         onSignOut={handleSignOut}

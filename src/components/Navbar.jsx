@@ -23,6 +23,7 @@ export default function Navbar({
   isBusiness,
   onOpenPayments,
   isTeamOwner,
+  quotaData,
 }) {
   const [scrolled, setScrolled] = useState(false)
   useEffect(() => {
@@ -181,7 +182,17 @@ export default function Navbar({
                 onClick={user?.is_admin ? onOpenAdmin : undefined}
                 title={user?.is_admin ? "Open Admin Panel" : undefined}
               >
-                {user?.is_admin ? "⚡ Admin" : userRecord?.is_business ? "★ Business" : userRecord?.is_pro ? "★ Pro" : `${analysesLeft} / 3 left`}
+                {user?.is_admin
+                  ? "⚡ Admin"
+                  : userRecord?.is_business
+                    ? quotaData?.limits?.monthly != null
+                      ? `★ ${Math.max(0, quotaData.limits.monthly - (quotaData.monthly ?? 0))} / ${quotaData.limits.monthly} left`
+                      : "★ Business"
+                    : userRecord?.is_pro
+                      ? quotaData?.limits?.monthly != null
+                        ? `★ ${Math.max(0, quotaData.limits.monthly - (quotaData.monthly ?? 0))} / ${quotaData.limits.monthly} left`
+                        : "★ Pro"
+                      : `${analysesLeft} / 3 left`}
               </span>
               {user?.is_admin && (
                 <div

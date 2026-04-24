@@ -200,3 +200,17 @@ export function cacheAiModel(model) {
   if (model) sessionStorage.setItem('dw_ai_model', model)
   else sessionStorage.removeItem('dw_ai_model')
 }
+
+export async function getQuotaUsage() {
+  const token = await getAuthToken()
+  if (!token || token.split('.').length !== 3) return null
+  try {
+    const res = await fetch('/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ action: 'get-usage' }),
+    })
+    if (!res.ok) return null
+    return res.json()
+  } catch { return null }
+}

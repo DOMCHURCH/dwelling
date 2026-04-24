@@ -45,7 +45,7 @@ const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'https://dwelling.one'
 
 const FREE_LIMIT       = 3
 const PRO_DAILY_LIMIT  = parseInt(process.env.PRO_DAILY_LIMIT  || '200', 10)
-const PRO_MONTHLY_LIMIT = parseInt(process.env.PRO_MONTHLY_LIMIT || '0', 10) // 0 = unlimited
+const PRO_MONTHLY_LIMIT = parseInt(process.env.PRO_MONTHLY_LIMIT || '150', 10)
 
 // Rate limiting handled by Upstash Redis via api/_ratelimit.js
 
@@ -580,8 +580,8 @@ export default async function handler(req, res) {
           day,
           month,
           limits: {
-            daily: ent.is_pro ? PRO_DAILY_LIMIT : null,
-            monthly: ent.is_pro ? (PRO_MONTHLY_LIMIT || null) : (ent.is_business ? null : FREE_LIMIT),
+            daily: ent.is_pro ? PRO_DAILY_LIMIT : (ent.is_business ? parseInt(process.env.BIZ_KEY_DAILY_LIM || '200', 10) : null),
+            monthly: ent.is_pro ? PRO_MONTHLY_LIMIT : (ent.is_business ? parseInt(process.env.BIZ_KEY_MONTH_LIM || '1000', 10) : FREE_LIMIT),
           },
           plan: ent.is_business ? 'business' : ent.is_pro ? 'pro' : 'free',
         })
