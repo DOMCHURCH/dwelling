@@ -3,7 +3,7 @@ import { createClient } from '@libsql/client'
 import { getUserEntitlementsByEmail } from './_entitlements.js'
 import { getClientIp, getRedis, checkGlobalAiRpm, checkAndIncrQuota, utcDay, utcMonth } from './_ratelimit.js'
 
-const ALLOWED_MODELS = ['llama-4-scout-17b-16e-instruct', 'llama-3.3-70b', 'llama-3.1-8b']
+const ALLOWED_MODELS = ['llama-4-scout-17b-16e-instruct', 'llama-3.3-70b']
 const PRO_DAILY_LIMIT    = parseInt(process.env.PRO_DAILY_LIMIT    || '200',  10)
 const PRO_MONTHLY_LIMIT  = parseInt(process.env.PRO_MONTHLY_LIMIT  || '0',    10) // 0 = unlimited
 const BIZ_KEY_DAILY_LIM  = parseInt(process.env.BIZ_KEY_DAILY_LIM  || '200',  10)

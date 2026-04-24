@@ -6,7 +6,7 @@ import { formatMarketDataForPrompt, getMarketData, getLiveMarketData } from './m
 import { formatAreaContextForPrompt } from './areaAnalysis'
 
 const CEREBRAS_BASE = '/api/cerebras'
-const MODEL = 'llama-3.1-8b'
+const MODEL = 'llama-3.3-70b'
 
 // getAuthToken imported from localAuth
 
