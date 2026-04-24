@@ -525,7 +525,7 @@ export default function Dashboard({
         </SectionCard>
       )}
 
-      <SectionCard title="Area Market Estimate" icon="🏠" delay={50} pdfSection="estimate">
+      <SectionCard title="Market Price Estimate" icon="🏠" delay={50} pdfSection="estimate">
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 16 }}>
           <StatCard label="Median Value" value={fmtUSD(convert(propertyEstimate.estimatedValueUSD), sym)} sub="area average" accent="#ffffff" animate />
           <StatCard label="Price / sqft" value={fmtUSD(convert(propertyEstimate.pricePerSqftUSD), sym)} sub="area average" />
@@ -566,13 +566,13 @@ export default function Dashboard({
       )}
 
       {/* Cost of Living */}
-      <SectionCard title="Cost of Living" icon="💰" delay={100} pdfSection="costliving">
+      <SectionCard title="Cash Flow Analysis" icon="💰" delay={100} pdfSection="costliving">
         <IncomeSlider costOfLiving={costOfLiving} sym={sym} />
       </SectionCard>
 
       {/* Neighborhood + Climate */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: 16 }}>
-        <SectionCard title="Neighborhood" icon="🏘" delay={150} pdfSection="neighborhood">
+        <SectionCard title="Neighbourhood Intelligence" icon="🏘" delay={150} pdfSection="neighborhood">
           <div style={{ position: 'relative' }}>
             {/* Walk + School scores always visible for free */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8, marginBottom: 14 }}>
@@ -621,7 +621,7 @@ export default function Dashboard({
           </div>
         </SectionCard>
 
-        <SectionCard title="Climate" icon="🌤" delay={200} pdfSection="climate">
+        <SectionCard title="Climate Risk Assessment" icon="🌤" delay={200} pdfSection="climate">
           {climate && (
             <>
               <BarMeter label="Avg High" value={`${climate.avgHighC}°C`} max={50} />

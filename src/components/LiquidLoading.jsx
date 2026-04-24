@@ -12,7 +12,16 @@ const COLORS = [
 
 const GLOW = ['#c084fc','#60a5fa','#34d399','#4ade80','#facc15','#fb923c','#f87171']
 
-export default function LiquidLoading({ city = '' }) {
+const STEP_MESSAGES = {
+  geo: 'Locating market...',
+  market: 'Analyzing market fundamentals...',
+  scores: 'Calculating investment metrics...',
+  affordability: 'Assessing risk factors...',
+  investment: 'Building investment analysis...',
+  ai: 'Finalizing investment analysis...',
+}
+
+export default function LiquidLoading({ city = '', loadStep = '' }) {
   const [heights, setHeights] = useState([0,0,0,0,0,0,0])
   const [droplets, setDroplets] = useState([false,false,false,false,false,false,false])
 
@@ -29,13 +38,18 @@ export default function LiquidLoading({ city = '' }) {
     return () => clearInterval(id)
   }, [])
 
+  const stepMsg = STEP_MESSAGES[loadStep] || 'Analyzing market...'
+
   return (
     <div style={{ maxWidth: 480, margin: '80px auto', padding: '0 24px', textAlign: 'center' }}>
       {city && (
-        <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', marginBottom: 40 }}>
-          Analysing {city}
+        <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', marginBottom: 8 }}>
+          {city}
         </div>
       )}
+      <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 13, color: 'rgba(255,255,255,0.5)', marginBottom: 32, minHeight: 20, transition: 'opacity 0.4s' }}>
+        {stepMsg}
+      </div>
 
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 16, height: 140, padding: '0 0 24px' }}>
         {heights.map((height, i) => {
@@ -45,31 +59,31 @@ export default function LiquidLoading({ city = '' }) {
 
           return (
             <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
-              {/* top droplet — absolutely positioned so it never affects layout height */}
+              {/* top droplet -- absolutely positioned so it never affects layout height */}
               <div style={{
                 position: 'absolute',
-                bottom: `calc(${absH < 4 ? 4 : absH}px + 12px + 12px)`,
+                bottom: ,
                 width: 16, height: 16, borderRadius: '50%',
-                background: `linear-gradient(135deg, ${from}, ${to})`,
+                background: ,
                 opacity: droplets[i] ? 1 : 0,
                 transform: droplets[i] ? 'translateX(-50%) scale(1)' : 'translateX(-50%) translateY(10px) scale(0.5)',
                 transition: 'opacity 0.3s, transform 0.5s',
                 filter: 'blur(0.5px)',
-                boxShadow: droplets[i] ? `0 0 15px ${glow}60` : 'none',
+                boxShadow: droplets[i] ?  : 'none',
                 left: '50%',
               }} />
 
               {/* main bar */}
               <div style={{
                 width: 40,
-                height: `${absH < 4 ? 4 : absH}px`,
+                height: ,
                 borderRadius: 99,
-                background: `linear-gradient(to top, ${from}, ${to})`,
+                background: ,
                 transform: height < 0 ? 'scaleY(-1)' : 'scaleY(1)',
                 transformOrigin: 'bottom',
                 transition: 'height 0.12s ease-out',
                 filter: 'blur(0.3px)',
-                boxShadow: `0 0 20px ${glow}50, inset 0 0 20px rgba(255,255,255,0.1)`,
+                boxShadow: ,
                 position: 'relative',
                 overflow: 'hidden',
               }}>
@@ -83,10 +97,10 @@ export default function LiquidLoading({ city = '' }) {
               {/* base dot */}
               <div style={{
                 width: 12, height: 12, borderRadius: '50%', marginTop: 8,
-                background: `linear-gradient(135deg, ${from}, ${to})`,
+                background: ,
                 opacity: 0.7,
                 filter: 'blur(0.2px)',
-                boxShadow: `0 2px 8px ${glow}40`,
+                boxShadow: ,
               }} />
             </div>
           )

@@ -10,9 +10,9 @@ export default function SavedReportsModal({ saved, onLoad, onDelete, onClose, lo
     <Overlay onClose={onClose}>
       <div style={{ textAlign: 'center', padding: '32px 0' }}>
         <div style={{ fontSize: 40, marginBottom: 14 }}>📂</div>
-        <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 22, color: '#fff', marginBottom: 8 }}>No saved reports yet</div>
+        <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 22, color: '#fff', marginBottom: 8 }}>No saved analyses yet</div>
         <p style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>
-          Run a report and click "Save Report" to bookmark it here.
+          Analyze a market and click "Save Report" to bookmark it here.
         </p>
         <button onClick={onClose} style={closeBtnStyle}>Close</button>
       </div>
@@ -21,7 +21,7 @@ export default function SavedReportsModal({ saved, onLoad, onDelete, onClose, lo
 
   return (
     <Overlay onClose={onClose}>
-      <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 22, color: '#fff', marginBottom: 4 }}>Saved Reports</div>
+      <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 22, color: '#fff', marginBottom: 4 }}>Saved Analyses</div>
       <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 12, color: 'rgba(255,255,255,0.35)', marginBottom: 20 }}>{saved.length} saved</div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: '60vh', overflowY: 'auto' }}>
@@ -45,7 +45,7 @@ export default function SavedReportsModal({ saved, onLoad, onDelete, onClose, lo
             {r.score != null && (
               <div style={{ textAlign: 'center', flexShrink: 0 }}>
                 <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 22, color: r.score >= 70 ? '#4ade80' : r.score >= 45 ? '#fbbf24' : '#f87171', lineHeight: 1 }}>{r.score}</div>
-                <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 9, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>SCORE</div>
+                <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 9, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>INV. SCORE</div>
               </div>
             )}
             {r.verdict && (

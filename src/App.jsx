@@ -1471,7 +1471,7 @@ export default function App() {
               <AddressSearch onSearch={handleCompareCSearch} loading={loading} compact />
             </div>
           )}
-          {loading && <LiquidLoading city={currentCity} />}
+          {loading && <LiquidLoading city={currentCity} loadStep={loadStep} />}
           {error && (
             <div
               style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, padding: "40px 16px" }}
