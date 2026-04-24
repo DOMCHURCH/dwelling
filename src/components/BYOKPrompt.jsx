@@ -50,7 +50,7 @@ const BYOKPrompt = memo(function BYOKPrompt({ onKeySubmit, onDismiss, loading })
 
       {step === 1 && (
         <>
-          <ol style={{ fontFamily: "'Barlow',sans-serif", fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.8, paddingLeft: 20, marginBottom: 20 }}>
+          <ol style={{ fontFamily: "'Barlow',sans-serif", fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.8, paddingLeft: 20, marginBottom: 12 }}>
             <li>
               Go to{' '}
               <a href="https://cloud.cerebras.ai" target="_blank" rel="noopener noreferrer" style={{ color: '#38bdf8' }}>
@@ -61,6 +61,9 @@ const BYOKPrompt = memo(function BYOKPrompt({ onKeySubmit, onDismiss, loading })
             <li>Copy your key (starts with <code style={{ background: 'rgba(255,255,255,0.08)', padding: '1px 5px', borderRadius: 4, fontSize: 12 }}>csk-</code>)</li>
             <li>Paste it below — takes 30 seconds</li>
           </ol>
+          <p style={{ fontFamily: "'Barlow',sans-serif", fontSize: 12, color: 'rgba(255,255,255,0.35)', lineHeight: 1.6, marginBottom: 20 }}>
+            Analyses run on <strong style={{ color: 'rgba(255,255,255,0.55)' }}>Llama 3.3 70B</strong> — Cerebras retired the older Llama 3.1 8B model in May 2026, and 70B delivers noticeably better accuracy on real estate data.
+          </p>
           <button
             onClick={() => setStep(2)}
             style={{
