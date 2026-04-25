@@ -1,4 +1,4 @@
-import { getAuthToken } from './localAuth'
+import { getAuthToken, getUserApiKey } from './localAuth'
 import { sanitizeLocation } from './sanitize'
 import { getCurrencyFromCountry, getCurrencySymbol } from './currency'
 import { runAVM, applyBoundedAIAdjustment, formatAVMForPrompt } from './avm'
@@ -11,16 +11,17 @@ function getModel() { return sessionStorage.getItem('dw_ai_model') || DEFAULT_MO
 
 // getAuthToken imported from localAuth
 
-async function cerebrasChat(messages, json = false, skipCount = false) {
+async function cerebrasChat(messages, json = false) {
+  const userKey = getUserApiKey()
+  if (!userKey) throw new Error('no_key')
   const token = await getAuthToken()
-  if (!token) throw new Error('Not authenticated. Please sign in again.')
 
   const res = await fetch(CEREBRAS_BASE, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-      ...(skipCount && { 'X-Skip-Count': 'true' }),
+      'X-User-Key': userKey,
+      ...(token && { 'Authorization': `Bearer ${token}` }),
     },
     body: JSON.stringify({
       model: getModel(),
@@ -33,15 +34,9 @@ async function cerebrasChat(messages, json = false, skipCount = false) {
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
-    if (res.status === 401) {
-      if (err.error === 'invalid_key') throw new Error(err.message ?? 'Invalid Cerebras API key.')
-      throw new Error('Session expired. Please sign in again.')
-    }
-    if (res.status === 400 && err.error === 'no_key') {
-      throw new Error('no_key')
-    }
-    if (res.status === 429) throw new Error('limit reached')
-    throw new Error(err.message ?? err.error?.message ?? `Cerebras error ${res.status}`)
+    if (res.status === 401) throw new Error('Invalid API key. Please check your key in settings.')
+    if (res.status === 429) throw new Error('Rate limit reached. Please wait a moment.')
+    throw new Error(err.message ?? err.detail ?? err.error ?? `AI provider error ${res.status}`)
   }
 
   const data = await res.json()

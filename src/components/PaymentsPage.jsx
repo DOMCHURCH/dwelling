@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { getAuthToken, getCachedCerebrasKey, saveCerebrasKey } from "../lib/localAuth"
+import { getAuthToken, getUserApiKey, setUserApiKey } from "../lib/localAuth"
 
 const MONO = "'JetBrains Mono','Fira Mono','Courier New',monospace"
 const SANS = "'Barlow',sans-serif"
@@ -334,7 +334,7 @@ function ApiKeyPanel() {
     if (!keyInput.trim()) return
     setSaving(true)
     try {
-      await saveCerebrasKey(keyInput.trim())
+      await setUserApiKey(keyInput.trim())
       flash("✓ API key saved")
       setKeyInput("")
       await loadDbKey()
@@ -345,14 +345,14 @@ function ApiKeyPanel() {
   const handleDelete = async () => {
     setDeleting(true)
     try {
-      await saveCerebrasKey("")
+      await setUserApiKey("")
       flash("✓ API key removed")
       setDbKey({ key: null, hasKey: false })
     } catch (e) { flash(e.message, true) }
     setDeleting(false)
   }
 
-  const sessionKey = getCachedCerebrasKey()
+  const sessionKey = getUserApiKey()
   const hasKey = dbKey?.hasKey || !!sessionKey
   const displayKey = dbKey?.key || (sessionKey ? `${sessionKey.slice(0,8)}•••••••••••••${sessionKey.slice(-4)}` : null)
 

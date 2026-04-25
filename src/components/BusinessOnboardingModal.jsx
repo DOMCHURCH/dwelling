@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { getAuthToken, saveCerebrasKey, getCachedCerebrasKey } from "../lib/localAuth"
+import { getAuthToken, getUserApiKey, setUserApiKey } from "../lib/localAuth"
 import AccountSettings from "./AccountSettings"
 
 const MONO = "'JetBrains Mono','Fira Mono','Courier New',monospace"
@@ -73,7 +73,7 @@ function Btn({ children, onClick, disabled, variant = "primary", style = {} }) {
 
 // Step 1 — Transfer API key
 function StepApiKey({ onNext, onSkip }) {
-  const existingKey = getCachedCerebrasKey()
+  const existingKey = getUserApiKey()
   const [transferring, setTransferring] = useState(false)
   const [done, setDone] = useState(false)
 
@@ -81,7 +81,7 @@ function StepApiKey({ onNext, onSkip }) {
     if (!existingKey) { setDone(true); return }
     setTransferring(true)
     try {
-      await saveCerebrasKey(existingKey)
+      await setUserApiKey(existingKey)
       setDone(true)
     } catch {}
     setTransferring(false)

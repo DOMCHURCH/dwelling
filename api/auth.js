@@ -1,64 +1,23 @@
-import { createHash, createHmac, timingSafeEqual, randomBytes, randomUUID, createCipheriv, createDecipheriv, pbkdf2 as _pbkdf2 } from 'crypto'
+import { createHash, createHmac, timingSafeEqual, randomBytes, randomUUID, pbkdf2 as _pbkdf2 } from 'crypto'
 import { promisify } from 'util'
 import { createClient } from '@libsql/client'
 import { Resend } from 'resend'
 import { hash as argon2Hash, verify as argon2Verify } from '@node-rs/argon2'
-import { signupLimiter, signinLimiter, resetLimiter, apiLimiter, applyLimit, getRedis, getClientIp, checkAndIncrQuota, readUserQuota, utcDay, utcMonth } from './_ratelimit.js'
-import { getUserEntitlements, getUserEntitlementsByEmail } from './_entitlements.js'
-import Stripe from 'stripe'
+import { signupLimiter, signinLimiter, resetLimiter, apiLimiter, applyLimit, getRedis, getClientIp } from './_ratelimit.js'
 
-const STRIPE_SECRET = process.env.STRIPE_SECRET_KEY
-const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET
-
-// Lookup keys must match exactly what you created in the Stripe dashboard
-const VALID_LOOKUP_KEYS = ['pro_monthly', 'pro_yearly', 'business_monthly', 'business_yearly']
-
-// In-memory price ID cache — avoids a stripe.prices.list round-trip on every checkout click
-const _priceIdCache = {}
-
-function getStripe() {
-  if (!STRIPE_SECRET) throw new Error('STRIPE_SECRET_KEY not configured')
-  return new Stripe(STRIPE_SECRET, { apiVersion: '2024-06-20' })
-}
-
-async function resolvePriceId(stripe, lookup_key) {
-  if (_priceIdCache[lookup_key]) return _priceIdCache[lookup_key]
-  const prices = await stripe.prices.list({ lookup_keys: [lookup_key], active: true, limit: 1 })
-  const price = prices.data[0]
-  if (!price) throw new Error(`No active price found for lookup_key "${lookup_key}". Create it in your Stripe dashboard.`)
-  _priceIdCache[lookup_key] = price.id
-  return price.id
-}
-
-// ─── Startup validation — refuse to run with missing critical secrets ─────────
+// ─── Startup validation ───────────────────────────────────────────────────────
 const SECRET = process.env.AUTH_SECRET
 if (!SECRET) throw new Error('FATAL: AUTH_SECRET env var is not set. Refusing to start.')
-
-const ENCRYPTION_KEY_HEX = process.env.CEREBRAS_ENCRYPTION_KEY
-if (!ENCRYPTION_KEY_HEX) throw new Error('FATAL: CEREBRAS_ENCRYPTION_KEY env var is not set. Refusing to start.')
-const ENCRYPTION_KEY = Buffer.from(ENCRYPTION_KEY_HEX, 'hex')
-if (ENCRYPTION_KEY.length !== 32) throw new Error('FATAL: CEREBRAS_ENCRYPTION_KEY must be 64 hex chars (32 bytes).')
 
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
 const BASE_URL = process.env.BASE_URL || `https://${process.env.VERCEL_URL}` || 'https://dwelling.one'
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'https://dwelling.one'
 
-const FREE_LIMIT       = 3
-const PRO_DAILY_LIMIT  = parseInt(process.env.PRO_DAILY_LIMIT  || '200', 10)
-const PRO_MONTHLY_LIMIT = parseInt(process.env.PRO_MONTHLY_LIMIT || '150', 10)
-
-// Rate limiting handled by Upstash Redis via api/_ratelimit.js
-
 function getDb() {
-  return createClient({
-    url: process.env.TURSO_URL,
-    authToken: process.env.TURSO_TOKEN,
-  })
+  return createClient({ url: process.env.TURSO_URL, authToken: process.env.TURSO_TOKEN })
 }
 
-// Module-level flag — ensureTable runs once per cold-start instance, not on every request.
 let _tableReady = false
-
 async function ensureTable(db) {
   if (_tableReady) return
   await db.execute(`
@@ -70,8 +29,6 @@ async function ensureTable(db) {
       is_pro INTEGER DEFAULT 0,
       analyses_used INTEGER DEFAULT 0,
       analyses_reset_at TEXT,
-      cerebras_key TEXT,
-      cerebras_key_iv TEXT,
       created_at TEXT
     )
   `)
@@ -80,12 +37,10 @@ async function ensureTable(db) {
     'ALTER TABLE users ADD COLUMN terms_accepted_ip TEXT',
     'ALTER TABLE users ADD COLUMN reset_token TEXT',
     'ALTER TABLE users ADD COLUMN reset_token_expires TEXT',
-    'ALTER TABLE users ADD COLUMN cerebras_key_iv TEXT',
     'ALTER TABLE users ADD COLUMN stripe_customer_id TEXT',
     'ALTER TABLE users ADD COLUMN stripe_subscription_id TEXT',
     'ALTER TABLE users ADD COLUMN is_business INTEGER DEFAULT 0',
     'ALTER TABLE users ADD COLUMN team_id TEXT',
-    // Invite code hardening — add expiry and attempt-tracking columns
     'ALTER TABLE teams ADD COLUMN invite_code_expires_at TEXT',
     'ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0',
   ]
@@ -93,7 +48,6 @@ async function ensureTable(db) {
     try { await db.execute(sql) } catch { /* already exists */ }
   }
 
-  // DB-based brute-force tracking for invite code guessing — independent of Redis
   await db.execute(`
     CREATE TABLE IF NOT EXISTS invite_code_attempts (
       user_id      TEXT NOT NULL,
@@ -103,8 +57,6 @@ async function ensureTable(db) {
       invite_code  TEXT
     )
   `)
-
-  // Indexes for brute-force lookups — without these, every join-team does a full table scan
   const indexes = [
     'CREATE INDEX IF NOT EXISTS idx_ica_user_time ON invite_code_attempts(user_id, attempted_at)',
     'CREATE INDEX IF NOT EXISTS idx_ica_code_time ON invite_code_attempts(invite_code, attempted_at)',
@@ -116,13 +68,13 @@ async function ensureTable(db) {
     try { await db.execute(sql) } catch { /* already exists */ }
   }
 
-  // ── New tables ──────────────────────────────────────────────────────────────
   await db.execute(`
     CREATE TABLE IF NOT EXISTS teams (
       id TEXT PRIMARY KEY,
       name TEXT,
       owner_id TEXT,
       invite_code TEXT UNIQUE,
+      invite_code_expires_at TEXT,
       daily_limit INTEGER DEFAULT 3000,
       usage_today INTEGER DEFAULT 0,
       usage_date TEXT,
@@ -187,63 +139,25 @@ async function ensureTable(db) {
       expires_at INTEGER NOT NULL
     )
   `)
-  // Prevents verify-checkout replay and cross-user session theft
-  await db.execute(`
-    CREATE TABLE IF NOT EXISTS verified_checkout_sessions (
-      session_id   TEXT PRIMARY KEY,
-      user_email   TEXT NOT NULL,
-      verified_at  TEXT NOT NULL
-    )
-  `)
   _tableReady = true
-}
-
-// ─── AES-256-GCM encryption for Cerebras API keys ────────────────────────────
-function encryptKey(plaintext) {
-  const iv = randomBytes(12) // 96-bit IV for GCM
-  const cipher = createCipheriv('aes-256-gcm', ENCRYPTION_KEY, iv)
-  const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()])
-  const tag = cipher.getAuthTag()
-  // Store as: iv:tag:ciphertext (all hex)
-  return {
-    encrypted: Buffer.concat([tag, encrypted]).toString('hex'),
-    iv: iv.toString('hex'),
-  }
-}
-
-function decryptKey(encryptedHex, ivHex) {
-  try {
-    const iv = Buffer.from(ivHex, 'hex')
-    const data = Buffer.from(encryptedHex, 'hex')
-    const tag = data.subarray(0, 16)
-    const ciphertext = data.subarray(16)
-    const decipher = createDecipheriv('aes-256-gcm', ENCRYPTION_KEY, iv)
-    decipher.setAuthTag(tag)
-    return decipher.update(ciphertext) + decipher.final('utf8')
-  } catch { return null }
 }
 
 // ─── Password hashing (Argon2id, with PBKDF2 + SHA-256 legacy fallback) ───────
 const _pbkdf2Async = promisify(_pbkdf2)
 
-// New: Argon2id — salt is embedded in the hash string, no separate salt needed
 async function hashPassword(password) {
   return argon2Hash(password + SECRET, { memoryCost: 65536, timeCost: 3, parallelism: 1 })
 }
 
-// Legacy PBKDF2 — kept for verifying old accounts on login (then migrated)
 async function hashPasswordPbkdf2(password, salt) {
   const key = await _pbkdf2Async(password + SECRET, salt, 100000, 64, 'sha512')
   return key.toString('hex')
 }
 
-// Legacy SHA-256 — oldest accounts before PBKDF2 migration
 function hashPasswordSha256(password, salt) {
   return createHash('sha256').update(password + salt + SECRET).digest('hex')
 }
 
-// Unified verify: handles Argon2id, PBKDF2, and SHA-256 formats.
-// Returns { ok, needsMigration } so callers can upgrade the stored hash.
 async function verifyPassword(password, storedHash, salt) {
   if (storedHash?.startsWith('$argon2')) {
     return { ok: await argon2Verify(storedHash, password + SECRET), needsMigration: false }
@@ -255,8 +169,8 @@ async function verifyPassword(password, storedHash, salt) {
 }
 
 // ─── JWT ─────────────────────────────────────────────────────────────────────
-const ACCESS_TOKEN_TTL = 15 * 60       // 15 minutes
-const REFRESH_TOKEN_TTL = 7 * 24 * 3600 // 7 days
+const ACCESS_TOKEN_TTL = 15 * 60
+const REFRESH_TOKEN_TTL = 7 * 24 * 3600
 
 function b64url(buf) {
   return buf.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
@@ -269,8 +183,6 @@ function sign(payload) {
   return `${header}.${body}.${sig}`
 }
 
-// Issues a short-lived access token + a 7-day refresh token stored in Redis.
-// Fails open — if Redis is unavailable, returns the access token without a refresh token.
 async function issueTokenPair(claims) {
   const accessToken = sign({ ...claims, exp: Math.floor(Date.now() / 1000) + ACCESS_TOKEN_TTL })
   let refreshToken = null
@@ -288,14 +200,12 @@ function verify(token) {
   try {
     const [header, body, sig] = token.split('.')
     if (!header || !body || !sig) return null
-    // Validate algorithm — reject alg:none and unexpected algorithms
     const headerObj = JSON.parse(Buffer.from(header.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString())
     if (headerObj.alg !== 'HS256') return null
-    // Constant-time HMAC comparison — prevents timing attacks
     const expected = b64url(createHmac('sha256', SECRET).update(`${header}.${body}`).digest())
     try {
       if (!timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null
-    } catch { return null } // lengths differ → invalid
+    } catch { return null }
     const base64 = body.replace(/-/g, '+').replace(/_/g, '/')
     const payload = JSON.parse(Buffer.from(base64, 'base64').toString())
     if (payload.exp && Date.now() / 1000 > payload.exp) return null
@@ -345,11 +255,8 @@ async function sendResetEmail(toEmail, resetToken) {
 
 // ─── Handler ─────────────────────────────────────────────────────────────────
 export default async function handler(req, res) {
-  // CORS — locked to production domain only
   const origin = req.headers.origin || ''
-  if (origin === ALLOWED_ORIGIN) {
-    res.setHeader('Access-Control-Allow-Origin', origin || ALLOWED_ORIGIN)
-  }
+  if (origin === ALLOWED_ORIGIN) res.setHeader('Access-Control-Allow-Origin', origin)
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
   res.setHeader('Vary', 'Origin')
@@ -366,90 +273,61 @@ export default async function handler(req, res) {
     // ── signup ──────────────────────────────────────────────────────────────
     if (action === 'signup') {
       if (await applyLimit(signupLimiter, clientIp, res)) return
-
       const { email, password } = req.body
       if (!email || !password) return res.status(400).json({ error: 'Missing email or password' })
       if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters.' })
-
       const key = email.toLowerCase().trim()
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(key)) {
-        return res.status(400).json({ error: 'Invalid email address.' })
-      }
-
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(key)) return res.status(400).json({ error: 'Invalid email address.' })
       const existing = await db.execute({ sql: 'SELECT email FROM users WHERE email = ?', args: [key] })
       if (existing.rows.length > 0) return res.status(409).json({ error: 'An account with this email already exists. Try signing in instead.' })
-
-      const salt = randomBytes(16).toString('hex') // kept for DB column; Argon2id embeds its own salt
+      const salt = randomBytes(16).toString('hex')
       const id = randomBytes(16).toString('hex')
-      const is_pro = ADMIN_EMAILS.includes(key) ? 1 : 0
-      const hashed = await hashPassword(password)
-
-      await db.execute({
-        sql: 'INSERT INTO users (email, id, salt, password, is_pro, analyses_used, analyses_reset_at, created_at, terms_accepted_at, terms_accepted_ip) VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?)',
-        args: [key, id, salt, hashed, is_pro, new Date().toISOString(), new Date().toISOString(), new Date().toISOString(), clientIp],
-      })
-
       const is_admin = ADMIN_EMAILS.includes(key)
-      const { accessToken, refreshToken } = await issueTokenPair({ sub: id, email: key, is_pro: !!is_pro, is_admin })
-      return res.status(200).json({ token: accessToken, refreshToken, userId: id, email: key, is_pro: !!is_pro, is_admin })
+      const hashed = await hashPassword(password)
+      await db.execute({
+        sql: 'INSERT INTO users (email, id, salt, password, is_pro, analyses_used, analyses_reset_at, created_at, terms_accepted_at, terms_accepted_ip) VALUES (?, ?, ?, ?, 0, 0, ?, ?, ?, ?)',
+        args: [key, id, salt, hashed, new Date().toISOString(), new Date().toISOString(), new Date().toISOString(), clientIp],
+      })
+      const { accessToken, refreshToken } = await issueTokenPair({ sub: id, email: key, is_admin })
+      return res.status(200).json({ token: accessToken, refreshToken, userId: id, email: key, is_admin })
     }
 
     // ── signin ──────────────────────────────────────────────────────────────
     if (action === 'signin') {
       if (await applyLimit(signinLimiter, clientIp, res)) return
-
       const { email, password } = req.body
       if (!email || !password) return res.status(400).json({ error: 'Missing email or password' })
-
       const key = email.toLowerCase().trim()
       const result = await db.execute({ sql: 'SELECT * FROM users WHERE email = ?', args: [key] })
       if (result.rows.length === 0) return res.status(401).json({ error: 'Incorrect email or password.' })
-
       const user = result.rows[0]
-
       const { ok: passwordOk, needsMigration } = await verifyPassword(password, user.password, user.salt)
       if (!passwordOk) return res.status(401).json({ error: 'Incorrect email or password.' })
-
-      // Silently migrate old PBKDF2/SHA-256 hashes to Argon2id
       if (needsMigration) {
         const upgraded = await hashPassword(password)
         await db.execute({ sql: 'UPDATE users SET password = ? WHERE email = ?', args: [upgraded, key] })
       }
-
       const is_admin = ADMIN_EMAILS.includes(key)
-      // Persist is_admin to DB so cerebras.js can verify without env var
       if (is_admin) await db.execute({ sql: 'UPDATE users SET is_admin = 1 WHERE email = ?', args: [key] }).catch(() => {})
-      const { accessToken, refreshToken } = await issueTokenPair({ sub: user.id, email: key, is_pro: !!user.is_pro, is_business: !!user.is_business, is_admin })
-      return res.status(200).json({ token: accessToken, refreshToken, userId: user.id, email: key, is_pro: !!user.is_pro, is_business: !!user.is_business, is_admin })
+      const { accessToken, refreshToken } = await issueTokenPair({ sub: user.id, email: key, is_admin })
+      return res.status(200).json({ token: accessToken, refreshToken, userId: user.id, email: key, is_admin })
     }
 
     // ── forgot-password ─────────────────────────────────────────────────────
     if (action === 'forgot-password') {
       if (await applyLimit(resetLimiter, clientIp, res)) return
-
       const { email } = req.body
       if (!email) return res.status(400).json({ error: 'Email is required.' })
       const key = email.toLowerCase().trim()
-
-      // Always return success — never reveal if email exists
       const result = await db.execute({ sql: 'SELECT email FROM users WHERE email = ?', args: [key] })
       if (result.rows.length === 0) return res.status(200).json({ success: true })
-
       const token = randomBytes(32).toString('hex')
       const expires = new Date(Date.now() + 60 * 60 * 1000).toISOString()
-
-      await db.execute({
-        sql: 'UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE email = ?',
-        args: [token, expires, key],
-      })
-
-      try {
-        await sendResetEmail(key, token)
-      } catch (e) {
+      await db.execute({ sql: 'UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE email = ?', args: [token, expires, key] })
+      try { await sendResetEmail(key, token) } catch (e) {
         console.error('Reset email failed:', e.message)
         return res.status(500).json({ error: 'Failed to send reset email. Please try again.' })
       }
-
       return res.status(200).json({ success: true })
     }
 
@@ -459,256 +337,34 @@ export default async function handler(req, res) {
       const { token, password } = req.body
       if (!token || !password) return res.status(400).json({ error: 'Missing token or password.' })
       if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters.' })
-
       const result = await db.execute({ sql: 'SELECT * FROM users WHERE reset_token = ?', args: [token] })
       if (result.rows.length === 0) return res.status(400).json({ error: 'Invalid or expired reset link. Please request a new one.' })
-
       const user = result.rows[0]
       if (!user.reset_token_expires || new Date(user.reset_token_expires) < new Date()) {
         return res.status(400).json({ error: 'This reset link has expired. Please request a new one.' })
       }
-
       const salt = randomBytes(16).toString('hex')
       const hashed = await hashPassword(password)
-
-      await db.execute({
-        sql: 'UPDATE users SET password = ?, salt = ?, reset_token = NULL, reset_token_expires = NULL WHERE email = ?',
-        args: [hashed, salt, user.email],
-      })
-
+      await db.execute({ sql: 'UPDATE users SET password = ?, salt = ?, reset_token = NULL, reset_token_expires = NULL WHERE email = ?', args: [hashed, salt, user.email] })
       const is_admin = ADMIN_EMAILS.includes(user.email)
-      const { accessToken, refreshToken } = await issueTokenPair({ sub: user.id, email: user.email, is_pro: !!user.is_pro, is_business: !!user.is_business, is_admin })
-      return res.status(200).json({ token: accessToken, refreshToken, userId: user.id, email: user.email, is_pro: !!user.is_pro, is_business: !!user.is_business, is_admin })
-    }
-
-    // ── usage ───────────────────────────────────────────────────────────────
-    if (action === 'usage') {
-      const authHeader = req.headers.authorization
-      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
-      const payload = verify(authHeader.replace('Bearer ', ''))
-      if (!payload) return res.status(401).json({ error: 'Invalid token' })
-
-      const result = await db.execute({ sql: 'SELECT analyses_used, is_pro, is_business, cerebras_key FROM users WHERE email = ?', args: [payload.email] })
-      if (result.rows.length === 0) return res.status(200).json({ analyses_used: 0, is_pro: false, is_business: false, has_own_key: false })
-
-      const user = result.rows[0]
-      return res.status(200).json({ analyses_used: user.analyses_used, is_pro: !!user.is_pro, is_business: !!user.is_business, has_own_key: !!user.cerebras_key })
-    }
-
-    // ── increment-analysis (free tier: charge one monthly credit) ───────────
-    if (action === 'increment-analysis') {
-      const authHeader = req.headers.authorization
-      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
-      const payload = verify(authHeader.replace('Bearer ', ''))
-      if (!payload) return res.status(401).json({ error: 'Invalid token' })
-
-      const db = getDb()
-      const ent = await getUserEntitlementsByEmail(db, payload.email)
-      if (ent.is_pro || ent.is_business) {
-        return res.status(200).json({ analyses_used: 9999, remaining: 9999, atLimit: false, isPro: true })
-      }
-
-      // Redis monthly counter — calendar month UTC, atomic INCR, TTL-based auto-reset.
-      // This is the single write path for free-tier analysis credits.
-      const month = utcMonth()
-      const mKey = `quota:user:${payload.sub}:monthly:${month}`
-      try {
-        const redis = getRedis()
-        const result = await checkAndIncrQuota(redis, mKey, FREE_LIMIT, 35 * 86400)
-        if (!result.allowed) {
-          return res.status(200).json({ analyses_used: result.count, remaining: 0, atLimit: true, isPro: false })
-        }
-        return res.status(200).json({ analyses_used: result.count, remaining: Math.max(0, FREE_LIMIT - result.count), atLimit: result.count >= FREE_LIMIT, isPro: false })
-      } catch {
-        // Redis down — fall back to DB atomic check to prevent silent bypass.
-        const incResult = await db.execute({
-          sql: 'UPDATE users SET analyses_used = analyses_used + 1 WHERE email = ? AND NOT is_pro AND analyses_used < ?',
-          args: [payload.email, FREE_LIMIT],
-        })
-        if (incResult.rowsAffected === 0) {
-          const cur = await db.execute({ sql: 'SELECT analyses_used FROM users WHERE email = ?', args: [payload.email] })
-          const count = cur.rows[0]?.analyses_used ?? FREE_LIMIT
-          return res.status(200).json({ analyses_used: count, remaining: 0, atLimit: true, isPro: false })
-        }
-        const fresh = await db.execute({ sql: 'SELECT analyses_used FROM users WHERE email = ?', args: [payload.email] })
-        const count = fresh.rows[0]?.analyses_used ?? 1
-        return res.status(200).json({ analyses_used: count, remaining: Math.max(0, FREE_LIMIT - count), atLimit: count >= FREE_LIMIT, isPro: false })
-      }
-    }
-
-    // ── decrement-analysis (refund a credit on failed analysis) ─────────────
-    if (action === 'decrement-analysis') {
-      if (await applyLimit(resetLimiter, clientIp, res)) return
-      const authHeader = req.headers.authorization
-      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
-      const payload = verify(authHeader.replace('Bearer ', ''))
-      if (!payload) return res.status(401).json({ error: 'Invalid token' })
-
-      const month = utcMonth()
-      const mKey = `quota:user:${payload.sub}:monthly:${month}`
-      try {
-        const redis = getRedis()
-        const current = parseInt(await redis.get(mKey) || '0', 10)
-        if (current > 0) await redis.decr(mKey).catch(() => {})
-        const newCount = Math.max(0, current - 1)
-        return res.status(200).json({ analyses_used: newCount, remaining: Math.max(0, FREE_LIMIT - newCount) })
-      } catch {
-        // Redis down — fall back to DB
-        const db = getDb()
-        await db.execute({ sql: 'UPDATE users SET analyses_used = MAX(0, analyses_used - 1) WHERE email = ? AND NOT is_pro', args: [payload.email] })
-        const fresh = await db.execute({ sql: 'SELECT analyses_used FROM users WHERE email = ?', args: [payload.email] })
-        const count = fresh.rows[0]?.analyses_used ?? 0
-        return res.status(200).json({ analyses_used: count, remaining: Math.max(0, FREE_LIMIT - count) })
-      }
-    }
-
-    // ── get-usage (dashboard: current daily + monthly counts for any tier) ──
-    if (action === 'get-usage') {
-      const authHeader = req.headers.authorization
-      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
-      const payload = verify(authHeader.replace('Bearer ', ''))
-      if (!payload) return res.status(401).json({ error: 'Invalid token' })
-
-      try {
-        const redis = getRedis()
-        const { daily, monthly, day, month } = await readUserQuota(redis, payload.sub)
-        const db = getDb()
-        const ent = await getUserEntitlementsByEmail(db, payload.email)
-        return res.status(200).json({
-          daily,
-          monthly,
-          day,
-          month,
-          limits: {
-            daily: ent.is_pro ? PRO_DAILY_LIMIT : (ent.is_business ? parseInt(process.env.BIZ_KEY_DAILY_LIM || '200', 10) : null),
-            monthly: ent.is_pro ? PRO_MONTHLY_LIMIT : (ent.is_business ? parseInt(process.env.BIZ_KEY_MONTH_LIM || '1000', 10) : FREE_LIMIT),
-          },
-          plan: ent.is_business ? 'business' : ent.is_pro ? 'pro' : 'free',
-        })
-      } catch {
-        return res.status(503).json({ error: 'Usage data temporarily unavailable.' })
-      }
-    }
-
-    // ── save-key ────────────────────────────────────────────────────────────
-    if (action === 'save-key') {
-      if (await applyLimit(apiLimiter, clientIp, res)) return
-      const authHeader = req.headers.authorization
-      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
-      const payload = verify(authHeader.replace('Bearer ', ''))
-      if (!payload) return res.status(401).json({ error: 'Invalid token' })
-
-      const { cerebrasKey } = req.body
-      const trimmedKey = (cerebrasKey || '').trim()
-
-      if (trimmedKey && trimmedKey.length < 10) {
-        return res.status(400).json({ error: 'API key seems too short. Please check your Cerebras dashboard.' })
-      }
-
-      if (trimmedKey) {
-        const { encrypted, iv } = encryptKey(trimmedKey)
-        await db.execute({
-          sql: 'UPDATE users SET cerebras_key = ?, cerebras_key_iv = ? WHERE email = ?',
-          args: [encrypted, iv, payload.email],
-        })
-      } else {
-        await db.execute({
-          sql: 'UPDATE users SET cerebras_key = NULL, cerebras_key_iv = NULL WHERE email = ?',
-          args: [payload.email],
-        })
-      }
-
-      return res.status(200).json({ success: true })
-    }
-
-    // ── get-key ─────────────────────────────────────────────────────────────
-    if (action === 'get-key') {
-      const authHeader = req.headers.authorization
-      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
-      const payload = verify(authHeader.replace('Bearer ', ''))
-      if (!payload) return res.status(401).json({ error: 'Invalid token' })
-
-      const result = await db.execute({ sql: 'SELECT cerebras_key, cerebras_key_iv FROM users WHERE email = ?', args: [payload.email] })
-      if (result.rows.length === 0 || !result.rows[0].cerebras_key) return res.status(200).json({ key: null })
-
-      const row = result.rows[0]
-
-      // Handle both new AES-encrypted keys and legacy base64 keys
-      let key = null
-      if (row.cerebras_key_iv) {
-        // New AES-256-GCM encrypted
-        key = decryptKey(row.cerebras_key, row.cerebras_key_iv)
-      } else {
-        // Legacy base64 — decode and immediately re-encrypt in place
-        try {
-          const decoded = Buffer.from(row.cerebras_key, 'base64').toString().trim()
-          if (decoded.startsWith('csk-') || decoded.length > 10) {
-            key = decoded
-            const { encrypted, iv } = encryptKey(decoded)
-            await db.execute({
-              sql: 'UPDATE users SET cerebras_key = ?, cerebras_key_iv = ? WHERE email = ?',
-              args: [encrypted, iv, payload.email],
-            })
-          }
-        } catch { key = null }
-      }
-
-      // Return redacted key — client only needs to know if a key is set and its last 4 chars for confirmation.
-      // Never return the plaintext key to prevent XSS-based key exfiltration.
-      const redacted = key ? `csk-...${key.slice(-4)}` : null
-      return res.status(200).json({ key: redacted, hasKey: !!key })
-    }
-
-    // ── delete-account ──────────────────────────────────────────────────────
-    if (action === 'delete-account') {
-      if (await applyLimit(resetLimiter, clientIp, res)) return
-      const authHeader = req.headers.authorization
-      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
-      const payload = verify(authHeader.replace('Bearer ', ''))
-      if (!payload) return res.status(401).json({ error: 'Invalid token' })
-
-      const { password, refreshToken: clientRt } = req.body
-      if (!password) return res.status(400).json({ error: 'Password is required to delete your account.' })
-
-      const result = await db.execute({ sql: 'SELECT * FROM users WHERE email = ?', args: [payload.email] })
-      if (result.rows.length === 0) return res.status(404).json({ error: 'Account not found.' })
-
-      const user = result.rows[0]
-      const { ok } = await verifyPassword(password, user.password, user.salt)
-      if (!ok) return res.status(401).json({ error: 'Incorrect password.' })
-
-      await db.execute({ sql: 'DELETE FROM users WHERE email = ?', args: [payload.email] })
-      // Revoke refresh token if provided
-      if (clientRt) { try { await getRedis().del(`rt:${clientRt}`) } catch {} }
-      return res.status(200).json({ success: true })
+      const { accessToken, refreshToken } = await issueTokenPair({ sub: user.id, email: user.email, is_admin })
+      return res.status(200).json({ token: accessToken, refreshToken, userId: user.id, email: user.email, is_admin })
     }
 
     // ── refresh ─────────────────────────────────────────────────────────────
     if (action === 'refresh') {
       const { refreshToken } = req.body
       if (!refreshToken) return res.status(400).json({ error: 'Refresh token required.' })
-
       let stored
       try {
-        // GETDEL is atomic — eliminates the race condition where two concurrent
-        // requests could both read before either deletes the token.
         stored = await getRedis().getdel(`rt:${refreshToken}`)
       } catch (e) {
         console.error('auth: Redis unavailable during refresh:', e.message)
         return res.status(503).json({ error: 'Session service temporarily unavailable. Please try again.' })
       }
-
       if (!stored) return res.status(401).json({ error: 'Session expired. Please sign in again.' })
-
       const claims = typeof stored === 'string' ? JSON.parse(stored) : stored
       if (!claims?.email || !claims?.sub) return res.status(401).json({ error: 'Invalid refresh token.' })
-      // Re-read plan flags from DB so grants made after last login take effect immediately
-      const db = getDb()
-      const freshRow = await db.execute({ sql: 'SELECT is_pro, is_business FROM users WHERE email = ?', args: [claims.email] })
-      if (freshRow.rows.length > 0) {
-        claims.is_pro = !!freshRow.rows[0].is_pro
-        claims.is_business = !!freshRow.rows[0].is_business
-      }
       const is_admin = ADMIN_EMAILS.includes(claims.email)
       const { accessToken, refreshToken: newRt } = await issueTokenPair({ ...claims, is_admin })
       return res.status(200).json({ token: accessToken, refreshToken: newRt })
@@ -717,144 +373,11 @@ export default async function handler(req, res) {
     // ── signout ─────────────────────────────────────────────────────────────
     if (action === 'signout') {
       const { refreshToken } = req.body
-      if (refreshToken) {
-        try { await getRedis().del(`rt:${refreshToken}`) } catch {}
-      }
+      if (refreshToken) { try { await getRedis().del(`rt:${refreshToken}`) } catch {} }
       return res.status(200).json({ success: true })
     }
 
-    if (action === 'notify-pro') {
-      if (await applyLimit(apiLimiter, clientIp, res)) return
-      const authHeader = req.headers.authorization
-      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
-      const payload = verify(authHeader.replace('Bearer ', ''))
-      if (!payload) return res.status(401).json({ error: 'Invalid token' })
-      const { email: notifyEmail } = req.body
-      if (!notifyEmail || typeof notifyEmail !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(notifyEmail)) {
-        return res.status(400).json({ error: 'Invalid email.' })
-      }
-      await db.execute(`CREATE TABLE IF NOT EXISTS pro_waitlist (email TEXT PRIMARY KEY, created_at TEXT)`)
-      await db.execute(
-        `INSERT OR IGNORE INTO pro_waitlist (email, created_at) VALUES (?, ?)`,
-        [notifyEmail.trim().toLowerCase(), new Date().toISOString()]
-      )
-      return res.status(200).json({ success: true })
-    }
-
-    // ── Stripe: create-checkout ──────────────────────────────────────────────
-    if (action === 'create-checkout') {
-      if (!STRIPE_SECRET) return res.status(503).json({ error: 'Payments not yet configured' })
-      if (await applyLimit(apiLimiter, clientIp, res)) return
-      const authHeader = req.headers.authorization
-      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
-      const payload = verify(authHeader.replace('Bearer ', ''))
-      if (!payload) return res.status(401).json({ error: 'Invalid token' })
-
-      const { lookup_key } = req.body
-      if (!lookup_key || !VALID_LOOKUP_KEYS.includes(lookup_key)) {
-        return res.status(400).json({ error: `Invalid lookup_key. Must be one of: ${VALID_LOOKUP_KEYS.join(', ')}` })
-      }
-
-      try {
-        const stripe = getStripe()
-        const priceId = await resolvePriceId(stripe, lookup_key)
-        const session = await stripe.checkout.sessions.create({
-          mode: 'subscription',
-          customer_email: payload.email,
-          line_items: [{ price: priceId, quantity: 1 }],
-          success_url: `${BASE_URL}/?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
-          cancel_url: `${BASE_URL}/?checkout=cancelled`,
-          subscription_data: { metadata: { user_email: payload.email, plan: lookup_key } },
-          metadata: { user_email: payload.email, plan: lookup_key },
-          allow_promotion_codes: true,
-        })
-        return res.status(200).json({ url: session.url })
-      } catch (err) {
-        console.error('create-checkout error:', err.message)
-        return res.status(500).json({ error: err.message || 'Checkout failed' })
-      }
-    }
-
-    // ── Stripe: verify-checkout ──────────────────────────────────────────────
-    if (action === 'verify-checkout') {
-      if (!STRIPE_SECRET) return res.status(503).json({ error: 'Payments not yet configured' })
-      if (await applyLimit(apiLimiter, clientIp, res)) return
-      const authHeader = req.headers.authorization
-      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
-      const payload = verify(authHeader.replace('Bearer ', ''))
-      if (!payload) return res.status(401).json({ error: 'Invalid token' })
-      const { sessionId } = req.body
-      if (!sessionId || typeof sessionId !== 'string') return res.status(400).json({ error: 'sessionId required' })
-      const stripe = getStripe()
-      const session = await stripe.checkout.sessions.retrieve(sessionId, { expand: ['subscription'] })
-      if (session.payment_status !== 'paid' && session.status !== 'complete') {
-        return res.status(400).json({ error: 'Payment not completed' })
-      }
-      const sessionEmail = (session.customer_email || session.customer_details?.email || '').toLowerCase()
-      // Always require a verifiable email — reject if Stripe didn't collect one
-      if (!sessionEmail) {
-        return res.status(400).json({ error: 'Could not verify payment session ownership — no email on session' })
-      }
-      if (sessionEmail !== payload.email.toLowerCase()) {
-        return res.status(403).json({ error: 'Session does not belong to this account' })
-      }
-      const plan = session.metadata?.plan ?? ''
-      const isBusiness = plan.startsWith('business')
-
-      const db = getDb()
-
-      // Idempotency + replay prevention: INSERT fails if session already claimed.
-      // Also prevents a different authenticated user from claiming the same session.
-      try {
-        const claimed = await db.execute({
-          sql: 'INSERT INTO verified_checkout_sessions (session_id, user_email, verified_at) VALUES (?, ?, ?)',
-          args: [sessionId, payload.email.toLowerCase(), new Date().toISOString()],
-        })
-        if (claimed.rowsAffected === 0) throw new Error('conflict')
-      } catch (e) {
-        // Session already in table — check ownership
-        const existing = await db.execute({
-          sql: 'SELECT user_email FROM verified_checkout_sessions WHERE session_id = ?',
-          args: [sessionId],
-        })
-        const owner = existing.rows[0]?.user_email
-        if (owner && owner !== payload.email.toLowerCase()) {
-          return res.status(403).json({ error: 'Session already claimed by a different account' })
-        }
-        // Same user re-verifying (e.g. page reload) — idempotent success
-        const userRow = await db.execute({ sql: 'SELECT is_pro, is_business FROM users WHERE email = ?', args: [payload.email] })
-        const u = userRow.rows[0]
-        return res.status(200).json({ success: true, is_pro: !!u?.is_pro, is_business: !!u?.is_business })
-      }
-
-      await db.execute({
-        sql: 'UPDATE users SET is_pro = 1, is_business = ?, stripe_customer_id = ?, stripe_subscription_id = ? WHERE email = ?',
-        args: [isBusiness ? 1 : 0, session.customer || null, session.subscription?.id || null, payload.email],
-      })
-      return res.status(200).json({ success: true, is_pro: true, is_business: isBusiness })
-    }
-
-    // ── Stripe: cancel-subscription ──────────────────────────────────────────
-    if (action === 'cancel-subscription') {
-      if (!STRIPE_SECRET) return res.status(503).json({ error: 'Payments not yet configured' })
-      if (await applyLimit(apiLimiter, clientIp, res)) return
-      const authHeader = req.headers.authorization
-      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
-      const payload = verify(authHeader.replace('Bearer ', ''))
-      if (!payload) return res.status(401).json({ error: 'Invalid token' })
-      const db = getDb()
-      const subResult = await db.execute({
-        sql: 'SELECT stripe_subscription_id FROM users WHERE email = ?',
-        args: [payload.email],
-      })
-      const subId = subResult.rows[0]?.stripe_subscription_id
-      if (!subId) return res.status(400).json({ error: 'No active subscription found' })
-      const stripe = getStripe()
-      await stripe.subscriptions.update(subId, { cancel_at_period_end: true })
-      return res.status(200).json({ success: true, message: 'Subscription will cancel at end of billing period' })
-    }
-
-    // ── change-password ───────────────────────────────────────────────────────
+    // ── change-password ──────────────────────────────────────────────────────
     if (action === 'change-password') {
       if (await applyLimit(resetLimiter, clientIp, res)) return
       const authHeader = req.headers.authorization
@@ -864,7 +387,6 @@ export default async function handler(req, res) {
       const { currentPassword, newPassword } = req.body
       if (!currentPassword || !newPassword) return res.status(400).json({ error: 'Both passwords required' })
       if (newPassword.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' })
-      const db = getDb()
       const result = await db.execute({ sql: 'SELECT password, salt FROM users WHERE email = ?', args: [payload.email] })
       if (!result.rows[0]) return res.status(404).json({ error: 'User not found' })
       const { password: storedHash, salt } = result.rows[0]
@@ -875,206 +397,23 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true })
     }
 
-    // ── get-subscription ──────────────────────────────────────────────────────
-    if (action === 'get-subscription') {
+    // ── delete-account ──────────────────────────────────────────────────────
+    if (action === 'delete-account') {
+      if (await applyLimit(resetLimiter, clientIp, res)) return
       const authHeader = req.headers.authorization
       if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
       const payload = verify(authHeader.replace('Bearer ', ''))
       if (!payload) return res.status(401).json({ error: 'Invalid token' })
-      if (!STRIPE_SECRET) return res.status(200).json({ subscription: null })
-      const db = getDb()
-      const result = await db.execute({
-        sql: 'SELECT stripe_subscription_id, stripe_customer_id, is_pro, is_business FROM users WHERE email = ?',
-        args: [payload.email],
-      })
-      const row = result.rows[0]
-      if (!row?.stripe_subscription_id) return res.status(200).json({ subscription: null })
-      try {
-        const stripe = getStripe()
-        const sub = await stripe.subscriptions.retrieve(row.stripe_subscription_id, { expand: ['items.data.price'] })
-        const item = sub.items.data[0]
-        const price = item?.price
-        return res.status(200).json({
-          subscription: {
-            status: sub.status,
-            cancel_at_period_end: sub.cancel_at_period_end,
-            current_period_end: sub.current_period_end,
-            amount: price ? price.unit_amount / 100 : null,
-            currency: price?.currency || 'usd',
-            interval: price?.recurring?.interval || 'month',
-            plan: sub.metadata?.plan || (row.is_business ? 'business_monthly' : 'pro_monthly'),
-          },
-        })
-      } catch (err) {
-        return res.status(200).json({ subscription: null, error: err.message })
-      }
-    }
-
-    // ── Stripe: portal ────────────────────────────────────────────────────────
-    if (action === 'portal') {
-      if (!STRIPE_SECRET) return res.status(503).json({ error: 'Payments not yet configured' })
-      if (await applyLimit(apiLimiter, clientIp, res)) return
-      const authHeader = req.headers.authorization
-      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
-      const payload = verify(authHeader.replace('Bearer ', ''))
-      if (!payload) return res.status(401).json({ error: 'Invalid token' })
-      const db = getDb()
-      const custResult = await db.execute({
-        sql: 'SELECT stripe_customer_id FROM users WHERE email = ?',
-        args: [payload.email],
-      })
-      const customerId = custResult.rows[0]?.stripe_customer_id
-      if (!customerId) return res.status(400).json({ error: 'No billing account found' })
-      const stripe = getStripe()
-      const portalSession = await stripe.billingPortal.sessions.create({
-        customer: customerId,
-        return_url: BASE_URL,
-      })
-      return res.status(200).json({ url: portalSession.url })
-    }
-
-    // ── Admin: list all users ─────────────────────────────────────────────────
-    if (action === 'admin-list-users') {
-      const authHeader = req.headers.authorization
-      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
-      const payload = verify(authHeader.replace('Bearer ', ''))
-      if (!payload?.is_admin) return res.status(403).json({ error: 'Admin access required' })
-      const db = getDb()
-      const result = await db.execute({
-        sql: 'SELECT id, email, is_pro, is_business, analyses_used, created_at FROM users ORDER BY created_at DESC LIMIT 200',
-        args: [],
-      })
-      return res.status(200).json({ users: result.rows })
-    }
-
-    // ── Admin: adjust user quota ──────────────────────────────────────────────
-    if (action === 'admin-adjust-usage') {
-      const authHeader = req.headers.authorization
-      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
-      const payload = verify(authHeader.replace('Bearer ', ''))
-      if (!payload?.is_admin) return res.status(403).json({ error: 'Admin access required' })
-      const { targetEmail, analysesUsed } = req.body
-      if (!targetEmail || analysesUsed == null) return res.status(400).json({ error: 'targetEmail and analysesUsed required' })
-      const db = getDb()
-      const r = await db.execute({
-        sql: 'UPDATE users SET analyses_used = ? WHERE email = ?',
-        args: [Math.max(0, parseInt(analysesUsed, 10)), targetEmail.trim().toLowerCase()],
-      })
-      if (r.rowsAffected === 0) return res.status(404).json({ error: `No user: ${targetEmail}` })
+      const { password, refreshToken: clientRt } = req.body
+      if (!password) return res.status(400).json({ error: 'Password is required to delete your account.' })
+      const result = await db.execute({ sql: 'SELECT * FROM users WHERE email = ?', args: [payload.email] })
+      if (result.rows.length === 0) return res.status(404).json({ error: 'Account not found.' })
+      const user = result.rows[0]
+      const { ok } = await verifyPassword(password, user.password, user.salt)
+      if (!ok) return res.status(401).json({ error: 'Incorrect password.' })
+      await db.execute({ sql: 'DELETE FROM users WHERE email = ?', args: [payload.email] })
+      if (clientRt) { try { await getRedis().del(`rt:${clientRt}`) } catch {} }
       return res.status(200).json({ success: true })
-    }
-
-    // ── Admin: set user subscription tier ──────────────────────────────────────
-    if (action === 'admin-grant-pro') {
-      const authHeader = req.headers.authorization
-      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
-      const payload = verify(authHeader.replace('Bearer ', ''))
-      if (!payload?.is_admin) return res.status(403).json({ error: 'Admin access required' })
-      const { targetEmail, plan } = req.body
-      if (!targetEmail || typeof targetEmail !== 'string') return res.status(400).json({ error: 'targetEmail required' })
-      if (!plan || !['free', 'pro', 'business'].includes(plan)) return res.status(400).json({ error: 'plan must be "free", "pro", or "business"' })
-
-      const db = getDb()
-      const isFree = plan === 'free'
-      const isBusiness = plan === 'business'
-
-      const grantResult = await db.execute({
-        sql: 'UPDATE users SET is_pro = ?, is_business = ? WHERE LOWER(email) = LOWER(?)',
-        args: [isFree ? 0 : 1, isBusiness ? 1 : 0, targetEmail.trim().toLowerCase()],
-      })
-      if (grantResult.rowsAffected === 0) {
-        return res.status(404).json({ error: `No user found with email ${targetEmail}` })
-      }
-      return res.status(200).json({ success: true, plan, email: targetEmail.trim().toLowerCase() })
-    }
-
-    // ── Admin: cancel user subscription (revert to free) ──────────────────────
-    if (action === 'admin-cancel-subscription') {
-      const authHeader = req.headers.authorization
-      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
-      const payload = verify(authHeader.replace('Bearer ', ''))
-      if (!payload?.is_admin) return res.status(403).json({ error: 'Admin access required' })
-
-      const { targetEmail } = req.body
-      if (!targetEmail || typeof targetEmail !== 'string') return res.status(400).json({ error: 'targetEmail required' })
-
-      const db = getDb()
-      const userResult = await db.execute({
-        sql: 'SELECT stripe_subscription_id FROM users WHERE LOWER(email) = LOWER(?)',
-        args: [targetEmail.trim().toLowerCase()],
-      })
-
-      if (userResult.rows.length === 0) {
-        return res.status(404).json({ error: `No user found with email ${targetEmail}` })
-      }
-
-      const subId = userResult.rows[0].stripe_subscription_id
-
-      // Cancel the Stripe subscription if it exists
-      if (subId) {
-        const stripe = getStripe()
-        try {
-          await stripe.subscriptions.cancel(subId)
-        } catch (err) {
-          console.error(`[admin-cancel-subscription] Failed to cancel Stripe sub ${subId}:`, err.message)
-          // Continue anyway — update database even if Stripe call fails
-        }
-      }
-
-      // Revert user to free tier
-      await db.execute({
-        sql: 'UPDATE users SET is_pro = 0, is_business = 0, stripe_subscription_id = NULL WHERE LOWER(email) = LOWER(?)',
-        args: [targetEmail.trim().toLowerCase()],
-      })
-
-      // Also revoke all team members if this was a Business account owner
-      const revokedUserRow = await db.execute({
-        sql: 'SELECT id FROM users WHERE LOWER(email) = LOWER(?)',
-        args: [targetEmail.trim().toLowerCase()],
-      })
-      const revokedId = revokedUserRow.rows[0]?.id
-      if (revokedId) {
-        const revokedTeamRow = await db.execute({
-          sql: 'SELECT team_id FROM users WHERE id = ?',
-          args: [revokedId],
-        })
-        const teamId = revokedTeamRow.rows[0]?.team_id
-        if (teamId) {
-          const revokedMembers = await db.execute({
-            sql: 'UPDATE users SET is_pro = 0, is_business = 0 WHERE team_id = ? AND id != ?',
-            args: [teamId, revokedId],
-          })
-          console.log(`[admin-cancel-subscription] Revoked ${revokedMembers.rowsAffected} team member(s) for team ${teamId}`)
-        }
-      }
-
-      return res.status(200).json({ success: true, message: `Subscription cancelled and ${targetEmail} reverted to free`, email: targetEmail.trim().toLowerCase() })
-    }
-
-    // ── Admin: change subscription type (pro ↔ business) ──────────────────────
-    if (action === 'admin-change-subscription-type') {
-      const authHeader = req.headers.authorization
-      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
-      const payload = verify(authHeader.replace('Bearer ', ''))
-      if (!payload?.is_admin) return res.status(403).json({ error: 'Admin access required' })
-
-      const { targetEmail, newPlan } = req.body
-      if (!targetEmail || typeof targetEmail !== 'string') return res.status(400).json({ error: 'targetEmail required' })
-      if (!newPlan || !['pro', 'business'].includes(newPlan)) return res.status(400).json({ error: 'newPlan must be "pro" or "business"' })
-
-      const db = getDb()
-      const isBusiness = newPlan === 'business'
-
-      const updateResult = await db.execute({
-        sql: 'UPDATE users SET is_pro = 1, is_business = ? WHERE LOWER(email) = LOWER(?)',
-        args: [isBusiness ? 1 : 0, targetEmail.trim().toLowerCase()],
-      })
-
-      if (updateResult.rowsAffected === 0) {
-        return res.status(404).json({ error: `No user found with email ${targetEmail}` })
-      }
-
-      return res.status(200).json({ success: true, message: `${targetEmail} changed to ${newPlan}`, email: targetEmail.trim().toLowerCase(), newPlan })
     }
 
     // ── Saved Reports: save ──────────────────────────────────────────────────
@@ -1083,15 +422,8 @@ export default async function handler(req, res) {
       if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
       const payload = verify(authHeader.replace('Bearer ', ''))
       if (!payload) return res.status(401).json({ error: 'Invalid token' })
-      // Server-side gate — read from DB, never trust JWT claims
-      const ent = await getUserEntitlements(db, payload.sub)
-      const isAdminUser = !!(await db.execute({ sql: 'SELECT is_admin FROM users WHERE id = ?', args: [payload.sub] })).rows[0]?.is_admin
-      if (!ent.is_pro && !ent.is_business && !isAdminUser) {
-        return res.status(403).json({ error: 'Pro plan required to save reports' })
-      }
       const { address, city, score, verdict, data } = req.body
       if (!data) return res.status(400).json({ error: 'data required' })
-      // Guard against oversized payloads clogging Turso storage (1 MB cap)
       const serialized = JSON.stringify(data)
       if (serialized.length > 1024 * 1024) return res.status(413).json({ error: 'Report data too large to save (max 1 MB)' })
       const id = randomBytes(12).toString('hex')
@@ -1123,10 +455,7 @@ export default async function handler(req, res) {
       if (!payload) return res.status(401).json({ error: 'Invalid token' })
       const { id: reportId } = req.body
       if (!reportId) return res.status(400).json({ error: 'id required' })
-      const result = await db.execute({
-        sql: 'SELECT * FROM saved_reports WHERE id = ? AND user_id = ?',
-        args: [reportId, payload.sub],
-      })
+      const result = await db.execute({ sql: 'SELECT * FROM saved_reports WHERE id = ? AND user_id = ?', args: [reportId, payload.sub] })
       if (result.rows.length === 0) return res.status(404).json({ error: 'Report not found' })
       const row = result.rows[0]
       return res.status(200).json({ ...row, data: JSON.parse(row.data || '{}') })
@@ -1144,19 +473,17 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true })
     }
 
-    // ── Business Team: create ────────────────────────────────────────────────
+    // ── Team: create ─────────────────────────────────────────────────────────
     if (action === 'create-team') {
       const authHeader = req.headers.authorization
       if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
       const payload = verify(authHeader.replace('Bearer ', ''))
       if (!payload) return res.status(401).json({ error: 'Invalid token' })
-      const userRow = await db.execute({ sql: 'SELECT is_business, team_id FROM users WHERE id = ?', args: [payload.sub] })
-      if (!userRow.rows[0]?.is_business) return res.status(403).json({ error: 'Business plan required' })
+      const userRow = await db.execute({ sql: 'SELECT team_id FROM users WHERE id = ?', args: [payload.sub] })
       if (userRow.rows[0]?.team_id) return res.status(409).json({ error: 'Already in a team' })
       const { name } = req.body
       if (!name || typeof name !== 'string') return res.status(400).json({ error: 'name required' })
       const teamId = randomBytes(12).toString('hex')
-      // 128-bit entropy invite code — replaces the old 48-bit (6-byte) code
       const inviteCode = randomBytes(16).toString('hex')
       const inviteCodeExpiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString()
       await db.execute({
@@ -1168,40 +495,33 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, teamId, inviteCode })
     }
 
-    // ── Business Team: join ──────────────────────────────────────────────────
+    // ── Team: join ───────────────────────────────────────────────────────────
     if (action === 'join-team') {
       const authHeader = req.headers.authorization
       if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
       const payload = verify(authHeader.replace('Bearer ', ''))
       if (!payload) return res.status(401).json({ error: 'Invalid token' })
-      const userRow = await db.execute({ sql: 'SELECT is_business, team_id FROM users WHERE id = ?', args: [payload.sub] })
+      const userRow = await db.execute({ sql: 'SELECT team_id FROM users WHERE id = ?', args: [payload.sub] })
       if (userRow.rows[0]?.team_id) return res.status(409).json({ error: 'Already in a team' })
 
-      // DB-based brute-force guard — independent of Redis, always active.
-      // All failure paths return the SAME error message to prevent oracle attacks
-      // (attacker cannot distinguish valid-but-expired from non-existent codes).
       const INVITE_ERROR = { error: 'Invalid or expired invite code' }
       const windowStart = new Date(Date.now() - 15 * 60 * 1000).toISOString()
       const ip = clientIp
 
-      // Per-user block: 5 failures in 15 min
       const userAttempts = await db.execute({
         sql: 'SELECT COUNT(*) as cnt FROM invite_code_attempts WHERE user_id = ? AND attempted_at > ? AND succeeded = 0',
         args: [payload.sub, windowStart],
       })
       if ((userAttempts.rows[0]?.cnt || 0) >= 5) {
-        console.warn(JSON.stringify({ event: 'invite_user_blocked', user: payload.sub }))
         return res.status(429).json({ error: 'Too many failed attempts. Please wait 15 minutes.' })
       }
 
-      // Per-IP block: 20 failures in 15 min (distributed attack protection)
       if (ip && ip !== 'unknown') {
         const ipAttempts = await db.execute({
           sql: 'SELECT COUNT(*) as cnt FROM invite_code_attempts WHERE ip = ? AND attempted_at > ? AND succeeded = 0',
           args: [ip, windowStart],
         })
         if ((ipAttempts.rows[0]?.cnt || 0) >= 20) {
-          console.warn(JSON.stringify({ event: 'invite_ip_blocked', ip }))
           return res.status(429).json({ error: 'Too many failed attempts from this network. Please wait 15 minutes.' })
         }
       }
@@ -1210,13 +530,11 @@ export default async function handler(req, res) {
       if (!inviteCode) return res.status(400).json({ error: 'inviteCode required' })
       const normalizedCode = inviteCode.trim().toLowerCase()
 
-      // Per-code block: 20 failures in 15 min (prevents distributed brute-force of one code)
       const codeAttempts = await db.execute({
         sql: 'SELECT COUNT(*) as cnt FROM invite_code_attempts WHERE invite_code = ? AND attempted_at > ? AND succeeded = 0',
         args: [normalizedCode, windowStart],
       })
       if ((codeAttempts.rows[0]?.cnt || 0) >= 20) {
-        console.warn(JSON.stringify({ event: 'invite_code_blocked', code: normalizedCode.slice(0, 8) + '...' }))
         return res.status(429).json({ error: 'This invite code has been temporarily locked due to too many failed attempts.' })
       }
 
@@ -1225,57 +543,32 @@ export default async function handler(req, res) {
         args: [payload.sub, new Date().toISOString(), ip, normalizedCode],
       }).catch(() => {})
 
-      const teamRow = await db.execute({
-        sql: 'SELECT id, owner_id, invite_code_expires_at FROM teams WHERE invite_code = ?',
-        args: [normalizedCode],
-      })
-
-      if (teamRow.rows.length === 0) {
-        await logFailure()
-        console.warn(JSON.stringify({ event: 'invite_invalid_code', user: payload.sub, ip }))
-        return res.status(404).json(INVITE_ERROR)
-      }
-
+      const teamRow = await db.execute({ sql: 'SELECT id, invite_code_expires_at FROM teams WHERE invite_code = ?', args: [normalizedCode] })
+      if (teamRow.rows.length === 0) { await logFailure(); return res.status(404).json(INVITE_ERROR) }
       const team = teamRow.rows[0]
-
-      // Normalize expiration failure — same message as invalid code (oracle prevention)
       if (team.invite_code_expires_at && new Date(team.invite_code_expires_at) < new Date()) {
         await logFailure()
-        console.warn(JSON.stringify({ event: 'invite_expired_code', user: payload.sub }))
         return res.status(404).json(INVITE_ERROR)
       }
 
-      const teamId = team.id
-      const ownerId = team.owner_id
-
-      // Verify the team owner's Business plan is still active before granting access
-      const ownerPlanRow = await db.execute({ sql: 'SELECT is_business FROM users WHERE id = ?', args: [ownerId] })
-      if (!ownerPlanRow.rows[0]?.is_business) {
-        return res.status(403).json({ error: 'The team owner does not have an active Business plan' })
-      }
-
-      // Atomic seat-limit check + insert — prevents concurrent join race condition
       const joinResult = await db.execute({
         sql: `INSERT OR IGNORE INTO team_members (team_id, user_id, role, joined_at)
               SELECT ?, ?, 'member', ?
               WHERE (SELECT COUNT(*) FROM team_members WHERE team_id = ?) < 10`,
-        args: [teamId, payload.sub, new Date().toISOString(), teamId],
+        args: [team.id, payload.sub, new Date().toISOString(), team.id],
       })
       if (joinResult.rowsAffected === 0) return res.status(409).json({ error: 'Team is full (10 members max)' })
 
-      // Record successful attempt
       await db.execute({
         sql: 'INSERT INTO invite_code_attempts (user_id, attempted_at, succeeded, ip, invite_code) VALUES (?, ?, 1, ?, ?)',
         args: [payload.sub, new Date().toISOString(), ip, normalizedCode],
       })
-      console.log(JSON.stringify({ event: 'invite_join_success', user: payload.sub, teamId }))
 
-      // Grant Business plan access — member shares the owner's subscription
-      await db.execute({ sql: 'UPDATE users SET team_id = ?, is_pro = 1, is_business = 1 WHERE id = ?', args: [teamId, payload.sub] })
-      return res.status(200).json({ success: true, teamId })
+      await db.execute({ sql: 'UPDATE users SET team_id = ? WHERE id = ?', args: [team.id, payload.sub] })
+      return res.status(200).json({ success: true, teamId: team.id })
     }
 
-    // ── Business Team: rotate invite code ────────────────────────────────────
+    // ── Team: rotate invite code ─────────────────────────────────────────────
     if (action === 'rotate-invite-code') {
       const authHeader = req.headers.authorization
       if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
@@ -1285,20 +578,14 @@ export default async function handler(req, res) {
       const teamId = userRow.rows[0]?.team_id
       if (!teamId) return res.status(404).json({ error: 'Not in a team' })
       const teamRow = await db.execute({ sql: 'SELECT owner_id FROM teams WHERE id = ?', args: [teamId] })
-      if (teamRow.rows[0]?.owner_id !== payload.sub) {
-        return res.status(403).json({ error: 'Only the team owner can rotate the invite code' })
-      }
-      // Generate new 128-bit code and reset 72h expiry window
+      if (teamRow.rows[0]?.owner_id !== payload.sub) return res.status(403).json({ error: 'Only the team owner can rotate the invite code' })
       const newCode = randomBytes(16).toString('hex')
       const newExpiry = new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString()
-      await db.execute({
-        sql: 'UPDATE teams SET invite_code = ?, invite_code_expires_at = ? WHERE id = ?',
-        args: [newCode, newExpiry, teamId],
-      })
+      await db.execute({ sql: 'UPDATE teams SET invite_code = ?, invite_code_expires_at = ? WHERE id = ?', args: [newCode, newExpiry, teamId] })
       return res.status(200).json({ success: true, inviteCode: newCode, expiresAt: newExpiry })
     }
 
-    // ── Business Team: get portal data ───────────────────────────────────────
+    // ── Team: get portal data ────────────────────────────────────────────────
     if (action === 'get-team') {
       const authHeader = req.headers.authorization
       if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
@@ -1310,7 +597,6 @@ export default async function handler(req, res) {
       const teamRow = await db.execute({ sql: 'SELECT id, name, invite_code, invite_code_expires_at, daily_limit, usage_today, usage_date, logo_data FROM teams WHERE id = ?', args: [teamId] })
       if (teamRow.rows.length === 0) return res.status(404).json({ error: 'Team not found' })
       const team = teamRow.rows[0]
-      // Reset usage if it's a new day
       const today = new Date().toISOString().slice(0, 10)
       if (team.usage_date !== today) {
         await db.execute({ sql: 'UPDATE teams SET usage_today = 0, usage_date = ? WHERE id = ?', args: [today, teamId] })
@@ -1327,23 +613,16 @@ export default async function handler(req, res) {
       return res.status(200).json({ team: { ...team, logo_data: undefined }, logoData: team.logo_data, members: membersRow.rows, reports: reportsRow.rows })
     }
 
-    // ── Business Team: log analysis ──────────────────────────────────────────
+    // ── Team: log analysis ───────────────────────────────────────────────────
     if (action === 'log-team-analysis') {
       const authHeader = req.headers.authorization
       if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
       const payload = verify(authHeader.replace('Bearer ', ''))
       if (!payload) return res.status(401).json({ error: 'Invalid token' })
-      // Verify Business plan is still active — team_id alone doesn't guarantee active plan
-      const ent = await getUserEntitlements(db, payload.sub)
-      if (!ent.is_business && !ent.is_pro) return res.status(200).json({ logged: false })
       const userRow = await db.execute({ sql: 'SELECT team_id, email FROM users WHERE id = ?', args: [payload.sub] })
       const teamId = userRow.rows[0]?.team_id
-      if (!teamId) return res.status(200).json({ logged: false }) // not in a team, silently skip
+      if (!teamId) return res.status(200).json({ logged: false })
       const today = new Date().toISOString().slice(0, 10)
-
-      // Atomic increment: only succeeds if current count < daily_limit.
-      // Eliminates the read-check-write race condition under concurrent requests.
-      // CASE resets to 1 on a new day, otherwise increments.
       const atomicUpdate = await db.execute({
         sql: `UPDATE teams
               SET usage_today = CASE WHEN usage_date = ? THEN usage_today + 1 ELSE 1 END,
@@ -1352,13 +631,8 @@ export default async function handler(req, res) {
                 AND (CASE WHEN usage_date = ? THEN usage_today ELSE 0 END) < daily_limit`,
         args: [today, today, teamId, today],
       })
-
-      if (atomicUpdate.rowsAffected === 0) {
-        return res.status(429).json({ error: 'Team daily limit reached (3000 analyses/day)' })
-      }
-
+      if (atomicUpdate.rowsAffected === 0) return res.status(429).json({ error: 'Team daily limit reached' })
       const { address, city, score, verdict, data } = req.body
-      // Guard against oversized payloads clogging Turso storage (512 KB cap)
       const teamReportSerialized = JSON.stringify(data || {})
       if (teamReportSerialized.length > 512 * 1024) return res.status(413).json({ error: 'Report data too large (max 512 KB)' })
       const reportId = randomBytes(12).toString('hex')
@@ -1366,13 +640,11 @@ export default async function handler(req, res) {
         sql: 'INSERT INTO team_reports (id, team_id, user_id, user_email, address, city, score, verdict, data, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         args: [reportId, teamId, payload.sub, userRow.rows[0].email, address || '', city || '', score ?? null, verdict || null, teamReportSerialized, new Date().toISOString()],
       })
-
-      // Read back the new count for the response
       const teamRow = await db.execute({ sql: 'SELECT usage_today FROM teams WHERE id = ?', args: [teamId] })
       return res.status(200).json({ logged: true, usageToday: teamRow.rows[0]?.usage_today ?? 1 })
     }
 
-    // ── Business Team: save logo ─────────────────────────────────────────────
+    // ── Team: save logo ──────────────────────────────────────────────────────
     if (action === 'save-logo') {
       const authHeader = req.headers.authorization
       if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
@@ -1381,39 +653,31 @@ export default async function handler(req, res) {
       const userRow = await db.execute({ sql: 'SELECT team_id FROM users WHERE id = ?', args: [payload.sub] })
       const teamId = userRow.rows[0]?.team_id
       if (!teamId) return res.status(404).json({ error: 'Not in a team' })
-      // Only the team owner may change the logo
       const teamRow = await db.execute({ sql: 'SELECT owner_id FROM teams WHERE id = ?', args: [teamId] })
       if (teamRow.rows[0]?.owner_id !== payload.sub) return res.status(403).json({ error: 'Only the team owner can change the logo' })
       const { logo } = req.body
       if (!logo || typeof logo !== 'string') return res.status(400).json({ error: 'logo (base64) required' })
-      if (!/^data:image\/(png|jpeg|gif|webp);base64,/.test(logo)) {
-        return res.status(400).json({ error: 'logo must be a base64-encoded image (PNG, JPEG, GIF, or WebP)' })
-      }
+      if (!/^data:image\/(png|jpeg|gif|webp);base64,/.test(logo)) return res.status(400).json({ error: 'logo must be a base64-encoded image (PNG, JPEG, GIF, or WebP)' })
       if (logo.length > 2 * 1024 * 1024) return res.status(413).json({ error: 'Logo too large (max 2MB)' })
       await db.execute({ sql: 'UPDATE teams SET logo_data = ? WHERE id = ?', args: [logo, teamId] })
       return res.status(200).json({ success: true })
     }
 
-    // ── Business Team: invite member by email ────────────────────────────────
+    // ── Team: invite member by email ─────────────────────────────────────────
     if (action === 'invite-member') {
       const authHeader = req.headers.authorization
       if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
       const payload = verify(authHeader.replace('Bearer ', ''))
       if (!payload) return res.status(401).json({ error: 'Invalid token' })
-      // Verify inviter still holds an active Business plan before sending any invite
-      const inviterEnt = await getUserEntitlements(db, payload.sub)
-      if (!inviterEnt.is_business) return res.status(403).json({ error: 'Active Business plan required to invite members' })
       const userRow = await db.execute({ sql: 'SELECT team_id, email FROM users WHERE id = ?', args: [payload.sub] })
       const teamId = userRow.rows[0]?.team_id
       if (!teamId) return res.status(403).json({ error: 'Not in a team' })
-      // Only owner can invite
       const teamRow = await db.execute({ sql: 'SELECT owner_id, name FROM teams WHERE id = ?', args: [teamId] })
       if (teamRow.rows[0]?.owner_id !== payload.sub) return res.status(403).json({ error: 'Only the team owner can invite members' })
       const { email: inviteeEmail, nickname } = req.body
       if (!inviteeEmail || typeof inviteeEmail !== 'string') return res.status(400).json({ error: 'email required' })
-      // Check seat count (max 10 total: owner + 9 members)
       const memberCount = await db.execute({ sql: 'SELECT COUNT(*) as cnt FROM team_members WHERE team_id = ?', args: [teamId] })
-      if ((memberCount.rows[0]?.cnt || 0) >= 10) return res.status(409).json({ error: 'Team is full (10 members max: owner + 9)' })
+      if ((memberCount.rows[0]?.cnt || 0) >= 10) return res.status(409).json({ error: 'Team is full (10 members max)' })
       const token = randomBytes(24).toString('hex')
       await db.execute({
         sql: 'INSERT OR REPLACE INTO team_invites (token, team_id, email, nickname, invited_by, created_at) VALUES (?, ?, ?, ?, ?, ?)',
@@ -1422,7 +686,6 @@ export default async function handler(req, res) {
       const inviteLink = `https://dwelling.one/?join=${token}`
       const teamName = teamRow.rows[0]?.name || 'their team'
       const fromName = userRow.rows[0]?.email
-      // Send email via Resend if API key is set
       const resendKey = process.env.RESEND_API_KEY
       if (resendKey) {
         try {
@@ -1435,23 +698,20 @@ export default async function handler(req, res) {
               subject: `${fromName} invited you to ${teamName} on Dwelling`,
               html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px">
                 <h2 style="margin:0 0 8px">You've been invited to ${teamName}</h2>
-                <p style="color:#666">${fromName} is using Dwelling Business to analyze properties — and wants you on their team.</p>
-                <p style="color:#666">As a team member you get access to Business-tier analyses, shared reports, and team API keys — no separate subscription needed.</p>
+                <p style="color:#666">${fromName} is using Dwelling to analyze Canadian real estate — and wants you on their team.</p>
                 <a href="${inviteLink}" style="display:inline-block;background:#3b82f6;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;margin:16px 0">Accept Invitation</a>
-                <p style="color:#999;font-size:12px">This invite link expires in 7 days. If you already have a Dwelling account, sign in first then click the link.</p>
+                <p style="color:#999;font-size:12px">This invite link expires in 7 days.</p>
               </div>`,
             }),
           })
         } catch (emailErr) {
           console.error('Failed to send invite email:', emailErr?.message)
         }
-      } else {
-        console.log(`[invite] No RESEND_API_KEY set — invite link for ${inviteeEmail}: ${inviteLink}`)
       }
       return res.status(200).json({ success: true, token, inviteLink })
     }
 
-    // ── Business Team: accept email invite ───────────────────────────────────
+    // ── Team: accept email invite ────────────────────────────────────────────
     if (action === 'accept-invite') {
       const authHeader = req.headers.authorization
       if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
@@ -1466,21 +726,10 @@ export default async function handler(req, res) {
       if (invite.email && invite.email.toLowerCase() !== payload.email.toLowerCase()) {
         return res.status(403).json({ error: 'This invite was sent to a different email address' })
       }
-      // Check created within 7 days
       const age = Date.now() - new Date(invite.created_at).getTime()
       if (age > 7 * 24 * 60 * 60 * 1000) return res.status(410).json({ error: 'Invite has expired' })
-      // Verify team owner's Business plan is still active — don't grant access if owner cancelled
-      const ownerTeamRow = await db.execute({ sql: 'SELECT owner_id FROM teams WHERE id = ?', args: [invite.team_id] })
-      const teamOwnerId = ownerTeamRow.rows[0]?.owner_id
-      if (teamOwnerId) {
-        const ownerPlanRow = await db.execute({ sql: 'SELECT is_business FROM users WHERE id = ?', args: [teamOwnerId] })
-        if (!ownerPlanRow.rows[0]?.is_business) {
-          return res.status(403).json({ error: 'The team owner\'s Business plan is no longer active. Contact them to renew.' })
-        }
-      }
       const userRow = await db.execute({ sql: 'SELECT team_id FROM users WHERE id = ?', args: [payload.sub] })
       if (userRow.rows[0]?.team_id) return res.status(409).json({ error: 'You are already in a team' })
-      // Atomic seat-limit check + insert — prevents concurrent accept race condition
       const acceptResult = await db.execute({
         sql: `INSERT OR IGNORE INTO team_members (team_id, user_id, role, joined_at)
               SELECT ?, ?, 'member', ?
@@ -1488,53 +737,71 @@ export default async function handler(req, res) {
         args: [invite.team_id, payload.sub, new Date().toISOString(), invite.team_id],
       })
       if (acceptResult.rowsAffected === 0) return res.status(409).json({ error: 'Team is full (10 members max)' })
-      // Grant business access to invited members — they share the owner's Business plan
-      await db.execute({ sql: 'UPDATE users SET team_id = ?, is_pro = 1, is_business = 1 WHERE id = ?', args: [invite.team_id, payload.sub] })
+      await db.execute({ sql: 'UPDATE users SET team_id = ? WHERE id = ?', args: [invite.team_id, payload.sub] })
       await db.execute({ sql: 'UPDATE team_invites SET accepted_at = ? WHERE token = ?', args: [new Date().toISOString(), inviteToken] })
       return res.status(200).json({ success: true, teamId: invite.team_id })
     }
 
+    // ── Shared Reports: share ────────────────────────────────────────────────
     if (action === 'share-report') {
       if (await applyLimit(apiLimiter, clientIp, res)) return
       const authHeader = req.headers.authorization
       if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
       const payload = verify(authHeader.replace('Bearer ', ''))
-      if (!payload) return res.status(401).json({ error: 'Invalid token' })
-      const userId = payload.sub
-      if (!userId) return res.status(401).json({ error: 'Not authenticated' })
+      if (!payload) return res.status(401).json({ error: 'Not authenticated' })
       const { reportData } = req.body
       if (!reportData) return res.status(400).json({ error: 'reportData required' })
-      // Guard against oversized payloads clogging Turso storage
       const serialized = JSON.stringify(reportData)
       if (serialized.length > 512 * 1024) return res.status(413).json({ error: 'Report data too large to share' })
-
       const token = randomUUID()
-      const expiresAt = Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60) // 30 days
+      const expiresAt = Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60)
       const city = reportData?.geo?.displayName ?? 'Unknown'
-
       await db.execute({
         sql: 'INSERT INTO shared_reports (token, user_id, data, city, expires_at) VALUES (?, ?, ?, ?, ?)',
-        args: [token, userId, serialized, city, expiresAt],
+        args: [token, payload.sub, serialized, city, expiresAt],
       })
-
       return res.json({ token, url: `${BASE_URL}/?report=${token}` })
     }
 
+    // ── Shared Reports: get ──────────────────────────────────────────────────
     if (action === 'get-shared-report') {
       if (await applyLimit(apiLimiter, clientIp, res)) return
       const { token } = req.body
       if (!token) return res.status(400).json({ error: 'token required' })
-
       const now = Math.floor(Date.now() / 1000)
-      const row = await db.execute({
-        sql: 'SELECT data, city FROM shared_reports WHERE token = ? AND expires_at > ?',
-        args: [token, now],
-      })
-
+      const row = await db.execute({ sql: 'SELECT data, city FROM shared_reports WHERE token = ? AND expires_at > ?', args: [token, now] })
       const record = row.rows[0]
       if (!record) return res.status(404).json({ error: 'Report not found or expired' })
-
       return res.json({ report: JSON.parse(record.data), city: record.city })
+    }
+
+    // ── Admin: list users ────────────────────────────────────────────────────
+    if (action === 'admin-list-users') {
+      const authHeader = req.headers.authorization
+      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
+      const payload = verify(authHeader.replace('Bearer ', ''))
+      if (!payload?.is_admin) return res.status(403).json({ error: 'Admin access required' })
+      const result = await db.execute({
+        sql: 'SELECT id, email, is_pro, is_business, analyses_used, created_at FROM users ORDER BY created_at DESC LIMIT 200',
+        args: [],
+      })
+      return res.status(200).json({ users: result.rows })
+    }
+
+    // ── Admin: adjust usage ──────────────────────────────────────────────────
+    if (action === 'admin-adjust-usage') {
+      const authHeader = req.headers.authorization
+      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
+      const payload = verify(authHeader.replace('Bearer ', ''))
+      if (!payload?.is_admin) return res.status(403).json({ error: 'Admin access required' })
+      const { targetEmail, analysesUsed } = req.body
+      if (!targetEmail || analysesUsed == null) return res.status(400).json({ error: 'targetEmail and analysesUsed required' })
+      const r = await db.execute({
+        sql: 'UPDATE users SET analyses_used = ? WHERE email = ?',
+        args: [Math.max(0, parseInt(analysesUsed, 10)), targetEmail.trim().toLowerCase()],
+      })
+      if (r.rowsAffected === 0) return res.status(404).json({ error: `No user: ${targetEmail}` })
+      return res.status(200).json({ success: true })
     }
 
     return res.status(400).json({ error: 'Unknown action' })

@@ -101,11 +101,24 @@ export async function signIn(email, password) {
   return { id: data.userId, email: data.email, is_pro: data.is_pro, is_business: data.is_business || false }
 }
 
+// ─── BYOK API key — stored in localStorage, never sent to server ─────────────
+export function getUserApiKey() {
+  return localStorage.getItem('dw_api_key') || ''
+}
+
+export function setUserApiKey(key) {
+  if (key) localStorage.setItem('dw_api_key', key.trim())
+  else localStorage.removeItem('dw_api_key')
+}
+
+export function clearUserApiKey() {
+  localStorage.removeItem('dw_api_key')
+}
+
 export function signOut() {
   const rt = getRefreshToken()
   setToken(null)
   setRefreshToken(null)
-  sessionStorage.removeItem('dw_cerebras_key')
   // Revoke refresh token server-side (fire-and-forget — don't await)
   if (rt) {
     fetch('/api/auth', {
@@ -129,68 +142,8 @@ export async function deleteAccount(password) {
   if (!res.ok) throw new Error(data.error || 'Failed to delete account')
   setToken(null)
   setRefreshToken(null)
-  sessionStorage.removeItem('dw_cerebras_key')
   return true
 }
-
-export async function getUsage() {
-  const token = await getAuthToken()
-  if (!token || token === 'null' || token === 'undefined' || token.split('.').length !== 3) {
-    return { analyses_used: 0, is_pro: false, has_own_key: false }
-  }
-  try {
-    const res = await fetch('/api/auth', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ action: 'usage' }),
-    })
-    if (!res.ok) return { analyses_used: 0, is_pro: false, has_own_key: false }
-    return res.json()
-  } catch {
-    return { analyses_used: 0, is_pro: false, has_own_key: false }
-  }
-}
-
-// Save user's Cerebras API key to server (stored in Turso, tied to their account)
-export async function saveCerebrasKey(cerebrasKey) {
-  const token = await getAuthToken()
-  if (!token) throw new Error('Not logged in')
-  const res = await fetch('/api/auth', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ action: 'save-key', cerebrasKey }),
-  })
-  if (!res.ok) throw new Error('Failed to save key')
-  // Cache locally so it's available immediately without a round trip
-  if (cerebrasKey) sessionStorage.setItem('dw_cerebras_key', cerebrasKey)
-  else sessionStorage.removeItem('dw_cerebras_key')
-}
-
-// Get locally cached key (fallback before server responds)
-export function getCachedCerebrasKey() {
-  return sessionStorage.getItem('dw_cerebras_key') || ''
-}
-
-// Fetch the user's Cerebras key from Turso and cache it locally
-export async function loadCerebrasKeyFromServer() {
-  const token = await getAuthToken()
-  if (!token || token.split('.').length !== 3) return null
-  try {
-    const res = await fetch('/api/auth', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ action: 'get-key' }),
-    })
-    if (!res.ok) return null
-    const data = await res.json()
-    if (data.hasKey) {
-      sessionStorage.setItem('dw_cerebras_key', '__db__')
-      return '__db__'
-    }
-    return null
-  } catch { return null }
-}
-
 
 export function getCachedAiModel() {
   return sessionStorage.getItem('dw_ai_model') || ''
@@ -199,18 +152,4 @@ export function getCachedAiModel() {
 export function cacheAiModel(model) {
   if (model) sessionStorage.setItem('dw_ai_model', model)
   else sessionStorage.removeItem('dw_ai_model')
-}
-
-export async function getQuotaUsage() {
-  const token = await getAuthToken()
-  if (!token || token.split('.').length !== 3) return null
-  try {
-    const res = await fetch('/api/auth', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ action: 'get-usage' }),
-    })
-    if (!res.ok) return null
-    return res.json()
-  } catch { return null }
 }

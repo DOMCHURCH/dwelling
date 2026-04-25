@@ -33,8 +33,8 @@ import {
   getAuthToken,
   refreshSession,
   signOut as localSignOut,
-  getUsage,
-  getQuotaUsage,
+  getUserApiKey,
+  setUserApiKey,
 } from "./lib/localAuth"
 import { useEngagement } from "./lib/useEngagement"
 import UserTypeModal, { getUserType, setUserType } from "./components/UserTypeModal"
@@ -63,12 +63,10 @@ function lazyWithReload(factory) {
 
 const Dashboard = lazyWithReload(() => import("./components/Dashboard"))
 const AuthModal = lazyWithReload(() => import("./components/AuthModal"))
-const PaywallModal = lazyWithReload(() => import("./components/PaywallModal"))
+const ApiKeyModal = lazyWithReload(() => import("./components/ApiKeyModal"))
 const CookieBanner = lazyWithReload(() => import("./components/CookieBanner"))
 const DeleteAccountModal = lazyWithReload(() => import("./components/DeleteAccountModal"))
 const CompareView = lazyWithReload(() => import("./components/CompareView"))
-
-const FREE_LIMIT = 3
 
 const STEP_KEYS = ['geo', 'market', 'scores', 'affordability', 'investment', 'ai']
 
@@ -88,11 +86,8 @@ export default function App() {
   const [lastQuery, setLastQuery] = useState(null)
   const [error, setError] = useState(null)
   const [showTerms, setShowTerms] = useState(false)
-  const [showPaywall, setShowPaywall] = useState(false)
-  const [paywallTrigger, setPaywallTrigger] = useState("limit")
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false)
   const [user, setUser] = useState(null)
-  const [userRecord, setUserRecord] = useState(null)
-  const [quotaData, setQuotaData] = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
 
   // ── Lenis smooth scroll ──────────────────────────────────────────────────
@@ -153,14 +148,7 @@ export default function App() {
   }
 
   const loadUserRecord = async () => {
-    try {
-      const usage = await getUsage()
-      setUserRecord((prev) => ({ ...(prev || {}), ...usage }))
-    } catch {}
-    try {
-      const quota = await getQuotaUsage()
-      if (quota) setQuotaData(quota)
-    } catch {}
+    // No-op — quota tracking removed in BYOK mode
   }
 
   const loadTeamOwnerStatus = async () => {
@@ -183,9 +171,7 @@ export default function App() {
     const u = getCurrentUser()
     if (u) {
       setUser(u)
-      setUserRecord({ is_pro: u.is_pro, is_business: u.is_business, analyses_used: 0 })
-      if (u.is_admin) setPreviewPlan(u.is_business ? "business" : u.is_pro ? "pro" : "free")
-      loadUserRecord()
+      if (u.is_admin) setPreviewPlan('pro')
       if (u.is_business) {
         loadTeamOwnerStatus()
         if (!localStorage.getItem("dw_business_onboarded")) {
@@ -212,46 +198,6 @@ export default function App() {
     }
   }, [])
 
-  // Verify Stripe checkout success on return from Stripe
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const checkoutStatus = params.get("checkout")
-    const sessionId = params.get("session_id")
-
-    if (checkoutStatus === "cancelled") {
-      // User cancelled checkout — clean URL and show notification
-      window.history.replaceState({}, "", window.location.pathname)
-      // Brief notification that they cancelled (optional — could add a toast here)
-      return
-    }
-
-    if (checkoutStatus === "success" && sessionId) {
-      window.history.replaceState({}, "", window.location.pathname)
-      getAuthToken().then(async (token) => {
-        if (!token) return
-        try {
-          const res = await fetch("/api/auth", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ action: "verify-checkout", sessionId }),
-          })
-          if (res.ok) {
-            const data = await res.json()
-            if (data.success) {
-              // Refresh JWT immediately so the new plan is reflected in localStorage
-              // before the user can trigger any other action.
-              await refreshSession()
-              await loadUserRecord()
-              const updated = getCurrentUser()
-              if (updated) setUser({ ...updated })
-              // Show API key prompt only if user doesn't already have one
-            }
-          }
-        } catch {}
-      })
-    }
-  }, [])
-
   useEffect(() => {
     if (result) {
       const addr = [result.geo.userStreet, result.geo.userCity, result.geo.userCountry].filter(Boolean).join(", ")
@@ -262,8 +208,6 @@ export default function App() {
   const handleAuth = async (u) => {
     const fullUser = getCurrentUser() || u
     setUser(fullUser)
-    setUserRecord({ is_pro: fullUser.is_pro, is_business: fullUser.is_business, analyses_used: 0 })
-    loadUserRecord()
     if (fullUser.is_business) {
       loadTeamOwnerStatus()
       if (!localStorage.getItem("dw_business_onboarded")) {
@@ -296,7 +240,6 @@ export default function App() {
   const handleSignOut = () => {
     localSignOut()
     setUser(null)
-    setUserRecord(null)
     setResult(null)
   }
 
@@ -346,7 +289,6 @@ export default function App() {
     setLoadStep('geo')
     setCurrentCity(city)
     const isAreaMode = !street.trim()
-    let creditCharged = false
     try {
       const geocodeInput = isAreaMode ? { street: "", city, state, country } : { street, city, state, country }
       const geo = await geocodeStructured(geocodeInput)
@@ -416,83 +358,20 @@ export default function App() {
       setLoadStep('investment')
       const deterministicResult = buildDeterministicReport({ geo, weather, neighborhood: neighborhoodScores, areaMetrics, climate })
 
-      const canUseAI = user?.is_admin || isPro
-
-      // Charge credit only AFTER we know the report type and only for free users
-      // who will receive a deterministic report. canUseAI users (pro/admin) are
-      // unlimited and never reach this block. Never charge before eligibility is known.
-      if (user && !canUseAI) {
-        try {
-          const token = await getAuthToken()
-          if (token) {
-            const incRes = await fetch('/api/auth', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-              body: JSON.stringify({ action: 'increment-analysis' }),
-            })
-            const incData = await incRes.json()
-            if (incData.atLimit) {
-              setShowPaywall(true)
-              setPaywallTrigger('limit')
-              return
-            }
-            creditCharged = true
-            loadUserRecord()
-          }
-        } catch (e) {
-          console.error('[increment-analysis]', e.message)
-        }
-      }
-
-      if (canUseAI) {
-        // Pro/admin — run full AI analysis via platform backend
-        setLoadStep('ai')
-        const ai = await analyzeProperty(geo, weather, climate, knownFacts ?? {}, realData)
-        if (searchGenerationRef.current !== generation) return
-        const reportData = { geo, weather, climate, ai: mergeWithDeterministic(deterministicResult, ai), knownFacts: knownFacts ?? {}, realData, isAreaMode }
-        setResult(reportData)
-        if (!user) setGuestResult(reportData)
-        resetEngagement()
-        if (!getUserType()) setTimeout(() => setShowUserTypeModal(true), 1800)
-        return
-      }
-
-      // Free plan — deterministic result only
-      const reportData = { geo, weather, climate, ai: deterministicResult, knownFacts: knownFacts ?? {}, realData, isAreaMode, isDeterministic: true }
+      setLoadStep('ai')
+      const ai = await analyzeProperty(geo, weather, climate, knownFacts ?? {}, realData)
       if (searchGenerationRef.current !== generation) return
+      const reportData = { geo, weather, climate, ai: mergeWithDeterministic(deterministicResult, ai), knownFacts: knownFacts ?? {}, realData, isAreaMode }
       setResult(reportData)
       if (!user) setGuestResult(reportData)
       resetEngagement()
       if (!getUserType()) setTimeout(() => setShowUserTypeModal(true), 1800)
-      setTimeout(() => loadUserRecord(), 800)
     } catch (err) {
-      // Refund credit if analysis failed after charging
-      if (creditCharged) {
-        getAuthToken().then(token => {
-          if (!token) return
-          fetch('/api/auth', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ action: 'decrement-analysis' }),
-          }).then(() => loadUserRecord()).catch(() => {})
-        }).catch(() => {})
-      }
-      if (err.message === "no_key" || err.message?.includes("Invalid Cerebras") || err.message?.includes("invalid_key")) {
-        setPaywallTrigger('limit')
-        setShowPaywall(true)
+      if (err.message === "no_key") {
+        setShowApiKeyModal(true)
         return
       }
-      if (!user?.is_admin && (err.message?.includes("limit reached") || err.message?.includes("429"))) {
-        setPaywallTrigger("limit")
-        setShowPaywall(true)
-        return
-      }
-      if (
-        (err.message?.includes("Not authenticated") ||
-        err.message?.includes("Session expired") ||
-        err.message?.includes("sign in")) &&
-        !err.message?.includes("Invalid Cerebras")
-      ) {
+      if (err.message?.includes("Not authenticated") || err.message?.includes("Session expired") || err.message?.includes("sign in")) {
         setShowAuthModal(true)
         return
       }
@@ -506,11 +385,6 @@ export default function App() {
 
   const handleRecalculate = async (corrections) => {
     if (!result) return
-    if (!isPro && !user?.is_admin) {
-      setShowPaywall(true)
-      setPaywallTrigger('recalculate')
-      return
-    }
     setLoading(true)
     setError(null)
     try {
@@ -595,27 +469,13 @@ export default function App() {
         compsSource,
         nhpiData,
       }
-      if (!isPro && !user?.is_admin) {
-        setPaywallTrigger('compare')
-        setShowPaywall(true)
-        setLoading(false)
-        return
-      }
       const ai = await analyzeProperty(geo, weather, climate, {}, realData)
       setLoadStep('investment')
       setCompareResult({ geo, weather, climate, ai, knownFacts: {}, realData, isAreaMode })
       setComparingMode(false)
-      setTimeout(() => loadUserRecord(), 800)
     } catch (err) {
-      if (err.message === "no_key") {
-        setPaywallTrigger('compare')
-        setShowPaywall(true)
-        return
-      }
-      if (err.message?.includes("limit reached") || err.message?.includes("429")) {
-        setPaywallTrigger("limit")
-        setShowPaywall(true)
-      } else setError(err.message ?? "Something went wrong.")
+      if (err.message === "no_key") { setShowApiKeyModal(true); return }
+      setError(err.message ?? "Something went wrong.")
     } finally {
       setLoading(false)
     }
@@ -693,22 +553,12 @@ export default function App() {
         compsSource,
         nhpiData,
       }
-      if (!isPro && !user?.is_admin) {
-        setPaywallTrigger('compare')
-        setShowPaywall(true)
-        setLoading(false)
-        return
-      }
       const ai = await analyzeProperty(geo, weather, climate, {}, realData)
       setLoadStep('investment')
       setCompareResultC({ geo, weather, climate, ai, knownFacts: {}, realData, isAreaMode })
       setComparingModeC(false)
     } catch (err) {
-      if (err.message === "no_key") {
-        setPaywallTrigger('compare')
-        setShowPaywall(true)
-        return
-      }
+      if (err.message === "no_key") { setShowApiKeyModal(true); return }
       setError(err.message ?? "Something went wrong.")
     } finally {
       setLoading(false)
@@ -716,40 +566,6 @@ export default function App() {
   }
 
   const handleDownloadPDF = () => window.print()
-
-  async function handleProCheckout(annual) {
-    const token = await getAuthToken()
-    if (!token) { setShowAuthModal(true); return }
-    try {
-      const res = await fetch('/api/auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ action: 'create-checkout', lookup_key: annual ? 'pro_yearly' : 'pro_monthly' }),
-      })
-      const data = await res.json()
-      if (data.url) { window.location.href = data.url; return }
-      alert(data.error || 'Something went wrong. Email hello@dwelling.one')
-    } catch {
-      alert('Something went wrong. Email hello@dwelling.one')
-    }
-  }
-
-  async function handleBusinessCheckout(annual) {
-    const token = await getAuthToken()
-    if (!token) { setShowAuthModal(true); return }
-    try {
-      const res = await fetch('/api/auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ action: 'create-checkout', lookup_key: annual ? 'business_yearly' : 'business_monthly' }),
-      })
-      const data = await res.json()
-      if (data.url) { window.location.href = data.url; return }
-      alert(data.error || 'Something went wrong. Email hello@dwelling.one')
-    } catch {
-      alert('Something went wrong. Email hello@dwelling.one')
-    }
-  }
 
   async function handleShare() {
     if (!result) return
@@ -775,24 +591,19 @@ export default function App() {
     }
   }
 
-  const effectivePlan = user?.is_admin
-    ? previewPlan
-    : userRecord?.is_business
-      ? "business"
-      : userRecord?.is_pro
-        ? "pro"
-        : "free"
-  const isPro = effectivePlan === "pro" || effectivePlan === "business"
-  const isBusiness = effectivePlan === "business"
+  // Everyone is treated as "pro" — all features available to authenticated users
+  const isPro = !!user
+  const isBusiness = false
+  const effectivePlan = user?.is_admin ? previewPlan : isPro ? 'pro' : 'free'
 
-  const { savedReports, saveReport, loadReport, deleteReport, isReportSaved } = useSavedReports(isPro || !!user?.is_admin)
+  const { savedReports, saveReport, loadReport, deleteReport, isReportSaved } = useSavedReports(isPro)
   const [saveSuccess, setSaveSuccess] = useState(false)
   const autoSavedRef = useRef(null)
 
-  // Auto-save every new analysis result for paid/admin users — no manual action needed
+  // Auto-save every new analysis result for authenticated users
   useEffect(() => {
     if (!result || result.isShared) return
-    if (!user || (!isPro && !user?.is_admin)) return
+    if (!user) return
     const key = result?.geo?.displayName
     if (!key || autoSavedRef.current === key) return
     autoSavedRef.current = key
@@ -803,16 +614,8 @@ export default function App() {
 
   const trialDaysLeft = null
   const isInTrial = false
-  const analysesLeft = user?.is_admin
-    ? "∞"
-    : quotaData?.limits?.monthly != null
-      ? Math.max(0, quotaData.limits.monthly - (quotaData.monthly ?? 0))
-      : userRecord
-        ? Math.max(0, FREE_LIMIT - (userRecord.analyses_used ?? 0))
-        : "..."
-  const reportsLeft = (!user?.is_admin && userRecord && !userRecord.is_pro)
-    ? Math.max(0, FREE_LIMIT - (userRecord.analyses_used ?? 0))
-    : null
+  const analysesLeft = "∞"
+  const reportsLeft = null
 
   if (authLoading)
     return (
@@ -1066,12 +869,11 @@ export default function App() {
           </div>
         </div>
       )}
-      {showPaywall && (
+      {showApiKeyModal && (
         <Suspense fallback={null}>
-          <PaywallModal
-            trigger={paywallTrigger}
-            onClose={() => setShowPaywall(false)}
-            onShowAuth={() => { setShowPaywall(false); setShowAuthModal(true) }}
+          <ApiKeyModal
+            onClose={() => setShowApiKeyModal(false)}
+            onSaved={(key) => { setUserApiKey(key); setShowApiKeyModal(false) }}
           />
         </Suspense>
       )}
@@ -1098,9 +900,7 @@ export default function App() {
       )}
       <Navbar
         user={user}
-        userRecord={userRecord}
         analysesLeft={analysesLeft}
-        quotaData={quotaData}
         isInTrial={isInTrial}
         trialDaysLeft={trialDaysLeft}
         onSignOut={handleSignOut}
@@ -1224,31 +1024,16 @@ export default function App() {
                   ⚖️ Compare
                 </button>
 
-                {/* Save Report — visible to all, Pro gate on click */}
-                {/* Save indicator — auto-saves for Pro/Admin; paywall teaser for free */}
-                {(isPro || user?.is_admin) ? (
-                  <span style={{
-                    borderRadius: 40, padding: "8px 16px", fontSize: 13,
-                    fontFamily: "'Barlow',sans-serif",
-                    color: saveSuccess ? "#4ade80" : isReportSaved(result) ? "#4ade80" : "rgba(255,255,255,0.4)",
-                    transition: "color 0.3s",
-                    userSelect: "none",
-                  }}>
-                    {saveSuccess ? "★ Saved!" : isReportSaved(result) ? "★ Saved" : "★"}
-                  </span>
-                ) : (
-                  <button
-                    onClick={() => { setPaywallTrigger('save'); setShowPaywall(true) }}
-                    style={{
-                      borderRadius: 40, padding: "8px 16px", fontSize: 13,
-                      fontFamily: "'Barlow',sans-serif", color: "rgba(255,255,255,0.25)",
-                      border: "none", cursor: "pointer", background: "transparent",
-                    }}
-                    title="Save reports with Pro →"
-                  >
-                    ☆ Save
-                  </button>
-                )}
+                {/* Save indicator — auto-saves for authenticated users */}
+                <span style={{
+                  borderRadius: 40, padding: "8px 16px", fontSize: 13,
+                  fontFamily: "'Barlow',sans-serif",
+                  color: saveSuccess ? "#4ade80" : isReportSaved(result) ? "#4ade80" : "rgba(255,255,255,0.4)",
+                  transition: "color 0.3s",
+                  userSelect: "none",
+                }}>
+                  {saveSuccess ? "★ Saved!" : isReportSaved(result) ? "★ Saved" : "★"}
+                </span>
 
                 {/* Business: HTML Export */}
                 {isBusiness && (
@@ -1313,29 +1098,24 @@ export default function App() {
                   ↗ Share
                 </button>
 
-                {!isPro && (
-                  <button
-                    onClick={() => {
-                      setPaywallTrigger("pricing")
-                      setShowPaywall(true)
-                    }}
-                    style={{
-                      borderRadius: 40,
-                      padding: "8px 16px",
-                      fontSize: 13,
-                      fontFamily: "'Barlow',sans-serif",
-                      color: "rgba(255,255,255,0.3)",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                      cursor: "pointer",
-                      background: "transparent",
-                      transition: "opacity 0.15s",
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.75")}
-                    onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
-                  >
-                    ★ Upgrade to Pro
-                  </button>
-                )}
+                <button
+                  onClick={() => setShowApiKeyModal(true)}
+                  style={{
+                    borderRadius: 40,
+                    padding: "8px 16px",
+                    fontSize: 13,
+                    fontFamily: "'Barlow',sans-serif",
+                    color: "rgba(255,255,255,0.4)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    cursor: "pointer",
+                    background: "transparent",
+                    transition: "opacity 0.15s",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.75")}
+                  onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+                >
+                  ⚙ API Key
+                </button>
               </div>
               {user?.is_admin && (
                 <div
@@ -1395,18 +1175,6 @@ export default function App() {
                   >
                     Admin only
                   </span>
-                </div>
-              )}
-              {!isPro && reportsLeft !== null && reportsLeft <= 2 && (
-                <div style={{
-                  background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)',
-                  borderRadius: 12, padding: '10px 20px', marginBottom: 12, textAlign: 'center',
-                  fontFamily: "'Barlow',sans-serif", fontSize: 13, color: 'rgba(255,255,255,0.7)'
-                }}>
-                  {reportsLeft === 1 ? '1 free report left' : `${reportsLeft} free reports left`}.{' '}
-                  <button onClick={() => setShowPaywall(true)} style={{ color: '#f87171', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit' }}>
-                    Upgrade for unlimited →
-                  </button>
                 </div>
               )}
               <AddressSearch onSearch={handleSearch} loading={loading} compact />
@@ -1565,18 +1333,7 @@ export default function App() {
                 key={previewPlan}
                 data={result}
                 onRecalculate={handleRecalculate}
-                previewPlan={previewPlan}
-                onUpgrade={(section) => {
-                  setPaywallTrigger(section || "section")
-                  setShowPaywall(true)
-                }}
-                onLockedInteraction={(section, type) => {
-                  trackEvent(type === "click" ? "lockedClick" : "lockedHover", { section })
-                  if (type === "click") {
-                    setPaywallTrigger(section)
-                    setShowPaywall(true)
-                  }
-                }}
+                previewPlan="pro"
                 onShare={user && !result?.isShared ? handleShare : undefined}
                 shareLoading={shareLoading}
                 shareSuccess={shareSuccess}
@@ -1602,20 +1359,9 @@ export default function App() {
           <DataPartnerships />
           <Stats />
           <Testimonials />
-          <ProShowcase
-            onUpgrade={() => handleProCheckout(false)}
-          />
-          <Pricing
-            onUpgrade={handleProCheckout}
-            onBusinessCta={handleBusinessCheckout}
-          />
           <FAQ />
           <CTAFooter
             onScrollToTop={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-            onUpgrade={() => {
-              setPaywallTrigger("pricing")
-              setShowPaywall(true)
-            }}
           />
         </div>
       )}
@@ -1635,12 +1381,12 @@ export default function App() {
       {showAdminPanel && <AdminPanel onClose={() => setShowAdminPanel(false)} />}
       {showExportModal && result && <ExportModal result={result} onClose={() => setShowExportModal(false)} />}
       {showPDFExport && result && <PDFExportModal result={result} onClose={() => setShowPDFExport(false)} />}
-      {showBusinessDashboard && <BusinessDashboard onClose={() => setShowBusinessDashboard(false)} user={user} userRecord={userRecord} />}
+      {showBusinessDashboard && <BusinessDashboard onClose={() => setShowBusinessDashboard(false)} user={user} userRecord={null} />}
       {showPaymentsPage && (
         <PaymentsPage
           onClose={() => setShowPaymentsPage(false)}
           user={user}
-          userRecord={userRecord}
+          userRecord={null}
           isTeamOwner={isTeamOwner}
           onOpenDashboard={() => { setShowPaymentsPage(false); setShowBusinessDashboard(true) }}
         />

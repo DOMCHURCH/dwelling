@@ -1,14 +1,12 @@
 import { useState, useEffect } from 'react'
-import { getAuthToken, getCachedCerebrasKey, saveCerebrasKey } from '../lib/localAuth'
+import { getAuthToken, getUserApiKey, setUserApiKey } from '../lib/localAuth'
 
 export default function AccountSettings({ user, onClose }) {
   const [keyInput, setKeyInput] = useState('')
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [msg, setMsg] = useState(null)
-  const [dbKey, setDbKey] = useState(null)
   const [teamData, setTeamData] = useState(null)
-  const [usageData, setUsageData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [inviting, setInviting] = useState(false)
   const [inviteEmail, setInviteEmail] = useState('')
@@ -30,7 +28,7 @@ export default function AccountSettings({ user, onClose }) {
     setLoading(true)
     try {
       const token = await getAuthToken()
-      await Promise.all([loadTeamData(token), loadDbKey(token), loadUsage(token)])
+      await loadTeamData(token)
     } catch {}
     finally { setLoading(false) }
   }
@@ -46,51 +44,20 @@ export default function AccountSettings({ user, onClose }) {
     } catch {}
   }
 
-  const loadDbKey = async (token) => {
-    try {
-      const res = await fetch('/api/auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ action: 'get-key' }),
-      })
-      if (res.ok) setDbKey(await res.json())
-    } catch {}
-  }
-
-  const loadUsage = async (token) => {
-    try {
-      const res = await fetch('/api/auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ action: 'usage' }),
-      })
-      if (res.ok) setUsageData(await res.json())
-    } catch {}
-  }
-
-  const handleSaveKey = async () => {
+  const handleSaveKey = () => {
     if (!keyInput.trim()) return
     setSaving(true)
-    try {
-      await saveCerebrasKey(keyInput.trim())
-      flash('API key saved successfully')
-      setKeyInput('')
-      const token = await getAuthToken()
-      await loadDbKey(token)
-    } catch (e) {
-      flash(e.message, true)
-    } finally { setSaving(false) }
+    setUserApiKey(keyInput.trim())
+    flash('API key saved successfully')
+    setKeyInput('')
+    setSaving(false)
   }
 
-  const handleDeleteKey = async () => {
+  const handleDeleteKey = () => {
     setDeleting(true)
-    try {
-      await saveCerebrasKey('')
-      flash('API key removed')
-      setDbKey({ key: null, hasKey: false })
-    } catch (e) {
-      flash(e.message, true)
-    } finally { setDeleting(false) }
+    setUserApiKey('')
+    flash('API key removed')
+    setDeleting(false)
   }
 
   const handleChangePassword = async () => {
@@ -137,15 +104,13 @@ export default function AccountSettings({ user, onClose }) {
 
   const email = user?.email || ''
   const initials = email ? email.slice(0, 2).toUpperCase() : '??'
-  const isPro = user?.is_pro || !!usageData?.is_pro
-  const isBusiness = user?.is_business || !!usageData?.is_business
   const isAdmin = !!user?.is_admin
-  const planLabel = isAdmin ? 'Admin' : isBusiness ? 'Business' : isPro ? 'Pro' : 'Free'
-  const planColor = isAdmin ? '#a78bfa' : isBusiness ? '#f59e0b' : isPro ? '#4ade80' : 'rgba(255,255,255,0.35)'
-  const sessionKey = getCachedCerebrasKey()
-  const hasKey = dbKey?.hasKey || !!sessionKey
-  const displayKey = dbKey?.key || (sessionKey ? `${sessionKey.slice(0, 8)}•••••••••••••${sessionKey.slice(-4)}` : null)
-  const isBusinessOwner = isBusiness && teamData?.team && teamData?.members
+  const planLabel = isAdmin ? 'Admin' : 'Free BYOK'
+  const planColor = isAdmin ? '#a78bfa' : 'rgba(255,255,255,0.35)'
+  const storedKey = getUserApiKey()
+  const hasKey = !!storedKey
+  const displayKey = storedKey ? `${storedKey.slice(0, 8)}•••••••••••${storedKey.slice(-4)}` : null
+  const isBusinessOwner = teamData?.team && teamData?.members
 
   const card = {
     background: 'rgba(255,255,255,0.03)',
@@ -229,9 +194,9 @@ export default function AccountSettings({ user, onClose }) {
             }}>
               {planLabel}
             </span>
-            {!isPro && !isBusiness && !isAdmin && usageData && (
+            {!isAdmin && (
               <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', fontFamily: "'Barlow', sans-serif" }}>
-                {Math.max(0, 3 - (usageData.analyses_used || 0))} of 3 analyses remaining
+                Unlimited analyses with your API key
               </span>
             )}
           </div>
@@ -241,10 +206,10 @@ export default function AccountSettings({ user, onClose }) {
       {/* ── API Key ─────────────────────────────────────────────────────── */}
       <div style={card}>
         <h3 style={{ fontFamily: "'Instrument Serif', serif", fontSize: 18, color: '#fff', margin: '0 0 4px' }}>
-          Cerebras API Key
+          AI API Key
         </h3>
         <p style={{ ...label, marginBottom: 16, textTransform: 'none', letterSpacing: 0, fontSize: 12 }}>
-          Required to run AI analyses. Get your key at cerebras.ai/settings/api-keys
+          Your key is stored locally only — never sent to our servers. Supports Cerebras (csk-), OpenAI (sk-), Anthropic (sk-ant-), Groq (gsk_), OpenRouter (sk-or-).
         </p>
 
         {hasKey && displayKey && (
@@ -274,7 +239,7 @@ export default function AccountSettings({ user, onClose }) {
             type="password"
             value={keyInput}
             onChange={e => setKeyInput(e.target.value)}
-            placeholder={hasKey ? 'Paste new key to replace…' : 'csk-…'}
+            placeholder={hasKey ? 'Paste new key to replace…' : 'csk-… / sk-… / sk-ant-… / gsk_…'}
             style={inputStyle}
             onKeyDown={e => e.key === 'Enter' && handleSaveKey()}
           />
