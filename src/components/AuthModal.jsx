@@ -23,8 +23,8 @@ const TERMS = [
     body: 'TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE TOTAL CUMULATIVE LIABILITY OF THE COMPANY TO YOU SHALL NOT EXCEED THE GREATER OF: (A) THE TOTAL AMOUNT PAID BY YOU IN THE THREE MONTHS PRECEDING THE CLAIM; OR (B) TWENTY-FIVE CANADIAN DOLLARS (CAD $25.00). THE COMPANY IS NOT LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES.'
   },
   {
-    title: '6. Subscription, Billing, and Cancellation',
-    body: 'ALL SUBSCRIPTION FEES ARE STRICTLY NON-REFUNDABLE. The Company does not offer refunds or credits for any reason. Subscriptions renew automatically unless cancelled before the renewal date. Cancellation takes effect at the end of the current billing period. No partial-period credits are issued.'
+    title: '6. Service and Account',
+    body: 'Dwelling is a free, publicly accessible platform. No subscription fees are charged. Users supply their own AI provider API keys (BYOK). The Company reserves the right to terminate accounts that violate these Terms.'
   },
   {
     title: '7. Governing Law and Dispute Resolution',

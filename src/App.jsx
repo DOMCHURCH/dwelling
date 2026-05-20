@@ -13,8 +13,7 @@ import FeaturesGrid from "./components/FeaturesGrid"
 import DataPartnerships from "./components/DataPartnerships"
 import Stats from "./components/Stats"
 import Testimonials from "./components/Testimonials"
-import ProShowcase from "./components/ProShowcase"
-import Pricing from "./components/Pricing"
+import About from "./components/Pricing"
 import FAQ from "./components/FAQ"
 import MortgageCalculator from "./components/MortgageCalculator"
 import RentalCalculator from "./components/RentalCalculator"
@@ -615,7 +614,6 @@ export default function App() {
   const trialDaysLeft = null
   const isInTrial = false
   const analysesLeft = "∞"
-  const reportsLeft = null
 
   if (authLoading)
     return (
@@ -813,7 +811,7 @@ export default function App() {
                 marginBottom: 2,
               }}
             >
-              You've used your 1 free report.
+              Sign up to save this report.
             </div>
             <div
               style={{
@@ -823,7 +821,7 @@ export default function App() {
                 color: "rgba(255,255,255,0.45)",
               }}
             >
-              Sign up free to get 3 analyses/month — no credit card required.
+              Free account. Bring your own AI key for unlimited live analyses.
             </div>
           </div>
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -1359,6 +1357,7 @@ export default function App() {
           <DataPartnerships />
           <Stats />
           <Testimonials />
+          <About />
           <FAQ />
           <CTAFooter
             onScrollToTop={() => window.scrollTo({ top: 0, behavior: "smooth" })}
@@ -1386,9 +1385,7 @@ export default function App() {
         <PaymentsPage
           onClose={() => setShowPaymentsPage(false)}
           user={user}
-          userRecord={null}
           isTeamOwner={isTeamOwner}
-          onOpenDashboard={() => { setShowPaymentsPage(false); setShowBusinessDashboard(true) }}
         />
       )}
       {showBusinessOnboarding && (

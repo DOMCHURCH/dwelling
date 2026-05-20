@@ -34,8 +34,7 @@ export default function Navbar({
     window.addEventListener("scroll", h, { passive: true })
     return () => window.removeEventListener("scroll", h)
   }, [])
-  const low = typeof analysesLeft === "number" && analysesLeft <= 3
-  const canAccessDashboard = isBusiness
+  const canAccessDashboard = !!user
   return (
     <nav
       style={{
@@ -119,11 +118,11 @@ export default function Navbar({
             )}
           </button>
 
-          {/* Dashboard — business only */}
+          {/* Dashboard — all signed-in users */}
           <button
             onClick={canAccessDashboard ? onOpenDashboard : undefined}
             disabled={!canAccessDashboard}
-            title={canAccessDashboard ? "Business Dashboard" : "Dashboard — Business only"}
+            title="Workspace Dashboard"
             style={{
               background: "none", border: "none",
               cursor: canAccessDashboard ? "pointer" : "default",
@@ -138,7 +137,7 @@ export default function Navbar({
             }}
             onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
           >
-            Dashboard{!canAccessDashboard && <span style={{ marginLeft: 4, fontSize: 10 }}>🔒</span>}
+            Dashboard
           </button>
 
           {/* Account — all logged-in users */}
@@ -168,31 +167,13 @@ export default function Navbar({
                   padding: "5px 12px",
                   fontSize: 12,
                   fontFamily: "'Barlow',sans-serif",
-                  color: user?.is_admin
-                    ? "#a78bfa"
-                    : userRecord?.is_business
-                      ? "#f59e0b"
-                      : userRecord?.is_pro
-                        ? "#38bdf8"
-                        : low
-                          ? "#f87171"
-                          : "rgba(255,255,255,0.5)",
+                  color: user?.is_admin ? "#a78bfa" : "rgba(255,255,255,0.5)",
                   cursor: user?.is_admin ? "pointer" : "default",
                 }}
                 onClick={user?.is_admin ? onOpenAdmin : undefined}
                 title={user?.is_admin ? "Open Admin Panel" : undefined}
               >
-                {user?.is_admin
-                  ? "⚡ Admin"
-                  : userRecord?.is_business
-                    ? quotaData?.limits?.monthly != null
-                      ? `★ ${Math.max(0, quotaData.limits.monthly - (quotaData.monthly ?? 0))} / ${quotaData.limits.monthly} left`
-                      : "★ Business"
-                    : userRecord?.is_pro
-                      ? quotaData?.limits?.monthly != null
-                        ? `★ ${Math.max(0, quotaData.limits.monthly - (quotaData.monthly ?? 0))} / ${quotaData.limits.monthly} left`
-                        : "★ Pro"
-                      : `${analysesLeft} / 3 left`}
+                {user?.is_admin ? "⚡ Admin" : "✦ BYOK"}
               </span>
               {user?.is_admin && (
                 <div

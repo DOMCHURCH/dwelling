@@ -7,7 +7,7 @@ const navItems = [
   { path: "/dashboard/team", label: "Team", icon: "◎" },
   { path: "/dashboard/api-keys", label: "API Keys", icon: "◆" },
   { path: "/dashboard/usage", label: "Usage", icon: "▣" },
-  { path: "/dashboard/billing", label: "Billing", icon: "◈" },
+  { path: "/dashboard/billing", label: "Workspace", icon: "◈" },
   { path: "/dashboard/settings", label: "Settings", icon: "▧" },
 ]
 
@@ -84,7 +84,7 @@ export default function BusinessSidebar() {
           <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", marginBottom: 4 }}>
             {user?.email || "user@example.com"}
           </div>
-          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)" }}>Business Plan</div>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)" }}>Team Workspace</div>
         </div>
         <button
           onClick={handleSignOut}

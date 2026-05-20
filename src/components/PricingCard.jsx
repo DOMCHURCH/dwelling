@@ -1,38 +1,28 @@
 import { useState } from 'react'
 
 export const PRICING_FREE = [
-  '3 free reports / month',
-  'Investment score preview',
-  "Market verdict (buyer's vs seller's)",
+  'Explore all UI sections',
+  'Area Verdict & market temperature',
+  'Investment Score preview',
   'Demographics & population trends',
   'Climate & weather risk data',
 ]
 
-export const PRICING_PRO = [
-  { text: 'Unlimited reports', highlight: false },
-  { text: 'Full AI investment analysis', highlight: false },
+export const PRICING_BYOK = [
+  { text: 'Live AI investment analysis', highlight: false },
   { text: 'ROI score & rental yield estimate', highlight: true },
   { text: 'Price history & 12-month projections', highlight: true },
   { text: 'Environmental & flood risk', highlight: true },
   { text: 'PDF export', highlight: true },
   { text: 'Compare up to 3 markets side-by-side', highlight: true },
-  { text: 'Saved reports', highlight: false },
-  { text: 'Priority processing', highlight: false },
+  { text: 'Persistent saved reports', highlight: false },
+  { text: 'Team workspace & sharing', highlight: false },
 ]
 
-export const PRICING_BUSINESS = [
-  { text: '1,000–3,000 reports / month', highlight: false },
-  { text: '200–1,000 reports / day', highlight: false },
-  { text: '3–10 team members', highlight: true },
-  { text: '5 API keys', highlight: true },
-  { text: 'Team workspace', highlight: true },
-  { text: 'Client sharing links', highlight: true },
-  { text: 'Branded PDF reports', highlight: true },
-  { text: 'Everything in Pro', highlight: false },
-  { text: 'Dedicated support', highlight: false },
-]
+// Keep PRICING_PRO as alias for backward compat
+export const PRICING_PRO = PRICING_BYOK
 
-export function BusinessCard({ onCta, annual = false }) {
+export function BusinessCard({ onCta }) {
   const [hov, setHov] = useState(false)
   return (
     <div
@@ -58,41 +48,37 @@ export function BusinessCard({ onCta, annual = false }) {
           fontFamily: "'Barlow',sans-serif", fontWeight: 700, fontSize: 10,
           color: '#000', whiteSpace: 'nowrap', letterSpacing: '0.08em', textTransform: 'uppercase',
           boxShadow: '0 4px 16px rgba(251,191,36,0.35)',
-        }}>For Teams</div>
+        }}>Team Workspace</div>
 
-        <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 28, color: '#fff', marginBottom: 4 }}>Business</div>
-        <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.4)', marginBottom: 20 }}>For agencies, brokers & investment firms</div>
-
-        <div style={{ marginBottom: 22, paddingBottom: 18, borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-          <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 52, color: '#fff', lineHeight: 1 }}>${annual ? 160 : 199}</span>
-          <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.3)', marginLeft: 5 }}>/month</span>
-          <div style={{ marginTop: 5, fontFamily: "'Barlow',sans-serif", fontSize: 11, color: '#fbbf24', fontWeight: 500 }}>
-            {annual ? 'Billed $1,440/year — save 20%' : 'Up to $299/mo for larger teams'}
-          </div>
-        </div>
+        <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 28, color: '#fff', marginBottom: 4 }}>Workspace</div>
+        <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.4)', marginBottom: 20 }}>For teams & agencies</div>
 
         <div style={{ flex: 1, marginBottom: 22 }}>
-          <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Everything in Pro, plus:</div>
-          {PRICING_BUSINESS.map((f, i) => {
-            const hl = f.highlight
-            return (
-              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 11 }}>
-                <div style={{
-                  width: 17, height: 17, borderRadius: '50%', flexShrink: 0, marginTop: 1,
-                  background: hl ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.05)',
-                  border: hl ? '1px solid rgba(251,191,36,0.4)' : '1px solid rgba(255,255,255,0.08)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  <span style={{ fontSize: 9, color: hl ? '#fbbf24' : 'rgba(255,255,255,0.3)' }}>✓</span>
-                </div>
-                <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: hl ? 500 : 300, fontSize: 13, color: hl ? '#fef3c7' : 'rgba(255,255,255,0.6)', lineHeight: 1.4 }}>{f.text}</span>
+          <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Everything in BYOK, plus:</div>
+          {[
+            { text: 'Up to 10 team members', hl: true },
+            { text: 'Shared team dashboard', hl: true },
+            { text: 'Client sharing links', hl: true },
+            { text: 'Branded PDF reports', hl: true },
+            { text: 'Team usage analytics', hl: false },
+            { text: 'Invite-code onboarding', hl: false },
+          ].map((f, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 11 }}>
+              <div style={{
+                width: 17, height: 17, borderRadius: '50%', flexShrink: 0, marginTop: 1,
+                background: f.hl ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.05)',
+                border: f.hl ? '1px solid rgba(251,191,36,0.4)' : '1px solid rgba(255,255,255,0.08)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <span style={{ fontSize: 9, color: f.hl ? '#fbbf24' : 'rgba(255,255,255,0.3)' }}>✓</span>
               </div>
-            )
-          })}
+              <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: f.hl ? 500 : 300, fontSize: 13, color: f.hl ? '#fef3c7' : 'rgba(255,255,255,0.6)', lineHeight: 1.4 }}>{f.text}</span>
+            </div>
+          ))}
         </div>
 
         <button
-          onClick={() => onCta(annual)}
+          onClick={onCta}
           onMouseEnter={() => setHov(true)}
           onMouseLeave={() => setHov(false)}
           style={{
@@ -101,18 +87,14 @@ export function BusinessCard({ onCta, annual = false }) {
             background: hov ? 'linear-gradient(90deg, #fcd34d, #f59e0b)' : 'linear-gradient(90deg, #fbbf24, #d97706)',
             color: '#000', transition: 'background 0.2s ease, transform 0.15s ease',
             transform: hov ? 'scale(1.01)' : 'scale(1)',
-            letterSpacing: '0.01em',
           }}
-        >Start Business →</button>
-        <div style={{ marginTop: 10, padding: '7px 12px', borderRadius: 10, background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', textAlign: 'center' }}>
-          <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 10, color: '#fbbf24', fontWeight: 500 }}>Subscribe now to unlock team features</span>
-        </div>
+        >Create Team Workspace →</button>
       </div>
     </div>
   )
 }
 
-export default function PricingCard({ plan, price, desc, features, cta, onCta, popular, priceLabel, annualSavings }) {
+export default function PricingCard({ plan, price, desc, features, cta, onCta, popular, priceLabel }) {
   const [hov, setHov] = useState(false)
   const MAX_FREE_SHOWN = 5
   const visibleFeatures = popular ? features : features.slice(0, MAX_FREE_SHOWN)
@@ -139,23 +121,24 @@ export default function PricingCard({ plan, price, desc, features, cta, onCta, p
           fontFamily: "'Barlow',sans-serif", fontWeight: 700, fontSize: 10,
           color: '#000', whiteSpace: 'nowrap', letterSpacing: '0.08em', textTransform: 'uppercase',
           boxShadow: '0 4px 16px rgba(56,189,248,0.4)',
-        }}>Best Value</div>
+        }}>Recommended</div>
       )}
 
       <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: popular ? 30 : 22, color: popular ? '#fff' : 'rgba(255,255,255,0.5)', marginBottom: 4 }}>{plan}</div>
       <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: popular ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.28)', marginBottom: popular ? 20 : 14 }}>{desc}</div>
 
       <div style={{ marginBottom: popular ? 24 : 18, paddingBottom: popular ? 22 : 16, borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-        <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: popular ? 56 : 42, color: popular ? '#fff' : 'rgba(255,255,255,0.45)', lineHeight: 1 }}>${price}</span>
-        <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.25)', marginLeft: 5 }}>/month</span>
-        {popular && annualSavings && (
-          <div style={{ marginTop: 5, fontFamily: "'Barlow',sans-serif", fontSize: 11, color: '#38bdf8', fontWeight: 500 }}>Billed $228/year — save 34%</div>
-        )}
+        {price ? (
+          <>
+            <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: popular ? 42 : 36, color: popular ? '#fff' : 'rgba(255,255,255,0.45)', lineHeight: 1 }}>{price}</span>
+            {priceLabel && <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.25)', marginLeft: 5 }}>{priceLabel}</span>}
+          </>
+        ) : null}
       </div>
 
       <div style={{ flex: 1, marginBottom: popular ? 24 : 18 }}>
         {popular && (
-          <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Everything in Free, plus:</div>
+          <div style={{ fontFamily: "'Barlow',sans-serif", fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>All features unlocked:</div>
         )}
         {visibleFeatures.map((f, i) => {
           const text = typeof f === 'string' ? f : f.text
@@ -205,12 +188,6 @@ export default function PricingCard({ plan, price, desc, features, cta, onCta, p
           letterSpacing: popular ? '0.01em' : 0,
         }}
       >{cta}</button>
-
-      {popular && (
-        <div style={{ textAlign: 'center', marginTop: 10 }}>
-          <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.22)', fontWeight: 300 }}>Cancel anytime</span>
-        </div>
-      )}
     </div>
   )
 
