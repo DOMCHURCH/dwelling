@@ -49,10 +49,10 @@ export default function Hero({ onSearch, loading, onShowDemo, user, onOpenAuth }
               onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.65)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)' }}>
               See a sample report →
             </button>
-            <button onClick={() => scrollTo('pricing')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.25)', textDecoration: 'underline', textUnderlineOffset: 3, padding: '4px 8px', transition: 'color 0.2s' }}
+            <button onClick={() => scrollTo('stack')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(255,255,255,0.25)', textDecoration: 'underline', textUnderlineOffset: 3, padding: '4px 8px', transition: 'color 0.2s' }}
               onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.55)'}
               onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.25)'}>
-              view pricing →
+              view stack →
             </button>
           </div>
         </div>

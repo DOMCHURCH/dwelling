@@ -110,7 +110,6 @@ export default function App() {
   const [guestResult, setGuestResult] = useState(null)
   const [compareResult, setCompareResult] = useState(null)
   const [comparingMode, setComparingMode] = useState(false)
-  const [previewPlan, setPreviewPlan] = useState("free")
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [showDeleteAccount, setShowDeleteAccount] = useState(false)
   const [showUserTypeModal, setShowUserTypeModal] = useState(false)
@@ -170,7 +169,6 @@ export default function App() {
     const u = getCurrentUser()
     if (u) {
       setUser(u)
-      if (u.is_admin) setPreviewPlan('pro')
       if (u.is_business) {
         loadTeamOwnerStatus()
         if (!localStorage.getItem("dw_business_onboarded")) {
@@ -593,7 +591,7 @@ export default function App() {
   // Everyone is treated as "pro" — all features available to authenticated users
   const isPro = !!user
   const isBusiness = false
-  const effectivePlan = user?.is_admin ? previewPlan : isPro ? 'pro' : 'free'
+
 
   const { savedReports, saveReport, loadReport, deleteReport, isReportSaved } = useSavedReports(isPro)
   const [saveSuccess, setSaveSuccess] = useState(false)
@@ -611,9 +609,6 @@ export default function App() {
     })
   }, [result, isPro, user])
 
-  const trialDaysLeft = null
-  const isInTrial = false
-  const analysesLeft = "∞"
 
   if (authLoading)
     return (
@@ -898,20 +893,11 @@ export default function App() {
       )}
       <Navbar
         user={user}
-        analysesLeft={analysesLeft}
-        isInTrial={isInTrial}
-        trialDaysLeft={trialDaysLeft}
-        onSignOut={handleSignOut}
-        previewPlan={previewPlan}
-        onSetPlan={setPreviewPlan}
-        onTogglePreview={() => setPreviewPlan((p) => (p === "pro" ? "free" : "pro"))}
-        isBusiness={isBusiness}
-        isPro={isPro}
         savedCount={savedReports.length}
+        onSignOut={handleSignOut}
         onOpenDashboard={() => setShowBusinessDashboard(true)}
         onOpenAdmin={() => setShowAdminPanel(true)}
         onOpenPayments={() => setShowPaymentsPage(true)}
-        isTeamOwner={isTeamOwner}
         onHome={() => {
           setResult(null)
           window.scrollTo({ top: 0, behavior: "smooth" })
@@ -1115,66 +1101,6 @@ export default function App() {
                   ⚙ API Key
                 </button>
               </div>
-              {user?.is_admin && (
-                <div
-                  className="liquid-glass"
-                  style={{
-                    borderRadius: 14,
-                    padding: "10px 14px",
-                    marginBottom: 14,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <span
-                    style={{
-                      fontFamily: "'Barlow',sans-serif",
-                      fontSize: 11,
-                      color: "rgba(255,255,255,0.35)",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.08em",
-                    }}
-                  >
-                    👁 Preview as:
-                  </span>
-                  {[
-                    ["free", "Free"],
-                    ["pro", "Pro"],
-                    ["business", "Business"],
-                  ].map(([val, label]) => (
-                    <button
-                      key={val}
-                      onClick={() => setPreviewPlan(val)}
-                      style={{
-                        borderRadius: 40,
-                        padding: "5px 14px",
-                        fontSize: 12,
-                        fontFamily: "'Barlow',sans-serif",
-                        fontWeight: previewPlan === val ? 600 : 300,
-                        border: "none",
-                        cursor: "pointer",
-                        background: previewPlan === val ? "#fff" : "rgba(255,255,255,0.06)",
-                        color: previewPlan === val ? "#000" : "rgba(255,255,255,0.5)",
-                        transition: "all 0.15s",
-                      }}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                  <span
-                    style={{
-                      fontFamily: "'Barlow',sans-serif",
-                      fontSize: 11,
-                      color: "rgba(255,255,255,0.2)",
-                      marginLeft: "auto",
-                    }}
-                  >
-                    Admin only
-                  </span>
-                </div>
-              )}
               <AddressSearch onSearch={handleSearch} loading={loading} compact />
             </div>
           )}
@@ -1328,7 +1254,7 @@ export default function App() {
           {result && !loading && !compareResult && (
             <Suspense fallback={<LiquidLoading />}>
               <Dashboard
-                key={previewPlan}
+
                 data={result}
                 onRecalculate={handleRecalculate}
                 previewPlan="pro"

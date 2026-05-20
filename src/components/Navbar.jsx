@@ -4,26 +4,15 @@ import { LOGO, scrollTo } from "../lib/appHelpers"
 
 export default function Navbar({
   user,
-  userRecord,
-  analysesLeft,
-  isInTrial,
-  trialDaysLeft,
   onSignOut,
   onHome,
   onOpenSaved,
   savedCount,
-  isPro,
   onOpenDashboard,
   onOpenAdmin,
-  previewPlan,
-  onSetPlan,
-  onTogglePreview,
   onDeleteAccount,
   onOpenAuth,
-  isBusiness,
   onOpenPayments,
-  isTeamOwner,
-  quotaData,
 }) {
   const [scrolled, setScrolled] = useState(false)
   useEffect(() => {
@@ -175,40 +164,6 @@ export default function Navbar({
               >
                 {user?.is_admin ? "⚡ Admin" : "✦ BYOK"}
               </span>
-              {user?.is_admin && (
-                <div
-                  className="liquid-glass"
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    borderRadius: 40,
-                    padding: "3px",
-                    gap: 2,
-                  }}
-                >
-                  {[["free", "Free"], ["pro", "Pro"], ["business", "Business"]].map(([val, label]) => (
-                    <button
-                      key={val}
-                      onClick={() => onSetPlan(val)}
-                      style={{
-                        borderRadius: 40,
-                        padding: "4px 12px",
-                        fontSize: 11,
-                        fontFamily: "'Barlow',sans-serif",
-                        fontWeight: previewPlan === val ? 600 : 300,
-                        border: "none",
-                        cursor: "pointer",
-                        background: previewPlan === val ? "#fff" : "transparent",
-                        color: previewPlan === val ? "#000" : "rgba(255,255,255,0.45)",
-                        transition: "all 0.15s",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              )}
               <button
                 onClick={onSignOut}
                 style={{
