@@ -1,13 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { getAuthToken } from './localAuth'
+import { getAuthToken, getCurrentUser } from './localAuth'
 
-export function useSavedReports(isPro) {
+export function useSavedReports() {
   const [savedReports, setSavedReports] = useState([])
   const [loading, setLoading] = useState(false)
   const fetchedRef = useRef(false)
 
   const fetchSaved = useCallback(async () => {
-    if (!isPro) return
     const token = await getAuthToken()
     if (!token) return
     try {
@@ -23,18 +22,19 @@ export function useSavedReports(isPro) {
     } catch (e) {
       console.error('Failed to fetch saved reports', e)
     }
-  }, [isPro])
+  }, [])
 
   useEffect(() => {
-    if (isPro && !fetchedRef.current) {
+    const user = getCurrentUser()
+    if (user && !fetchedRef.current) {
       fetchedRef.current = true
       fetchSaved()
     }
-    if (!isPro) {
+    if (!user) {
       fetchedRef.current = false
       setSavedReports([])
     }
-  }, [isPro, fetchSaved])
+  }, [fetchSaved])
 
   const saveReport = useCallback(async (data) => {
     const token = await getAuthToken()

@@ -26,9 +26,6 @@ async function ensureTable(db) {
       id TEXT NOT NULL,
       salt TEXT NOT NULL,
       password TEXT NOT NULL,
-      is_pro INTEGER DEFAULT 0,
-      analyses_used INTEGER DEFAULT 0,
-      analyses_reset_at TEXT,
       created_at TEXT
     )
   `)
@@ -37,12 +34,9 @@ async function ensureTable(db) {
     'ALTER TABLE users ADD COLUMN terms_accepted_ip TEXT',
     'ALTER TABLE users ADD COLUMN reset_token TEXT',
     'ALTER TABLE users ADD COLUMN reset_token_expires TEXT',
-    'ALTER TABLE users ADD COLUMN stripe_customer_id TEXT',
-    'ALTER TABLE users ADD COLUMN stripe_subscription_id TEXT',
-    'ALTER TABLE users ADD COLUMN is_business INTEGER DEFAULT 0',
     'ALTER TABLE users ADD COLUMN team_id TEXT',
-    'ALTER TABLE teams ADD COLUMN invite_code_expires_at TEXT',
     'ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0',
+    'ALTER TABLE teams ADD COLUMN invite_code_expires_at TEXT',
   ]
   for (const sql of migrations) {
     try { await db.execute(sql) } catch { /* already exists */ }
@@ -285,8 +279,8 @@ export default async function handler(req, res) {
       const is_admin = ADMIN_EMAILS.includes(key)
       const hashed = await hashPassword(password)
       await db.execute({
-        sql: 'INSERT INTO users (email, id, salt, password, is_pro, analyses_used, analyses_reset_at, created_at, terms_accepted_at, terms_accepted_ip) VALUES (?, ?, ?, ?, 0, 0, ?, ?, ?, ?)',
-        args: [key, id, salt, hashed, new Date().toISOString(), new Date().toISOString(), new Date().toISOString(), clientIp],
+        sql: 'INSERT INTO users (email, id, salt, password, created_at, terms_accepted_at, terms_accepted_ip) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        args: [key, id, salt, hashed, new Date().toISOString(), new Date().toISOString(), clientIp],
       })
       const { accessToken, refreshToken } = await issueTokenPair({ sub: id, email: key, is_admin })
       return res.status(200).json({ token: accessToken, refreshToken, userId: id, email: key, is_admin })
@@ -782,26 +776,10 @@ export default async function handler(req, res) {
       const payload = verify(authHeader.replace('Bearer ', ''))
       if (!payload?.is_admin) return res.status(403).json({ error: 'Admin access required' })
       const result = await db.execute({
-        sql: 'SELECT id, email, is_pro, is_business, analyses_used, created_at FROM users ORDER BY created_at DESC LIMIT 200',
+        sql: 'SELECT id, email, team_id, is_admin, created_at FROM users ORDER BY created_at DESC LIMIT 200',
         args: [],
       })
       return res.status(200).json({ users: result.rows })
-    }
-
-    // ── Admin: adjust usage ──────────────────────────────────────────────────
-    if (action === 'admin-adjust-usage') {
-      const authHeader = req.headers.authorization
-      if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' })
-      const payload = verify(authHeader.replace('Bearer ', ''))
-      if (!payload?.is_admin) return res.status(403).json({ error: 'Admin access required' })
-      const { targetEmail, analysesUsed } = req.body
-      if (!targetEmail || analysesUsed == null) return res.status(400).json({ error: 'targetEmail and analysesUsed required' })
-      const r = await db.execute({
-        sql: 'UPDATE users SET analyses_used = ? WHERE email = ?',
-        args: [Math.max(0, parseInt(analysesUsed, 10)), targetEmail.trim().toLowerCase()],
-      })
-      if (r.rowsAffected === 0) return res.status(404).json({ error: `No user: ${targetEmail}` })
-      return res.status(200).json({ success: true })
     }
 
     return res.status(400).json({ error: 'Unknown action' })

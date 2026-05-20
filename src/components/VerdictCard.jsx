@@ -6,30 +6,28 @@ const VERDICT_CONFIG = {
   AVOID: { color: '#ef4444', bg: 'rgba(239,68,68,0.08)',   icon: '↓', tagline: 'Significant headwinds detected'        },
 }
 
-function Pill({ label, value, locked, onClick }) {
+function Pill({ label, value }) {
+  if (value == null || value === '') return null
   return (
     <div
-      onClick={locked ? onClick : undefined}
       style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
         padding: '10px 18px', borderRadius: 12,
-        background: locked ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.07)',
-        cursor: locked ? 'pointer' : 'default',
-        border: locked ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(255,255,255,0.06)',
-        transition: 'opacity 0.2s',
+        background: 'rgba(255,255,255,0.07)',
+        border: '1px solid rgba(255,255,255,0.06)',
       }}
     >
       <span style={{ fontFamily: "'Barlow',sans-serif", fontSize: 10, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>
         {label}
       </span>
-      <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 15, color: locked ? 'rgba(255,255,255,0.3)' : '#fff' }}>
-        {locked ? '— Unlock →' : value}
+      <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 15, color: '#fff' }}>
+        {value}
       </span>
     </div>
   )
 }
 
-const VerdictCard = memo(function VerdictCard({ verdict, roiEstimate, isPro, onUpgrade }) {
+const VerdictCard = memo(function VerdictCard({ verdict, roiEstimate }) {
   if (!verdict) return null
   const cfg = VERDICT_CONFIG[verdict.label] ?? VERDICT_CONFIG.HOLD
 
@@ -61,12 +59,7 @@ const VerdictCard = memo(function VerdictCard({ verdict, roiEstimate, isPro, onU
       <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
         <Pill label="Confidence" value={verdict.confidence} />
         <Pill label="Risk Level" value={verdict.riskLevel} />
-        <Pill
-          label="ROI Estimate"
-          value={roiEstimate ? `${roiEstimate}%` : null}
-          locked={!isPro || !roiEstimate}
-          onClick={onUpgrade}
-        />
+        <Pill label="ROI Estimate" value={roiEstimate ? `${roiEstimate}%` : null} />
       </div>
     </div>
   )

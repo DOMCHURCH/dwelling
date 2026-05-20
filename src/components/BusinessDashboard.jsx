@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { getAuthToken } from "../lib/localAuth"
 import { downloadAnalysisHTML } from "../lib/exportHTML"
-import AccountSettings from "./AccountSettings"
+import AccountSettingsPanel from "./AccountSettingsPanel"
 
 const DAILY_LIMIT = 200
 
@@ -480,7 +480,7 @@ function UsersTab() {
         <div>
           <div style={{ fontFamily: "monospace", fontSize: 18, color: "#fff", marginBottom: 4 }}>{team.name}</div>
           <div style={{ fontFamily: "monospace", fontSize: 9, color: c.label, letterSpacing: "0.1em", textTransform: "uppercase" }}>
-            {members.length} / 10 members · Business Team
+            {members.length} / 10 members · Team Workspace
           </div>
         </div>
         {/* Invite code */}
@@ -641,7 +641,7 @@ export default function BusinessDashboard({ onClose, user, userRecord }) {
           {tab === "reports" && <ReportsTab />}
           {tab === "apikeys" && <ApiKeysTab keys={keys} loading={loading} error={error} onRefresh={loadData} />}
           {tab === "users" && <UsersTab />}
-          {tab === "settings" && <AccountSettings user={user || userRecord} onClose={() => {}} />}
+          {tab === "settings" && <AccountSettingsPanel user={user || userRecord} onClose={() => {}} />}
         </div>
       </div>
     </div>

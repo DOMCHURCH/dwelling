@@ -75,7 +75,7 @@ function CompareColumn({ data, side }) {
       {/* Price stats */}
       {areaMetrics && (
         <div className="liquid-glass" style={{ borderRadius: 14, padding: '16px 18px' }}>
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12, fontFamily: "'Barlow',sans-serif" }}>Pricing</div>
+          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12, fontFamily: "'Barlow',sans-serif" }}>Prices</div>
           {[
             { label: 'Median Price', value: `${sym}${Math.round((areaMetrics.medianPrice || 0) / 1000)}k` },
             { label: 'Avg Price', value: `${sym}${Math.round((areaMetrics.avgPrice || 0) / 1000)}k` },

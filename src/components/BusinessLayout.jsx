@@ -1,13 +1,11 @@
 import { useState, useEffect } from "react"
 import { Routes, Route, NavLink, useNavigate, useLocation } from "react-router-dom"
-import { getAuthToken, getCurrentUser, getUsage } from "../lib/localAuth"
+import { getAuthToken, getCurrentUser } from "../lib/localAuth"
 import BusinessSidebar from "./BusinessSidebar"
 import BusinessOverview from "./BusinessOverview"
 import BusinessSaved from "./BusinessSaved"
 import BusinessTeam from "./BusinessTeam"
-import BusinessApiKeys from "./BusinessApiKeys"
-import BusinessUsage from "./BusinessUsage"
-import BusinessBilling from "./BusinessBilling"
+import ProviderSettings from "./ProviderSettings"
 import BusinessSettings from "./BusinessSettings"
 
 export default function BusinessLayout() {
@@ -67,9 +65,7 @@ export default function BusinessLayout() {
           <Route path="/" element={<BusinessOverview user={user} />} />
           <Route path="/saved" element={<BusinessSaved />} />
           <Route path="/team" element={<BusinessTeam />} />
-          <Route path="/api-keys" element={<BusinessApiKeys />} />
-          <Route path="/usage" element={<BusinessUsage />} />
-          <Route path="/billing" element={<BusinessBilling />} />
+          <Route path="/provider" element={<ProviderSettings />} />
           <Route path="/settings" element={<BusinessSettings />} />
         </Routes>
       </main>

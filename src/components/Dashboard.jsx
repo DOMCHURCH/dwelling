@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import SectionCard from './SectionCard'
 import StatCard from './StatCard'
 import VerdictCard from './VerdictCard'
-import LockedSection from './LockedSection'
 import BYOKPrompt from './BYOKPrompt'
 
 // Score label helpers
@@ -288,10 +287,6 @@ function NhpiChart({ nhpiData }) {
 export default function Dashboard({
   data,
   onRecalculate,
-  previewPlan = 'pro',
-  onUpgrade,
-  onLockedInteraction,
-  isPro = false,
   isDemo = false,
   onRunOwn,
   showBYOKPrompt = false,
@@ -336,14 +331,6 @@ export default function Dashboard({
   const tempF = tempC != null ? Math.round(tempC * 9 / 5 + 32) : null
   const weatherDesc = currentWeather ? weatherCodeToDescription(currentWeather.weather_code) : null
 
-  // Plan-based visibility helper
-  const isLocked = (feature) => {
-    if (previewPlan === 'pro' || previewPlan === 'business') return false
-    // Free: investment, risk, pricehistory locked. neighborhood detail now free.
-    const freeHidden = ['investment', 'risk', 'pricehistory', 'costoflivingdetail']
-    return freeHidden.includes(feature)
-  }
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* Demo mode banner */}
@@ -362,24 +349,6 @@ export default function Dashboard({
               Analyse a city →
             </button>
           )}
-        </div>
-      )}
-
-      {/* Plan preview banner — admin only */}
-      {previewPlan === 'free' && (
-        <div style={{ borderRadius: 14, padding: '12px 18px', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 14 }}>⚠️</span>
-          <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(251,191,36,0.9)' }}>
-            Previewing <strong>Free plan</strong> — neighbourhood detail visible; investment analysis, risk, and price history are Pro only.
-          </span>
-        </div>
-      )}
-      {previewPlan === 'business' && (
-        <div style={{ borderRadius: 14, padding: '12px 18px', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 14 }}>🏢</span>
-          <span style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 13, color: 'rgba(251,191,36,0.9)' }}>
-            Previewing <strong>Business plan</strong> — all sections fully unlocked, team features active.
-          </span>
         </div>
       )}
 
@@ -645,8 +614,6 @@ export default function Dashboard({
         <VerdictCard
           verdict={ai.investment.verdict}
           roiEstimate={ai.investment?.roiEstimate}
-          isPro={isPro}
-          onUpgrade={() => onLockedInteraction?.('investment', 'click')}
         />
       )}
 
@@ -678,18 +645,8 @@ export default function Dashboard({
                 WALK · TRANSIT · SCHOOL SCORES FROM OPENSTREETMAP REAL DATA
               </div>
             )}
-            {/* Full detail — locked for free */}
             <div>
-              {isLocked('neighborhooddetail') ? (
-                <div onClick={() => onUpgrade('neighborhood')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 16px', background: 'rgba(0,0,0,0.4)', borderRadius: 12, gap: 8, cursor: 'pointer' }}>
-                  <span style={{ fontSize: 22 }}>🔒</span>
-                  <div style={{ textAlign: 'center', padding: '0 16px' }}>
-                    <div style={{ fontFamily: "'Instrument Serif',serif", fontStyle: 'italic', fontSize: 15, color: '#fff', marginBottom: 4 }}>Full Neighbourhood Detail</div>
-                    <div style={{ fontFamily: "'Barlow',sans-serif", fontWeight: 300, fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 12, lineHeight: 1.5 }}>Character, pros & cons, best-for breakdown — Pro only.</div>
-                    <div style={{ display: 'inline-block', background: '#fff', color: '#000', borderRadius: 40, padding: '6px 16px', fontFamily: "'Barlow',sans-serif", fontWeight: 600, fontSize: 12 }}>Upgrade to Pro →</div>
-                  </div>
-                </div>
-              ) : (neighborhood.character || neighborhood.pros?.length) ? (
+              {(neighborhood.character || neighborhood.pros?.length) ? (
                 <div>
                   <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginBottom: 14, fontFamily: "'Barlow', sans-serif", fontWeight: 300, lineHeight: 1.7 }}>{neighborhood.character}</p>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
@@ -739,66 +696,41 @@ export default function Dashboard({
 
 
       {/* Price History */}
-      {(isLocked('pricehistory') || ai.priceHistory) && (
+      {ai.priceHistory && (
         <SectionCard title="Price History & Projection" icon="📊" delay={275} pdfSection="pricehistory">
-          {isLocked('pricehistory') ? (
-            <LockedSection
-              title="Price History & Projections"
-              icon="📊"
-              ctaText="Unlock price trajectory →"
-              onUnlock={() => onLockedInteraction?.('pricehistory', 'click')}
-            />
-          ) : (
-            <PriceHistoryChart priceHistory={ai.priceHistory} convert={convert} sym={sym} />
-          )}
+          <PriceHistoryChart priceHistory={ai.priceHistory} convert={convert} sym={sym} />
         </SectionCard>
       )}
 
 
       {/* Environmental Risk */}
-      {(isLocked('risk') || risk) && (
+      {risk && (
         <SectionCard title="Environmental Risk" icon="🛡" delay={290} className="gsap-reveal-risk" pdfSection="risk">
-          {isLocked('risk') ? (
-            <LockedSection
-              title="Environmental & Flood Risk"
-              icon="🌊"
-              ctaText="Unlock risk assessment →"
-              onUnlock={() => onLockedInteraction?.('risk', 'click')}
-            />
-          ) : (
-            <div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 16 }}>
-                {[
-                  { label: 'Flood', value: risk.detailedRisk?.floodRisk || 'Low', icon: '🌊' },
-                  { label: 'Fire', value: risk.detailedRisk?.fireRisk || 'Low', icon: '🔥' },
-                  { label: 'Seismic', value: risk.detailedRisk?.seismicRisk || 'Low', icon: '🌍' },
-                  { label: 'Pollution', value: risk.detailedRisk?.pollutionRisk || 'Low', icon: '💨' },
-                  { label: 'Noise', value: risk.detailedRisk?.noiseRisk || 'Moderate', icon: '🔊' },
-                ].map((r) => (
-                  <div key={r.label} className="liquid-glass" style={{ borderRadius: 14, padding: '12px 14px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                      <span style={{ fontSize: 12 }}>{r.icon}</span>
-                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: "'Barlow', sans-serif" }}>{r.label}</div>
-                    </div>
-                    <div style={{ fontSize: 15, color: '#ffffff', fontFamily: "'Instrument Serif', serif", fontStyle: 'italic' }}>{r.value}</div>
+          <div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 16 }}>
+              {[
+                { label: 'Flood', value: risk.detailedRisk?.floodRisk || 'Low', icon: '🌊' },
+                { label: 'Fire', value: risk.detailedRisk?.fireRisk || 'Low', icon: '🔥' },
+                { label: 'Seismic', value: risk.detailedRisk?.seismicRisk || 'Low', icon: '🌍' },
+                { label: 'Pollution', value: risk.detailedRisk?.pollutionRisk || 'Low', icon: '💨' },
+                { label: 'Noise', value: risk.detailedRisk?.noiseRisk || 'Moderate', icon: '🔊' },
+              ].map((r) => (
+                <div key={r.label} className="liquid-glass" style={{ borderRadius: 14, padding: '12px 14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                    <span style={{ fontSize: 12 }}>{r.icon}</span>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: "'Barlow', sans-serif" }}>{r.label}</div>
                   </div>
-                ))}
-              </div>
+                  <div style={{ fontSize: 15, color: '#ffffff', fontFamily: "'Instrument Serif', serif", fontStyle: 'italic' }}>{r.value}</div>
+                </div>
+              ))}
             </div>
-          )}
+          </div>
         </SectionCard>
       )}
 
       {/* Investment */}
       <SectionCard title="Investment Analysis" icon="📈" delay={300} pdfSection="investment">
-        {isLocked('investment') ? (
-          <LockedSection
-            title="Investment Analysis & ROI"
-            icon="📈"
-            ctaText="Unlock ROI breakdown →"
-            onUnlock={() => onLockedInteraction?.('investment', 'click')}
-          />
-        ) : investment ? (
+        {investment ? (
           <div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 16 }}>
               <StatCard label="Rent Yield" value={`${investment.rentYieldPercent}%`} sub="annual gross" accent="#4ade80" />

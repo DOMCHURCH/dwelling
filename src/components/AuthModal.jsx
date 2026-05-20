@@ -146,7 +146,7 @@ export default function AuthModal({ onAuth, onDemo }) {
       const data = await submitNewPassword(resetToken, newPassword)
       localStorage.setItem('dw_token', data.token)
       sessionStorage.setItem('dw_key_onboarding_seen', '1')
-      onAuth({ id: data.userId, email: data.email, is_pro: data.is_pro })
+      onAuth({ id: data.userId, email: data.email })
     } catch (e) {
       setError(e.message || 'Something went wrong.')
     } finally { setLoading(false) }

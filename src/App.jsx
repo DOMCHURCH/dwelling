@@ -13,7 +13,7 @@ import FeaturesGrid from "./components/FeaturesGrid"
 import DataPartnerships from "./components/DataPartnerships"
 import Stats from "./components/Stats"
 import Testimonials from "./components/Testimonials"
-import About from "./components/Pricing"
+import About from "./components/About"
 import FAQ from "./components/FAQ"
 import MortgageCalculator from "./components/MortgageCalculator"
 import RentalCalculator from "./components/RentalCalculator"
@@ -35,7 +35,6 @@ import {
   getUserApiKey,
   setUserApiKey,
 } from "./lib/localAuth"
-import { useEngagement } from "./lib/useEngagement"
 import UserTypeModal, { getUserType, setUserType } from "./components/UserTypeModal"
 import { useSavedReports } from "./lib/useSavedReports"
 import SavedReportsModal from "./components/SavedReportsModal"
@@ -44,8 +43,7 @@ import AdminPanel from "./components/AdminPanel"
 import PDFExportModal from "./components/PDFExportModal"
 import ExportModal from "./components/ExportModal"
 import BusinessDashboard from "./components/BusinessDashboard"
-import BusinessOnboardingModal from "./components/BusinessOnboardingModal"
-import PaymentsPage from "./components/PaymentsPage"
+import AccountSettings from "./components/AccountSettings"
 
 // Reload once on chunk fetch failure (stale deployment — old HTML references old hashed filenames)
 function lazyWithReload(factory) {
@@ -103,7 +101,6 @@ export default function App() {
   }, [])
 
   const [showDemo, setShowDemo] = useState(false)
-  const [demoTier, setDemoTier] = useState('pro')
   const [showAuthModal, setShowAuthModal] = useState(
     () => !!new URLSearchParams(window.location.search).get("reset_token"),
   )
@@ -120,24 +117,19 @@ export default function App() {
   const [showAdminPanel, setShowAdminPanel] = useState(false)
   const [showPDFExport, setShowPDFExport] = useState(false)
   const [showBusinessDashboard, setShowBusinessDashboard] = useState(false)
-  const [showPaymentsPage, setShowPaymentsPage] = useState(false)
-  const [showBusinessOnboarding, setShowBusinessOnboarding] = useState(false)
+  const [showAccountSettings, setShowAccountSettings] = useState(false)
   const [isTeamOwner, setIsTeamOwner] = useState(false)
   const [pendingJoinToken, setPendingJoinToken] = useState(() => new URLSearchParams(window.location.search).get("join") || null)
   const [compareResultC, setCompareResultC] = useState(null)
   const [comparingModeC, setComparingModeC] = useState(false)
   const [shareLoading, setShareLoading] = useState(false)
   const [shareSuccess, setShareSuccess] = useState(false)
-  // useSavedReports is called below after isPro is defined
 
   // Prevent duplicate in-flight searches for the same normalised address
   const pendingSearchKeyRef = useRef(null)
   // Generation counter — incremented on every new search so stale async results
   // from a previous search never overwrite a newer one (two-tab / rapid-click safety)
   const searchGenerationRef = useRef(0)
-
-  // Engagement tracking (analytics only — does not gate the paywall)
-  const { trackEvent, reset: resetEngagement } = useEngagement({ enabled: !!result })
 
   const scrollTo = (id) => {
     const el = document.getElementById(id)
@@ -169,12 +161,7 @@ export default function App() {
     const u = getCurrentUser()
     if (u) {
       setUser(u)
-      if (u.is_business) {
-        loadTeamOwnerStatus()
-        if (!localStorage.getItem("dw_business_onboarded")) {
-          setTimeout(() => setShowBusinessOnboarding(true), 1000)
-        }
-      }
+      loadTeamOwnerStatus()
     }
     setAuthLoading(false)
 
@@ -205,12 +192,7 @@ export default function App() {
   const handleAuth = async (u) => {
     const fullUser = getCurrentUser() || u
     setUser(fullUser)
-    if (fullUser.is_business) {
-      loadTeamOwnerStatus()
-      if (!localStorage.getItem("dw_business_onboarded")) {
-        setTimeout(() => setShowBusinessOnboarding(true), 800)
-      }
-    }
+    loadTeamOwnerStatus()
     // Handle pending team invite
     if (pendingJoinToken) {
       const token = await getAuthToken()
@@ -361,7 +343,6 @@ export default function App() {
       const reportData = { geo, weather, climate, ai: mergeWithDeterministic(deterministicResult, ai), knownFacts: knownFacts ?? {}, realData, isAreaMode }
       setResult(reportData)
       if (!user) setGuestResult(reportData)
-      resetEngagement()
       if (!getUserType()) setTimeout(() => setShowUserTypeModal(true), 1800)
     } catch (err) {
       if (err.message === "no_key") {
@@ -588,12 +569,7 @@ export default function App() {
     }
   }
 
-  // Everyone is treated as "pro" — all features available to authenticated users
-  const isPro = !!user
-  const isBusiness = false
-
-
-  const { savedReports, saveReport, loadReport, deleteReport, isReportSaved } = useSavedReports(isPro)
+  const { savedReports, saveReport, loadReport, deleteReport, isReportSaved } = useSavedReports()
   const [saveSuccess, setSaveSuccess] = useState(false)
   const autoSavedRef = useRef(null)
 
@@ -607,7 +583,7 @@ export default function App() {
     saveReport(result).then(res => {
       if (res?.success) { setSaveSuccess(true); setTimeout(() => setSaveSuccess(false), 2500) }
     })
-  }, [result, isPro, user])
+  }, [result, user])
 
 
   if (authLoading)
@@ -659,34 +635,6 @@ export default function App() {
               >
                 Dwelling
               </span>
-            </div>
-            <div
-              style={{ display: "flex", alignItems: "center", gap: 8 }}
-            >
-              {['free', 'pro', 'business'].map(tier => (
-                <button
-                  key={tier}
-                  onClick={() => setDemoTier(tier)}
-                  style={{
-                    padding: "6px 14px",
-                    borderRadius: 20,
-                    border: demoTier === tier ? "1px solid rgba(245,158,11,0.5)" : "1px solid rgba(255,255,255,0.1)",
-                    background: demoTier === tier ? "rgba(245,158,11,0.15)" : "transparent",
-                    color: demoTier === tier ? "#fbbf24" : "rgba(255,255,255,0.4)",
-                    fontFamily: "'Barlow',sans-serif",
-                    fontSize: 11,
-                    fontWeight: demoTier === tier ? 600 : 300,
-                    cursor: "pointer",
-                    transition: "all 0.15s",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.08em",
-                  }}
-                  onMouseEnter={e => demoTier !== tier && (e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)")}
-                  onMouseLeave={e => demoTier !== tier && (e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)")}
-                >
-                  {tier === 'free' ? 'Free' : tier === 'pro' ? 'Pro' : 'Business'}
-                </button>
-              ))}
             </div>
             <button
               onClick={() => setShowDemo(false)}
@@ -762,11 +710,8 @@ export default function App() {
             <Dashboard
                 data={DEMO_RESULT}
                 onRecalculate={() => {}}
-                isPro={false}
                 isDemo={true}
-                previewPlan={demoTier}
                 onRunOwn={() => { setShowDemo(false); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
-                onLockedInteraction={() => setShowAuthModal(true)}
               />
           </Suspense>
         </div>
@@ -897,7 +842,7 @@ export default function App() {
         onSignOut={handleSignOut}
         onOpenDashboard={() => setShowBusinessDashboard(true)}
         onOpenAdmin={() => setShowAdminPanel(true)}
-        onOpenPayments={() => setShowPaymentsPage(true)}
+        onOpenPayments={() => setShowAccountSettings(true)}
         onHome={() => {
           setResult(null)
           window.scrollTo({ top: 0, behavior: "smooth" })
@@ -1019,31 +964,28 @@ export default function App() {
                   {saveSuccess ? "★ Saved!" : isReportSaved(result) ? "★ Saved" : "★"}
                 </span>
 
-                {/* Business: HTML Export */}
-                {isBusiness && (
-                  <button
-                    onClick={() => setShowExportModal(true)}
-                    style={{
-                      borderRadius: 40,
-                      padding: "8px 16px",
-                      fontSize: 13,
-                      fontFamily: "'Barlow',sans-serif",
-                      color: "rgba(255,255,255,0.6)",
-                      border: "none",
-                      cursor: "pointer",
-                      background: "rgba(255,255,255,0.06)",
-                      transition: "opacity 0.15s",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 5,
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.75")}
-                    onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
-                    title="Download HTML report"
-                  >
-                    📄 Export HTML
-                  </button>
-                )}
+                <button
+                  onClick={() => setShowExportModal(true)}
+                  style={{
+                    borderRadius: 40,
+                    padding: "8px 16px",
+                    fontSize: 13,
+                    fontFamily: "'Barlow',sans-serif",
+                    color: "rgba(255,255,255,0.6)",
+                    border: "none",
+                    cursor: "pointer",
+                    background: "rgba(255,255,255,0.06)",
+                    transition: "opacity 0.15s",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 5,
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.75")}
+                  onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+                  title="Download HTML report"
+                >
+                  📄 Export HTML
+                </button>
 
 
 
@@ -1243,7 +1185,7 @@ export default function App() {
                   setCompareResult(null)
                   setComparingMode(true)
                 }}
-                onAddC={isPro ? () => setComparingModeC(true) : undefined}
+                onAddC={() => setComparingModeC(true)}
                 onClearC={() => {
                   setCompareResultC(null)
                   setComparingModeC(true)
@@ -1257,7 +1199,6 @@ export default function App() {
 
                 data={result}
                 onRecalculate={handleRecalculate}
-                previewPlan="pro"
                 onShare={user && !result?.isShared ? handleShare : undefined}
                 shareLoading={shareLoading}
                 shareSuccess={shareSuccess}
@@ -1307,17 +1248,11 @@ export default function App() {
       {showExportModal && result && <ExportModal result={result} onClose={() => setShowExportModal(false)} />}
       {showPDFExport && result && <PDFExportModal result={result} onClose={() => setShowPDFExport(false)} />}
       {showBusinessDashboard && <BusinessDashboard onClose={() => setShowBusinessDashboard(false)} user={user} userRecord={null} />}
-      {showPaymentsPage && (
-        <PaymentsPage
-          onClose={() => setShowPaymentsPage(false)}
+      {showAccountSettings && (
+        <AccountSettings
+          onClose={() => setShowAccountSettings(false)}
           user={user}
           isTeamOwner={isTeamOwner}
-        />
-      )}
-      {showBusinessOnboarding && (
-        <BusinessOnboardingModal
-          onClose={() => setShowBusinessOnboarding(false)}
-          onOpenDashboard={() => { setShowBusinessOnboarding(false); setShowBusinessDashboard(true) }}
         />
       )}
       {showDeleteAccount && (

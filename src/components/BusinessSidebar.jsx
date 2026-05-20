@@ -5,9 +5,7 @@ const navItems = [
   { path: "/dashboard", label: "Overview", icon: "◉" },
   { path: "/dashboard/saved", label: "Saved Reports", icon: "◇" },
   { path: "/dashboard/team", label: "Team", icon: "◎" },
-  { path: "/dashboard/api-keys", label: "API Keys", icon: "◆" },
-  { path: "/dashboard/usage", label: "Usage", icon: "▣" },
-  { path: "/dashboard/billing", label: "Workspace", icon: "◈" },
+  { path: "/dashboard/provider", label: "AI Provider", icon: "◆" },
   { path: "/dashboard/settings", label: "Settings", icon: "▧" },
 ]
 

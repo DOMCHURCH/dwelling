@@ -1,6 +1,5 @@
 // api/cerebras.js — BYOK AI proxy
 // Routes user-supplied API keys to the correct provider.
-// No subscription tiers, no quota tracking, no platform key needed.
 
 import { createHmac, timingSafeEqual, createHash } from 'crypto'
 import { getClientIp, apiLimiter, applyLimit } from './_ratelimit.js'
